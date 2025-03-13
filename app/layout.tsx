@@ -2,7 +2,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/navbar";
+import NavWrapper from "@/components/nav-wrapper";
 import { ThemeProvider } from "@/components/theme-provider";
 
 const spaceGrotesk = Space_Grotesk({
@@ -23,9 +23,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={spaceGrotesk.variable}>
-      <body className="font-sans">
+      <body className="font-sans bg-background text-foreground">
         <ThemeProvider attribute="class">
-          <Navbar />
+          <NavWrapper />
           <main>{children}</main>
         </ThemeProvider>
       </body>

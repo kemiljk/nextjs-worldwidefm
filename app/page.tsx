@@ -1,13 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Play, ChevronRight, Volume2, ChevronLeft } from "lucide-react";
+import { ChevronRight, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getRadioShows, getSchedule, transformShowToViewData } from "@/lib/cosmic-service";
+import { getRadioShows, getSchedule, transformShowToViewData, getEditorialHomepage, getArticles } from "@/lib/cosmic-service";
 
 // Keep the mock data for editorial content for now
-import { mockData } from "@/lib/mock-data";
 import ClientSideSelectionWrapper from "@/components/client-side-selection-wrapper";
+import MediaPlayer from "@/components/media-player";
+import EditorialSection from "@/components/editorial/editorial-section";
+import { ArticleObject, WatchAndListenObject, MoodObject } from "@/lib/cosmic-config";
 
 // This is a server component - no need for useState, useEffect etc.
 export default async function Home() {
@@ -101,15 +103,59 @@ export default async function Home() {
   // Make sure we have at least 5 shows for the thumbnails (or less if that's all we have)
   featuredShows = featuredShows.slice(0, 5);
 
-  // Keep using mock data for editorial content
-  const { editorial } = mockData;
+  // Fetch editorial content from Cosmic
+  const editorialResponse = await getEditorialHomepage();
+
+  // Set up default empty arrays/nulls for editorial content
+  let albumOfTheWeek: WatchAndListenObject | null = null;
+  let events: WatchAndListenObject | null = null;
+  let video: WatchAndListenObject | null = null;
+  let articles: ArticleObject[] = [];
+  let moods: MoodObject[] = [];
+
+  // Parse the editorial content if it exists
+  if (editorialResponse.object) {
+    const editorialData = editorialResponse.object;
+
+    // Get the featured content
+    albumOfTheWeek = editorialData.metadata?.featured_album || null;
+    events = editorialData.metadata?.featured_event || null;
+    video = editorialData.metadata?.featured_video || null;
+
+    // Get featured articles and moods
+    if (editorialData.metadata?.featured_articles && Array.isArray(editorialData.metadata.featured_articles) && editorialData.metadata.featured_articles.length > 0) {
+      console.log("Found featured articles in editorial:", editorialData.metadata.featured_articles.length);
+      articles = editorialData.metadata.featured_articles;
+    } else {
+      console.log("No featured articles in editorial, fetching directly");
+    }
+
+    if (editorialData.metadata?.featured_moods && Array.isArray(editorialData.metadata.featured_moods)) {
+      moods = editorialData.metadata.featured_moods;
+    }
+  }
+
+  // If we still don't have articles, fetch them directly
+  if (articles.length === 0) {
+    const articlesResponse = await getArticles({
+      limit: 3,
+      sort: "-metadata.date",
+    });
+
+    if (articlesResponse.objects) {
+      console.log("Fetched articles directly:", articlesResponse.objects.length);
+      articles = articlesResponse.objects;
+    }
+  }
+
+  console.log("Final articles count:", articles.length);
 
   return (
-    <div className="min-h-screen bg-brand-beige">
+    <div className="min-h-screen">
       {/* Main content */}
       <div className="container mx-auto pt-32 pb-32">
         {/* Gradient background for LATER section */}
-        <div className="absolute top-0 bottom-0 right-0 w-1/2 bg-gradient-to-b from-[#F5F2EB] to-transparent z-0" />
+        <div className="absolute top-0 bottom-0 right-0 w-1/2 bg-gradient-to-b from-tan-100 dark:from-black to-transparent z-0" />
 
         {/* NOW and LATER sections */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-0 pb-12 relative z-10">
@@ -124,19 +170,21 @@ export default async function Home() {
 
             <Card className="overflow-hidden border-none shadow-md flex-grow">
               <CardContent className="p-0 relative h-full flex flex-col">
-                <Image src={currentShow?.image || "/placeholder.svg"} alt={currentShow?.title || "Current Show"} width={500} height={400} className="w-full h-full object-cover" />
+                <div className="aspect-square w-full relative">
+                  <Image src={currentShow?.image || "/placeholder.svg"} alt={currentShow?.title || "Current Show"} fill className="object-cover" />
+                </div>
                 <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-black/80 to-transparent p-4 text-white">
                   <div className="flex justify-between items-start">
-                    <div className="max-w-[70%]">
-                      <div className="text-xs font-medium py-1 px-2 bg-black/20 inline-block mb-2">ON NOW</div>
-                      <p className="text-sm opacity-80">{currentShow?.subtitle || ""}</p>
-                      <h3 className="text-2xl font-bold mt-1">{currentShow?.title || "Loading show..."}</h3>
+                    <div className="h-48">
+                      <div className="text-xs font-medium rounded-full py-1 px-2 bg-black/20 inline-block mb-2">ON NOW</div>
+                      <p className="text-sm text-bronze-100">{currentShow?.subtitle || ""}</p>
+                      <h3 className="text-2xl text-bronze-50 font-bold mt-1">{currentShow?.title || "Loading show..."}</h3>
                     </div>
                   </div>
                 </div>
                 <div className="absolute bottom-4 right-4">
-                  <Button className="bg-brand-orange hover:bg-brand-orange/90 text-white rounded-md px-4 py-2 text-sm flex items-center gap-2">
-                    <Play className="h-4 w-4 fill-current" /> Playing Now
+                  <Button className="bg-brand-orange hover:bg-brand-orange/90 text-white px-4 py-2 text-sm flex items-center gap-2">
+                    <Radio className="h-4 w-4 fill-current" /> Playing Now
                   </Button>
                 </div>
               </CardContent>
@@ -145,7 +193,7 @@ export default async function Home() {
             {/* UP NEXT */}
             <div className="mt-6">
               <h3 className="text-xl font-semibold text-brand-orange mb-4">UP NEXT</h3>
-              <div className="border-2 border-dotted border-brand-orange/40 rounded-md p-4 flex items-center justify-between">
+              <div className="border-2 border-dotted border-brand-orange/40 p-4 flex items-center rounded-lg justify-between">
                 <div>
                   <p className="text-sm text-foreground">{upcomingShow?.title || "No upcoming show"}</p>
                 </div>
@@ -160,116 +208,12 @@ export default async function Home() {
           <ClientSideSelectionWrapper featuredShows={featuredShows} />
         </div>
 
-        {/* EDITORIAL section */}
-        <div className="mb-12 bg-brand-blue p-8 rounded-lg z-10">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-white">EDITORIAL</h2>
-            <Link href="/all" className="text-sm text-gray-300 flex items-center hover:text-white transition-colors group">
-              View All <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-            {/* WATCH AND LISTEN */}
-            <div className="md:col-span-6">
-              <h3 className="text-lg font-medium text-gray-300 mb-4">WATCH AND LISTEN</h3>
-
-              <div className="grid grid-cols-2 gap-4">
-                {/* Album of the Week */}
-                <Card className="overflow-hidden border-none shadow-md bg-brand-blue-light">
-                  <CardContent className="p-0 relative">
-                    <div className="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium py-1 px-2 z-10">Album Of The Week</div>
-                    <Image src={editorial.albumOfTheWeek.image || "/placeholder.svg"} alt={editorial.albumOfTheWeek.title} width={300} height={300} className="w-full aspect-square object-cover" />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-3 text-white">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm pr-2">{editorial.albumOfTheWeek.description}</p>
-                        <Button variant="ghost" className="text-white rounded-full p-2 hover:bg-white/20 flex-shrink-0">
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Events */}
-                <Card className="overflow-hidden border-none shadow-md bg-brand-blue-light">
-                  <CardContent className="p-0 relative">
-                    <div className="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium py-1 px-2 z-10">Events</div>
-                    <Image src={editorial.events.image || "/placeholder.svg"} alt={editorial.events.title} width={300} height={300} className="w-full aspect-square object-cover" />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-3 text-white">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm pr-2">{editorial.events.description}</p>
-                        <Button variant="ghost" className="text-white rounded-full p-2 hover:bg-white/20 flex-shrink-0">
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Video - Full width */}
-                <Card className="overflow-hidden border-none shadow-md bg-brand-blue-light col-span-2 mt-4">
-                  <CardContent className="p-0 relative">
-                    <div className="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium py-1 px-2 z-10">Video</div>
-                    <Image src={editorial.video.image || "/placeholder.svg"} alt={editorial.video.title} width={600} height={300} className="w-full aspect-video object-cover" />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-3 text-white">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm pr-2">{editorial.video.description}</p>
-                        <Button variant="ghost" className="text-white rounded-full p-2 hover:bg-white/20 flex-shrink-0">
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
-            {/* READ */}
-            <div className="md:col-span-6">
-              <h3 className="text-lg font-medium text-gray-300 mb-4">READ</h3>
-
-              <div className="grid gap-4">
-                {editorial.articles.map((article, index) => (
-                  <Card key={index} className="overflow-hidden border-none shadow-md bg-brand-blue-light">
-                    <CardContent className="p-0 flex">
-                      <div className="w-1/3">
-                        <Image src={article.image || "/placeholder.svg"} alt={article.title} width={200} height={200} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="w-2/3 p-4">
-                        <div className="text-sm text-gray-300 mb-1">
-                          {article.date} • {article.author}
-                        </div>
-                        <h4 className="text-lg font-bold mb-2 text-white">{article.title}</h4>
-                        <p className="text-sm text-gray-200 line-clamp-3">{article.excerpt}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* EDITORIAL section - now using our component */}
+        <EditorialSection albumOfTheWeek={albumOfTheWeek} events={events} video={video} articles={articles} moods={moods} />
       </div>
 
-      {/* Media player */}
-      <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 max-w-lg w-full bg-[#9DAC97] text-white rounded-lg shadow-lg z-50 flex items-center px-4 py-3">
-        <Button variant="ghost" className="text-white mr-2 hover:bg-white/10">
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex items-center flex-1 mx-2">
-          <div className="w-10 h-10 rounded overflow-hidden mr-3 flex-shrink-0">
-            <Image src={currentShow?.thumbnail || "/placeholder.svg?height=40&width=40"} alt={currentShow?.title || "Now playing"} width={40} height={40} className="w-full h-full object-cover" />
-          </div>
-          <div className="font-medium">{currentShow?.title || "No show playing"}</div>
-        </div>
-        <Button variant="ghost" className="text-white mr-2 hover:bg-white/10">
-          <Volume2 className="h-5 w-5" />
-        </Button>
-        <div className="border-l border-white/20 pl-2 flex items-center gap-2">
-          <Button className="bg-black/20 hover:bg-black/30 text-white">PLAY / STOP</Button>
-        </div>
-      </div>
+      {/* Media player component */}
+      <MediaPlayer currentShow={currentShow} />
     </div>
   );
 }

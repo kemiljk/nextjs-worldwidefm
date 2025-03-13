@@ -1,5 +1,5 @@
 import { createBucketClient } from "@cosmicjs/sdk";
-import { COSMIC_CONFIG, CosmicResponse, RadioShowObject, CategoryObject, ScheduleObject } from "./cosmic-config";
+import { COSMIC_CONFIG, CosmicResponse, RadioShowObject, CategoryObject, ScheduleObject, WatchAndListenObject, ArticleObject, MoodObject } from "./cosmic-config";
 
 // Initialize the Cosmic SDK client
 const cosmic = createBucketClient({
@@ -122,4 +122,161 @@ export function transformShowToViewData(show: RadioShowObject) {
     thumbnail: imageUrl ? `${imageUrl}?w=100&h=100&fit=crop` : "",
     slug: show.slug,
   };
+}
+
+/**
+ * Get navigation data
+ */
+export async function getNavigation(slug: string = "navigation"): Promise<any> {
+  try {
+    const response = await cosmic.objects
+      .findOne({
+        type: "navigation",
+        slug,
+      })
+      .props("slug,title,metadata")
+      .depth(1);
+
+    return response;
+  } catch (error) {
+    console.error(`Error fetching navigation data:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get editorial homepage data
+ */
+export async function getEditorialHomepage(slug: string = "editorial"): Promise<any> {
+  try {
+    const response = await cosmic.objects
+      .findOne({
+        type: "editorial-homepage",
+        slug,
+      })
+      .props("slug,title,metadata")
+      .depth(2); // Increased depth to get nested objects
+
+    return response;
+  } catch (error) {
+    console.error(`Error fetching editorial homepage data:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get watch and listen items
+ */
+export async function getWatchAndListenItems(
+  params: {
+    limit?: number;
+    skip?: number;
+    sort?: string;
+    status?: string;
+  } = {}
+): Promise<CosmicResponse<WatchAndListenObject>> {
+  try {
+    const response = await cosmic.objects
+      .find({
+        type: "watch-and-listens",
+        status: params.status || "published",
+      })
+      .props("slug,title,metadata,type")
+      .limit(params.limit || 10)
+      .skip(params.skip || 0)
+      .sort(params.sort || "-created_at")
+      .depth(1);
+
+    return response;
+  } catch (error) {
+    console.error("Error fetching watch and listen items:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get articles
+ */
+export async function getArticles(
+  params: {
+    limit?: number;
+    skip?: number;
+    sort?: string;
+    status?: string;
+    featured?: boolean;
+  } = {}
+): Promise<CosmicResponse<ArticleObject>> {
+  try {
+    let query: any = {
+      type: "articles",
+      status: params.status || "published",
+    };
+
+    // If featured flag is provided, add it to the query
+    if (params.featured !== undefined) {
+      console.log("Adding featured filter to articles query:", params.featured);
+      query = {
+        ...query,
+        "metadata.featured_on_homepage": params.featured,
+      };
+    }
+
+    console.log("Article query:", JSON.stringify(query));
+
+    const response = await cosmic.objects
+      .find(query)
+      .props("slug,title,metadata,type")
+      .limit(params.limit || 10)
+      .skip(params.skip || 0)
+      .sort(params.sort || "-metadata.date")
+      .depth(2); // Depth of 2 to get author information
+
+    console.log(`Fetched ${response.objects?.length || 0} articles`);
+
+    return response;
+  } catch (error) {
+    console.error("Error fetching articles:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get moods
+ */
+export async function getMoods(
+  params: {
+    limit?: number;
+    skip?: number;
+    sort?: string;
+    status?: string;
+    featured?: boolean;
+  } = {}
+): Promise<CosmicResponse<MoodObject>> {
+  try {
+    let query: any = {
+      type: "moods",
+      status: params.status || "published",
+    };
+
+    // If featured flag is provided, add it to the query
+    if (params.featured !== undefined) {
+      query = {
+        ...query,
+        "metadata.featured_on_homepage": params.featured,
+      };
+    }
+
+    const response = await cosmic.objects
+      .find(query)
+      .props("slug,title,metadata,type")
+      .limit(params.limit || 10)
+      .skip(params.skip || 0)
+      .sort(params.sort || "-created_at")
+      .depth(1);
+
+    return response;
+  } catch (error) {
+    console.error("Error fetching moods:", error);
+    throw error;
+  }
 }
