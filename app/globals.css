@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Mapping to match our Figma color system */
+    --background: 38 33% 97%; /* Maps to tan-50 */
+    --foreground: 201 13% 16%; /* Maps to sky-800 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 201 13% 16%; /* Maps to sky-800 */
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 201 13% 16%; /* Maps to sky-800 */
+
+    --primary: 33 80% 51%; /* Maps to bronze-500 */
+    --primary-foreground: 38 33% 97%; /* Maps to tan-50 */
+
+    --secondary: 120 4% 88%; /* Maps to green-50 */
+    --secondary-foreground: 204 7% 15%; /* Maps to sky-900 */
+
+    --muted: 120 4% 88%; /* Maps to green-50 */
+    --muted-foreground: 25 7% 47%; /* Maps to tan-500 */
+
+    --accent: 120 4% 88%; /* Maps to green-50 */
+    --accent-foreground: 204 7% 15%; /* Maps to sky-900 */
+
+    --destructive: 5 70% 47%; /* Maps to crimson-500 */
+    --destructive-foreground: 38 33% 97%; /* Maps to tan-50 */
+
+    --border: 38 12% 90%; /* Lighter version of tan-50 */
+    --input: 38 12% 90%; /* Lighter version of tan-50 */
+    --ring: 33 80% 51%; /* Maps to bronze-500 */
+
+    --radius: 0.5rem;
+
+    /* Custom brand colors - mapping to our new variables */
+    --brand-orange: 33 100% 50%; /* Maps to bronze-400 */
+    --brand-beige: 38 33% 97%; /* Maps to tan-50 */
+    --brand-blue: 201 13% 27%; /* Maps to sky-700 */
+    --brand-blue-dark: 201 13% 24%; /* Maps to sky-800 */
+    --brand-blue-light: 201 13% 35%; /* Maps to sky-600 */
+    --brand-green: 120 15% 60%; /* Maps to green-400 */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-brand-beige text-foreground;
+  }
+}
+
+/* Custom utilities */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
