@@ -1,7 +1,6 @@
 export const COSMIC_CONFIG = {
   bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "",
-  readKey: process.env.COSMIC_READ_KEY || "",
-  apiUrl: "https://api.cosmicjs.com/v2",
+  readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY || "",
 };
 
 // Types based on the provided API responses
@@ -18,6 +17,7 @@ export interface CategoryObject {
 }
 
 export interface RadioShowObject {
+  id: string;
   slug: string;
   title: string;
   type: string;

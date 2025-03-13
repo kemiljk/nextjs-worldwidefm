@@ -1,76 +1,113 @@
-"use client";
-
-import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Play, ChevronRight, Volume2, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useRadioShows, useSchedule } from "@/lib/hooks";
-import { CosmicDebugger } from "@/components/CosmicDebugger";
+import { getRadioShows, getSchedule, transformShowToViewData } from "@/lib/cosmic-service";
 
 // Keep the mock data for editorial content for now
 import { mockData } from "@/lib/mock-data";
+import ClientSideSelectionWrapper from "@/components/client-side-selection-wrapper";
 
-export default function Home() {
-  // Use real data from Cosmic CMS for radio shows and schedule
-  const { shows: featuredShows, loading: showsLoading, error: showsError } = useRadioShows(5);
-  const { currentShow, upcomingShow, loading: scheduleLoading, error: scheduleError } = useSchedule();
+// This is a server component - no need for useState, useEffect etc.
+export default async function Home() {
+  // Get the schedule data statically
+  const scheduleResponse = await getSchedule();
+
+  // Determine the current show and upcoming show from the schedule
+  let currentShow = null;
+  let upcomingShow = null;
+  let currentShowId = null;
+  let showsToExclude: string[] = [];
+
+  // Check if we have a schedule object in the response
+  if (scheduleResponse.objects && scheduleResponse.objects.length > 0) {
+    const scheduleObject = scheduleResponse.objects[0];
+
+    // Check if there are shows in the schedule
+    if (scheduleObject.metadata && scheduleObject.metadata.shows && Array.isArray(scheduleObject.metadata.shows) && scheduleObject.metadata.shows.length > 0) {
+      // Get the first show from the schedule as the current show
+      const currentShowData = scheduleObject.metadata.shows[0];
+
+      if (currentShowData) {
+        const imageUrl = currentShowData.metadata?.image?.imgix_url || "/placeholder.svg";
+        currentShowId = currentShowData.id;
+        // Add to exclusion list for the API query
+        if (currentShowId) {
+          showsToExclude.push(currentShowId);
+        }
+
+        currentShow = {
+          id: currentShowData.id,
+          title: currentShowData.title || "Unknown Show",
+          subtitle: currentShowData.metadata?.subtitle || "",
+          description: currentShowData.metadata?.description || "",
+          image: imageUrl,
+          thumbnail: imageUrl ? `${imageUrl}?w=100&h=100&fit=crop` : "/placeholder.svg",
+          slug: currentShowData.slug || "",
+        };
+      }
+
+      // Get the second show from the schedule as the upcoming show
+      if (scheduleObject.metadata.shows.length > 1) {
+        const upcomingShowData = scheduleObject.metadata.shows[1];
+
+        if (upcomingShowData) {
+          const imageUrl = upcomingShowData.metadata?.image?.imgix_url || "/placeholder.svg";
+          // We could also exclude the upcoming show if desired
+          // if (upcomingShowData.id) {
+          //   showsToExclude.push(upcomingShowData.id);
+          // }
+
+          upcomingShow = {
+            id: upcomingShowData.id,
+            title: upcomingShowData.title || "Unknown Show",
+            subtitle: upcomingShowData.metadata?.subtitle || "",
+            description: upcomingShowData.metadata?.description || "",
+            image: imageUrl,
+            thumbnail: imageUrl ? `${imageUrl}?w=100&h=100&fit=crop` : "/placeholder.svg",
+            slug: upcomingShowData.slug || "",
+          };
+        }
+      }
+    }
+  }
+
+  // Fetch shows for the LATER section - with exclusion of current show at the API level
+  const showsResponse = await getRadioShows({
+    limit: 8,
+    sort: "-order",
+    exclude_ids: showsToExclude.length > 0 ? showsToExclude : undefined,
+  });
+
+  let featuredShows = showsResponse.objects ? showsResponse.objects.map(transformShowToViewData) : [];
+
+  // If we couldn't exclude at the API level or just as a safety check, filter again
+  if (currentShowId && featuredShows.some((show) => show.id === currentShowId)) {
+    featuredShows = featuredShows.filter((show) => show.id !== currentShowId);
+  }
+
+  // Handle fallback to featured shows if there's no schedule data
+  if (!currentShow && featuredShows.length > 0) {
+    currentShow = featuredShows[0];
+    featuredShows = featuredShows.slice(1);
+
+    if (featuredShows.length > 0) {
+      upcomingShow = featuredShows[0];
+      featuredShows = featuredShows.slice(1);
+    }
+  }
+
+  // Make sure we have at least 5 shows for the thumbnails (or less if that's all we have)
+  featuredShows = featuredShows.slice(0, 5);
 
   // Keep using mock data for editorial content
   const { editorial } = mockData;
-
-  // State for the selected show
-  const [selectedShow, setSelectedShow] = useState(featuredShows[0]);
-
-  // Update selected show when featured shows load
-  useEffect(() => {
-    if (featuredShows.length > 0) {
-      setSelectedShow(featuredShows[0]);
-    }
-  }, [featuredShows]);
-
-  // Show errors if any
-  if (showsError || scheduleError) {
-    return (
-      <div className="min-h-screen bg-brand-beige">
-        <div className="container mx-auto pt-32 pb-32">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-6">
-            <h2 className="text-lg font-semibold mb-2">Error Loading Data</h2>
-            <p>{showsError?.message || scheduleError?.message}</p>
-          </div>
-
-          {/* Add debugger to help diagnose issues */}
-          <CosmicDebugger />
-
-          {/* Display mock data as fallback */}
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md mt-4">
-            <p className="text-yellow-800">Using mock data as fallback. Please check your Cosmic CMS configuration.</p>
-          </div>
-
-          {/* Continue with the page using mock data */}
-          {/* ... rest of your page */}
-        </div>
-      </div>
-    );
-  }
-
-  // Loading state
-  if (showsLoading || scheduleLoading) {
-    return (
-      <div className="min-h-screen bg-brand-beige flex items-center justify-center">
-        <p className="text-xl text-brand-orange animate-pulse">Loading...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-brand-beige">
       {/* Main content */}
       <div className="container mx-auto pt-32 pb-32">
-        {/* Temporarily add the debugger at the top of the page */}
-        {process.env.NODE_ENV !== "production" && <CosmicDebugger />}
-
         {/* Gradient background for LATER section */}
         <div className="absolute top-0 bottom-0 right-0 w-1/2 bg-gradient-to-b from-[#F5F2EB] to-transparent z-0" />
 
@@ -119,66 +156,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* LATER section */}
-          <div className="flex flex-col h-full pl-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-brand-orange">LATER</h2>
-              <Link href="/archive" className="text-sm text-muted-foreground flex items-center group">
-                View Archive <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-            </div>
-
-            <Card className="overflow-hidden border-none shadow-md flex-grow">
-              <CardContent className="p-0 relative h-full flex flex-col">
-                <Image src={selectedShow?.image || "/placeholder.svg"} alt={selectedShow?.title || "Selected Show"} width={500} height={400} className="w-full h-full object-cover" />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 text-white">
-                  <div className="flex justify-between items-end">
-                    <p className="text-sm max-w-[70%]">{selectedShow?.description || ""}</p>
-                    <Button className="bg-brand-orange hover:bg-brand-orange/90 text-white rounded-md px-4 py-2 text-sm flex items-center gap-2">
-                      <Play className="h-4 w-4 fill-current" /> Listen
-                    </Button>
-                  </div>
-                </div>
-                <div className="absolute top-1/2 left-4 transform -translate-y-1/2">
-                  <Button
-                    variant="outline"
-                    className="bg-white/20 backdrop-blur-sm text-white rounded-full p-2 hover:bg-white/30"
-                    onClick={() => {
-                      const currentIndex = featuredShows.findIndex((show) => show === selectedShow);
-                      const prevIndex = (currentIndex - 1 + featuredShows.length) % featuredShows.length;
-                      setSelectedShow(featuredShows[prevIndex]);
-                    }}
-                    disabled={featuredShows.length <= 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="absolute top-1/2 right-4 transform -translate-y-1/2">
-                  <Button
-                    variant="outline"
-                    className="bg-white/20 backdrop-blur-sm text-white rounded-full p-2 hover:bg-white/30"
-                    onClick={() => {
-                      const currentIndex = featuredShows.findIndex((show) => show === selectedShow);
-                      const nextIndex = (currentIndex + 1) % featuredShows.length;
-                      setSelectedShow(featuredShows[nextIndex]);
-                    }}
-                    disabled={featuredShows.length <= 1}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Thumbnail grid */}
-            <div className="grid grid-cols-5 gap-2 mt-6">
-              {featuredShows.map((show, index) => (
-                <button key={index} className={`${selectedShow === show ? "border-2 border-dotted border-brand-orange" : ""} rounded-md overflow-hidden focus:outline-none focus:ring-2 focus:ring-brand-orange`} onClick={() => setSelectedShow(show)}>
-                  <Image src={show.thumbnail || "/placeholder.svg"} alt={show.title} width={100} height={100} className="w-full aspect-square object-cover" />
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* LATER section - Wrapped in client-side component for interactivity */}
+          <ClientSideSelectionWrapper featuredShows={featuredShows} />
         </div>
 
         {/* EDITORIAL section */}

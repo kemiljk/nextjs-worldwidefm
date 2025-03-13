@@ -49,7 +49,7 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-2 rounded-xl border border-tan-100 left-0 right-0 z-50 transition-all duration-300 bg-brand-beige shadow-2xl/40 mx-8">
-      <div className="container mx-auto px-4">
+      <div className="mx-auto px-4">
         <div className="flex items-center justify-between py-4">
           <Link href="/" className="flex items-center">
             <Logo />
