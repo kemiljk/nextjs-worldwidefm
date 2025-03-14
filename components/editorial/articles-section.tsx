@@ -29,7 +29,7 @@ export default function ArticlesSection({ title, articles }: ArticlesSectionProp
       <div className="grid gap-4">
         {articles.map((article) => (
           <Link key={article.id} href={`/articles/${article.slug}`}>
-            <Card className="overflow-hidden border-none shadow-md bg-brand-blue-light hover:bg-brand-blue-light/90 transition-colors">
+            <Card className="mix-blend-luminosity hover:mix-blend-normal overflow-hidden border-none shadow-md bg-brand-blue-light hover:bg-brand-blue-light/90">
               <CardContent className="p-0 flex">
                 <div className="w-1/3">
                   <Image src={article.metadata.image?.imgix_url || "/placeholder.svg"} alt={article.title} width={200} height={200} className="w-full h-full object-cover" />

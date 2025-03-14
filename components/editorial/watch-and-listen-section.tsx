@@ -20,7 +20,7 @@ export default function WatchAndListenSection({ title, albumOfTheWeek, events, v
       <div className="grid grid-cols-2 gap-4">
         {/* Album of the Week */}
         {albumOfTheWeek && (
-          <Card className="overflow-hidden border-none shadow-md bg-brand-blue-light">
+          <Card className="mix-blend-luminosity hover:mix-blend-normal overflow-hidden border-none shadow-md bg-brand-blue-light">
             <CardContent className="p-0 relative">
               <div className="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium py-1 px-2 z-10">{albumOfTheWeek.title}</div>
               <Image src={albumOfTheWeek.metadata.image.imgix_url || "/placeholder.svg"} alt={albumOfTheWeek.title} width={300} height={300} className="w-full aspect-square object-cover" />
@@ -40,7 +40,7 @@ export default function WatchAndListenSection({ title, albumOfTheWeek, events, v
 
         {/* Events */}
         {events && (
-          <Card className="overflow-hidden border-none shadow-md bg-brand-blue-light">
+          <Card className="mix-blend-luminosity hover:mix-blend-normal overflow-hidden border-none shadow-md bg-brand-blue-light">
             <CardContent className="p-0 relative">
               <div className="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium py-1 px-2 z-10">{events.title}</div>
               <Image src={events.metadata.image.imgix_url || "/placeholder.svg"} alt={events.title} width={300} height={300} className="w-full aspect-square object-cover" />
@@ -60,7 +60,7 @@ export default function WatchAndListenSection({ title, albumOfTheWeek, events, v
 
         {/* Video - Full width */}
         {video && (
-          <Card className="overflow-hidden border-none shadow-md bg-brand-blue-light col-span-2 mt-4">
+          <Card className="mix-blend-luminosity hover:mix-blend-normal overflow-hidden border-none shadow-md bg-brand-blue-light col-span-2 mt-4">
             <CardContent className="p-0 relative">
               <div className="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium py-1 px-2 z-10">{video.title}</div>
               <Image src={video.metadata.image.imgix_url || "/placeholder.svg"} alt={video.title} width={600} height={300} className="w-full aspect-video object-cover" />

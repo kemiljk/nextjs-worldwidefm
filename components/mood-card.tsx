@@ -29,15 +29,8 @@ const colorMap: { [key: string]: { r: number; g: number; b: number } } = {
   "green-500": { r: 111, g: 130, b: 103 },
 };
 
-// Define gradient configurations
-const gradientConfigs = [
-  { from: "sky-700", to: "sky-500" },
-  { from: "tan-100", to: "tan-400" },
-  { from: "bronze-50", to: "bronze-300" },
-  { from: "crimson-400", to: "crimson-600" },
-  { from: "gray-300", to: "gray-700" },
-  { from: "green-200", to: "green-500" },
-];
+// Define card background classes
+const cardBackgrounds = [{ bgClass: "bg-gradient-to-r from-sky-700 to-sky-500" }, { bgClass: "bg-gradient-to-r from-tan-100 to-tan-400" }, { bgClass: "bg-gradient-to-r from-bronze-50 to-bronze-300" }, { bgClass: "bg-gradient-to-r from-crimson-400 to-crimson-600" }, { bgClass: "bg-gradient-to-r from-gray-300 to-gray-700" }, { bgClass: "bg-gradient-to-r from-green-200 to-green-500" }];
 
 // Calculate luminance of a color using WCAG formula
 function getLuminance(color: { r: number; g: number; b: number }): number {
@@ -68,25 +61,35 @@ function getTextColor(fromColor: string, toColor: string): string {
   return avgLuminance > 0.5 ? "text-gray-800" : "text-white";
 }
 
-// Generate gradient configuration for a mood
-function getGradientConfig(mood: MoodObject): { gradient: string; textColor: string } {
+// Get card configuration for a mood
+function getCardConfig(mood: MoodObject): { bgClass: string; textColor: string } {
   // Use the first character of the mood slug as a simple hash
-  const index = mood.slug.charCodeAt(0) % gradientConfigs.length;
-  const config = gradientConfigs[index];
+  const index = mood.slug.charCodeAt(0) % cardBackgrounds.length;
+  const bgConfig = cardBackgrounds[index];
+
+  // Extract from/to colors from the bgClass string
+  const fromMatch = bgConfig.bgClass.match(/from-(\S+)/);
+  const toMatch = bgConfig.bgClass.match(/to-(\S+)/);
+
+  const fromColor = fromMatch ? fromMatch[1] : "sky-700";
+  const toColor = toMatch ? toMatch[1] : "sky-500";
 
   return {
-    gradient: `from-${config.from} to-${config.to}`,
-    textColor: getTextColor(config.from, config.to),
+    bgClass: bgConfig.bgClass,
+    textColor: getTextColor(fromColor, toColor),
   };
 }
 
-// Alternative gradient patterns - can be used for more variety
-function getPatternClass(mood: MoodObject): string {
-  const patterns = ["bg-gradient-to-r", "bg-gradient-to-br", "bg-gradient-to-tr"];
+// Create alternative pattern for a mood (direction variation)
+function getPatternVariation(mood: MoodObject, baseClass: string): string {
+  const directions = ["bg-gradient-to-r", "bg-gradient-to-br", "bg-gradient-to-tr"];
 
   // Use the second character as a hash for pattern direction
-  const patternIndex = (mood.slug.length > 1 ? mood.slug.charCodeAt(1) : 0) % patterns.length;
-  return patterns[patternIndex];
+  const dirIndex = (mood.slug.length > 1 ? mood.slug.charCodeAt(1) : 0) % directions.length;
+  const direction = directions[dirIndex];
+
+  // Replace the direction in the base class
+  return baseClass.replace(/bg-gradient-to-\w+/, direction);
 }
 
 interface MoodCardProps {
@@ -95,12 +98,28 @@ interface MoodCardProps {
 }
 
 export default function MoodCard({ mood, className }: MoodCardProps) {
-  const { gradient, textColor } = getGradientConfig(mood);
-  const patternClass = getPatternClass(mood);
+  const { bgClass, textColor } = getCardConfig(mood);
+  const finalBgClass = getPatternVariation(mood, bgClass);
 
   return (
-    <Link href={`/moods/${mood.slug}`} className={cn("flex-shrink-0 transition-all duration-300", "px-6 py-4 rounded-lg font-medium min-w-[160px]", "flex items-center justify-center text-lg shadow-md", "hover:shadow-lg hover:scale-105", patternClass, gradient, textColor, className)}>
-      <span className={cn("drop-shadow-sm", textColor === "text-white" ? "drop-shadow-md" : "")}>{mood.title}</span>
+    <Link
+      href={`/moods/${mood.slug}`}
+      className={cn(
+        // Base styles
+        "flex-shrink-0 transition-all duration-300",
+        "px-6 py-4 rounded-lg font-medium min-w-[160px]",
+        "flex items-center justify-center text-lg shadow-md",
+
+        // Background gradient - must come before other classes that might override it
+        finalBgClass,
+
+        // Additional styles
+        "hover:shadow-2xl hover:scale-105",
+        textColor,
+        className
+      )}
+    >
+      <span className={cn("shadow-sm", textColor === "text-white" ? "shadow-md" : "")}>{mood.title}</span>
     </Link>
   );
 }

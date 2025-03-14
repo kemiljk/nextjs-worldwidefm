@@ -36,7 +36,7 @@ export default function Navbar({ navItems }: NavbarProps) {
   }, []);
 
   return (
-    <header className="fixed top-2 rounded-xl border border-tan-100 dark:border-tan-800 left-0 right-0 z-50 transition-all duration-300 bg-background shadow-2xl shadow-tan-50 dark:shadow-tan-900 mx-8">
+    <header className="fixed top-2 rounded-xl border border-tan-100 dark:border-tan-800 left-0 right-0 z-50 transition-all duration-300 bg-background shadow-2xl shadow-tan-900/20 dark:shadow-tan-900 mx-8">
       <div className="mx-auto px-4">
         <div className="flex items-center justify-between py-4">
           <Link href="/" className="flex items-center">

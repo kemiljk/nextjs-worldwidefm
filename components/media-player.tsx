@@ -58,7 +58,7 @@ export default function MediaPlayer({ currentShow }: MediaPlayerProps) {
   };
 
   return (
-    <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 ${isExpanded ? "max-w-lg" : "max-w-[6.7rem]"} w-full bg-green-300 dark:bg-green-700 text-white rounded-lg shadow-2xl shadow-green-500 dark:shadow-green-900 z-50 flex items-center px-4 py-3 transition-all duration-300`}>
+    <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 ${isExpanded ? "max-w-lg" : "max-w-[6.7rem]"} w-full bg-green-300 dark:bg-green-700 text-white rounded-lg shadow-2xl shadow-green-900/30 dark:shadow-green-900 z-50 flex items-center px-4 py-3 transition-all duration-300`}>
       <Button variant="ghost" className="text-white hover:bg-white/10 p-2 mr-2 flex-shrink-0" onClick={toggleExpanded}>
         {isExpanded ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
       </Button>
