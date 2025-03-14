@@ -47,7 +47,7 @@ export default function ClientSideSelectionWrapper({ featuredShows }: ClientSide
     return (
       <div className="flex flex-col h-full pl-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-crimson-500">LATER</h2>
+          <h2 className="text-xl font-medium text-crimson-500">LATER</h2>
           <Link href="/archive" className="text-sm text-muted-foreground flex items-center group">
             View Archive <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
           </Link>
@@ -67,7 +67,7 @@ export default function ClientSideSelectionWrapper({ featuredShows }: ClientSide
   return (
     <div className="flex flex-col h-full pl-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-crimson-500">LATER</h2>
+        <h2 className="text-xl font-medium text-crimson-500">LATER</h2>
         <Link href="/archive" className="text-sm text-muted-foreground flex items-center group">
           View Archive <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
         </Link>

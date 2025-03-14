@@ -37,7 +37,7 @@ export default async function EditorialPage() {
     <div className="min-h-screen bg-sky-700 dark:bg-sky-900">
       <div className="container mx-auto pt-32 pb-32">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-white">Editorial</h1>
+          <h1 className="text-3xl font-medium text-white">Editorial</h1>
           <div className="flex items-center gap-2 text-sm text-white/70">
             <Link href="/" className="hover:text-brand-orange transition-colors">
               Home
@@ -51,7 +51,7 @@ export default async function EditorialPage() {
         {moods.length > 0 && (
           <div className="mb-16">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Explore by Mood</h2>
+              <h2 className="text-2xl font-medium text-white">Explore by Mood</h2>
               <Link href="/moods" className="text-sm text-brand-orange hover:underline flex items-center">
                 View All Moods <ChevronRight className="h-4 w-4 ml-1" />
               </Link>
@@ -78,7 +78,7 @@ export default async function EditorialPage() {
 
         {/* Watch and Listen Section */}
         <div className="mb-12">
-          <h2 className="text-2xl font-bold mb-6 text-white">Watch and Listen</h2>
+          <h2 className="text-2xl font-medium mb-6 text-white">Watch and Listen</h2>
 
           {/* Featured Watch & Listen - 3 main items in a row */}
           {(albumOfTheWeek || events || video) && (
@@ -143,7 +143,7 @@ export default async function EditorialPage() {
                       <Image src={item.metadata.image.imgix_url || "/placeholder.svg"} alt={item.title} fill className="object-cover" />
                     </div>
                     <div className="p-4">
-                      <h3 className="font-bold mb-2">{item.title}</h3>
+                      <h3 className="font-medium mb-2">{item.title}</h3>
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{item.metadata.description}</p>
                       <Link href={item.metadata.link} className="text-brand-orange text-sm font-medium flex items-center">
                         View <ChevronRight className="h-4 w-4 ml-1" />
@@ -159,7 +159,7 @@ export default async function EditorialPage() {
         {/* Articles Section */}
         {articles.length > 0 && (
           <div>
-            <h2 className="text-2xl font-bold mb-6 text-white">Articles</h2>
+            <h2 className="text-2xl font-medium mb-6 text-white">Articles</h2>
 
             {/* Featured article - larger format */}
             {articles.length > 0 && (
@@ -173,7 +173,7 @@ export default async function EditorialPage() {
                       <div className="text-sm text-muted-foreground mb-2">
                         {formatDate(articles[0].metadata.date)} • {articles[0].metadata.author?.title || "Unknown Author"}
                       </div>
-                      <h3 className="text-2xl font-bold mb-3">{articles[0].title}</h3>
+                      <h3 className="text-2xl font-medium mb-3">{articles[0].title}</h3>
                       <p className="text-muted-foreground mb-6 line-clamp-3">{articles[0].metadata.excerpt}</p>
                       <Link href={`/articles/${articles[0].slug}`} className="mt-auto text-brand-orange font-medium flex items-center">
                         Read Article <ChevronRight className="h-4 w-4 ml-1" />
@@ -198,7 +198,7 @@ export default async function EditorialPage() {
                           <div className="text-sm text-muted-foreground mb-2">
                             {formatDate(article.metadata.date)} • {article.metadata.author?.title || "Unknown Author"}
                           </div>
-                          <h3 className="text-xl font-semibold mb-2">{article.title}</h3>
+                          <h3 className="text-xl font-medium mb-2">{article.title}</h3>
                           <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{article.metadata.excerpt}</p>
                           <div className="mt-auto text-brand-orange font-medium text-sm flex items-center">
                             Read More <ChevronRight className="h-4 w-4 ml-1" />

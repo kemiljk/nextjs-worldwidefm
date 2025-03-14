@@ -41,7 +41,7 @@ export default async function SchedulePage() {
             <ChevronRight className="h-3 w-3" />
             <span className="text-foreground">Schedule</span>
           </div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Weekly Schedule</h1>
+          <h1 className="text-4xl font-medium text-foreground mb-2">Weekly Schedule</h1>
           <p className="text-lg text-muted-foreground">Tune in to our shows throughout the week.</p>
         </div>
 
@@ -49,7 +49,7 @@ export default async function SchedulePage() {
         {sortedDays.length > 0 ? (
           sortedDays.map((day) => (
             <div key={day} className="mb-16">
-              <h2 className="text-2xl font-bold mb-5 text-crimson uppercase tracking-wide border-b border-crimson/20 pb-2">{day}</h2>
+              <h2 className="text-2xl font-medium mb-5 text-crimson uppercase tracking-wide border-b border-crimson/20 pb-2">{day}</h2>
               <div className="bg-brand-beige overflow-hidden">
                 {groupedSchedule[day].map((show, index) => (
                   <div key={index} className={`flex border-b border-gray-200 ${index === groupedSchedule[day].length - 1 ? "border-b-0" : ""} hover:bg-white/50 transition-colors`}>
@@ -68,7 +68,7 @@ export default async function SchedulePage() {
 
                       {/* Show info */}
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-gray-900">{show.title || "Upcoming Show"}</h3>
+                        <h3 className="text-xl font-medium text-gray-900">{show.title || "Upcoming Show"}</h3>
                         <p className="text-base text-gray-500 mt-1 line-clamp-1">{show.metadata?.subtitle || ""}</p>
                         {show.metadata?.duration && <p className="text-sm text-crimson mt-1">{show.metadata.duration}</p>}
                       </div>

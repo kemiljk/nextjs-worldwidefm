@@ -58,7 +58,7 @@ export default async function ShowPage({ params }: { params: { slug: string } })
             </div>
           </div>
           <div className="lg:col-span-7">
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">{show.title}</h1>
+            <h1 className="text-3xl md:text-4xl font-medium mb-2">{show.title}</h1>
             <p className="text-xl text-brand-orange mb-6">{show.metadata?.subtitle || ""}</p>
 
             <div className="prose max-w-none mb-8">
@@ -109,7 +109,7 @@ export default async function ShowPage({ params }: { params: { slug: string } })
         {/* Related shows section */}
         {relatedShows.length > 0 && (
           <div>
-            <h2 className="text-2xl font-bold mb-6">You Might Also Like</h2>
+            <h2 className="text-2xl font-medium mb-6">You Might Also Like</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {relatedShows.map((relatedShow, index) => (
                 <Link href={`/shows/${relatedShow.slug}`} key={index}>
@@ -117,7 +117,7 @@ export default async function ShowPage({ params }: { params: { slug: string } })
                     <div className="aspect-square relative rounded-lg overflow-hidden mb-3">
                       <Image src={relatedShow.metadata?.image?.imgix_url || "/placeholder.svg"} alt={relatedShow.title} fill className="object-cover transition-transform group-hover:scale-105" />
                     </div>
-                    <h3 className="font-bold group-hover:text-brand-orange transition-colors">{relatedShow.title}</h3>
+                    <h3 className="font-medium group-hover:text-brand-orange transition-colors">{relatedShow.title}</h3>
                     <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{relatedShow.metadata?.subtitle || ""}</p>
                   </div>
                 </Link>

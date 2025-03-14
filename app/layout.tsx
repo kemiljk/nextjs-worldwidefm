@@ -1,19 +1,21 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { Space_Grotesk } from "next/font/google";
+import ABCDiatype_SemiMono from "next/font/local";
 import "./globals.css";
 import NavWrapper from "@/components/nav-wrapper";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
+const sans = ABCDiatype_SemiMono({
+  src: "/fonts/ABCDiatypeSemi-MonoVariable-Trial.woff2",
+  variable: "--font-sans",
+  style: "normal",
+  display: "swap",
+  weight: "400 500 600 700 800 900",
 });
 
 export const metadata: Metadata = {
-  title: "Worldwide Radio",
-  description: "Modern radio streaming platform",
-  generator: "v0.dev",
+  title: "Worldwide FM",
+  description: "Worldwide FM",
 };
 
 export default function RootLayout({
@@ -22,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={spaceGrotesk.variable}>
+    <html lang="en" className={sans.variable}>
       <body className="font-sans bg-background text-foreground">
         <ThemeProvider attribute="class">
           <NavWrapper />

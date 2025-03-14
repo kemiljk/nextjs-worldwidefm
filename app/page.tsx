@@ -162,7 +162,7 @@ export default async function Home() {
           {/* NOW section */}
           <div className="flex flex-col h-full pr-8">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-brand-orange">NOW</h2>
+              <h2 className="text-xl font-medium text-brand-orange">NOW</h2>
               <Link href="/schedule" className="text-sm text-muted-foreground flex items-center group">
                 View Schedule <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
               </Link>
@@ -178,7 +178,7 @@ export default async function Home() {
                     <div className="h-48">
                       <div className="text-xs font-medium rounded-full py-1 px-2 bg-black/20 inline-block mb-2">ON NOW</div>
                       <p className="text-sm text-bronze-100">{currentShow?.subtitle || ""}</p>
-                      <h3 className="text-2xl text-bronze-50 font-bold mt-1">{currentShow?.title || "Loading show..."}</h3>
+                      <h3 className="text-2xl text-bronze-50 font-medium mt-1">{currentShow?.title || "Loading show..."}</h3>
                     </div>
                   </div>
                 </div>
@@ -192,7 +192,7 @@ export default async function Home() {
 
             {/* UP NEXT */}
             <div className="mt-6">
-              <h3 className="text-xl font-semibold text-brand-orange mb-4">UP NEXT</h3>
+              <h3 className="text-xl font-medium text-brand-orange mb-4">UP NEXT</h3>
               <div className="border-2 border-dotted border-brand-orange/40 p-4 flex items-center rounded-lg justify-between">
                 <div>
                   <p className="text-sm text-foreground">{upcomingShow?.title || "No upcoming show"}</p>

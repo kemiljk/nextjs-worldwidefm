@@ -18,7 +18,7 @@ export default async function ArticlesPage() {
     <div className="min-h-screen">
       <div className="container mx-auto pt-32 pb-32">
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold">Articles</h1>
+          <h1 className="text-3xl font-medium">Articles</h1>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Link href="/" className="hover:text-brand-orange transition-colors">
               Home
@@ -40,7 +40,7 @@ export default async function ArticlesPage() {
                     <div className="text-sm text-muted-foreground mb-2">
                       {formatDate(article.metadata.date)} • {article.metadata.author?.title || "Unknown Author"}
                     </div>
-                    <h2 className="text-xl font-semibold mb-2">{article.title}</h2>
+                    <h2 className="text-xl font-medium mb-2">{article.title}</h2>
                     <p className="text-sm text-muted-foreground line-clamp-3 mb-4">{article.metadata.excerpt}</p>
                     <div className="mt-auto text-brand-orange font-medium text-sm flex items-center">
                       Read More <ChevronRight className="h-4 w-4 ml-1" />

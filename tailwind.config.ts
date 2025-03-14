@@ -132,7 +132,7 @@ const config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-space-grotesk)", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       letterSpacing: {
         tight: "-0.02em",

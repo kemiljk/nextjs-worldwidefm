@@ -19,7 +19,7 @@ export default function EditorialSection({ title = "EDITORIAL", albumOfTheWeek, 
   return (
     <div className={className}>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-white">{title}</h2>
+        <h2 className="text-xl font-medium text-white">{title}</h2>
         <Link href="/editorial" className="text-sm text-gray-300 flex items-center hover:text-white transition-colors group">
           View All <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
         </Link>

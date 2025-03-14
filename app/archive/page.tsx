@@ -27,7 +27,7 @@ export default async function ArchivePage() {
             <ChevronRight className="h-3 w-3" />
             <span className="text-foreground">Archive</span>
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Show Archive</h1>
+          <h1 className="text-3xl font-medium text-foreground">Show Archive</h1>
           <p className="text-muted-foreground mt-2">Explore our collection of past broadcasts and shows.</p>
         </div>
 
@@ -60,7 +60,7 @@ export default async function ArchivePage() {
                     <Image src={show.metadata?.image?.imgix_url || "/placeholder.svg"} alt={show.title || "Show"} fill className="object-cover" />
                   </div>
                   <div className="p-4">
-                    <h3 className="font-bold line-clamp-1">{show.title || "Untitled Show"}</h3>
+                    <h3 className="font-medium line-clamp-1">{show.title || "Untitled Show"}</h3>
                     <p className="text-sm text-muted-foreground line-clamp-1 mt-1">{show.metadata?.subtitle || ""}</p>
                     <p className="text-xs text-muted-foreground mt-3 mb-3">
                       {(show as any).published_at

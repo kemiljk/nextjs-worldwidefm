@@ -26,7 +26,7 @@ export default async function ShowsPage() {
             <ChevronRight className="h-3 w-3" />
             <span className="text-foreground">Shows</span>
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Our Shows</h1>
+          <h1 className="text-3xl font-medium text-foreground">Our Shows</h1>
           <p className="text-muted-foreground mt-2">Discover all our current radio shows and programs.</p>
         </div>
 
@@ -41,7 +41,7 @@ export default async function ShowsPage() {
                       <Image src={show.metadata?.image?.imgix_url || "/placeholder.svg"} alt={show.title || "Show"} fill className="object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                        <h3 className="text-xl font-bold">{show.title || "Untitled Show"}</h3>
+                        <h3 className="text-xl font-medium">{show.title || "Untitled Show"}</h3>
                         <p className="text-sm opacity-90 mt-1">{show.metadata?.subtitle || ""}</p>
                       </div>
                     </div>

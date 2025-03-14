@@ -38,7 +38,7 @@ export default function ArticlesSection({ title, articles }: ArticlesSectionProp
                   <div className="text-sm text-gray-300 mb-1">
                     {formatDate(article.metadata.date)} • {article.metadata.author?.title || "Unknown Author"}
                   </div>
-                  <h4 className="text-lg font-bold mb-2 text-white">{article.title}</h4>
+                  <h4 className="text-lg font-medium mb-2 text-white">{article.title}</h4>
                   <p className="text-sm text-gray-200 line-clamp-3">{article.metadata.excerpt}</p>
                 </div>
               </CardContent>
