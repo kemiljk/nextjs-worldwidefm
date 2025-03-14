@@ -16,6 +16,13 @@ const sans = ABCDiatype_SemiMono({
 export const metadata: Metadata = {
   title: "Worldwide FM",
   description: "Worldwide FM",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({
