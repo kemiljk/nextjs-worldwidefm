@@ -56,7 +56,7 @@ export async function getRadioShows(
  */
 export async function getRadioShowBySlug(slug: string): Promise<CosmicResponse<RadioShowObject>> {
   try {
-    const response = await cosmic.objects.find({ type: "radio-shows", slug }).props("slug,title,metadata,type").depth(1);
+    const response = await cosmic.objects.find({ type: "radio-shows", slug }).props("id,slug,title,metadata,type").depth(1);
 
     return response;
   } catch (error) {
@@ -268,7 +268,7 @@ export async function getMoods(
 
     const response = await cosmic.objects
       .find(query)
-      .props("slug,title,metadata,type")
+      .props("id,slug,title,metadata,type")
       .limit(params.limit || 10)
       .skip(params.skip || 0)
       .sort(params.sort || "-created_at")

@@ -102,7 +102,7 @@ export default async function EditorialPage() {
               {/* Events */}
               {events && (
                 <Card className="overflow-hidden border-none shadow-md">
-                  <CardContent className="p-0 relative">
+                  <CardContent className="p-0 relative overflow-hidden">
                     <div className="absolute top-4 left-4 bg-black/70 text-white text-xs font-medium py-1 px-2 z-10">{events.title}</div>
                     <Image src={events.metadata.image.imgix_url || "/placeholder.svg"} alt={events.title} width={400} height={400} className="w-full aspect-square object-cover" />
                     <div className="absolute bottom-0 left-0 right-0 bg-black/60 backdrop-blur-2xl p-4 text-white">
