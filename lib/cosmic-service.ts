@@ -1,5 +1,14 @@
-import { createBucketClient } from "@cosmicjs/sdk";
-import { COSMIC_CONFIG, CosmicResponse, RadioShowObject, CategoryObject, ScheduleObject, WatchAndListenObject, ArticleObject, MoodObject } from "./cosmic-config";
+import { createBucketClient } from '@cosmicjs/sdk';
+import {
+  COSMIC_CONFIG,
+  CosmicResponse,
+  RadioShowObject,
+  CategoryObject,
+  ScheduleObject,
+  WatchAndListenObject,
+  ArticleObject,
+  MoodObject,
+} from './cosmic-config';
 
 // Initialize the Cosmic SDK client
 const cosmic = createBucketClient({
@@ -22,8 +31,8 @@ export async function getRadioShows(
   try {
     // Start building the query
     let query: any = {
-      type: "radio-shows",
-      status: params.status || "published",
+      type: 'radio-shows',
+      status: params.status || 'published',
     };
 
     // If we have IDs to exclude, add them as a "not" condition
@@ -38,15 +47,15 @@ export async function getRadioShows(
 
     const response = await cosmic.objects
       .find(query)
-      .props("slug,title,metadata,type")
+      .props('slug,title,metadata,type')
       .limit(params.limit || 10)
       .skip(params.skip || 0)
-      .sort(params.sort || "-created_at")
+      .sort(params.sort || '-created_at')
       .depth(1);
 
     return response;
   } catch (error) {
-    console.error("Error fetching radio shows:", error);
+    console.error('Error fetching radio shows:', error);
     throw error;
   }
 }
@@ -56,7 +65,10 @@ export async function getRadioShows(
  */
 export async function getRadioShowBySlug(slug: string): Promise<CosmicResponse<RadioShowObject>> {
   try {
-    const response = await cosmic.objects.find({ type: "radio-shows", slug }).props("id,slug,title,metadata,type").depth(1);
+    const response = await cosmic.objects
+      .find({ type: 'radio-shows', slug })
+      .props('id,slug,title,metadata,type')
+      .depth(1);
 
     return response;
   } catch (error) {
@@ -70,11 +82,14 @@ export async function getRadioShowBySlug(slug: string): Promise<CosmicResponse<R
  */
 export async function getCategories(): Promise<CosmicResponse<CategoryObject>> {
   try {
-    const response = await cosmic.objects.find({ type: "categories" }).props("slug,title,metadata,type").depth(1);
+    const response = await cosmic.objects
+      .find({ type: 'categories' })
+      .props('slug,title,metadata,type')
+      .depth(1);
 
     return response;
   } catch (error) {
-    console.error("Error fetching categories:", error);
+    console.error('Error fetching categories:', error);
     throw error;
   }
 }
@@ -84,7 +99,10 @@ export async function getCategories(): Promise<CosmicResponse<CategoryObject>> {
  */
 export async function getCategoryBySlug(slug: string): Promise<CosmicResponse<CategoryObject>> {
   try {
-    const response = await cosmic.objects.find({ type: "categories", slug }).props("slug,title,metadata,type").depth(1);
+    const response = await cosmic.objects
+      .find({ type: 'categories', slug })
+      .props('slug,title,metadata,type')
+      .depth(1);
 
     return response;
   } catch (error) {
@@ -96,9 +114,17 @@ export async function getCategoryBySlug(slug: string): Promise<CosmicResponse<Ca
 /**
  * Get schedule data
  */
-export async function getSchedule(slug: string = "main-schedule"): Promise<CosmicResponse<ScheduleObject>> {
+export async function getSchedule(
+  slug: string = 'main-schedule'
+): Promise<CosmicResponse<ScheduleObject>> {
   try {
-    const response = await cosmic.objects.find({ type: "schedule", slug }).props("slug,title,metadata,type").depth(3); // Increased depth to get more deeply nested objects
+    const response = await cosmic.objects
+      .findOne({
+        type: 'schedule',
+        slug,
+      })
+      .props('slug,title,metadata,type')
+      .depth(3); // Increased depth to get more deeply nested objects
 
     return response;
   } catch (error) {
@@ -111,30 +137,33 @@ export async function getSchedule(slug: string = "main-schedule"): Promise<Cosmi
  * Helper function to transform Cosmic data to the format used in the mock data
  */
 export function transformShowToViewData(show: RadioShowObject) {
-  const imageUrl = show.metadata?.image?.imgix_url || "";
+  const imageUrl = show.metadata?.image?.imgix_url || '';
 
   return {
     id: show.id,
     title: show.title,
-    subtitle: show.metadata?.subtitle || "",
-    description: show.metadata?.description || "",
+    subtitle: show.metadata?.subtitle || '',
+    description: show.metadata?.description || '',
     image: imageUrl,
-    thumbnail: imageUrl ? `${imageUrl}?w=100&h=100&fit=crop` : "",
+    thumbnail: imageUrl ? `${imageUrl}?w=100&h=100&fit=crop` : '',
     slug: show.slug,
+    broadcast_time: show.metadata?.broadcast_time || '',
+    broadcast_day: show.metadata?.broadcast_day || '',
+    duration: show.metadata?.duration || '',
   };
 }
 
 /**
  * Get navigation data
  */
-export async function getNavigation(slug: string = "navigation"): Promise<any> {
+export async function getNavigation(slug: string = 'navigation'): Promise<any> {
   try {
     const response = await cosmic.objects
       .findOne({
-        type: "navigation",
+        type: 'navigation',
         slug,
       })
-      .props("slug,title,metadata")
+      .props('slug,title,metadata')
       .depth(1);
 
     return response;
@@ -147,14 +176,14 @@ export async function getNavigation(slug: string = "navigation"): Promise<any> {
 /**
  * Get editorial homepage data
  */
-export async function getEditorialHomepage(slug: string = "editorial"): Promise<any> {
+export async function getEditorialHomepage(slug: string = 'editorial'): Promise<any> {
   try {
     const response = await cosmic.objects
       .findOne({
-        type: "editorial-homepage",
+        type: 'editorial-homepage',
         slug,
       })
-      .props("slug,title,metadata")
+      .props('slug,title,metadata')
       .depth(2); // Increased depth to get nested objects
 
     return response;
@@ -178,18 +207,18 @@ export async function getWatchAndListenItems(
   try {
     const response = await cosmic.objects
       .find({
-        type: "watch-and-listens",
-        status: params.status || "published",
+        type: 'watch-and-listens',
+        status: params.status || 'published',
       })
-      .props("slug,title,metadata,type")
+      .props('slug,title,metadata,type')
       .limit(params.limit || 10)
       .skip(params.skip || 0)
-      .sort(params.sort || "-created_at")
+      .sort(params.sort || '-created_at')
       .depth(1);
 
     return response;
   } catch (error) {
-    console.error("Error fetching watch and listen items:", error);
+    console.error('Error fetching watch and listen items:', error);
     throw error;
   }
 }
@@ -208,34 +237,34 @@ export async function getArticles(
 ): Promise<CosmicResponse<ArticleObject>> {
   try {
     let query: any = {
-      type: "articles",
-      status: params.status || "published",
+      type: 'articles',
+      status: params.status || 'published',
     };
 
     // If featured flag is provided, add it to the query
     if (params.featured !== undefined) {
-      console.log("Adding featured filter to articles query:", params.featured);
+      console.log('Adding featured filter to articles query:', params.featured);
       query = {
         ...query,
-        "metadata.featured_on_homepage": params.featured,
+        'metadata.featured_on_homepage': params.featured,
       };
     }
 
-    console.log("Article query:", JSON.stringify(query));
+    console.log('Article query:', JSON.stringify(query));
 
     const response = await cosmic.objects
       .find(query)
-      .props("slug,title,metadata,type")
+      .props('slug,title,metadata,type')
       .limit(params.limit || 10)
       .skip(params.skip || 0)
-      .sort(params.sort || "-metadata.date")
+      .sort(params.sort || '-metadata.date')
       .depth(2); // Depth of 2 to get author information
 
     console.log(`Fetched ${response.objects?.length || 0} articles`);
 
     return response;
   } catch (error) {
-    console.error("Error fetching articles:", error);
+    console.error('Error fetching articles:', error);
     throw error;
   }
 }
@@ -254,29 +283,29 @@ export async function getMoods(
 ): Promise<CosmicResponse<MoodObject>> {
   try {
     let query: any = {
-      type: "moods",
-      status: params.status || "published",
+      type: 'moods',
+      status: params.status || 'published',
     };
 
     // If featured flag is provided, add it to the query
     if (params.featured !== undefined) {
       query = {
         ...query,
-        "metadata.featured_on_homepage": params.featured,
+        'metadata.featured_on_homepage': params.featured,
       };
     }
 
     const response = await cosmic.objects
       .find(query)
-      .props("id,slug,title,metadata,type")
+      .props('id,slug,title,metadata,type')
       .limit(params.limit || 10)
       .skip(params.skip || 0)
-      .sort(params.sort || "-created_at")
+      .sort(params.sort || '-created_at')
       .depth(1);
 
     return response;
   } catch (error) {
-    console.error("Error fetching moods:", error);
+    console.error('Error fetching moods:', error);
     throw error;
   }
 }

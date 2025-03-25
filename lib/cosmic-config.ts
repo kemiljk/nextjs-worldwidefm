@@ -1,6 +1,6 @@
 export const COSMIC_CONFIG = {
-  bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "",
-  readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY || "",
+  bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || '',
+  readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY || '',
 };
 
 // Types based on the provided API responses
@@ -29,6 +29,7 @@ export interface RadioShowObject {
     source: string | null;
     broadcast_date: string | null;
     broadcast_time: string | null;
+    broadcast_day: string | null;
     duration: string | null;
     categories: string[];
   };
@@ -39,13 +40,13 @@ export interface ScheduleObject {
   title: string;
   type: string;
   metadata: {
-    shows: any[];
-    scheduled_shows: any[];
+    shows: RadioShowObject[];
+    scheduled_shows: RadioShowObject[];
     is_active: boolean;
     special_scheduling_options: {
       override_normal_schedule: boolean;
       override_reason: string | null;
-      special_insertions: any[];
+      special_insertions: RadioShowObject[];
     };
     schedule_notes: string | null;
   };
@@ -61,7 +62,7 @@ export interface WatchAndListenObject {
   id: string;
   slug: string;
   title: string;
-  type: "watch-and-listens";
+  type: 'watch-and-listens';
   metadata: {
     image: {
       url: string;
@@ -76,7 +77,7 @@ export interface AuthorObject {
   id: string;
   slug: string;
   title: string;
-  type: "authors";
+  type: 'authors';
   metadata: any;
 }
 
@@ -84,7 +85,7 @@ export interface ArticleObject {
   id: string;
   slug: string;
   title: string;
-  type: "articles";
+  type: 'articles';
   metadata: {
     image: {
       url: string;
@@ -102,7 +103,7 @@ export interface MoodObject {
   id: string;
   slug: string;
   title: string;
-  type: "moods";
+  type: 'moods';
   metadata: {
     description: string | null;
     featured_on_homepage: boolean;
@@ -112,7 +113,7 @@ export interface MoodObject {
 export interface EditorialHomepageObject {
   slug: string;
   title: string;
-  type: "editorial-homepage";
+  type: 'editorial-homepage';
   metadata: {
     featured_album: WatchAndListenObject | null;
     featured_event: WatchAndListenObject | null;

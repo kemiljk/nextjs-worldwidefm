@@ -1,0 +1,15 @@
+{
+  "name": "wwfm-migration",
+  "version": "1.0.0",
+  "description": "Migration script from Craft CMS to Cosmic",
+  "main": "craft-to-cosmic.js",
+  "scripts": {
+    "migrate": "node craft-to-cosmic.js",
+    "migrate:dry-run": "DRY_RUN=true node craft-to-cosmic.js"
+  },
+  "dependencies": {
+    "@cosmicjs/sdk": "^1.0.0",
+    "dotenv": "^16.0.0",
+    "mysql2": "^3.0.0"
+  }
+}
