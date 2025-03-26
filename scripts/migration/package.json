@@ -5,11 +5,15 @@
   "main": "craft-to-cosmic.js",
   "scripts": {
     "migrate": "node craft-to-cosmic.js",
-    "migrate:dry-run": "DRY_RUN=true node craft-to-cosmic.js"
+    "migrate:dry-run": "DRY_RUN=true node craft-to-cosmic.js",
+    "migrate:images": "node migrate-images.js"
   },
   "dependencies": {
     "@cosmicjs/sdk": "^1.0.0",
+    "axios": "^1.6.7",
+    "cheerio": "^1.0.0-rc.12",
     "dotenv": "^16.0.0",
-    "mysql2": "^3.0.0"
+    "mysql2": "^3.0.0",
+    "puppeteer": "^22.3.0"
   }
 }

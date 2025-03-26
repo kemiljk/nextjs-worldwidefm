@@ -1,6 +1,6 @@
 export const COSMIC_CONFIG = {
-  bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || '',
-  readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY || '',
+  bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "",
+  readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY || "",
 };
 
 // Types based on the provided API responses
@@ -25,8 +25,9 @@ export interface RadioShowObject {
     subtitle: string;
     image: CosmicImage;
     description: string;
-    page_link: string | null;
-    source: string | null;
+    player: string;
+    tracklist: string | null;
+    body_text: string | null;
     broadcast_date: string | null;
     broadcast_time: string | null;
     broadcast_day: string | null;
@@ -62,7 +63,7 @@ export interface WatchAndListenObject {
   id: string;
   slug: string;
   title: string;
-  type: 'watch-and-listens';
+  type: "watch-and-listens";
   metadata: {
     image: {
       url: string;
@@ -77,7 +78,7 @@ export interface AuthorObject {
   id: string;
   slug: string;
   title: string;
-  type: 'authors';
+  type: "authors";
   metadata: any;
 }
 
@@ -85,7 +86,7 @@ export interface ArticleObject {
   id: string;
   slug: string;
   title: string;
-  type: 'articles';
+  type: "articles";
   metadata: {
     image: {
       url: string;
@@ -103,22 +104,39 @@ export interface MoodObject {
   id: string;
   slug: string;
   title: string;
-  type: 'moods';
+  type: "moods";
   metadata: {
     description: string | null;
     featured_on_homepage: boolean;
   };
 }
 
+export interface PostObject {
+  id: string;
+  slug: string;
+  title: string;
+  type: "posts";
+  metadata: {
+    image: {
+      url: string;
+      imgix_url: string;
+    };
+    description: string;
+    date: string;
+    content: string | null;
+    post_type: "article" | "video" | "event";
+    featured_on_homepage: boolean;
+    author?: AuthorObject;
+    link?: string;
+  };
+}
+
 export interface EditorialHomepageObject {
   slug: string;
   title: string;
-  type: 'editorial-homepage';
+  type: "editorial-homepage";
   metadata: {
-    featured_album: WatchAndListenObject | null;
-    featured_event: WatchAndListenObject | null;
-    featured_video: WatchAndListenObject | null;
-    featured_articles: ArticleObject[];
+    featured_posts: PostObject[];
     featured_moods: MoodObject[];
     hero_section?: {
       headline: string;

@@ -15,7 +15,7 @@ export default async function ShowsPage() {
   const allShows = showsResponse.objects || [];
 
   return (
-    <div className="min-h-screen bg-brand-beige">
+    <div className="min-h-screen">
       <div className="container mx-auto pt-32 pb-32">
         {/* Header with breadcrumb */}
         <div className="mb-8">
