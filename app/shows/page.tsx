@@ -3,16 +3,13 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getRadioShows } from "@/lib/cosmic-service";
+import { getAllShows } from "@/lib/actions";
+import { transformShowToViewData } from "@/lib/cosmic-service";
 
 export default async function ShowsPage() {
-  // Get all shows
-  const showsResponse = await getRadioShows({
-    limit: 20,
-    sort: "title", // Alphabetical order
-  });
-
-  const allShows = showsResponse.objects || [];
+  // Get all shows using server action
+  const shows = await getAllShows();
+  const transformedShows = shows.map(transformShowToViewData);
 
   return (
     <div className="min-h-screen">
@@ -31,42 +28,28 @@ export default async function ShowsPage() {
         </div>
 
         {/* Shows grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {allShows.length > 0 ? (
-            allShows.map((show, index) => (
-              <Link href={`/shows/${show.slug}`} key={index}>
-                <Card className="overflow-hidden border-none shadow-md transition-transform hover:scale-[1.02] h-full">
-                  <CardContent className="p-0 relative h-full flex flex-col">
-                    <div className="aspect-video relative">
-                      <Image src={show.metadata?.image?.imgix_url || "/placeholder.svg"} alt={show.title || "Show"} fill className="object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                        <h3 className="text-xl font-medium">{show.title || "Untitled Show"}</h3>
-                        <p className="text-sm opacity-90 mt-1">{show.metadata?.subtitle || ""}</p>
-                      </div>
-                    </div>
-                    <div className="p-5 flex-grow">
-                      <p className="text-sm text-muted-foreground line-clamp-3">{show.metadata?.description || "No description available."}</p>
-                      {show.metadata?.broadcast_time && <p className="mt-4 text-xs font-medium text-brand-orange">{show.metadata.broadcast_time}</p>}
-                    </div>
-                    <div className="p-4 border-t border-muted/40 flex justify-between items-center">
-                      <span className="text-sm font-medium text-brand-orange">View Details</span>
-                      <ChevronRight className="h-4 w-4 text-brand-orange" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))
-          ) : (
-            <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
-              <p className="text-muted-foreground mb-4">No shows available at the moment.</p>
-              <Link href="/">
-                <Button variant="outline" className="text-brand-orange border-brand-orange hover:bg-brand-orange/10">
-                  Back to Home
-                </Button>
-              </Link>
-            </div>
-          )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {transformedShows.map((show) => (
+            <Card key={show.id} className="overflow-hidden border-none shadow-md">
+              <CardContent className="p-0 relative">
+                <div className="aspect-square relative">
+                  <Image src={show.image || "/placeholder.svg"} alt={show.title} fill className="object-cover" />
+                </div>
+                <div className="p-4">
+                  <h3 className="font-medium line-clamp-1">{show.title}</h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{show.description || ""}</p>
+                  <div className="flex justify-between items-center mt-4">
+                    <Link href={`/shows/${show.slug}`} className="text-sm text-brand-orange hover:underline">
+                      View Details
+                    </Link>
+                    <Button size="sm" variant="ghost" className="text-brand-orange hover:bg-brand-orange/10 rounded-full p-2">
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     </div>

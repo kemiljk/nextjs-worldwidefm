@@ -7,6 +7,7 @@ import { PostObject } from "@/lib/cosmic-config";
 import { formatDate } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
+import { getAllPosts } from "@/lib/actions";
 
 interface PostsGridProps {
   initialPosts: PostObject[];
@@ -16,64 +17,43 @@ export default function PostsGrid({ initialPosts }: PostsGridProps) {
   const [posts, setPosts] = useState<PostObject[]>(initialPosts);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const { ref, inView } = useInView({
-    threshold: 0,
-    rootMargin: "100px",
-  });
+  const { ref, inView } = useInView();
 
   useEffect(() => {
-    const loadMorePosts = async () => {
-      if (isLoading || !hasMore) return;
-
-      try {
-        setIsLoading(true);
-        const response = await fetch(`/api/posts?skip=${posts.length}&limit=6`);
-        const data = await response.json();
-
-        if (data.posts.length === 0) {
-          setHasMore(false);
-          return;
-        }
-
-        // Filter out any duplicate posts by id
-        const newPosts = data.posts.filter((newPost: PostObject) => !posts.some((existingPost) => existingPost.id === newPost.id));
-
-        if (newPosts.length === 0) {
-          setHasMore(false);
-          return;
-        }
-
-        setPosts((currentPosts) => [...currentPosts, ...newPosts]);
-      } catch (error) {
-        console.error("Error loading more posts:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (inView) {
+    if (inView && !isLoading && hasMore) {
       loadMorePosts();
     }
-  }, [inView, isLoading, hasMore, posts]);
+  }, [inView]);
 
-  if (!posts || posts.length === 0) {
-    return <div className="text-gray-600 dark:text-gray-400 text-center">No posts available at this time.</div>;
+  async function loadMorePosts() {
+    try {
+      setIsLoading(true);
+      const newPosts = await getAllPosts();
+      if (newPosts.length > 0) {
+        setPosts((prev) => [...prev, ...newPosts]);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Error loading more posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {posts.map((post, index) => {
-          const postType = post.metadata?.post_type || "article";
-          const isHeroArticle = index === 0 || index === 1;
-          // Create a unique key using both id and index
           const key = `${post.id}-${index}`;
+          const postType = "article"; // Default to article type since we don't have post_type in metadata
+          const isHeroArticle = index === 0 || index === 1;
 
           if (isHeroArticle) {
             return (
               <Link key={key} href={`/${postType}s/${post.slug}`}>
                 <div className="group">
-                  <div className="relative aspect-[3/2] w-full overflow-hidden rounded-sm">
+                  <div className="relative aspect-[3/2] w-full overflow-hidden rounded-none">
                     <Image src={post.metadata?.image?.imgix_url || "/placeholder.svg"} alt={post.title} fill className="object-cover" />
                     <div className="absolute top-6 left-6 bg-black text-white text-xs px-3 py-1 uppercase tracking-wider">{postType}</div>
                   </div>
@@ -93,7 +73,7 @@ export default function PostsGrid({ initialPosts }: PostsGridProps) {
           return (
             <Link key={key} href={`/${postType}s/${post.slug}`}>
               <div className="group flex gap-4">
-                <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden rounded-sm">
+                <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden rounded-none">
                   <Image src={post.metadata?.image?.imgix_url || "/placeholder.svg"} alt={post.title} fill className="object-cover" />
                   <div className="absolute top-2 left-2 bg-black text-white text-[10px] px-2 py-0.5 uppercase tracking-wider">{postType}</div>
                 </div>

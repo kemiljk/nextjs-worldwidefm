@@ -1,19 +1,57 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { getRadioShows } from "@/lib/cosmic-service";
+import { useEffect, useState } from "react";
+import { SearchResult, SearchResultType } from "@/lib/search-context";
+import { getAllSearchableContent } from "@/lib/actions";
 
-export default async function ArchivePage() {
-  // Get the archived shows
-  const showsResponse = await getRadioShows({
-    limit: 12,
-    sort: "-created_at", // Sort by most recent first
-  });
+export default function ArchivePage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedType, setSelectedType] = useState<"all" | SearchResultType>("all");
+  const [isLoading, setIsLoading] = useState(true);
+  const [allContent, setAllContent] = useState<SearchResult[]>([]);
+  const [filteredContent, setFilteredContent] = useState<SearchResult[]>([]);
 
-  const archivedShows = showsResponse.objects || [];
+  // Fetch all content on mount
+  useEffect(() => {
+    async function fetchContent() {
+      setIsLoading(true);
+      try {
+        const content = await getAllSearchableContent();
+        setAllContent(content);
+        setFilteredContent(content);
+      } catch (error) {
+        console.error("Error fetching content:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchContent();
+  }, []);
+
+  // Filter content based on search term and type
+  useEffect(() => {
+    let filtered = allContent;
+
+    // Filter by type
+    if (selectedType !== "all") {
+      filtered = filtered.filter((item) => item.type === selectedType);
+    }
+
+    // Filter by search term
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((item) => item.title.toLowerCase().includes(term) || (item.description || "").toLowerCase().includes(term) || (item.genres || []).some((genre) => genre.toLowerCase().includes(term)));
+    }
+
+    setFilteredContent(filtered);
+  }, [searchTerm, selectedType, allContent]);
 
   return (
     <div className="min-h-screen">
@@ -21,7 +59,7 @@ export default async function ArchivePage() {
         {/* Header with breadcrumb */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <Link href="/" className="hover:text-crimson transition-colors">
+            <Link href="/" className="hover:text-brand-orange transition-colors">
               Home
             </Link>
             <ChevronRight className="h-3 w-3" />
@@ -35,36 +73,44 @@ export default async function ArchivePage() {
         <div className="mb-8 flex flex-col sm:flex-row gap-4">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input placeholder="Search shows" className="pl-10 bg-white border-none focus-visible:ring-crimson" />
+            <Input placeholder="Filter shows and articles..." className="pl-10 bg-background border-none focus-visible:ring-brand-orange" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="text-crimson border-crimson hover:bg-crimson/10">
-              All Shows
+            <Button variant="outline" className={`${selectedType === "all" ? "text-brand-orange border-brand-orange hover:bg-brand-orange/10" : "text-muted-foreground border-muted hover:bg-muted/10"}`} onClick={() => setSelectedType("all")}>
+              All Content
             </Button>
-            <Button variant="outline" className="text-muted-foreground border-muted hover:bg-muted/10">
-              Featured
+            <Button variant="outline" className={`${selectedType === "radio-shows" ? "text-brand-orange border-brand-orange hover:bg-brand-orange/10" : "text-muted-foreground border-muted hover:bg-muted/10"}`} onClick={() => setSelectedType("radio-shows")}>
+              Radio Shows
             </Button>
-            <Button variant="outline" className="text-muted-foreground border-muted hover:bg-muted/10">
-              Recent
+            <Button variant="outline" className={`${selectedType === "posts" ? "text-brand-orange border-brand-orange hover:bg-brand-orange/10" : "text-muted-foreground border-muted hover:bg-muted/10"}`} onClick={() => setSelectedType("posts")}>
+              Articles
             </Button>
           </div>
         </div>
 
         {/* Archive grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {archivedShows.length > 0 ? (
-            archivedShows.map((show, index) => (
-              <Card key={index} className="overflow-hidden border-none shadow-md">
+          {isLoading ? (
+            <div className="col-span-full flex justify-center items-center py-16">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-orange"></div>
+            </div>
+          ) : filteredContent.length > 0 ? (
+            filteredContent.map((item) => (
+              <Card key={item.id} className="overflow-hidden border-none shadow-md">
                 <CardContent className="p-0 relative">
                   <div className="aspect-square relative">
-                    <Image src={show.metadata?.image?.imgix_url || "/placeholder.svg"} alt={show.title || "Show"} fill className="object-cover" />
+                    <Image src={item.image || "/placeholder.svg"} alt={item.title} fill className="object-cover" />
                   </div>
                   <div className="p-4">
-                    <h3 className="font-medium line-clamp-1">{show.title || "Untitled Show"}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-1 mt-1">{show.metadata?.subtitle || ""}</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">{item.type === "radio-shows" ? "Radio Show" : "Article"}</span>
+                      {item.genres && item.genres.length > 0 && <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">{item.genres[0]}</span>}
+                    </div>
+                    <h3 className="font-medium line-clamp-1">{item.title}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{item.description || ""}</p>
                     <p className="text-xs text-muted-foreground mt-3 mb-3">
-                      {(show as any).published_at
-                        ? new Date((show as any).published_at).toLocaleDateString("en-US", {
+                      {item.date
+                        ? new Date(item.date).toLocaleDateString("en-US", {
                             year: "numeric",
                             month: "short",
                             day: "numeric",
@@ -72,10 +118,10 @@ export default async function ArchivePage() {
                         : "No date available"}
                     </p>
                     <div className="flex justify-between items-center">
-                      <Link href={`/shows/${show.slug}`} className="text-sm text-crimson hover:underline">
+                      <Link href={`/${item.type}/${item.slug}`} className="text-sm text-brand-orange hover:underline">
                         View Details
                       </Link>
-                      <Button size="sm" variant="ghost" className="text-crimson hover:bg-crimson/10 rounded-full p-2">
+                      <Button size="sm" variant="ghost" className="text-brand-orange hover:bg-brand-orange/10 rounded-full p-2">
                         <ChevronRight className="h-4 w-4" />
                       </Button>
                     </div>
@@ -85,38 +131,15 @@ export default async function ArchivePage() {
             ))
           ) : (
             <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
-              <p className="text-muted-foreground mb-4">No archived shows available at the moment.</p>
-              <Link href="/">
-                <Button variant="outline" className="text-crimson border-crimson hover:bg-crimson/10">
-                  Back to Home
+              <p className="text-muted-foreground mb-4">{searchTerm ? "No results found for your search." : "No content available at the moment."}</p>
+              {searchTerm && (
+                <Button variant="outline" className="text-brand-orange border-brand-orange hover:bg-brand-orange/10" onClick={() => setSearchTerm("")}>
+                  Clear Search
                 </Button>
-              </Link>
+              )}
             </div>
           )}
         </div>
-
-        {/* Pagination */}
-        {archivedShows.length > 0 && (
-          <div className="mt-12 flex justify-center">
-            <div className="flex gap-2">
-              <Button variant="outline" className="text-muted-foreground border-muted hover:bg-muted/10" disabled>
-                Previous
-              </Button>
-              <Button variant="outline" className="text-crimson border-crimson hover:bg-crimson/10 min-w-[40px]">
-                1
-              </Button>
-              <Button variant="outline" className="text-muted-foreground border-muted hover:bg-muted/10 min-w-[40px]">
-                2
-              </Button>
-              <Button variant="outline" className="text-muted-foreground border-muted hover:bg-muted/10 min-w-[40px]">
-                3
-              </Button>
-              <Button variant="outline" className="text-muted-foreground border-muted hover:bg-muted/10">
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

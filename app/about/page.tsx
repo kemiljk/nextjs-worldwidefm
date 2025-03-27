@@ -19,7 +19,7 @@ export default function AboutPage() {
         </div>
 
         {/* Hero section */}
-        <div className="relative h-[50vh] mb-16 rounded-lg overflow-hidden">
+        <div className="relative h-[50vh] mb-16 rounded-none overflow-hidden">
           <Image src="/placeholder.svg" alt="Worldwide FM Studio" fill className="object-cover" priority />
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent" />
           <div className="absolute bottom-0 left-0 p-8 md:p-12 text-white max-w-2xl">
@@ -42,7 +42,7 @@ export default function AboutPage() {
           <h2 className="text-3xl font-medium mb-6">Our Story</h2>
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-5">
-              <div className="aspect-square relative rounded-lg overflow-hidden">
+              <div className="aspect-square relative rounded-none overflow-hidden">
                 <Image src="/placeholder.svg" alt="Worldwide FM History" fill className="object-cover" />
               </div>
             </div>
@@ -74,7 +74,7 @@ export default function AboutPage() {
         </div>
 
         {/* Connect section */}
-        <div className="bg-brand-blue text-white rounded-lg p-8 md:p-12">
+        <div className="bg-brand-blue text-white rounded-none p-8 md:p-12">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <h2 className="text-3xl font-medium mb-4">Connect With Us</h2>

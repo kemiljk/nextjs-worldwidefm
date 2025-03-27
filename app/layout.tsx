@@ -1,22 +1,23 @@
 import type React from "react";
 import type { Metadata } from "next";
-import ABCDiatype_SemiMono from "next/font/local";
+import ABCDiatype from "next/font/local";
 import "./globals.css";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import { SearchProvider } from "@/components/providers/search-provider";
 import NavWrapper from "@/components/nav-wrapper";
 import Footer from "@/components/footer";
-import { ThemeProvider } from "@/components/theme-provider";
 
-const sans = ABCDiatype_SemiMono({
-  src: "/fonts/ABCDiatypeSemi-MonoVariable-Trial.woff2",
-  variable: "--font-sans",
+const sans = ABCDiatype({
+  src: "./fonts/ABCDiatypeSemi-MonoVariable-Trial.woff2",
+  weight: "300 400 500 600 700 800",
   style: "normal",
   display: "swap",
-  weight: "400 500 600 700 800 900",
+  variable: "--font-sans",
 });
 
 export const metadata: Metadata = {
   title: "Worldwide FM",
-  description: "Worldwide FM",
+  description: "A global music radio platform founded by Gilles Peterson, connecting people through music that transcends borders and cultures.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -26,18 +27,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={sans.variable}>
-      <body className="font-sans max-w-screen-2xl mx-auto bg-background text-foreground">
-        <ThemeProvider attribute="class">
-          <NavWrapper />
-          <main>{children}</main>
-          <Footer />
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${sans.className} min-h-screen bg-background`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange storageKey="worldwidefm-theme">
+          <SearchProvider>
+            <NavWrapper />
+            <main className="max-w-screen-2xl mx-auto">{children}</main>
+            <Footer />
+          </SearchProvider>
         </ThemeProvider>
       </body>
     </html>

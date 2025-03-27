@@ -1,15 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { getEditorialHomepage, getPosts } from "@/lib/cosmic-service";
-import WatchAndListenSection from "@/components/editorial/watch-and-listen-section";
 import PostsGrid from "@/components/editorial/posts-grid";
 
 export default async function EditorialPage() {
-  // Fetch editorial homepage data which includes featured items
-  const editorialResponse = await getEditorialHomepage();
-  const editorial = editorialResponse.object;
-
   // Fetch initial posts
   const postsResponse = await getPosts({
     limit: 12,
@@ -34,13 +28,6 @@ export default async function EditorialPage() {
             <span className="text-gray-900 dark:text-gray-50">Posts</span>
           </div>
         </div>
-
-        {/* Featured Content */}
-        {editorial && (
-          <div className="mb-16">
-            <WatchAndListenSection title="Featured Content" albumOfTheWeek={editorial.metadata.featured_album} events={editorial.metadata.featured_event} video={editorial.metadata.featured_video} />
-          </div>
-        )}
 
         {/* Posts Grid */}
         {posts.length > 0 ? (

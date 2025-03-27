@@ -59,56 +59,12 @@ export interface CosmicResponse<T> {
   total?: number;
 }
 
-export interface WatchAndListenObject {
-  id: string;
-  slug: string;
-  title: string;
-  type: "watch-and-listens";
-  metadata: {
-    image: {
-      url: string;
-      imgix_url: string;
-    };
-    description: string;
-    link: string;
-  };
-}
-
 export interface AuthorObject {
   id: string;
   slug: string;
   title: string;
   type: "authors";
   metadata: any;
-}
-
-export interface ArticleObject {
-  id: string;
-  slug: string;
-  title: string;
-  type: "articles";
-  metadata: {
-    image: {
-      url: string;
-      imgix_url: string;
-    };
-    author: AuthorObject;
-    date: string;
-    excerpt: string;
-    content: string | null;
-    featured_on_homepage: boolean;
-  };
-}
-
-export interface MoodObject {
-  id: string;
-  slug: string;
-  title: string;
-  type: "moods";
-  metadata: {
-    description: string | null;
-    featured_on_homepage: boolean;
-  };
 }
 
 export interface PostObject {
@@ -137,7 +93,6 @@ export interface EditorialHomepageObject {
   type: "editorial-homepage";
   metadata: {
     featured_posts: PostObject[];
-    featured_moods: MoodObject[];
     hero_section?: {
       headline: string;
       subheading: string;
