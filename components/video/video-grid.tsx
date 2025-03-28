@@ -40,12 +40,12 @@ export default function VideoGrid({ videos }: VideoGridProps) {
                     target.src = "/placeholder.svg";
                   }}
                 />
-                <div className="absolute top-4 right-4">
-                  <div className="bg-black/80 text-white text-xs px-3 py-1 rounded-full">VIDEO</div>
+                <div className="absolute top-6 left-6">
+                  <div className="bg-black/80 text-white text-xs px-3 py-1">VIDEO</div>
                 </div>
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg leading-tight font-medium line-clamp-2 group-hover:text-brand-orange transition-colors">{video.title}</h3>
+                <h3 className="text-lg leading-tight font-medium line-clamp-2 group-hover:text-crimson-50 transition-colors">{video.title}</h3>
                 {video.metadata?.description && <p className="text-sm text-muted-foreground line-clamp-2">{video.metadata.description}</p>}
               </div>
             </div>

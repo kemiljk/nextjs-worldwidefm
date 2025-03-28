@@ -24,7 +24,7 @@ export async function getAllShows(): Promise<RadioShowObject[]> {
   try {
     const response = await getRadioShows({
       limit: 50,
-      sort: "-created_at",
+      sort: "-metadata.broadcast_date",
       status: "published",
     });
     return response.objects || [];
@@ -198,9 +198,10 @@ export async function getAllSearchableContent(): Promise<SearchResult[]> {
         image: post.metadata.image?.imgix_url || "/image-placeholder.svg",
         slug: post.slug,
         date: post.metadata.date || "",
-        genres: [], // These fields don't exist in the Cosmic schema
+        genres: [],
         locations: [],
-        series: [],
+        hosts: [],
+        takovers: [],
         post_type: post.metadata.post_type,
         featured: post.metadata.featured_on_homepage,
       })),
@@ -213,9 +214,10 @@ export async function getAllSearchableContent(): Promise<SearchResult[]> {
         image: show.metadata.image?.imgix_url || "/image-placeholder.svg",
         slug: show.slug,
         date: show.metadata.broadcast_date || "",
-        genres: show.metadata.categories || [], // Using categories as genres
-        locations: [], // This field doesn't exist in the Cosmic schema
-        series: [], // This field doesn't exist in the Cosmic schema
+        genres: show.metadata.genres.map((genre) => genre.slug),
+        locations: show.metadata.locations.map((location) => location.slug),
+        hosts: show.metadata.regular_hosts.map((host) => host.slug),
+        takovers: show.metadata.takeovers.map((takover) => takover.slug),
       })),
     ].sort((a, b) => {
       const dateA = new Date(a.date || "");

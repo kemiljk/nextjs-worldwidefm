@@ -146,6 +146,7 @@ export function transformShowToViewData(show: RadioShowObject) {
     title: show.title,
     subtitle: show.metadata?.subtitle || "",
     description: show.metadata?.description || "",
+    featured_on_homepage: show.metadata?.featured_on_homepage || false,
     image: imageUrl,
     thumbnail: imageUrl ? `${imageUrl}?w=100&h=100&fit=crop` : "/image-placeholder.svg",
     slug: show.slug,

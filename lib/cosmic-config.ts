@@ -25,6 +25,7 @@ export interface RadioShowObject {
     subtitle: string;
     image: CosmicImage;
     description: string;
+    featured_on_homepage: boolean;
     player: string;
     tracklist: string | null;
     body_text: string | null;
@@ -32,7 +33,50 @@ export interface RadioShowObject {
     broadcast_time: string | null;
     broadcast_day: string | null;
     duration: string | null;
-    categories: string[];
+    genres: GenreObject[];
+    locations: LocationObject[];
+    regular_hosts: HostObject[];
+    takeovers: TakeoverObject[];
+  };
+}
+
+export interface GenreObject {
+  slug: string;
+  title: string;
+  type: string;
+  metadata: {
+    description: string | null;
+    image: CosmicImage | null;
+  };
+}
+
+export interface LocationObject {
+  slug: string;
+  title: string;
+  type: string;
+  metadata: {
+    description: string | null;
+    image: CosmicImage | null;
+  };
+}
+
+export interface HostObject {
+  slug: string;
+  title: string;
+  type: string;
+  metadata: {
+    description: string | null;
+    image: CosmicImage | null;
+  };
+}
+
+export interface TakeoverObject {
+  slug: string;
+  title: string;
+  type: string;
+  metadata: {
+    description: string | null;
+    image: CosmicImage | null;
   };
 }
 

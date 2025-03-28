@@ -1,8 +1,8 @@
 "use client";
 
-import React, { createContext, useContext } from "react";
+import { createContext, useContext } from "react";
 
-export type SearchResultType = "radio-shows" | "posts";
+export type SearchResultType = "radio-shows" | "posts" | "events" | "videos" | "takovers";
 
 export interface SearchResult {
   id: string;
@@ -15,7 +15,8 @@ export interface SearchResult {
   date?: string;
   genres: string[];
   locations: string[];
-  series: string[];
+  hosts: string[];
+  takovers: string[];
   post_type?: "article" | "video" | "event";
   featured?: boolean;
 }
@@ -24,7 +25,8 @@ export interface SearchFilters {
   type?: SearchResultType;
   genres?: string[];
   locations?: string[];
-  series?: string[];
+  hosts?: string[];
+  takovers?: string[];
 }
 
 export interface SearchContextType {
@@ -38,7 +40,8 @@ export interface SearchContextType {
   availableFilters: {
     genres: string[];
     locations: string[];
-    series: string[];
+    hosts: string[];
+    takovers: string[];
   };
 }
 
@@ -53,7 +56,8 @@ const SearchContext = createContext<SearchContextType>({
   availableFilters: {
     genres: [],
     locations: [],
-    series: [],
+    hosts: [],
+    takovers: [],
   },
 });
 

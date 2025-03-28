@@ -5,7 +5,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, X, Music2, Newspaper } from "lucide-react";
+import { Search, X, Music2, Newspaper, Calendar, Video } from "lucide-react";
 import { useSearch, SearchResultType, SearchResult } from "@/lib/search-context";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -20,14 +20,18 @@ interface SearchDialogProps {
 const typeLabels: Record<SearchResultType, { label: string; icon: React.ElementType; color: string }> = {
   "radio-shows": { label: "Radio Shows", icon: Music2, color: "text-orange-500" },
   posts: { label: "Posts", icon: Newspaper, color: "text-blue-500" },
+  events: { label: "Events", icon: Calendar, color: "text-green-500" },
+  videos: { label: "Videos", icon: Video, color: "text-red-500" },
+  takovers: { label: "Takovers", icon: Calendar, color: "text-bronze-500" },
 } as const;
 
 export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
-  const { searchTerm, setSearchTerm, results, filters, setFilters, availableFilters } = useSearch();
+  const { searchTerm, setSearchTerm, results, availableFilters } = useSearch();
   const [selectedTypes, setSelectedTypes] = useState<SearchResultType[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
-  const [selectedSeries, setSelectedSeries] = useState<string[]>([]);
+  const [selectedHosts, setSelectedHosts] = useState<string[]>([]);
+  const [selectedTakovers, setSelectedTakovers] = useState<string[]>([]);
 
   // Filter content based on search term and filters
   const filteredContent = useMemo(() => {
@@ -48,7 +52,11 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
       }
 
       // Series filter
-      if (selectedSeries.length > 0 && !item.series.some((s) => selectedSeries.includes(s))) {
+      if (selectedHosts.length > 0 && !item.hosts.some((h) => selectedHosts.includes(h))) {
+        return false;
+      }
+
+      if (selectedTakovers.length > 0 && !item.takovers.some((t) => selectedTakovers.includes(t))) {
         return false;
       }
 
@@ -60,7 +68,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
       return true;
     });
-  }, [results, searchTerm, selectedTypes, selectedGenres, selectedLocations, selectedSeries]);
+  }, [results, searchTerm, selectedTypes, selectedGenres, selectedLocations, selectedHosts, selectedTakovers]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,6 +102,44 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
             )}
 
             {/* Similar sections for Locations and Series */}
+            {availableFilters.locations.length > 0 && (
+              <div>
+                <h3 className="font-medium mb-2">Locations</h3>
+                <div className="space-y-1">
+                  {availableFilters.locations.map((location) => (
+                    <button key={location} onClick={() => setSelectedLocations((prev) => (prev.includes(location) ? prev.filter((l) => l !== location) : [...prev, location]))} className={cn("text-sm w-full text-left px-2 py-1 rounded-md transition-colors", selectedLocations.includes(location) ? "bg-accent" : "hover:bg-accent/50")}>
+                      {location}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* {availableFilters.hosts.length > 0 && (
+              <div>
+                <h3 className="font-medium mb-2">Hosts</h3>
+                <div className="space-y-1">
+                  {availableFilters.hosts.map((host) => (
+                    <button key={host} onClick={() => setSelectedHosts((prev) => (prev.includes(host) ? prev.filter((h) => h !== host) : [...prev, host]))} className={cn("text-sm w-full text-left px-2 py-1 rounded-md transition-colors", selectedHosts.includes(host) ? "bg-accent" : "hover:bg-accent/50")}>
+                      {host}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {availableFilters.takovers.length > 0 && (
+              <div>
+                <h3 className="font-medium mb-2">Takovers</h3>
+                <div className="space-y-1">
+                  {availableFilters.takovers.map((takover) => (
+                    <button key={takover} onClick={() => setSelectedTakovers((prev) => (prev.includes(takover) ? prev.filter((t) => t !== takover) : [...prev, takover]))} className={cn("text-sm w-full text-left px-2 py-1 rounded-md transition-colors", selectedTakovers.includes(takover) ? "bg-accent" : "hover:bg-accent/50")}>
+                      {takover}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )} */}
           </div>
 
           {/* Search and results */}
