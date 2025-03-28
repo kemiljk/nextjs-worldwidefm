@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { getRadioShows, getSchedule, transformShowToViewData, getRadioShowBySlug } from "./cosmic-service";
 import { RadioShowObject, ScheduleObject } from "./cosmic-config";
+import { addHours, isWithinInterval, isAfter } from "date-fns";
 
 export function useRadioShows(limit = 5) {
   const [shows, setShows] = useState<ReturnType<typeof transformShowToViewData>[]>([]);
@@ -74,17 +75,53 @@ export function useSchedule(slug = "main-schedule") {
 
         if (response.object) {
           setSchedule(response.object);
-
-          // This is just a placeholder - in a real app, you would implement logic to
-          // determine the current and upcoming shows based on the schedule data
-          // For now, let's fetch the first two shows to use as examples
-          const showsResponse = await getRadioShows({ limit: 2 });
+        } else {
+          // If no schedule, get shows based on broadcast dates
+          const showsResponse = await getRadioShows({
+            limit: 7,
+            sort: "-metadata.broadcast_date",
+            status: "published",
+          });
 
           if (showsResponse.objects && showsResponse.objects.length > 0) {
-            setCurrentShow(transformShowToViewData(showsResponse.objects[0]));
+            const now = new Date();
+            const allShows = showsResponse.objects
+              .filter((show) => show.metadata?.broadcast_date)
+              .sort((a, b) => {
+                const dateA = new Date(a.metadata.broadcast_date || "");
+                const dateB = new Date(b.metadata.broadcast_date || "");
+                if (isNaN(dateA.getTime())) return 1;
+                if (isNaN(dateB.getTime())) return -1;
+                return dateB.getTime() - dateA.getTime();
+              });
 
-            if (showsResponse.objects.length > 1) {
-              setUpcomingShow(transformShowToViewData(showsResponse.objects[1]));
+            if (allShows.length > 0) {
+              // Find current show (within last 2 hours)
+              const currentShowObj = allShows.find((show) => {
+                const startTime = new Date(show.metadata.broadcast_date || "");
+                const endTime = addHours(startTime, 2);
+                return isWithinInterval(now, { start: startTime, end: endTime });
+              });
+
+              if (currentShowObj) {
+                setCurrentShow(transformShowToViewData(currentShowObj));
+              }
+
+              // Get upcoming shows (future shows)
+              const upcomingShowsList = allShows
+                .filter((show) => {
+                  const startTime = new Date(show.metadata.broadcast_date || "");
+                  return isAfter(startTime, now) && (!currentShowObj || show.id !== currentShowObj.id);
+                })
+                .sort((a, b) => {
+                  const dateA = new Date(a.metadata.broadcast_date || "");
+                  const dateB = new Date(b.metadata.broadcast_date || "");
+                  return dateA.getTime() - dateB.getTime();
+                });
+
+              if (upcomingShowsList.length > 0) {
+                setUpcomingShow(transformShowToViewData(upcomingShowsList[0]));
+              }
             }
           }
         }

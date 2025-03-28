@@ -1,6 +1,7 @@
 import type React from "react";
 import type { Metadata } from "next";
 import ABCDiatype from "next/font/local";
+import Mono from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { SearchProvider } from "@/components/providers/search-provider";
@@ -13,6 +14,14 @@ const sans = ABCDiatype({
   style: "normal",
   display: "swap",
   variable: "--font-sans",
+});
+
+const mono = Mono({
+  src: "./fonts/PPFraktionMono-Regular.woff2",
+  style: "normal",
+  display: "swap",
+  weight: "400",
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
@@ -30,7 +39,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${sans.className} min-h-screen bg-background`}>
+      <body className={`${sans.variable} ${mono.variable} min-h-screen bg-background font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange storageKey="worldwidefm-theme">
           <SearchProvider>
             <NavWrapper />

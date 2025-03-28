@@ -1,3 +1,11 @@
+import { createBucketClient } from "@cosmicjs/sdk";
+
+// Initialize Cosmic client
+export const cosmic = createBucketClient({
+  bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG as string,
+  readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY as string,
+});
+
 export const COSMIC_CONFIG = {
   bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "",
   readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY || "",
@@ -22,17 +30,19 @@ export interface RadioShowObject {
   title: string;
   type: string;
   metadata: {
-    subtitle: string;
-    image: CosmicImage;
-    description: string;
+    subtitle: string | null;
+    image: CosmicImage | null;
+    description: string | null;
     featured_on_homepage: boolean;
-    player: string;
+    player: string | null;
     tracklist: string | null;
     body_text: string | null;
     broadcast_date: string | null;
     broadcast_time: string | null;
     broadcast_day: string | null;
     duration: string | null;
+    page_link: string | null;
+    source: string | null;
     genres: GenreObject[];
     locations: LocationObject[];
     regular_hosts: HostObject[];
@@ -41,43 +51,71 @@ export interface RadioShowObject {
 }
 
 export interface GenreObject {
+  id: string;
   slug: string;
   title: string;
+  content: string;
+  bucket: string;
+  created_at: string;
+  modified_at: string;
+  published_at: string;
+  status: string;
   type: string;
   metadata: {
     description: string | null;
     image: CosmicImage | null;
-  };
+  } | null;
 }
 
 export interface LocationObject {
+  id: string;
   slug: string;
   title: string;
+  content: string;
+  bucket: string;
+  created_at: string;
+  modified_at: string;
+  published_at: string;
+  status: string;
   type: string;
   metadata: {
     description: string | null;
     image: CosmicImage | null;
-  };
+  } | null;
 }
 
 export interface HostObject {
+  id: string;
   slug: string;
   title: string;
+  content: string;
+  bucket: string;
+  created_at: string;
+  modified_at: string;
+  published_at: string;
+  status: string;
   type: string;
   metadata: {
     description: string | null;
     image: CosmicImage | null;
-  };
+  } | null;
 }
 
 export interface TakeoverObject {
+  id: string;
   slug: string;
   title: string;
+  content: string;
+  bucket: string;
+  created_at: string;
+  modified_at: string;
+  published_at: string;
+  status: string;
   type: string;
   metadata: {
     description: string | null;
     image: CosmicImage | null;
-  };
+  } | null;
 }
 
 export interface ScheduleObject {
@@ -115,19 +153,69 @@ export interface PostObject {
   id: string;
   slug: string;
   title: string;
-  type: "posts";
+  type: string;
+  created_at: string;
   metadata: {
-    image: {
+    type?: {
+      key: string;
+      value: string;
+    };
+    categories?: {
+      id: string;
+      slug: string;
+      title: string;
+      content: string;
+      bucket: string;
+      created_at: string;
+      modified_at: string;
+      status: string;
+      published_at: string;
+      modified_by: string;
+      created_by: string;
+      type: string;
+      metadata: null;
+    }[];
+    image?: {
       url: string;
       imgix_url: string;
     };
-    description: string;
-    date: string;
-    content: string | null;
-    post_type: "article" | "video" | "event";
-    featured_on_homepage: boolean;
-    author?: AuthorObject;
-    link?: string;
+    author?:
+      | {
+          id: string;
+          slug: string;
+          title: string;
+          content: string;
+          bucket: string;
+          created_at: string;
+          modified_at: string;
+          status: string;
+          published_at: string;
+          modified_by: string;
+          created_by: string;
+          type: string;
+          metadata: null;
+        }
+      | string;
+    date?: string;
+    excerpt?: string | null;
+    description?: string | null;
+    content?: string;
+    featured_on_homepage?: boolean;
+    is_featured?: boolean;
+    featured_size?: {
+      key: string;
+      value: string;
+    };
+    section_name?: string | null;
+    section_priority?: number;
+    display_style?: {
+      key: string;
+      value: string;
+    };
+    image_aspect_ratio?: {
+      key: string;
+      value: string;
+    };
   };
 }
 

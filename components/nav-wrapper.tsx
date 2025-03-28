@@ -1,16 +1,8 @@
-import { getNavigation } from '@/lib/cosmic-service';
-import Navbar from './navbar';
-
-// Default navigation items as fallback
-const defaultNavItems = [
-  { name: 'Shows', link: '/shows' },
-  { name: 'Schedule', link: '/schedule' },
-  { name: 'Editorial', link: '/editorial' },
-  { name: 'About', link: '/about' },
-];
+import { getNavigation } from "@/lib/cosmic-service";
+import Navbar from "./navbar";
 
 export default async function NavWrapper() {
-  let navItems = defaultNavItems;
+  let navItems = [];
 
   try {
     const response = await getNavigation();
@@ -18,7 +10,7 @@ export default async function NavWrapper() {
       navItems = response.object.metadata.item;
     }
   } catch (error) {
-    console.error('Error fetching navigation:', error);
+    console.error("Error fetching navigation:", error);
     // Use default navItems as fallback
   }
 

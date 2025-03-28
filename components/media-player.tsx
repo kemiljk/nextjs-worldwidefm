@@ -67,7 +67,7 @@ export default function MediaPlayer({ currentShow }: MediaPlayerProps) {
         <>
           <div className="flex items-center flex-1 mx-2 overflow-hidden">
             <div className="w-10 h-10 rounded overflow-hidden mr-3 flex-shrink-0 relative">
-              <Image src={currentShow?.thumbnail || "/placeholder.svg?w=40&h=40"} alt={currentShow?.title || "Now playing"} fill className="object-cover" />
+              <Image src={currentShow?.thumbnail || "/image-placeholder.svg?w=40&h=40"} alt={currentShow?.title || "Now playing"} fill className="object-cover" />
             </div>
             <div className="flex-1 overflow-hidden">
               <div ref={titleRef} className={`font-medium whitespace-nowrap ${isPlaying && needsMarquee ? "animate-marquee" : "truncate"}`}>
@@ -98,7 +98,7 @@ export default function MediaPlayer({ currentShow }: MediaPlayerProps) {
       ) : (
         <div className="flex items-center">
           <div className="w-10 h-10 rounded overflow-hidden relative">
-            <Image src={currentShow?.thumbnail || "/placeholder.svg?w=40&h=40"} alt={currentShow?.title || "Now playing"} fill className="object-cover" />
+            <Image src={currentShow?.thumbnail || "/image-placeholder.svg?w=40&h=40"} alt={currentShow?.title || "Now playing"} fill className="object-cover" />
             <button onClick={togglePlayPause} className="absolute inset-0 bg-black/30 flex items-center justify-center hover:bg-black/40 transition-colors">
               {isPlaying ? <Pause className="h-5 w-5 text-white" /> : <Play className="h-5 w-5 text-white" />}
             </button>

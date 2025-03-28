@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Radio, Menu, X } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import Logo from "./logo";
-import { getSchedule, transformShowToViewData } from "@/lib/cosmic-service";
+import { transformShowToViewData } from "@/lib/cosmic-service";
 import { SearchButton } from "./search/search-button";
 import { getScheduleData } from "@/lib/actions";
 
@@ -37,8 +37,8 @@ export default function Navbar({ navItems }: NavbarProps) {
   }, []);
 
   return (
-    <header className="fixed top-0 border-b border-tan-100 dark:border-tan-800 left-0 right-0 z-50 transition-all duration-300 bg-background">
-      <div className="mx-auto px-4 flex justify-between items-center">
+    <header className="fixed top-0 border-b border-bronze-900 dark:border-bronze-50 left-0 right-0 z-50 transition-all duration-300 bg-background">
+      <div className="mx-auto pl-4 flex justify-between items-center">
         <div className="flex items-center gap-4 py-4">
           <Link href="/" className="flex items-center">
             <Logo className="w-auto h-8" />
@@ -56,14 +56,14 @@ export default function Navbar({ navItems }: NavbarProps) {
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
           <div className="hidden md:block">
             <SearchButton />
           </div>
 
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-foreground" onClick={() => setIsOpen(true)}>
+              <Button variant="ghost" size="icon" className="text-foreground size-16" onClick={() => setIsOpen(true)}>
                 <MoreHorizontal className="size-6" />
                 <span className="sr-only">Open menu</span>
               </Button>
@@ -77,7 +77,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                   <SearchButton />
                 </div>
                 <ul className="space-y-4">
-                  {navItems.map((item) => (
+                  {navItems.map((item, index) => (
                     <li key={item.name}>
                       <Link href={item.link} className="block py-2 text-lg hover:text-brand-orange transition-colors" onClick={() => setIsOpen(false)}>
                         {item.name}

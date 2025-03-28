@@ -4,7 +4,8 @@ import { getPosts, getRadioShows, getSchedule, getEditorialHomepage, getRadioSho
 import { SearchResult, SearchResultType } from "./search-context";
 import { PostObject, RadioShowObject, ScheduleObject, VideoObject } from "./cosmic-config";
 import { transformShowToViewData } from "./cosmic-service";
-import { cosmic } from "./cosmic-service";
+import { cosmic } from "./cosmic-config";
+import { addHours, isWithinInterval, isAfter } from "date-fns";
 
 export async function getAllPosts(): Promise<PostObject[]> {
   try {
@@ -55,57 +56,63 @@ export async function getScheduleData(slug: string = "main-schedule"): Promise<{
   upcomingShows: ReturnType<typeof transformShowToViewData>[];
 }> {
   try {
-    const response = await getSchedule(slug);
+    let schedule = null;
     let currentShow = null;
     let upcomingShow = null;
     let upcomingShows: ReturnType<typeof transformShowToViewData>[] = [];
-    let schedule: ScheduleObject | null = null;
 
-    if (response.object) {
-      schedule = response.object;
-      if (schedule.metadata?.shows && schedule.metadata.shows.length > 0) {
-        const scheduleShows = schedule.metadata.shows;
+    // Try to get schedule first
+    const scheduleResponse = await getSchedule(slug);
+    if (scheduleResponse.object) {
+      schedule = scheduleResponse.object;
+    } else {
+      // Fallback to recent shows if schedule is empty
+      const showsResponse = await getRadioShows({
+        limit: 7, // Get enough for current, upcoming, and 5 more
+        sort: "-metadata.broadcast_date",
+        status: "published",
+      });
 
-        // Current show is the first in the schedule
-        currentShow = transformShowToViewData(scheduleShows[0]);
+      if (showsResponse.objects && showsResponse.objects.length > 0) {
+        const now = new Date();
+        const allShows = showsResponse.objects
+          .filter((show) => show.metadata?.broadcast_date)
+          .sort((a, b) => {
+            const dateA = new Date(a.metadata.broadcast_date || "");
+            const dateB = new Date(b.metadata.broadcast_date || "");
+            if (isNaN(dateA.getTime())) return 1;
+            if (isNaN(dateB.getTime())) return -1;
+            return dateB.getTime() - dateA.getTime();
+          });
 
-        // Next show is the second in the schedule
-        if (scheduleShows.length > 1) {
-          upcomingShow = transformShowToViewData(scheduleShows[1]);
-        }
+        if (allShows.length > 0) {
+          // Find current show (within last 2 hours)
+          const currentShowObj = allShows.find((show) => {
+            const startTime = new Date(show.metadata.broadcast_date || "");
+            const endTime = addHours(startTime, 2);
+            return isWithinInterval(now, { start: startTime, end: endTime });
+          });
 
-        // Get the next 5 shows for the upcoming section
-        if (scheduleShows.length > 2) {
-          upcomingShows = scheduleShows.slice(2, 7).map(transformShowToViewData);
-        }
-      } else {
-        // Fallback to recent shows if schedule is empty
-        const showsResponse = await getRadioShows({
-          limit: 7, // Get enough for current, upcoming, and 5 more
-          sort: "-metadata.broadcast_date",
-          status: "published",
-        });
+          if (currentShowObj) {
+            currentShow = transformShowToViewData(currentShowObj);
+          }
 
-        if (showsResponse.objects && showsResponse.objects.length > 0) {
-          const allShows = showsResponse.objects
-            .filter((show) => show.metadata?.broadcast_date)
+          // Get upcoming shows (future shows)
+          const upcomingShowsList = allShows
+            .filter((show) => {
+              const startTime = new Date(show.metadata.broadcast_date || "");
+              return isAfter(startTime, now) && (!currentShowObj || show.id !== currentShowObj.id);
+            })
             .sort((a, b) => {
               const dateA = new Date(a.metadata.broadcast_date || "");
               const dateB = new Date(b.metadata.broadcast_date || "");
-              if (isNaN(dateA.getTime())) return 1;
-              if (isNaN(dateB.getTime())) return -1;
-              return dateB.getTime() - dateA.getTime();
+              return dateA.getTime() - dateB.getTime();
             });
 
-          if (allShows.length > 0) {
-            currentShow = transformShowToViewData(allShows[0]);
-
-            if (allShows.length > 1) {
-              upcomingShow = transformShowToViewData(allShows[1]);
-            }
-
-            if (allShows.length > 2) {
-              upcomingShows = allShows.slice(2, 7).map(transformShowToViewData);
+          if (upcomingShowsList.length > 0) {
+            upcomingShow = transformShowToViewData(upcomingShowsList[0]);
+            if (upcomingShowsList.length > 1) {
+              upcomingShows = upcomingShowsList.slice(1, 6).map(transformShowToViewData);
             }
           }
         }
@@ -193,7 +200,7 @@ export async function getAllSearchableContent(): Promise<SearchResult[]> {
         id: post.id,
         title: post.title,
         type: "posts" as const,
-        description: post.metadata.description,
+        description: post.metadata.description || "",
         excerpt: post.metadata.content || "",
         image: post.metadata.image?.imgix_url || "/image-placeholder.svg",
         slug: post.slug,
@@ -202,22 +209,22 @@ export async function getAllSearchableContent(): Promise<SearchResult[]> {
         locations: [],
         hosts: [],
         takovers: [],
-        post_type: post.metadata.post_type,
         featured: post.metadata.featured_on_homepage,
       })),
       ...shows.map((show) => ({
         id: show.id,
         title: show.title,
         type: "radio-shows" as const,
-        description: show.metadata.description,
+        description: show.metadata.description || "",
         excerpt: show.metadata.subtitle || "",
         image: show.metadata.image?.imgix_url || "/image-placeholder.svg",
         slug: show.slug,
         date: show.metadata.broadcast_date || "",
-        genres: show.metadata.genres.map((genre) => genre.slug),
-        locations: show.metadata.locations.map((location) => location.slug),
-        hosts: show.metadata.regular_hosts.map((host) => host.slug),
-        takovers: show.metadata.takeovers.map((takover) => takover.slug),
+        genres: show.metadata.genres || [],
+        locations: show.metadata.locations || [],
+        hosts: show.metadata.regular_hosts || [],
+        takovers: show.metadata.takeovers || [],
+        metadata: show.metadata,
       })),
     ].sort((a, b) => {
       const dateA = new Date(a.date || "");
@@ -243,6 +250,64 @@ export async function getVideos(limit: number = 4): Promise<VideoObject[]> {
     return response.objects || [];
   } catch (error) {
     console.error("Error in getVideos:", error);
+    return [];
+  }
+}
+
+export async function getPostBySlug(slug: string): Promise<{ object: PostObject } | null> {
+  try {
+    const response = await cosmic.objects
+      .findOne({
+        type: "posts",
+        slug: slug,
+      })
+      .props("id,title,slug,type,created_at,metadata")
+      .depth(2);
+
+    if (!response) {
+      return null;
+    }
+
+    return response;
+  } catch (error) {
+    console.error("Error fetching post:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", error.message);
+    }
+    return null;
+  }
+}
+
+export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
+  try {
+    // Check if post and metadata exist
+    if (!post?.metadata?.categories) {
+      return [];
+    }
+
+    // Get the categories from the current post
+    const categories = post.metadata.categories.map((cat) => cat.slug);
+
+    if (categories.length === 0) {
+      return [];
+    }
+
+    // Fetch posts that share at least one category with the current post
+    const relatedPosts = await cosmic.objects
+      .find({
+        type: "posts",
+        "metadata.categories.slug": {
+          $in: categories,
+        },
+      })
+      .props("id,title,slug,type,created_at,metadata")
+      .limit(3)
+      .depth(2);
+
+    // Filter out the current post from related posts and extract the objects from the response
+    return (relatedPosts.objects || []).filter((relatedPost: PostObject) => relatedPost.slug !== post.slug).map((post: any) => post.object || post); // Handle both direct objects and nested ones
+  } catch (error) {
+    console.error("Error fetching related posts:", error);
     return [];
   }
 }

@@ -3,17 +3,17 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getScheduleData, getEditorialContent, getVideos, getAllShows } from "@/lib/actions";
+import { getEditorialContent, getVideos, getAllShows } from "@/lib/actions";
 import { transformShowToViewData } from "@/lib/cosmic-service";
 import ClientSideSelectionWrapper from "@/components/client-side-selection-wrapper";
 import MediaPlayer from "@/components/media-player";
 import EditorialSection from "@/components/editorial/editorial-section";
 import VideoSection from "@/components/video/video-section";
+import { addHours, isWithinInterval, isBefore, isAfter, parseISO, format } from "date-fns";
 
 // This is a server component - no need for useState, useEffect etc.
 export default async function Home() {
-  // Get the schedule data using server action
-  const { schedule, currentShow, upcomingShow, upcomingShows } = await getScheduleData();
+  // Get all shows and transform them
   const shows = await getAllShows();
   const transformedShows = shows.map(transformShowToViewData);
 
@@ -23,18 +23,86 @@ export default async function Home() {
   // Get videos using server action
   const videos = await getVideos(4);
 
-  // Limit posts to 4 for homepage
+  // Function to determine if a show is currently playing
+  const getCurrentShow = (shows: any[]) => {
+    const now = new Date();
+
+    // Sort shows by broadcast date, most recent first
+    const sortedShows = [...shows].sort((a, b) => {
+      const dateA = parseISO(a.metadata?.broadcast_date || "");
+      const dateB = parseISO(b.metadata?.broadcast_date || "");
+      if (isNaN(dateA.getTime())) return 1;
+      if (isNaN(dateB.getTime())) return -1;
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    // Find the most recent show that started within the last 2 hours
+    const currentShow = sortedShows.find((show) => {
+      if (!show.metadata?.broadcast_date) return false;
+      const startTime = parseISO(show.metadata.broadcast_date);
+      const endTime = addHours(startTime, 2); // Assume 2-hour shows
+      return isWithinInterval(now, { start: startTime, end: endTime });
+    });
+
+    return currentShow || null;
+  };
+
+  // Function to get upcoming shows
+  const getUpcomingShows = (shows: any[], currentShow: any) => {
+    const now = new Date();
+
+    return shows
+      .filter((show) => {
+        if (!show.metadata?.broadcast_date) return false;
+        const startTime = parseISO(show.metadata.broadcast_date);
+        // Show is in the future and not the current show
+        return isAfter(startTime, now) && (!currentShow || show.id !== currentShow.id);
+      })
+      .sort((a, b) => {
+        const dateA = parseISO(a.metadata.broadcast_date);
+        const dateB = parseISO(b.metadata.broadcast_date);
+        return dateA.getTime() - dateB.getTime();
+      });
+  };
+
+  // Function to get latest shows (past shows)
+  const getLatestShows = (shows: any[], currentShow: any) => {
+    const now = new Date();
+
+    return shows
+      .filter((show) => {
+        if (!show.metadata?.broadcast_date) return false;
+        const startTime = parseISO(show.metadata.broadcast_date);
+        // Show is in the past and not the current show
+        return isBefore(startTime, now) && (!currentShow || show.id !== currentShow.id);
+      })
+      .sort((a, b) => {
+        const dateA = parseISO(a.metadata.broadcast_date);
+        const dateB = parseISO(b.metadata.broadcast_date);
+        return dateB.getTime() - dateA.getTime(); // Most recent first
+      });
+  };
+
+  // Get current and upcoming shows
+  const currentShow = getCurrentShow(transformedShows);
+  const upcomingShows = getUpcomingShows(transformedShows, currentShow);
+  const latestShows = getLatestShows(transformedShows, currentShow);
+  const nextShow = upcomingShows[0];
+
+  // Limit posts and shows for homepage
   const limitedPosts = posts.slice(0, 4);
   const limitedUpcomingShows = upcomingShows.slice(0, 5);
+  const limitedLatestShows = latestShows.slice(0, 4);
   const limitedFeaturedShows = transformedShows.filter((show) => show.featured_on_homepage);
+
   return (
     <div className="min-h-screen -mx-4 md:-mx-8 lg:-mx-16">
       {/* Main content */}
-      <div>
+      <div className="mx-auto pt-8">
         {/* NOW and LATER sections */}
         <div className="grid grid-cols-1 md:grid-cols-2 relative z-10">
           {/* NOW section */}
-          <div className="flex flex-col h-full p-24 border-r border-black/20 dark:border-tan-50/10">
+          <div className="flex flex-col h-full p-24 border-r border-bronze-900 dark:border-bronze-50">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-medium text-brand-orange">NOW</h2>
               <Link href="/schedule" className="text-sm text-muted-foreground flex items-center group">
@@ -45,20 +113,22 @@ export default async function Home() {
             <Card className="overflow-hidden shadow-none border-none">
               <CardContent className="p-0">
                 <div className="relative aspect-square">
-                  <Image src={currentShow?.image || "/placeholder.svg"} alt={currentShow?.title || "Current Show"} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority />
+                  <Image src={currentShow?.image || "/image-placeholder.svg"} alt={currentShow?.title || "Current Show"} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority />
                   <div className="absolute inset-0 bg-gradient-to-b from-black/80 to-transparent">
                     <div className="p-4">
                       <div className="text-xs font-medium py-1 px-2 bg-black/80 text-white inline-block mb-2">ON NOW</div>
                       <p className="text-sm text-bronze-100">{currentShow?.subtitle || ""}</p>
-                      <h3 className="text-2xl text-bronze-50 font-medium mt-1">{currentShow?.title || "Loading show..."}</h3>
+                      <h3 className="text-2xl text-bronze-50 font-medium mt-1">{currentShow?.title || "No show currently playing"}</h3>
                     </div>
                   </div>
-                  <div className="absolute bottom-4 right-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-sm text-white">ON AIR</span>
+                  {currentShow && (
+                    <div className="absolute bottom-4 right-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
+                        <span className="text-sm text-white">ON AIR</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -66,9 +136,9 @@ export default async function Home() {
             {/* UP NEXT */}
             <div className="mt-6">
               <h3 className="text-xl font-medium text-brand-orange mb-4">UP NEXT</h3>
-              <div className="border-2 border-brand-orange/40 p-4 flex items-center rounded-none justify-between">
+              <div className="border border-brand-orange/40 p-4 flex items-center rounded-none justify-between">
                 <div>
-                  <p className="text-sm text-foreground">{upcomingShow?.title || "No upcoming show"}</p>
+                  <p className="text-sm text-foreground">{nextShow?.title || "No upcoming show"}</p>
                 </div>
                 <Button variant="outline" className="text-brand-orange border-brand-orange hover:bg-brand-orange/10">
                   Playing Next
@@ -95,10 +165,10 @@ export default async function Home() {
                 <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
                   <CardContent className="p-0">
                     <div className="relative aspect-square">
-                      <Image src={show.image || "/placeholder.svg"} alt={show.title} fill className="object-cover" />
+                      <Image src={show.image || "/image-placeholder.svg"} alt={show.title} fill className="object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent">
                         <div className="absolute bottom-4 left-4 right-4">
-                          <h3 className="text-lg leading-tight  font-medium text-white line-clamp-2">{show.title}</h3>
+                          <h3 className="text-lg leading-tight font-medium text-white line-clamp-2">{show.title}</h3>
                           <p className="text-sm text-white/80 mt-1">{show.subtitle}</p>
                         </div>
                       </div>
@@ -119,16 +189,17 @@ export default async function Home() {
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {limitedUpcomingShows.slice(0, 4).map((show, index) => (
+            {limitedLatestShows.map((show, index) => (
               <Link key={index} href={`/archive/${show.slug}`}>
                 <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
                   <CardContent className="p-0">
                     <div className="relative aspect-square">
-                      <Image src={show.image || "/placeholder.svg"} alt={show.title} fill className="object-cover" />
+                      <Image src={show.image || "/image-placeholder.svg"} alt={show.title} fill className="object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent">
                         <div className="absolute bottom-4 left-4 right-4">
-                          <h3 className="text-lg leading-tight  font-medium text-white line-clamp-2">{show.title}</h3>
+                          <h3 className="text-lg leading-tight font-medium text-white line-clamp-2">{show.title}</h3>
                           <p className="text-sm text-white/80 mt-1">{show.subtitle}</p>
+                          {show.metadata?.broadcast_date && <p className="text-xs text-white/60 mt-1">{format(parseISO(show.metadata.broadcast_date), "MMM d, yyyy")}</p>}
                         </div>
                       </div>
                     </div>
@@ -143,7 +214,7 @@ export default async function Home() {
         <VideoSection videos={videos} className="px-4 md:px-8 lg:px-24 py-16 border-t border-crimson-900 bg-crimson-500" />
 
         {/* Editorial section */}
-        <EditorialSection posts={limitedPosts} className="px-4 md:px-8 lg:px-24 py-16 border-t border-sky-900 bg-sky-300" isHomepage={true} />
+        <EditorialSection title="EDITORIAL" posts={limitedPosts} className="px-4 md:px-8 lg:px-24 py-16 border-t border-sky-900 bg-sky-300" isHomepage={true} />
       </div>
 
       {/* Media player component */}

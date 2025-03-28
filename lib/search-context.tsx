@@ -4,6 +4,12 @@ import { createContext, useContext } from "react";
 
 export type SearchResultType = "radio-shows" | "posts" | "events" | "videos" | "takovers";
 
+export interface FilterItem {
+  title: string;
+  slug: string;
+  type: string;
+}
+
 export interface SearchResult {
   id: string;
   type: SearchResultType;
@@ -13,12 +19,13 @@ export interface SearchResult {
   excerpt?: string;
   image?: string;
   date?: string;
-  genres: string[];
-  locations: string[];
-  hosts: string[];
-  takovers: string[];
+  genres: FilterItem[];
+  locations: FilterItem[];
+  hosts: FilterItem[];
+  takovers: FilterItem[];
   post_type?: "article" | "video" | "event";
   featured?: boolean;
+  metadata?: any;
 }
 
 export interface SearchFilters {
@@ -38,10 +45,10 @@ export interface SearchContextType {
   isLoading: boolean;
   performSearch: (term: string) => Promise<void>;
   availableFilters: {
-    genres: string[];
-    locations: string[];
-    hosts: string[];
-    takovers: string[];
+    genres: FilterItem[];
+    locations: FilterItem[];
+    hosts: FilterItem[];
+    takovers: FilterItem[];
   };
 }
 

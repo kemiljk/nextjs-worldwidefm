@@ -485,22 +485,30 @@ function levenshteinDistance(str1, str2) {
   return dp[m][n];
 }
 
+// Helper function to normalize genre titles
+function normalizeGenreTitle(title) {
+  if (!title) return "";
+  return title
+    .split(/[-\s]+/) // Split on hyphens and spaces
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Title case each word
+    .join(" "); // Join with spaces
+}
+
 // Helper function to create a new category in Cosmic
 async function createCategory(cosmic, type, title) {
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+  // Normalize genre titles
+  const normalizedTitle = type === "genres" ? normalizeGenreTitle(title) : title;
+  const slug = generateSlug(title);
   try {
     console.log(`Creating category with data:`, {
-      title,
+      title: normalizedTitle,
       type,
       slug,
       status: "published",
     });
 
     const response = await cosmic.objects.insertOne({
-      title,
+      title: normalizedTitle,
       type,
       slug,
       status: "published",
@@ -513,7 +521,7 @@ async function createCategory(cosmic, type, title) {
 
     return response.object;
   } catch (error) {
-    console.error(`Error creating ${type} "${title}":`, error);
+    console.error(`Error creating ${type} "${normalizedTitle}":`, error);
     if (error.response) {
       console.error("Error response:", error.response.data);
     }
@@ -525,9 +533,12 @@ async function createCategory(cosmic, type, title) {
 async function getOrCreateCategory(cosmic, type, title, categoryMap) {
   if (!title) return null;
 
+  // Normalize genre titles for comparison
+  const normalizedTitle = type === "genres" ? normalizeGenreTitle(title) : title;
+
   // Check cache first
-  if (categoryMap.has(title)) {
-    return categoryMap.get(title);
+  if (categoryMap.has(normalizedTitle)) {
+    return categoryMap.get(normalizedTitle);
   }
 
   try {
@@ -545,11 +556,11 @@ async function getOrCreateCategory(cosmic, type, title, categoryMap) {
 
     // Try to find a match using various methods
     let category = null;
-    const normalizedTitle = title.toLowerCase().trim();
+    const titleForComparison = normalizedTitle.toLowerCase().trim();
     const titleSlug = generateSlug(title);
 
     // First try exact match
-    category = response.objects.find((cat) => cat.title.toLowerCase() === normalizedTitle || generateSlug(cat.title) === titleSlug);
+    category = response.objects.find((cat) => cat.title.toLowerCase() === titleForComparison || generateSlug(cat.title) === titleSlug);
 
     // Then try fuzzy match
     if (!category) {
@@ -561,20 +572,20 @@ async function getOrCreateCategory(cosmic, type, title, categoryMap) {
 
     // Create if not found
     if (!category) {
-      console.log(`Creating new ${type}: ${title}`);
+      console.log(`Creating new ${type}: ${normalizedTitle}`);
       category = await createCategory(cosmic, type, title);
       if (!category) {
-        console.error(`Failed to create ${type}: ${title}`);
+        console.error(`Failed to create ${type}: ${normalizedTitle}`);
         return null;
       }
-      console.log(`Successfully created ${type}: ${title}`);
+      console.log(`Successfully created ${type}: ${normalizedTitle}`);
     }
 
     // Cache the result (even if null)
-    categoryMap.set(title, category);
+    categoryMap.set(normalizedTitle, category);
     return category;
   } catch (error) {
-    console.error(`Error getting/creating ${type} "${title}":`, error);
+    console.error(`Error getting/creating ${type} "${normalizedTitle}":`, error);
     if (error.response) {
       console.error("Error response:", error.response.data);
     }
@@ -582,17 +593,9 @@ async function getOrCreateCategory(cosmic, type, title, categoryMap) {
   }
 }
 
-// Helper function to normalize a slug
-function normalizeSlug(title) {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
 // Helper function to find a show in Cosmic
 async function findShowInCosmic(cosmic, mysqlShow) {
-  const mysqlSlug = normalizeSlug(mysqlShow.title);
+  const mysqlSlug = generateSlug(mysqlShow.title);
 
   try {
     // Get all shows from Cosmic
@@ -610,12 +613,12 @@ async function findShowInCosmic(cosmic, mysqlShow) {
     const cosmicShows = response.objects;
 
     // First try exact match
-    const exactMatch = cosmicShows.find((show) => normalizeSlug(show.title) === mysqlSlug);
+    const exactMatch = cosmicShows.find((show) => generateSlug(show.title) === mysqlSlug);
     if (exactMatch) return exactMatch;
 
     // Then try fuzzy match
     const fuzzyMatch = cosmicShows.find((show) => {
-      const cosmicSlug = normalizeSlug(show.title);
+      const cosmicSlug = generateSlug(show.title);
       return mysqlSlug.includes(cosmicSlug) || cosmicSlug.includes(mysqlSlug) || areSlugsSimilar(mysqlSlug, cosmicSlug);
     });
     return fuzzyMatch;
@@ -633,6 +636,121 @@ async function createMysqlConnection() {
   return await mysql.createConnection(dbConfig);
 }
 
+// Helper function to find an image in Cosmic by original filename
+async function findImageInCosmic(cosmic, originalFilename) {
+  try {
+    const response = await cosmic.objects.find({
+      type: "images",
+      props: "id,title,metadata",
+      limit: 1000,
+    });
+
+    if (!response || !response.objects) {
+      console.log("No images found in Cosmic");
+      return null;
+    }
+
+    // Try to find exact match
+    const exactMatch = response.objects.find((img) => img.metadata?.original_name === originalFilename);
+    if (exactMatch) return exactMatch;
+
+    // Try to find by filename without extension
+    const filenameWithoutExt = originalFilename.replace(/\.[^/.]+$/, "");
+    const fuzzyMatch = response.objects.find((img) => img.metadata?.original_name?.replace(/\.[^/.]+$/, "") === filenameWithoutExt);
+    return fuzzyMatch;
+  } catch (error) {
+    console.error(`Error finding image "${originalFilename}" in Cosmic:`, error);
+    return null;
+  }
+}
+
+// Helper function to create a new radio show in Cosmic
+async function createRadioShow(cosmic, episode, image) {
+  try {
+    console.log(`Creating radio show with data:`, {
+      title: episode.title,
+      type: "radio-shows",
+      slug: generateSlug(episode.title),
+      status: "published",
+      metadata: {
+        image: image ? image.id : "",
+        description: episode.description || "",
+        genres: [],
+        locations: [],
+        regular_hosts: [],
+        takeovers: [],
+      },
+    });
+
+    const response = await cosmic.objects.insertOne({
+      title: episode.title,
+      type: "radio-shows",
+      slug: generateSlug(episode.title),
+      status: "published",
+      metadata: {
+        image: image ? image.id : "",
+        description: episode.description || "",
+        genres: [],
+        locations: [],
+        regular_hosts: [],
+        takeovers: [],
+      },
+    });
+
+    if (!response || !response.object) {
+      console.error("No object returned from insertOne");
+      return null;
+    }
+
+    return response.object;
+  } catch (error) {
+    console.error(`Error creating radio show "${episode.title}":`, error);
+    if (error.response) {
+      console.error("Error response:", error.response.data);
+    }
+    return null;
+  }
+}
+
+// Helper function to normalize all existing genre tags in Cosmic
+async function normalizeExistingGenres(cosmic) {
+  try {
+    console.log("Fetching all existing genres from Cosmic...");
+    const response = await cosmic.objects.find({
+      type: "genres",
+      props: "id,title,metadata",
+      limit: 1000,
+    });
+
+    if (!response || !response.objects) {
+      console.log("No genres found in Cosmic");
+      return;
+    }
+
+    console.log(`Found ${response.objects.length} genres to process`);
+
+    for (const genre of response.objects) {
+      const normalizedTitle = normalizeGenreTitle(genre.title);
+
+      // Only update if the title needs normalization
+      if (normalizedTitle !== genre.title) {
+        console.log(`Normalizing genre: "${genre.title}" -> "${normalizedTitle}"`);
+
+        try {
+          await cosmic.objects.updateOne(genre.id, {
+            title: normalizedTitle,
+          });
+          console.log(`Successfully normalized genre: "${genre.title}"`);
+        } catch (error) {
+          console.error(`Error normalizing genre "${genre.title}":`, error);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error normalizing existing genres:", error);
+  }
+}
+
 async function updateRadioShowCategories() {
   // Create Cosmic client with explicit configuration
   const cosmic = createBucketClient({
@@ -648,6 +766,9 @@ async function updateRadioShowCategories() {
     dbName: dbConfig.database,
   });
 
+  // First normalize all existing genres
+  await normalizeExistingGenres(cosmic);
+
   const mysql = await createMysqlConnection();
 
   // Cache maps for categories
@@ -657,42 +778,127 @@ async function updateRadioShowCategories() {
   const takeoverMap = new Map();
 
   try {
-    // Get all shows from MySQL
-    const [shows] = await mysql.query(`
-      SELECT e.id, c.title, c.field_description as description
+    // Get all episodes from MySQL with their thumbnails
+    const [episodes] = await mysql.query(`
+      SELECT 
+        e.id,
+        MAX(c.title) as title,
+        MAX(c.field_description) as description,
+        MAX(s.slug) as slug,
+        GROUP_CONCAT(DISTINCT r.fieldId, ':', r.targetId) as relations,
+        GROUP_CONCAT(DISTINCT CASE WHEN r.fieldId = 4 THEN r.targetId END) as thumbnailId
       FROM craft_entries e
       JOIN craft_content c ON e.id = c.elementId
-      JOIN craft_sections s ON e.sectionId = s.id
-      WHERE s.handle = 'editorial'
-      AND c.title IS NOT NULL
+      JOIN craft_elements_sites s ON e.id = s.elementId
+      LEFT JOIN craft_relations r ON e.id = r.sourceId
+      WHERE e.sectionId = (SELECT id FROM craft_sections WHERE handle = 'episode')
+      AND (e.deletedWithEntryType IS NULL OR e.deletedWithEntryType = 0)
+      AND s.siteId = 1
+      GROUP BY e.id
     `);
 
-    console.log(`Found ${shows.length} shows in MySQL`);
+    console.log(`Found ${episodes.length} episodes in MySQL`);
 
-    // Process each show
-    for (const mysqlShow of shows) {
-      console.log("\nProcessing show:", mysqlShow.title);
+    // Process each episode
+    for (const episode of episodes) {
+      console.log("\nProcessing episode:", episode.title);
 
       try {
         // Find show in Cosmic
-        const cosmicShow = await findShowInCosmic(cosmic, mysqlShow);
+        let cosmicShow = await findShowInCosmic(cosmic, episode);
+
+        // If show doesn't exist, create it
         if (!cosmicShow) {
-          console.log(`Could not find show "${mysqlShow.title}" in Cosmic`);
-          continue;
+          console.log(`Show "${episode.title}" not found in Cosmic, creating new show`);
+
+          // Get thumbnail details if available
+          let image = null;
+          if (episode.thumbnailId) {
+            const [thumbnailDetails] = await mysql.query(
+              `
+              SELECT a.id, a.filename
+              FROM craft_assets a
+              WHERE a.id = ?
+            `,
+              [episode.thumbnailId]
+            );
+
+            if (thumbnailDetails.length > 0) {
+              const thumbnail = thumbnailDetails[0];
+              image = await findImageInCosmic(cosmic, thumbnail.filename);
+            }
+          }
+
+          // Create new show
+          cosmicShow = await createRadioShow(cosmic, episode, image);
+          if (!cosmicShow) {
+            console.log(`Failed to create show "${episode.title}" in Cosmic`);
+            continue;
+          }
         }
 
-        // Extract categories from description
-        const { genres, locations, regular_hosts, takeovers } = extractCategories(mysqlShow.title, mysqlShow.description);
-        console.log("Extracted categories:", { genres, locations, regular_hosts, takeovers });
+        // Extract categories from relations
+        const categories = {
+          genres: new Set(),
+          locations: new Set(),
+          regular_hosts: new Set(),
+          takeovers: new Set(),
+        };
+
+        if (episode.relations) {
+          const relationParts = episode.relations.split(",");
+          for (const relation of relationParts) {
+            const [fieldId, targetId] = relation.split(":");
+
+            // Skip thumbnail field
+            if (fieldId === "4") continue;
+
+            // Get category details
+            const [categoryDetails] = await mysql.query(
+              `
+              SELECT c.id, cc.title, s.slug, cg.handle as groupHandle
+              FROM craft_categories c
+              JOIN craft_content cc ON c.id = cc.elementId
+              JOIN craft_elements_sites s ON c.id = s.elementId
+              JOIN craft_categorygroups cg ON c.groupId = cg.id
+              WHERE c.id = ?
+              AND s.siteId = 1
+            `,
+              [targetId]
+            );
+
+            if (categoryDetails.length > 0) {
+              const category = categoryDetails[0];
+
+              // Map categories based on group handle
+              switch (category.groupHandle) {
+                case "genres":
+                  categories.genres.add(category.title);
+                  break;
+                case "locations":
+                  categories.locations.add(category.title);
+                  break;
+                case "hosts":
+                  categories.regular_hosts.add(category.title);
+                  break;
+                case "takeovers":
+                  categories.takeovers.add(category.title);
+                  break;
+              }
+            }
+          }
+        }
+
+        console.log("Extracted categories:", categories);
 
         // Get or create categories
-        const validGenres = await Promise.all(Array.from(genres || []).map((g) => getOrCreateCategory(cosmic, "genres", g, genreMap))).then((results) => results.filter(Boolean));
+        const validGenres = await Promise.all(Array.from(categories.genres || []).map((g) => getOrCreateCategory(cosmic, "genres", g, genreMap))).then((results) => results.filter(Boolean));
 
-        const validLocations = await Promise.all(Array.from(locations || []).map((l) => getOrCreateCategory(cosmic, "locations", l, locationMap))).then((results) => results.filter(Boolean));
+        const validLocations = await Promise.all(Array.from(categories.locations || []).map((l) => getOrCreateCategory(cosmic, "locations", l, locationMap))).then((results) => results.filter(Boolean));
 
-        const validHosts = await Promise.all(Array.from(regular_hosts || []).map((h) => getOrCreateCategory(cosmic, "hosts", h, hostMap))).then((results) => results.filter(Boolean));
+        const validHosts = await Promise.all(Array.from(categories.regular_hosts || []).map((h) => getOrCreateCategory(cosmic, "hosts", h, hostMap))).then((results) => results.filter(Boolean));
 
-        const validTakeovers = await Promise.all(Array.from(takeovers || []).map((t) => getOrCreateCategory(cosmic, "takeovers", t, takeoverMap))).then((results) => results.filter(Boolean));
+        const validTakeovers = await Promise.all(Array.from(categories.takeovers || []).map((t) => getOrCreateCategory(cosmic, "takeovers", t, takeoverMap))).then((results) => results.filter(Boolean));
 
         console.log("Valid categories:", {
           genres: validGenres,
@@ -717,17 +923,17 @@ async function updateRadioShowCategories() {
             throw new Error("No object returned from updateOne");
           }
 
-          console.log(`Successfully updated show "${mysqlShow.title}" with categories:`, {
+          console.log(`Successfully updated show "${episode.title}" with categories:`, {
             genres: validGenres.map((g) => g.title),
             locations: validLocations.map((l) => l.title),
             hosts: validHosts.map((h) => h.title),
             takeovers: validTakeovers.map((t) => t.title),
           });
         } else {
-          console.log(`No valid categories found for show "${mysqlShow.title}"`);
+          console.log(`No valid categories found for show "${episode.title}"`);
         }
       } catch (error) {
-        console.error(`Error processing show "${mysqlShow.title}":`, error);
+        console.error(`Error processing show "${episode.title}":`, error);
       }
     }
   } catch (error) {

@@ -62,11 +62,16 @@ export async function getRadioShows(
  */
 export async function getRadioShowBySlug(slug: string): Promise<CosmicResponse<RadioShowObject>> {
   try {
-    const response = await cosmic.objects.find({ type: "radio-shows", slug }).props("id,slug,title,metadata,type").depth(1);
+    const response = await cosmic.objects.findOne({ type: "radio-shows", slug }).props("id,slug,title,metadata,type").depth(1);
     return response;
   } catch (error) {
     console.error(`Error fetching radio show by slug ${slug}:`, error);
     if (error instanceof Error) {
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
     }
     throw error;
   }
@@ -144,6 +149,7 @@ export function transformShowToViewData(show: RadioShowObject) {
   const transformed = {
     id: show.id,
     title: show.title,
+    type: show.type,
     subtitle: show.metadata?.subtitle || "",
     description: show.metadata?.description || "",
     featured_on_homepage: show.metadata?.featured_on_homepage || false,
@@ -157,6 +163,57 @@ export function transformShowToViewData(show: RadioShowObject) {
     player: show.metadata?.player || "",
     tracklist: show.metadata?.tracklist || "",
     body_text: show.metadata?.body_text || "",
+    page_link: show.metadata?.page_link || "",
+    source: show.metadata?.source || "",
+    // Map all metadata fields with their full object structure
+    genres: (show.metadata?.genres || []).map((genre) => ({
+      id: genre.id,
+      slug: genre.slug,
+      title: genre.title,
+      content: genre.content || "",
+      type: genre.type,
+      status: genre.status,
+      metadata: genre.metadata || null,
+      created_at: genre.created_at,
+      modified_at: genre.modified_at,
+      published_at: genre.published_at,
+    })),
+    locations: (show.metadata?.locations || []).map((location) => ({
+      id: location.id,
+      slug: location.slug,
+      title: location.title,
+      content: location.content || "",
+      type: location.type,
+      status: location.status,
+      metadata: location.metadata || null,
+      created_at: location.created_at,
+      modified_at: location.modified_at,
+      published_at: location.published_at,
+    })),
+    regular_hosts: (show.metadata?.regular_hosts || []).map((host) => ({
+      id: host.id,
+      slug: host.slug,
+      title: host.title,
+      content: host.content || "",
+      type: host.type,
+      status: host.status,
+      metadata: host.metadata || null,
+      created_at: host.created_at,
+      modified_at: host.modified_at,
+      published_at: host.published_at,
+    })),
+    takeovers: (show.metadata?.takeovers || []).map((takeover) => ({
+      id: takeover.id,
+      slug: takeover.slug,
+      title: takeover.title,
+      content: takeover.content || "",
+      type: takeover.type,
+      status: takeover.status,
+      metadata: takeover.metadata || null,
+      created_at: takeover.created_at,
+      modified_at: takeover.modified_at,
+      published_at: takeover.published_at,
+    })),
   };
   return transformed;
 }

@@ -1,0 +1,180 @@
+require("dotenv").config();
+const mysql = require("mysql2/promise");
+const { createBucketClient } = require("@cosmicjs/sdk");
+const { parseISO, format } = require("date-fns");
+
+// Database configuration
+const dbConfig = {
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || "worldwidefm",
+};
+
+// Initialize Cosmic client
+const cosmic = createBucketClient({
+  bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG,
+  readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY,
+  writeKey: process.env.COSMIC_WRITE_KEY,
+});
+
+// Helper function to extract date from title
+function extractDateFromTitle(title) {
+  // Common date patterns in titles
+  const datePatterns = [
+    // DD/MM/YYYY or DD-MM-YYYY
+    /(\d{1,2})[/-](\d{1,2})[/-](\d{4})/,
+    // DD Month YYYY
+    /(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})/i,
+    // Month DD, YYYY
+    /(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})/i,
+  ];
+
+  for (const pattern of datePatterns) {
+    const match = title.match(pattern);
+    if (match) {
+      try {
+        // For DD/MM/YYYY or DD-MM-YYYY
+        if (match.length === 4 && match[1].length <= 2 && match[2].length <= 2) {
+          const [_, day, month, year] = match;
+          return format(new Date(year, month - 1, day), "yyyy-MM-dd");
+        }
+        // For DD Month YYYY
+        else if (match.length === 4 && match[2].length > 2) {
+          const [_, day, month, year] = match;
+          const monthIndex = new Date(`${month} 1, 2000`).getMonth();
+          return format(new Date(year, monthIndex, day), "yyyy-MM-dd");
+        }
+        // For Month DD, YYYY
+        else if (match.length === 4 && match[1].length > 2) {
+          const [_, month, day, year] = match;
+          const monthIndex = new Date(`${month} 1, 2000`).getMonth();
+          return format(new Date(year, monthIndex, day), "yyyy-MM-dd");
+        }
+      } catch (error) {
+        console.error(`Error parsing date from title "${title}":`, error);
+      }
+    }
+  }
+  return null;
+}
+
+async function getShowsFromMySQL() {
+  try {
+    console.log("Connecting to MySQL database...");
+    const connection = await mysql.createConnection(dbConfig);
+
+    // Get episodes with their broadcast dates
+    const [episodes] = await connection.execute(`
+      SELECT 
+        e.id,
+        c.title,
+        s.slug,
+        c.field_broadcastDate as broadcast_date,
+        e.dateCreated
+      FROM craft_entries e
+      JOIN craft_content c ON e.id = c.elementId
+      JOIN craft_elements_sites s ON e.id = s.elementId
+      WHERE e.sectionId = (SELECT id FROM craft_sections WHERE handle = 'episode')
+      AND e.deletedWithEntryType IS NULL
+      AND s.enabled = 1
+      ORDER BY e.dateCreated DESC
+    `);
+
+    await connection.end();
+
+    console.log(`\nFound ${episodes.length} episodes`);
+    return episodes;
+  } catch (error) {
+    console.error("Error getting episodes from MySQL:", error);
+    return [];
+  }
+}
+
+async function updateShowBroadcastDate(showId, broadcastDate) {
+  try {
+    const response = await cosmic.objects.updateOne(showId, {
+      metadata: {
+        broadcast_date: broadcastDate,
+      },
+    });
+
+    if (!response || !response.object) {
+      throw new Error("No object returned from updateOne");
+    }
+
+    return response.object;
+  } catch (error) {
+    console.error(`Error updating broadcast date for show ${showId}:`, error);
+    return null;
+  }
+}
+
+async function updateBroadcastDates() {
+  try {
+    // Get all shows from MySQL
+    const episodes = await getShowsFromMySQL();
+    console.log(`Processing ${episodes.length} episodes...`);
+
+    // Get all shows from Cosmic
+    const cosmicShows = await cosmic.objects.find({
+      type: "radio-shows",
+      limit: 1000,
+    });
+
+    // Create a map of slugs to Cosmic show IDs
+    const cosmicShowMap = new Map(cosmicShows.objects.map((show) => [show.slug, show.id]));
+
+    let updatedCount = 0;
+    let skippedCount = 0;
+    let errorCount = 0;
+
+    for (const episode of episodes) {
+      try {
+        // Find matching show in Cosmic
+        const cosmicShowId = cosmicShowMap.get(episode.slug);
+        if (!cosmicShowId) {
+          console.log(`No matching show found in Cosmic for "${episode.title}"`);
+          skippedCount++;
+          continue;
+        }
+
+        // Try to get broadcast date from MySQL first
+        let broadcastDate = episode.broadcast_date;
+
+        // If no broadcast date in MySQL, try to extract from title
+        if (!broadcastDate) {
+          broadcastDate = extractDateFromTitle(episode.title);
+        }
+
+        // If we have a broadcast date, update the show
+        if (broadcastDate) {
+          const updatedShow = await updateShowBroadcastDate(cosmicShowId, broadcastDate);
+          if (updatedShow) {
+            console.log(`Updated broadcast date for "${episode.title}" to ${broadcastDate}`);
+            updatedCount++;
+          } else {
+            errorCount++;
+          }
+        } else {
+          console.log(`No broadcast date found for "${episode.title}"`);
+          skippedCount++;
+        }
+      } catch (error) {
+        console.error(`Error processing episode "${episode.title}":`, error);
+        errorCount++;
+      }
+    }
+
+    console.log("\nUpdate Summary:");
+    console.log(`Total episodes processed: ${episodes.length}`);
+    console.log(`Successfully updated: ${updatedCount}`);
+    console.log(`Skipped (no date found): ${skippedCount}`);
+    console.log(`Errors: ${errorCount}`);
+  } catch (error) {
+    console.error("Error during update:", error);
+  }
+}
+
+// Run the update
+updateBroadcastDates().catch(console.error);

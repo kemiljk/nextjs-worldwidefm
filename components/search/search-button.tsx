@@ -10,9 +10,9 @@ export function SearchButton() {
 
   return (
     <>
-      <Button variant="ghost" size="sm" className="w-[200px] justify-start text-muted-foreground" onClick={() => setOpen(true)}>
+      <Button variant="ghost" size="sm" className="w-[200px] h-16 border-l border-r border-bronze-900 dark:border-bronze-50 justify-start text-muted-foreground" onClick={() => setOpen(true)}>
         <Search className="mr-2 h-4 w-4" />
-        Search...
+        Search
       </Button>
       <SearchDialog open={open} onOpenChange={setOpen} />
     </>

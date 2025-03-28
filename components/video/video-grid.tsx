@@ -23,7 +23,7 @@ export default function VideoGrid({ videos }: VideoGridProps) {
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {videos.map((video, index) => {
         const key = `${video.id}-${index}`;
-        const thumbnailUrl = video.metadata?.image?.imgix_url || (video.metadata?.video_url ? getYouTubeThumbnail(video.metadata.video_url) : "/placeholder.svg");
+        const thumbnailUrl = video.metadata?.image?.imgix_url || (video.metadata?.video_url ? getYouTubeThumbnail(video.metadata.video_url) : "/image-placeholder.svg");
 
         return (
           <Link key={key} href={`/videos/${video.slug}`}>
@@ -37,7 +37,7 @@ export default function VideoGrid({ videos }: VideoGridProps) {
                   onError={(e) => {
                     // Fallback to placeholder if image fails to load
                     const target = e.target as HTMLImageElement;
-                    target.src = "/placeholder.svg";
+                    target.src = "/image-placeholder.svg";
                   }}
                 />
                 <div className="absolute top-6 left-6">

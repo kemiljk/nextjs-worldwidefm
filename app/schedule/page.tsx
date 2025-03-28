@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getSchedule } from "@/lib/cosmic-service";
+import { PageHeader } from "@/components/shared/page-header";
 
 export default async function SchedulePage() {
   // Get the schedule data
@@ -12,29 +13,18 @@ export default async function SchedulePage() {
 
   return (
     <div className="min-h-screen">
-      <div className=" mx-auto pt-32 pb-32">
-        {/* Header with breadcrumb */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <Link href="/" className="hover:text-crimson transition-colors">
-              Home
-            </Link>
-            <ChevronRight className="h-3 w-3" />
-            <span className="text-foreground">Schedule</span>
-          </div>
-          <h1 className="text-4xl font-medium text-foreground mb-2">Weekly Schedule</h1>
-          <p className="text-lg text-muted-foreground">Tune in to our shows throughout the week.</p>
-        </div>
+      <div className="mx-auto pt-24 pb-32">
+        <PageHeader title="Weekly Schedule" description="Tune in to our shows throughout the week." breadcrumbs={[{ href: "/", label: "Home" }, { label: "Schedule" }]} />
 
         {/* Schedule list */}
         <div className="bg-background rounded-none shadow-sm overflow-hidden">
           {scheduleItems.length > 0 ? (
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
-              {scheduleItems.map((show) => (
-                <Link href={`/shows/${show.slug}`} key={show.id} className="flex items-center gap-4 p-4 hover:bg-bronze-50 dark:hover:bg-bronze-900 transition-colors group">
+              {scheduleItems.map((show, index) => (
+                <Link href={`/shows/${show.slug}`} key={index} className="flex items-center gap-4 p-4 hover:bg-bronze-50 dark:hover:bg-bronze-900 transition-colors group">
                   {/* Show thumbnail */}
                   <div className="w-16 h-16 flex-shrink-0 rounded-none overflow-hidden">
-                    <img src={show.metadata?.image?.imgix_url || "/placeholder.svg"} alt={show.title} className="object-cover w-full h-full" />
+                    <img src={show.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={show.title} className="object-cover w-full h-full" />
                   </div>
 
                   {/* Show info */}

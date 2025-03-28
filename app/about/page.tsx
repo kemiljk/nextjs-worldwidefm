@@ -1,26 +1,18 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, Instagram, Twitter, Facebook } from "lucide-react";
+import { Instagram, Twitter, Facebook } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/shared/page-header";
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen">
-      <div className=" mx-auto pt-32 pb-32">
-        {/* Header with breadcrumb */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <Link href="/" className="hover:text-brand-orange transition-colors">
-              Home
-            </Link>
-            <ChevronRight className="h-3 w-3" />
-            <span className="text-foreground">About</span>
-          </div>
-        </div>
+      <div className="mx-auto pt-32 pb-32">
+        <PageHeader title="About" breadcrumbs={[{ href: "/", label: "Home" }, { label: "About" }]} />
 
         {/* Hero section */}
         <div className="relative h-[50vh] mb-16 rounded-none overflow-hidden">
-          <Image src="/placeholder.svg" alt="Worldwide FM Studio" fill className="object-cover" priority />
+          <Image src="/image-placeholder.svg" alt="Worldwide FM Studio" fill className="object-cover" priority />
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent" />
           <div className="absolute bottom-0 left-0 p-8 md:p-12 text-white max-w-2xl">
             <h1 className="text-4xl md:text-5xl font-medium mb-4">Worldwide FM</h1>
@@ -43,7 +35,7 @@ export default function AboutPage() {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-5">
               <div className="aspect-square relative rounded-none overflow-hidden">
-                <Image src="/placeholder.svg" alt="Worldwide FM History" fill className="object-cover" />
+                <Image src="/image-placeholder.svg" alt="Worldwide FM History" fill className="object-cover" />
               </div>
             </div>
             <div className="md:col-span-7">

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Play, ChevronRight, ChevronLeft } from "lucide-react";
+import { Play, ChevronRight, ChevronLeft, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -54,10 +54,21 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
           </Link>
         </div>
 
-        <Card className="overflow-hidden border-none shadow-none">
+        <Card className="overflow-hidden border border-bronze-900 dark:border-bronze-50 shadow-none">
           <CardContent className="p-0 relative h-full flex flex-col">
-            <div className="aspect-square rounded w-full bg-gray-100 flex items-center justify-center">
-              <p className="text-gray-500">No shows available</p>
+            <div className="aspect-square w-full bg-gradient-to-br from-bronze-50 to-bronze-100 dark:from-bronze-950 dark:to-bronze-900 flex flex-col items-center justify-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-brand-orange/10 flex items-center justify-center">
+                <Radio className="h-8 w-8 text-brand-orange" />
+              </div>
+              <div className="text-center">
+                <h3 className="text-lg font-medium text-bronze-900 dark:text-bronze-50 mb-2">No Shows Available</h3>
+                <p className="text-sm text-bronze-700 dark:text-bronze-300 max-w-sm">Check back later for upcoming shows, or explore our archive for past episodes.</p>
+              </div>
+              <Link href="/archive">
+                <Button variant="outline" className="text-brand-orange border-brand-orange hover:bg-brand-orange/10">
+                  Browse Archive
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
@@ -74,10 +85,10 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
         </Link>
       </div>
 
-      <Card className="overflow-hidden border-none shadow-md flex-grow">
+      <Card className="overflow-hidden border border-bronze-900 dark:border-bronze-50 shadow-none flex-grow">
         <CardContent className="p-0 relative h-full flex flex-col">
           <div className="aspect-square w-full relative">
-            <Image src={selectedShow.image || "/placeholder.svg"} alt={selectedShow.title || "Selected Show"} fill className="object-cover" />
+            <Image src={selectedShow.image || "/image-placeholder.svg"} alt={selectedShow.title || "Selected Show"} fill className="object-cover" />
           </div>
           <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-2xl p-4 text-white">
             <div className="flex flex-col gap-2">
@@ -127,13 +138,13 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
       {featuredShows.length > 0 && (
         <div className="grid grid-cols-5 gap-2 mt-6">
           {featuredShows.map((show, index) => (
-            <button key={index} onClick={() => handleSelectShow(show, index)} className={`relative rounded-none overflow-hidden focus:outline-none ${index === selectedIndex ? "border-2 border-brand-orange" : "border-2 border-transparent"}`}>
+            <button key={index} onClick={() => handleSelectShow(show, index)} className={`relative rounded-none overflow-hidden focus:outline-none ${index === selectedIndex ? "border border-brand-orange" : "border border-transparent"}`}>
               <div className="aspect-square relative">
-                <Image src={show.thumbnail || "/placeholder.svg"} alt={show.title} fill className="object-cover" />
+                <Image src={show.thumbnail || "/image-placeholder.svg"} alt={show.title} fill className="object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
                   <h4 className="text-xs font-medium line-clamp-1">{show.title || "Untitled Show"}</h4>
-                  <p className="text-[10px] text-bronze-100 line-clamp-1">{show.subtitle || ""}</p>
+                  <p className="text-[9px] leading-none text-bronze-100 line-clamp-1">{show.subtitle || ""}</p>
                 </div>
               </div>
             </button>
