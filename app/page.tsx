@@ -98,11 +98,11 @@ export default async function Home() {
   return (
     <div className="min-h-screen -mx-4 md:-mx-8 lg:-mx-16">
       {/* Main content */}
-      <div className="mx-auto pt-8">
+      <div className="mx-auto pt-16 lg:pt-8">
         {/* NOW and LATER sections */}
         <div className="grid grid-cols-1 md:grid-cols-2 relative z-10">
           {/* NOW section */}
-          <div className="flex flex-col h-full p-24 border-r border-bronze-900 dark:border-bronze-50">
+          <div className="flex flex-col h-full p-4 md:p-8 lg:p-24 border-b lg:border-b-0 lg:border-r border-bronze-900 dark:border-bronze-50">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-medium text-brand-orange">NOW</h2>
               <Link href="/schedule" className="text-sm text-muted-foreground flex items-center group">
