@@ -46,7 +46,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
   // If there are no featured shows or selectedShow is null, render a placeholder
   if (featuredShows.length === 0 || !selectedShow) {
     return (
-      <div className="flex flex-col h-full p-24 border border-black/20 dark:border-tan-50/10">
+      <div className="flex flex-col h-full p-24">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-medium text-crimson-500">{title}</h2>
           <Link href="/archive" className="text-sm text-muted-foreground flex items-center group">
@@ -66,7 +66,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
   }
 
   return (
-    <div className="flex flex-col h-full p-24 border border-black/20 dark:border-tan-50/10">
+    <div className="flex flex-col h-full p-24">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-medium text-crimson-500">{title}</h2>
         <Link href="/archive" className="text-sm text-muted-foreground flex items-center group">

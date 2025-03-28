@@ -34,7 +34,7 @@ export default async function Home() {
         {/* NOW and LATER sections */}
         <div className="grid grid-cols-1 md:grid-cols-2 relative z-10">
           {/* NOW section */}
-          <div className="flex flex-col h-full p-24 border border-black/20 dark:border-tan-50/10">
+          <div className="flex flex-col h-full p-24 border-r border-black/20 dark:border-tan-50/10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-medium text-brand-orange">NOW</h2>
               <Link href="/schedule" className="text-sm text-muted-foreground flex items-center group">
