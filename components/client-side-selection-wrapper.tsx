@@ -46,7 +46,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
   // If there are no featured shows or selectedShow is null, render a placeholder
   if (featuredShows.length === 0 || !selectedShow) {
     return (
-      <div className="flex flex-col h-full pl-8">
+      <div className="flex flex-col h-full p-24 border border-black/20 dark:border-tan-50/10">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-medium text-crimson-500">{title}</h2>
           <Link href="/archive" className="text-sm text-muted-foreground flex items-center group">
@@ -54,7 +54,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
           </Link>
         </div>
 
-        <Card className="overflow-hidden border-none shadow-md flex-grow">
+        <Card className="overflow-hidden border-none shadow-none">
           <CardContent className="p-0 relative h-full flex flex-col">
             <div className="aspect-square rounded w-full bg-gray-100 flex items-center justify-center">
               <p className="text-gray-500">No shows available</p>
@@ -66,7 +66,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
   }
 
   return (
-    <div className="flex flex-col h-full pl-8">
+    <div className="flex flex-col h-full p-24 border border-black/20 dark:border-tan-50/10">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-medium text-crimson-500">{title}</h2>
         <Link href="/archive" className="text-sm text-muted-foreground flex items-center group">
@@ -83,7 +83,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
             <div className="flex flex-col gap-2">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-lg font-medium">{selectedShow.title || "Untitled Show"}</h3>
+                  <h3 className="text-lg leading-tight  font-medium">{selectedShow.title || "Untitled Show"}</h3>
                 </div>
                 <p className="text-sm max-w-[70%]">{selectedShow.description || ""}</p>
                 <Button className="bg-brand-orange hover:bg-brand-orange/90 text-white px-4 py-2 text-sm flex items-center gap-2">

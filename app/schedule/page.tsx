@@ -12,7 +12,7 @@ export default async function SchedulePage() {
 
   return (
     <div className="min-h-screen">
-      <div className="container mx-auto pt-32 pb-32">
+      <div className=" mx-auto pt-32 pb-32">
         {/* Header with breadcrumb */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
@@ -39,7 +39,7 @@ export default async function SchedulePage() {
 
                   {/* Show info */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 group-hover:text-brand-orange transition-colors">{show.title}</h3>
+                    <h3 className="text-lg leading-tight  font-medium text-gray-900 dark:text-gray-100 group-hover:text-brand-orange transition-colors">{show.title}</h3>
                     {show.metadata?.subtitle && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">{show.metadata.subtitle}</p>}
                     {show.metadata?.description && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{show.metadata.description}</p>}
                   </div>

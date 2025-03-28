@@ -2,8 +2,9 @@
 
 import { getPosts, getRadioShows, getSchedule, getEditorialHomepage, getRadioShowBySlug } from "./cosmic-service";
 import { SearchResult, SearchResultType } from "./search-context";
-import { PostObject, RadioShowObject, ScheduleObject } from "./cosmic-config";
+import { PostObject, RadioShowObject, ScheduleObject, VideoObject } from "./cosmic-config";
 import { transformShowToViewData } from "./cosmic-service";
+import { cosmic } from "./cosmic-service";
 
 export async function getAllPosts(): Promise<PostObject[]> {
   try {
@@ -225,6 +226,21 @@ export async function getAllSearchableContent(): Promise<SearchResult[]> {
     return allContent;
   } catch (error) {
     console.error("Error in getAllSearchableContent:", error);
+    return [];
+  }
+}
+
+export async function getVideos(limit: number = 4): Promise<VideoObject[]> {
+  try {
+    const response = await cosmic.objects.find({
+      type: "videos",
+      limit,
+      props: "slug,title,metadata,type",
+      depth: 1,
+    });
+    return response.objects || [];
+  } catch (error) {
+    console.error("Error in getVideos:", error);
     return [];
   }
 }

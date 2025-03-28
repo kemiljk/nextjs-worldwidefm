@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange storageKey="worldwidefm-theme">
           <SearchProvider>
             <NavWrapper />
-            <main className="max-w-screen-2xl mx-auto">{children}</main>
+            <main className="px-4 md:px-8 lg:px-16 mx-auto">{children}</main>
             <Footer />
           </SearchProvider>
         </ThemeProvider>

@@ -27,7 +27,7 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
   if (!articles || articles.length === 0) {
     return (
       <div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50 mb-4">{title}</h3>
+        <h3 className="text-lg leading-tight  font-medium text-gray-900 dark:text-gray-50 mb-4">{title}</h3>
         <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-none text-gray-600 dark:text-gray-400 text-center">No posts available at this time.</div>
       </div>
     );
@@ -35,7 +35,7 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
 
   return (
     <div>
-      {title && <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50 mb-4">{title}</h3>}
+      {title && <h3 className="text-lg leading-tight  font-medium text-gray-900 dark:text-gray-50 mb-4">{title}</h3>}
       <div className="grid grid-cols-1 gap-6">
         {articles.map((article, index) => (
           <Link key={article.id} href={`/articles/${article.slug}`}>

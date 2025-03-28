@@ -12,8 +12,8 @@ export default async function EditorialPage() {
   const posts = postsResponse.objects || [];
 
   return (
-    <div className="min-h-screen">
-      <div className="container mx-auto pt-24 pb-16">
+    <div className="min-h-screen bg-blue-50 dark:bg-blue-950/20 -mx-4 md:-mx-8 lg:-mx-16 px-4 md:px-8 lg:px-24">
+      <div className="mx-auto pt-24 pb-16">
         {/* Header */}
         <div className="flex items-center justify-between mb-12">
           <div>

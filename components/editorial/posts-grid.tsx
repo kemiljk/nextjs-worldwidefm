@@ -79,7 +79,7 @@ export default function PostsGrid({ initialPosts }: PostsGridProps) {
                 </div>
                 <div className="flex-grow">
                   <div className="text-xs uppercase tracking-wider text-gray-600 dark:text-gray-400">WWFM</div>
-                  <h3 className="text-lg mt-1 font-medium line-clamp-2">{post.title}</h3>
+                  <h3 className="text-lg leading-tight  mt-1 font-medium line-clamp-2">{post.title}</h3>
                   <div className="mt-1 flex items-center justify-between">
                     <div className="text-sm text-gray-600 dark:text-gray-400">{post.metadata?.date ? formatDate(post.metadata.date) : ""}</div>
                     <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform text-gray-600 dark:text-gray-400 group-hover:text-brand-blue-dark dark:group-hover:text-brand-blue-light" />

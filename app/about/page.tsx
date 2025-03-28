@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 export default function AboutPage() {
   return (
     <div className="min-h-screen">
-      <div className="container mx-auto pt-32 pb-32">
+      <div className=" mx-auto pt-32 pb-32">
         {/* Header with breadcrumb */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">

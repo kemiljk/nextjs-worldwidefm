@@ -101,3 +101,16 @@ export interface EditorialHomepageObject {
     show_trending_section?: boolean;
   };
 }
+
+export interface VideoObject {
+  id: string;
+  slug: string;
+  title: string;
+  type: "videos";
+  metadata: {
+    image?: CosmicImage;
+    description?: string;
+    video_url?: string;
+    date?: string;
+  };
+}
