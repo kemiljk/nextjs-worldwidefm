@@ -4,18 +4,18 @@ import { Button } from "@/components/ui/button";
 
 export default function Footer() {
   return (
-    <footer className="bg-white text-black py-12 border-t border-black w-full">
+    <footer className="bg-white dark:bg-gray-900 text-black dark:text-white py-12 border-t border-black w-full">
       <div className=" mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* About section */}
           <div>
-            <h3 className="text-lg leading-tight  font-medium mb-4">Worldwide FM</h3>
+            <h3 className="text-lg leading-tight   mb-4">Worldwide FM</h3>
             <p className="text-sm opacity-80">A global music radio platform founded by Gilles Peterson, connecting people through music that transcends borders and cultures.</p>
           </div>
 
           {/* Quick links */}
           <div>
-            <h3 className="text-lg leading-tight  font-medium mb-4">Quick Links</h3>
+            <h3 className="text-lg leading-tight   mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/posts" className="text-sm opacity-80 hover:text-brand-orange transition-colors">
@@ -42,24 +42,24 @@ export default function Footer() {
 
           {/* Connect section */}
           <div>
-            <h3 className="text-lg leading-tight  font-medium mb-4">Connect</h3>
+            <h3 className="text-lg leading-tight   mb-4">Connect</h3>
             <div className="flex gap-4">
-              <Button variant="ghost" size="icon" className="text-black hover:bg-white/10" asChild>
+              <Button variant="ghost" size="icon" className="text-black dark:text-white hover:bg-white/10" asChild>
                 <Link href="https://discord.gg/worldwidefm" target="_blank" rel="noopener noreferrer">
                   <MessageCircle className="h-5 w-5" />
                 </Link>
               </Button>
-              <Button variant="ghost" size="icon" className="text-black hover:bg-white/10" asChild>
+              <Button variant="ghost" size="icon" className="text-black dark:text-white hover:bg-white/10" asChild>
                 <Link href="https://instagram.com/worldwidefm" target="_blank" rel="noopener noreferrer">
                   <Instagram className="h-5 w-5" />
                 </Link>
               </Button>
-              <Button variant="ghost" size="icon" className="text-black hover:bg-white/10" asChild>
+              <Button variant="ghost" size="icon" className="text-black dark:text-white hover:bg-white/10" asChild>
                 <Link href="https://twitter.com/worldwidefm" target="_blank" rel="noopener noreferrer">
                   <Twitter className="h-5 w-5" />
                 </Link>
               </Button>
-              <Button variant="ghost" size="icon" className="text-black hover:bg-white/10" asChild>
+              <Button variant="ghost" size="icon" className="text-black dark:text-white hover:bg-white/10" asChild>
                 <Link href="https://facebook.com/worldwidefm" target="_blank" rel="noopener noreferrer">
                   <Facebook className="h-5 w-5" />
                 </Link>
@@ -69,9 +69,9 @@ export default function Footer() {
 
           {/* Newsletter section */}
           <div>
-            <h3 className="text-lg leading-tight  font-medium mb-4">Stay Updated</h3>
+            <h3 className="text-lg leading-tight   mb-4">Stay Updated</h3>
             <p className="text-sm opacity-80 mb-4">Subscribe to our newsletter for the latest updates and exclusive content.</p>
-            <Button variant="outline" className="w-full border-black text-black hover:bg-white/10" asChild>
+            <Button variant="outline" className="w-full border-black dark:border-white text-black dark:text-white hover:bg-white/10" asChild>
               <Link href="/newsletter">Subscribe</Link>
             </Button>
           </div>

@@ -2,7 +2,7 @@
 
 import { getPosts } from "@/lib/cosmic-service";
 import { PageHeader } from "@/components/shared/page-header";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PostObject } from "@/lib/cosmic-config";
 import { subDays } from "date-fns";
@@ -20,7 +20,7 @@ interface AvailableFilters {
   categories: FilterItem[];
 }
 
-export default function EditorialPage() {
+function EditorialContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -256,91 +256,48 @@ export default function EditorialPage() {
     // Apply categories filter if there are selected categories
     if (selectedFilters.categories.length > 0) {
       filtered = filtered.filter((post) => {
-        if (!post.metadata.categories?.length) return false;
-
-        // Check if post has ANY of the selected categories
-        return post.metadata.categories.some((category) => selectedFilters.categories.includes(category.id));
+        if (!post.metadata.categories) return false;
+        return post.metadata.categories.some((category) => selectedFilters.categories.includes(category.slug));
       });
     }
 
-    // Apply search term filter if search term exists
+    // Apply search term if any
     if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter((post) => post.title.toLowerCase().includes(term) || (post.metadata.description ? post.metadata.description.toLowerCase().includes(term) : false) || (post.metadata.excerpt ? post.metadata.excerpt.toLowerCase().includes(term) : false));
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter((post) => post.title.toLowerCase().includes(search) || (post.metadata.excerpt && post.metadata.excerpt.toLowerCase().includes(search)));
     }
 
     return filtered;
   }, [posts, activeFilter, selectedFilters, searchTerm]);
 
-  // Organize posts into sections
-  const sections = useMemo(() => {
-    if (!filteredPosts.length) return [];
-
-    // Get featured posts
-    const featuredPosts = filteredPosts.filter((post) => post.metadata.is_featured);
-
-    // Group remaining posts by section
-    const sectionMap = new Map<string, PostObject[]>();
-
-    filteredPosts
-      .filter((post) => !post.metadata.is_featured)
-      .forEach((post) => {
-        // Get section title from connected section object or fallback to "Latest"
-        const sectionTitle = post.metadata.section?.title || "Latest";
-        if (!sectionMap.has(sectionTitle)) {
-          sectionMap.set(sectionTitle, []);
-        }
-        sectionMap.get(sectionTitle)?.push(post);
-      });
-
-    // Convert to array and sort by priority
-    const sortedSections = Array.from(sectionMap.entries())
-      .map(([title, posts]) => ({
-        title,
-        posts: posts.sort((a, b) => {
-          const dateA = a.metadata.date ? new Date(a.metadata.date).getTime() : 0;
-          const dateB = b.metadata.date ? new Date(b.metadata.date).getTime() : 0;
-          return dateB - dateA;
-        }),
-        layout: title === "Latest" ? ("grid" as const) : ("list" as const),
-      }))
-      .sort((a, b) => {
-        // Get priority from section object if available
-        const aPriority = posts.find((p) => p.metadata.section?.title === a.title)?.metadata.section?.metadata?.priority || 0;
-        const bPriority = posts.find((p) => p.metadata.section?.title === b.title)?.metadata.section?.metadata?.priority || 0;
-        return bPriority - aPriority;
-      });
-
-    return [{ title: "Featured", posts: featuredPosts, layout: "featured" as const }, ...sortedSections];
-  }, [filteredPosts, posts]);
-
-  // Handle search changes
-  const handleSearchChange = useCallback((term: string) => {
-    setSearchTerm(term);
-  }, []);
-
   return (
-    <div className="min-h-screen bg-blue-50 dark:bg-blue-950/20 -mx-4 md:-mx-8 lg:-mx-16 px-4 md:px-8 lg:px-24">
-      <div className="mx-auto pt-24 pb-16">
-        <PageHeader title="Editorial" description="Discover our latest articles, features, and stories." breadcrumbs={[{ href: "/", label: "Home" }, { label: "Editorial" }]} />
+    <div className="container mx-auto px-4">
+      <PageHeader title="Editorial" />
 
-        {/* FilterToolbar */}
-        <FilterToolbar onFilterChange={handleFilterChange} onSearchChange={handleSearchChange} searchTerm={searchTerm} activeFilter={activeFilter} selectedFilters={selectedFilters} availableFilters={availableFilters} />
-
-        {/* Sections */}
-        {sections.map((section, index) => (
-          <div key={section.title} className={index === 0 ? "" : "mt-16"}>
-            {section.layout === "featured" ? <FeaturedContent posts={section.posts} /> : <EditorialSection title={section.title} posts={section.posts} layout={section.layout} />}
-          </div>
-        ))}
-
-        {/* No Content State */}
-        {!sections.length && (
-          <div className="text-center py-12">
-            <p className="text-lg text-gray-600 dark:text-gray-400">No posts found.</p>
-          </div>
-        )}
+      <div className="mt-8">
+        <FilterToolbar availableFilters={availableFilters} activeFilter={activeFilter} selectedFilters={selectedFilters} onFilterChange={handleFilterChange} searchTerm={searchTerm} onSearchChange={setSearchTerm} />
       </div>
+
+      {filteredPosts.length > 0 ? (
+        <>
+          <FeaturedContent posts={filteredPosts.slice(0, 3)} />
+          <EditorialSection title="All Editorial" posts={filteredPosts} />
+        </>
+      ) : (
+        <div className="py-16 text-center">
+          <h3 className="text-xl font-medium">No posts found</h3>
+          <p className="text-gray-500 mt-2">Try adjusting your filters or search term.</p>
+        </div>
+      )}
     </div>
+  );
+}
+
+// Main component that uses Suspense
+export default function EditorialPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">Loading editorial content...</div>}>
+      <EditorialContent />
+    </Suspense>
   );
 }

@@ -209,6 +209,6 @@ export function transformMixcloudShow(show: MixcloudShow): Partial<RadioShowObje
 }
 
 export async function getAllShowsFromMixcloud(): Promise<MixcloudShow[]> {
-  const shows = await getMixcloudShows();
-  return shows;
+  const result = await getMixcloudShows();
+  return result.shows || [];
 }

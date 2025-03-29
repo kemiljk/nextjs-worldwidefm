@@ -21,7 +21,7 @@ export default function EditorialSection({ title, posts, layout = "grid", classN
   return (
     <div className={cn("", className)}>
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-xl font-medium text-sky-900">{title}</h2>
+        <h2 className="text-xl  text-sky-900">{title}</h2>
         {isHomepage && (
           <Link href="/editorial" className="text-sm text-sky-900 flex items-center group">
             View All <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
@@ -46,7 +46,7 @@ export default function EditorialSection({ title, posts, layout = "grid", classN
                 </div>
                 <div className="flex-grow pt-2">
                   <div className="font-mono text-[12px] leading-none uppercase tracking-wider text-muted-foreground mb-2">{formattedDate}</div>
-                  <h3 className="text-xl font-medium group-hover:text-sky-50 transition-colors mb-2">{post.title}</h3>
+                  <h3 className="text-xl  group-hover:text-sky-50 transition-colors mb-2">{post.title}</h3>
                   <p className="text-muted-foreground line-clamp-2 mb-3">{post.metadata.excerpt}</p>
                   <div className="flex flex-wrap gap-2">
                     {post.metadata.categories?.map((category) => (

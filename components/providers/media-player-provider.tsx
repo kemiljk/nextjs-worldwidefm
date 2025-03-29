@@ -26,8 +26,25 @@ export function useMediaPlayer() {
 export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   const [currentShow, setCurrentShow] = useState<MixcloudShow | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(1);
   const [shows, setShows] = useState<MixcloudShow[]>([]);
+
+  // Initialize volume from localStorage or use default
+  const [volume, setVolumeState] = useState<number>(() => {
+    // Only run in browser
+    if (typeof window !== "undefined") {
+      const savedVolume = localStorage.getItem("mixcloud-player-volume");
+      return savedVolume ? parseFloat(savedVolume) : 1; // Default to 1 if not found
+    }
+    return 1;
+  });
+
+  // Update localStorage when volume changes
+  const setVolume = (newVolume: number) => {
+    setVolumeState(newVolume);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("mixcloud-player-volume", newVolume.toString());
+    }
+  };
 
   // Load initial shows
   useEffect(() => {
@@ -48,7 +65,11 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
 
   const playShow = (show: MixcloudShow) => {
     console.log("Playing show:", show.name);
+
+    // First set the current show
     setCurrentShow(show);
+
+    // Set playing state (this will trigger the useEffect in the player component)
     setIsPlaying(true);
   };
 

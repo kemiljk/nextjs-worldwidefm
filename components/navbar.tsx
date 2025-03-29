@@ -49,8 +49,8 @@ export default function Navbar({ navItems }: NavbarProps) {
             <div className="hidden md:flex items-center gap-2 ml-8">
               <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
               <div className="flex flex-col">
-                <span className="text-xs font-medium text-muted-foreground uppercase">On now</span>
-                <span className="text-sm font-medium">{currentShow.title}</span>
+                <span className="text-xs  text-muted-foreground uppercase">On now</span>
+                <span className="text-sm ">{currentShow.title}</span>
               </div>
             </div>
           )}

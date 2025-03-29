@@ -48,7 +48,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
     return (
       <div className="flex flex-col h-full p-4 md:p-8 lg:p-24">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-medium text-crimson-500">{title}</h2>
+          <h2 className="text-xl  text-crimson-500">{title}</h2>
           <Link href="/posts" className="text-sm text-muted-foreground flex items-center group">
             View Archive <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
           </Link>
@@ -61,7 +61,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
                 <Radio className="h-8 w-8 text-brand-orange" />
               </div>
               <div className="text-center">
-                <h3 className="text-lg font-medium text-bronze-900 dark:text-bronze-50 mb-2">No Shows Available</h3>
+                <h3 className="text-lg  text-bronze-900 dark:text-bronze-50 mb-2">No Shows Available</h3>
                 <p className="text-sm text-bronze-700 dark:text-bronze-300 max-w-sm">Check back later for upcoming shows, or explore our archive for past episodes.</p>
               </div>
               <Link href="/posts">
@@ -79,7 +79,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
   return (
     <div className="flex flex-col h-full p-24">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-medium text-crimson-500">{title}</h2>
+        <h2 className="text-xl  text-crimson-500">{title}</h2>
         <Link href="/posts" className="text-sm text-muted-foreground flex items-center group">
           View Archive <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
         </Link>
@@ -94,7 +94,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
             <div className="flex flex-col gap-2">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-lg leading-tight  font-medium">{selectedShow.title || "Untitled Show"}</h3>
+                  <h3 className="text-lg leading-tight  ">{selectedShow.title || "Untitled Show"}</h3>
                 </div>
                 <Button className="bg-brand-orange hover:bg-brand-orange/90 text-white px-4 py-2 text-sm flex items-center gap-2">
                   <Play className="h-4 w-4 fill-current" /> Listen
@@ -142,7 +142,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
                 <Image src={show.thumbnail || "/image-placeholder.svg"} alt={show.title} fill className="object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-2 text-white">
-                  <h4 className="text-xs font-medium line-clamp-1">{show.title || "Untitled Show"}</h4>
+                  <h4 className="text-xs  line-clamp-1">{show.title || "Untitled Show"}</h4>
                   <p className="text-[9px] leading-none text-bronze-100 line-clamp-1">{show.subtitle || ""}</p>
                 </div>
               </div>

@@ -110,13 +110,9 @@ export default async function Home() {
             {/* UP NEXT */}
             <div className="mt-6">
               <h3 className="text-xl font-medium text-brand-orange mb-4">UP NEXT</h3>
-              <div className="border border-brand-orange/40 p-4 flex items-center rounded-none justify-between">
-                <div>
-                  <p className="text-sm text-foreground">{upcomingShows[0]?.name || "No upcoming show"}</p>
-                </div>
-                <Button variant="outline" className="text-brand-orange border-brand-orange hover:bg-brand-orange/10">
-                  Playing Next
-                </Button>
+              <div className="border border-brand-orange/40 p-4 flex items-center rounded-none justify-between gap-4">
+                <p className="text-sm text-foreground">{upcomingShows[0]?.name || "No upcoming show"}</p>
+                <div className="w-max whitespace-nowrap text-brand-orange border border-brand-orange px-4 py-2">Playing Next</div>
               </div>
             </div>
           </div>
@@ -136,24 +132,30 @@ export default async function Home() {
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {latestShows.map((show: MixcloudShow) => (
-              <Link key={show.key} href={`/shows/${show.key}`}>
-                <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-square">
-                      <Image src={show.pictures.extra_large} alt={show.name} fill className="object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent">
-                        <div className="absolute bottom-4 left-4 right-4">
-                          <h3 className="text-lg leading-tight font-medium text-white line-clamp-2">{show.name}</h3>
-                          {show.tags && show.tags.length > 0 && <p className="text-sm text-white/80 mt-1">{show.tags[0].name}</p>}
-                          <p className="text-xs text-white/60 mt-1">{new Date(show.created_time).toLocaleDateString()}</p>
+            {latestShows.map((show: MixcloudShow) => {
+              // Convert key to path segments
+              const segments = show.key.split("/").filter(Boolean);
+              const showPath = segments.join("/");
+
+              return (
+                <Link key={show.key} href={`/shows/${showPath}`}>
+                  <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
+                    <CardContent className="p-0">
+                      <div className="relative aspect-square">
+                        <Image src={show.pictures.extra_large} alt={show.name} fill className="object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent">
+                          <div className="absolute bottom-4 left-4 right-4">
+                            <h3 className="text-lg leading-tight font-medium text-white line-clamp-2">{show.name}</h3>
+                            {show.tags && show.tags.length > 0 && <p className="text-sm text-white/80 mt-1">{show.tags[0].name}</p>}
+                            <p className="text-xs text-white/60 mt-1">{new Date(show.created_time).toLocaleDateString()}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         </section>
 

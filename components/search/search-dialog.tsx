@@ -22,7 +22,7 @@ interface SearchDialogProps {
 type FilterCategory = "all" | "type" | "genres" | "locations" | "hosts" | "takeovers" | SearchResultType;
 
 const typeLabels: Record<SearchResultType, { label: string; icon: React.ElementType; color: string }> = {
-  "radio-shows": { label: "Radio Shows", icon: Music2, color: "text-orange-500" },
+  "radio-shows": { label: "Radio Shows", icon: Music2, color: "text-bronze-500" },
   posts: { label: "Posts", icon: Newspaper, color: "text-blue-500" },
   events: { label: "Events", icon: Calendar, color: "text-green-500" },
   videos: { label: "Videos", icon: Video, color: "text-red-500" },
@@ -293,9 +293,9 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
           <div className="w-64 border-r shrink-0 h-full overflow-y-auto">
             <div className="p-4 space-y-6">
               <div>
-                <h3 className="font-medium mb-2">Content Type</h3>
+                <h3 className=" mb-2">Content Type</h3>
                 <div className="space-y-2">
-                  <Button key="type-all" variant="ghost" className={cn("flex items-center gap-2 px-3 py-1 text-sm font-medium", activeTab === "all" && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleTabChange("all")}>
+                  <Button key="type-all" variant="ghost" className={cn("flex items-center gap-2 px-3 py-1 text-sm ", activeTab === "all" && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleTabChange("all")}>
                     All Content
                   </Button>
                   {Object.entries(typeLabels).map(([type, { label, icon: Icon, color }]) => (
@@ -309,10 +309,10 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
               {context.availableFilters.genres.length > 0 && (
                 <div>
-                  <h3 className="font-medium mb-2">Genres</h3>
+                  <h3 className=" mb-2">Genres</h3>
                   <ScrollArea className="h-52">
                     <div className="space-y-1 pr-4">
-                      <Button key="filter-genre-all" variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start font-medium", (!context.filters.genres || context.filters.genres.length === 0) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(context.availableFilters.genres[0])}>
+                      <Button key="filter-genre-all" variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start ", (!context.filters.genres || context.filters.genres.length === 0) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(context.availableFilters.genres[0])}>
                         All Genres
                       </Button>
                       {context.availableFilters.genres
@@ -329,10 +329,10 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
               {context.availableFilters.locations.length > 0 && (
                 <div>
-                  <h3 className="font-medium mb-2">Locations</h3>
+                  <h3 className=" mb-2">Locations</h3>
                   <ScrollArea className="h-40">
                     <div className="space-y-1 pr-4">
-                      <Button key="filter-location-all" variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start font-medium", (!context.filters.locations || context.filters.locations.length === 0) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(context.availableFilters.locations[0])}>
+                      <Button key="filter-location-all" variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start ", (!context.filters.locations || context.filters.locations.length === 0) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(context.availableFilters.locations[0])}>
                         All Locations
                       </Button>
                       {context.availableFilters.locations
@@ -349,10 +349,10 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
               {context.availableFilters.hosts.length > 0 && (
                 <div>
-                  <h3 className="font-medium mb-2">Hosts</h3>
+                  <h3 className=" mb-2">Hosts</h3>
                   <ScrollArea className="h-40">
                     <div className="space-y-1 pr-4">
-                      <Button key="filter-host-all" variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start font-medium", (!context.filters.hosts || context.filters.hosts.length === 0) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(context.availableFilters.hosts[0])}>
+                      <Button key="filter-host-all" variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start ", (!context.filters.hosts || context.filters.hosts.length === 0) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(context.availableFilters.hosts[0])}>
                         All Hosts
                       </Button>
                       {context.availableFilters.hosts
@@ -369,10 +369,10 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
 
               {context.availableFilters.takeovers.length > 0 && (
                 <div>
-                  <h3 className="font-medium mb-2">Takeovers</h3>
+                  <h3 className=" mb-2">Takeovers</h3>
                   <ScrollArea className="h-40">
                     <div className="space-y-1 pr-4">
-                      <Button key="filter-takeover-all" variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start font-medium", (!context.filters.takeovers || context.filters.takeovers.length === 0) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(context.availableFilters.takeovers[0])}>
+                      <Button key="filter-takeover-all" variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start ", (!context.filters.takeovers || context.filters.takeovers.length === 0) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(context.availableFilters.takeovers[0])}>
                         All Takeovers
                       </Button>
                       {context.availableFilters.takeovers
@@ -469,7 +469,7 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                                 </>
                               )}
                             </div>
-                            <h3 className="font-medium group-hover:text-primary transition-colors">{item.title}</h3>
+                            <h3 className=" group-hover:text-primary transition-colors">{item.title}</h3>
                             {item.genres.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-2">
                                 {item.genres.slice(0, 3).map((genre) => (

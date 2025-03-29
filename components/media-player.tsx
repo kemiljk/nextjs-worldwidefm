@@ -77,12 +77,13 @@ export default function MediaPlayer() {
         iframe.style.width = "100%";
         iframe.style.height = "60px";
         iframe.style.border = "none";
+        iframe.allow = "autoplay";
         containerRef.current.appendChild(iframe);
         iframeRef.current = iframe;
       }
 
-      // Set up the widget URL with feed format
-      const widgetUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(currentShow.key)}&hide_cover=1&mini=1&hide_artwork=1&autoplay=0&light=1`;
+      // Set up the widget URL with feed format - add initial volume parameter
+      const widgetUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(currentShow.key)}&hide_cover=1&mini=1&hide_artwork=1&autoplay=0&light=1&initial_volume=${volume}`;
       console.log("Setting widget URL:", widgetUrl);
 
       if (iframeRef.current.src !== widgetUrl) {
@@ -93,17 +94,33 @@ export default function MediaPlayer() {
           if (window.Mixcloud && iframeRef.current) {
             try {
               const widget = window.Mixcloud.PlayerWidget(iframeRef.current);
+
               widget.ready
                 .then(() => {
                   console.log("Mixcloud widget ready");
+
+                  // Store the widget
                   setMixcloudWidget(widget);
+
+                  // CRITICAL: Register play event listener BEFORE any other operations
+                  widget.events.play.on(() => {
+                    console.log("Widget event: play - IMMEDIATELY setting volume to", volume);
+
+                    // Set volume IMMEDIATELY on play event
+                    widget.setVolume(volume).catch((err: any) => {
+                      console.error("Error setting volume on play event:", err);
+                    });
+
+                    // Try again with slight delay for reliability
+                    setTimeout(() => {
+                      widget.setVolume(volume).catch((err: any) => {
+                        console.error("Error setting delayed volume after play:", err);
+                      });
+                    }, 100);
+                  });
 
                   widget.events.pause.on(() => {
                     console.log("Widget event: pause");
-                  });
-
-                  widget.events.play.on(() => {
-                    console.log("Widget event: play");
                   });
 
                   widget.events.ended.on(() => {
@@ -113,6 +130,16 @@ export default function MediaPlayer() {
                   widget.events.error.on((error: any) => {
                     console.error("Widget event: error", error);
                   });
+
+                  // Set initial volume (although this may not persist through playback)
+                  widget
+                    .setVolume(volume)
+                    .then(() => {
+                      console.log("Initial volume set:", volume);
+                    })
+                    .catch((err: any) => {
+                      console.error("Error setting initial volume:", err);
+                    });
                 })
                 .catch((error: any) => {
                   console.error("Failed to initialize widget:", error);
@@ -137,33 +164,76 @@ export default function MediaPlayer() {
         setMixcloudWidget(null);
       }
     };
-  }, [currentShow, scriptLoaded]);
+  }, [currentShow, scriptLoaded, volume]);
 
-  // Handle Mixcloud widget state changes and apply volume
+  // Handle playback state changes
   useEffect(() => {
-    if (!mixcloudWidget) return;
+    if (!mixcloudWidget || !iframeRef.current) return;
 
-    console.log("Updating widget state. isPlaying:", isPlaying, "volume:", volume);
-
-    // Update widget state based on our local state
     if (isPlaying) {
-      console.log("Calling widget.play()");
-      mixcloudWidget.play().catch((err: any) => {
-        console.error("Error playing widget:", err);
+      console.log("Calling widget.play() with desired volume:", volume);
+
+      // First set volume directly
+      mixcloudWidget.setVolume(volume).catch((err: any) => {
+        console.error("Error setting volume before play:", err);
       });
+
+      // Also try direct iframe messaging as a backup
+      try {
+        iframeRef.current.contentWindow?.postMessage(
+          JSON.stringify({
+            method: "setVolume",
+            params: { volume },
+          }),
+          "*"
+        );
+      } catch (err) {
+        console.error("Error with postMessage volume:", err);
+      }
+
+      // Then play the widget
+      mixcloudWidget
+        .play()
+        .then(() => {
+          console.log("Play successful, reinforcing volume");
+
+          // Try both methods again after successful play
+          mixcloudWidget.setVolume(volume).catch((err: any) => {
+            console.error("Error setting volume after play:", err);
+          });
+
+          try {
+            iframeRef.current?.contentWindow?.postMessage(
+              JSON.stringify({
+                method: "setVolume",
+                params: { volume },
+              }),
+              "*"
+            );
+          } catch (err) {
+            console.error("Error with postMessage volume after play:", err);
+          }
+        })
+        .catch((err: any) => {
+          console.error("Error playing widget:", err);
+        });
     } else {
       console.log("Calling widget.pause()");
       mixcloudWidget.pause().catch((err: any) => {
         console.error("Error pausing widget:", err);
       });
     }
+  }, [isPlaying, mixcloudWidget, volume, iframeRef]);
 
-    // Set volume
-    console.log("Setting widget volume:", volume);
+  // Handle volume changes
+  useEffect(() => {
+    if (!mixcloudWidget) return;
+
+    console.log("Volume changed, applying to widget:", volume);
     mixcloudWidget.setVolume(volume).catch((err: any) => {
-      console.error("Error setting widget volume:", err);
+      console.error("Error setting volume:", err);
     });
-  }, [isPlaying, volume, mixcloudWidget]);
+  }, [volume, mixcloudWidget]);
 
   // Handle messages from widget for older implementation
   useEffect(() => {

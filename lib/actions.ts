@@ -161,15 +161,57 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | null> 
   try {
     // Get all shows from Mixcloud
     const mixcloudShows = await getAllShowsFromMixcloud();
+    console.log(`Fetched ${mixcloudShows.length} shows from Mixcloud`);
+
+    console.log("Searching for show with slug:", slug);
 
     // Find the show with the matching slug
-    const show = mixcloudShows.find((show) => show.key === slug || show.slug === slug);
+    // Try different formats - the incoming slug might be in different formats
+    const show = mixcloudShows.find((show) => {
+      // Log for debugging
+      console.log(`Comparing show key: ${show.key} with slug: ${slug}`);
+
+      // Direct match
+      if (show.key === slug || show.slug === slug) {
+        console.log("Found direct match");
+        return true;
+      }
+
+      // If slug doesn't start with '/', add it for comparison
+      if (!slug.startsWith("/") && show.key === `/${slug}`) {
+        console.log("Found match with leading slash added");
+        return true;
+      }
+
+      // Try removing any URL encoding
+      const decodedSlug = decodeURIComponent(slug);
+      if (show.key === decodedSlug) {
+        console.log("Found match with URL decoding");
+        return true;
+      }
+
+      // Check if show key is contained in the slug (for complex URLs)
+      // This is risky but may help with debugging
+      if (slug.includes(show.key)) {
+        console.log("Found partial match within slug");
+        return true;
+      }
+
+      // Check if slug is contained in the show key
+      if (show.key.includes(slug)) {
+        console.log("Found partial match within show key");
+        return true;
+      }
+
+      return false;
+    });
 
     if (!show) {
       console.error(`No show found for slug: ${slug}`);
       return null;
     }
 
+    console.log("Found show:", show.name);
     return show;
   } catch (error) {
     console.error("Error in getShowBySlug:", error);
@@ -502,10 +544,15 @@ interface MixcloudShowsFilters {
 export async function getMixcloudShows(filters: MixcloudShowsFilters = {}): Promise<{ shows: MixcloudShow[]; total: number }> {
   try {
     // Get all shows from Mixcloud
-    const mixcloudShows = await getAllShowsFromMixcloud();
+    const mixcloudResult = await getAllShowsFromMixcloud();
+
+    // Ensure we have a valid array of shows
+    const mixcloudShows = Array.isArray(mixcloudResult) ? mixcloudResult : [];
+
+    console.log("Fetched shows:", mixcloudShows.length);
 
     // Apply filters
-    let filteredShows = mixcloudShows;
+    let filteredShows = [...mixcloudShows];
 
     // Handle isNew filter
     if (filters.isNew) {
@@ -521,7 +568,7 @@ export async function getMixcloudShows(filters: MixcloudShowsFilters = {}): Prom
     if (filters.genre) {
       const genreSlugs = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
       if (genreSlugs.length > 0) {
-        filteredShows = filteredShows.filter((show) => show.tags.some((tag) => genreSlugs.includes(tag.name.toLowerCase().replace(/\s+/g, "-"))));
+        filteredShows = filteredShows.filter((show) => show.tags && Array.isArray(show.tags) && show.tags.some((tag) => genreSlugs.includes(tag.name.toLowerCase().replace(/\s+/g, "-"))));
       }
     }
 
@@ -529,7 +576,7 @@ export async function getMixcloudShows(filters: MixcloudShowsFilters = {}): Prom
     if (filters.host) {
       const hostSlugs = Array.isArray(filters.host) ? filters.host : [filters.host];
       if (hostSlugs.length > 0) {
-        filteredShows = filteredShows.filter((show) => show.hosts.some((host) => hostSlugs.includes(host.name.toLowerCase().replace(/\s+/g, "-"))));
+        filteredShows = filteredShows.filter((show) => show.hosts && Array.isArray(show.hosts) && show.hosts.some((host) => hostSlugs.includes(host.name.toLowerCase().replace(/\s+/g, "-"))));
       }
     }
 
@@ -537,14 +584,14 @@ export async function getMixcloudShows(filters: MixcloudShowsFilters = {}): Prom
     if (filters.takeover) {
       const takeoverSlugs = Array.isArray(filters.takeover) ? filters.takeover : [filters.takeover];
       if (takeoverSlugs.length > 0) {
-        filteredShows = filteredShows.filter((show) => show.name.toLowerCase().includes("takeover") && takeoverSlugs.some((slug: string) => show.name.toLowerCase().includes(slug.replace(/-/g, " "))));
+        filteredShows = filteredShows.filter((show) => show.name && show.name.toLowerCase().includes("takeover") && takeoverSlugs.some((slug: string) => show.name.toLowerCase().includes(slug.replace(/-/g, " "))));
       }
     }
 
     // Handle search term
     if (filters.searchTerm) {
       const searchTerm = filters.searchTerm.toLowerCase();
-      filteredShows = filteredShows.filter((show) => show.name.toLowerCase().includes(searchTerm) || show.hosts.some((host) => host.name.toLowerCase().includes(searchTerm)) || show.tags.some((tag) => tag.name.toLowerCase().includes(searchTerm)));
+      filteredShows = filteredShows.filter((show) => (show.name && show.name.toLowerCase().includes(searchTerm)) || (show.hosts && Array.isArray(show.hosts) && show.hosts.some((host) => host.name.toLowerCase().includes(searchTerm))) || (show.tags && Array.isArray(show.tags) && show.tags.some((tag) => tag.name.toLowerCase().includes(searchTerm))));
     }
 
     // Apply pagination
@@ -552,6 +599,7 @@ export async function getMixcloudShows(filters: MixcloudShowsFilters = {}): Prom
     const limit = filters.limit || 20;
     const paginatedShows = filteredShows.slice(skip, skip + limit);
 
+    // Return the shows
     return {
       shows: paginatedShows,
       total: filteredShows.length,

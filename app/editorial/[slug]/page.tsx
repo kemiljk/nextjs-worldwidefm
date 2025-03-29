@@ -108,7 +108,7 @@ export default async function EditorialArticlePage({ params }: { params: { slug:
         <div className="absolute inset-0 flex items-end">
           <div className="max-w-4xl mx-auto px-4 pb-16">
             <div className="font-mono text-[12px] leading-none uppercase tracking-wider text-white/80 mb-4">{formattedDate}</div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-medium text-white mb-4">{post.title}</h1>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl  text-white mb-4">{post.title}</h1>
             <p className="text-xl text-white/80">{description}</p>
           </div>
         </div>
