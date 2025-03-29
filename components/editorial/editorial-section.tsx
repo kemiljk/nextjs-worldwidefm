@@ -40,7 +40,7 @@ export default function EditorialSection({ title, posts, layout = "grid", classN
             const formattedDate = postDate ? format(postDate, "dd-MM-yyyy") : "";
 
             return (
-              <Link href={`/editorial/${post.slug}`} key={post.slug} className="group flex gap-6 items-start hover:bg-white/50 dark:hover:bg-white/5 p-4 -mx-4 rounded-lg transition-colors">
+              <Link href={`/editorial/${post.slug}`} key={post.slug} className="group flex gap-6 items-start hover:bg-white/50 dark:hover:bg-white/5 p-4 -mx-4 rounded-none transition-colors">
                 <div className="relative aspect-[4/3] w-72 flex-shrink-0 overflow-hidden">
                   <Image src={post.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={post.title} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
                 </div>

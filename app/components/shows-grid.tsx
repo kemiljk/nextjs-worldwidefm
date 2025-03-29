@@ -25,7 +25,7 @@ export function ShowsGrid({ shows }: ShowsGridProps) {
         const showPath = segments.join("/");
 
         return (
-          <article key={show.key} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700">
+          <article key={show.key} className="bg-white dark:bg-gray-800 rounded-none overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700">
             <Link href={`/shows/${showPath}`}>
               <div className="aspect-video relative group">
                 <Image src={show.pictures.extra_large} alt={show.name} fill className="object-cover" />

@@ -46,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SearchProvider>
             <MediaPlayerProvider>
               <NavWrapper />
-              <main className="px-4 md:px-8 lg:px-16 mx-auto pb-24">{children}</main>
+              <main className="px-4 md:px-8 lg:px-16 mx-auto pt-24">{children}</main>
               <Footer />
               <MediaPlayer />
             </MediaPlayerProvider>

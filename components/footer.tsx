@@ -15,7 +15,7 @@ export default function Footer() {
 
           {/* Quick links */}
           <div>
-            <h3 className="text-lg leading-tight   mb-4">Quick Links</h3>
+            <h3 className="text-lg leading-tight mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/posts" className="text-sm opacity-80 hover:text-brand-orange transition-colors">
@@ -69,7 +69,7 @@ export default function Footer() {
 
           {/* Newsletter section */}
           <div>
-            <h3 className="text-lg leading-tight   mb-4">Stay Updated</h3>
+            <h3 className="text-lg leading-tight mb-4">Stay Updated</h3>
             <p className="text-sm opacity-80 mb-4">Subscribe to our newsletter for the latest updates and exclusive content.</p>
             <Button variant="outline" className="w-full border-black dark:border-white text-black dark:text-white hover:bg-white/10" asChild>
               <Link href="/newsletter">Subscribe</Link>

@@ -96,12 +96,12 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
             <label htmlFor="search" className="block text-sm  text-gray-700 mb-1">
               Search
             </label>
-            <input type="search" id="search" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" placeholder="Search shows..." value={searchTerm || ""} onChange={(e) => updateSearch(e.target.value)} />
+            <input type="search" id="search" className="w-full rounded-none border border-gray-300 px-3 py-2 text-sm" placeholder="Search shows..." value={searchTerm || ""} onChange={(e) => updateSearch(e.target.value)} />
           </div>
 
           {/* New Shows Toggle */}
           <div>
-            <button onClick={toggleNew} className={`w-full text-left px-3 py-2 rounded-md text-sm ${isNew ? "bg-bronze-500 text-white" : "bg-gray-100 text-gray-900 hover:bg-gray-200"}`}>
+            <button onClick={toggleNew} className={`w-full text-left px-3 py-2 rounded-none text-sm ${isNew ? "bg-bronze-500 text-white" : "bg-gray-100 text-gray-900 hover:bg-gray-200"}`}>
               New Shows
             </button>
           </div>
@@ -112,7 +112,7 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
               <h3 className="text-sm  text-gray-700 mb-2">Genres</h3>
               <div className="space-y-1">
                 {genres.map((genre) => (
-                  <button key={genre.slug} onClick={() => updateFilters("genre", genre.slug)} className={`w-full text-left px-3 py-2 rounded-md text-sm ${selectedGenre === genre.slug ? "bg-bronze-500 text-white" : "hover:bg-gray-100"}`}>
+                  <button key={genre.slug} onClick={() => updateFilters("genre", genre.slug)} className={`w-full text-left px-3 py-2 rounded-none text-sm ${selectedGenre === genre.slug ? "bg-bronze-500 text-white" : "hover:bg-gray-100"}`}>
                     {genre.title}
                   </button>
                 ))}
@@ -126,7 +126,7 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
               <h3 className="text-sm  text-gray-700 mb-2">Hosts</h3>
               <div className="space-y-1">
                 {hosts.map((host) => (
-                  <button key={host.slug} onClick={() => updateFilters("host", host.slug)} className={`w-full text-left px-3 py-2 rounded-md text-sm ${selectedHost === host.slug ? "bg-bronze-500 text-white" : "hover:bg-gray-100"}`}>
+                  <button key={host.slug} onClick={() => updateFilters("host", host.slug)} className={`w-full text-left px-3 py-2 rounded-none text-sm ${selectedHost === host.slug ? "bg-bronze-500 text-white" : "hover:bg-gray-100"}`}>
                     {host.title}
                   </button>
                 ))}
@@ -140,7 +140,7 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
               <h3 className="text-sm  text-gray-700 mb-2">Takeovers</h3>
               <div className="space-y-1">
                 {takeovers.map((takeover) => (
-                  <button key={takeover.slug} onClick={() => updateFilters("takeover", takeover.slug)} className={`w-full text-left px-3 py-2 rounded-md text-sm ${selectedTakeover === takeover.slug ? "bg-bronze-500 text-white" : "hover:bg-gray-100"}`}>
+                  <button key={takeover.slug} onClick={() => updateFilters("takeover", takeover.slug)} className={`w-full text-left px-3 py-2 rounded-none text-sm ${selectedTakeover === takeover.slug ? "bg-bronze-500 text-white" : "hover:bg-gray-100"}`}>
                     {takeover.title}
                   </button>
                 ))}
