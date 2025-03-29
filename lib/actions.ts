@@ -13,7 +13,7 @@ export async function getAllPosts(): Promise<PostObject[]> {
   try {
     const response = await getPosts({
       limit: 50,
-      sort: "-created_at",
+      sort: "-metadata.date",
       status: "published",
     });
     return response.objects || [];
