@@ -72,7 +72,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen -mx-4 md:-mx-8 lg:-mx-16">
       {/* Main content */}
-      <div className="mx-auto pt-16 lg:pt-8">
+      <div className="mx-auto lg:pt-16">
         {/* NOW and LATER sections */}
         <div className="grid grid-cols-1 md:grid-cols-2 relative z-10">
           {/* NOW section */}

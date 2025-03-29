@@ -16,9 +16,11 @@ export default function MediaPlayer() {
   const [isLive, setIsLive] = useState(false);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [mixcloudWidget, setMixcloudWidget] = useState<any>(null);
+  const [volumeControlOpen, setVolumeControlOpen] = useState(false);
   const titleRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const volumeControlRef = useRef<HTMLDivElement>(null);
 
   // Load Mixcloud widget script
   useEffect(() => {
@@ -276,9 +278,27 @@ export default function MediaPlayer() {
     }
   }, [isTransitioning]);
 
+  // Close volume control when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (volumeControlRef.current && !volumeControlRef.current.contains(event.target as Node)) {
+        setVolumeControlOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const toggleExpanded = () => {
     setIsTransitioning(true);
     setIsExpanded(!isExpanded);
+  };
+
+  const toggleVolumeControl = () => {
+    setVolumeControlOpen(!volumeControlOpen);
   };
 
   const handleVolumeChange = (value: number[]) => {
@@ -335,12 +355,21 @@ export default function MediaPlayer() {
             </div>
           </div>
 
-          <div className={`flex items-center gap-2 transition-opacity duration-200 ${isTransitioning ? "opacity-0" : "opacity-100"}`}>
-            <Button variant="ghost" className="text-white hover:bg-white/10 flex-shrink-0">
+          <div ref={volumeControlRef} className={`relative flex items-center gap-2 transition-opacity duration-200 ${isTransitioning ? "opacity-0" : "opacity-100"}`}>
+            <Button variant="ghost" className="text-white hover:bg-white/10 flex-shrink-0 p-2" onClick={toggleVolumeControl} aria-label="Volume control">
               <Volume2 className="h-5 w-5" />
             </Button>
-            <div className="w-24 mr-2">
+
+            {/* Desktop horizontal slider (hidden on mobile when menu closed) */}
+            <div className="w-24 mr-2 hidden md:block">
               <Slider defaultValue={[1]} max={1} step={0.1} value={[volume]} onValueChange={handleVolumeChange} className="cursor-pointer" />
+            </div>
+
+            {/* Mobile horizontal slider popup */}
+            <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-green-600 dark:bg-green-800 p-3 rounded-lg shadow-lg md:hidden transition-all duration-300 ${volumeControlOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"}`}>
+              <div className="w-[140px]">
+                <Slider defaultValue={[1]} max={1} step={0.01} value={[volume]} onValueChange={handleVolumeChange} className="cursor-pointer" />
+              </div>
             </div>
           </div>
 
