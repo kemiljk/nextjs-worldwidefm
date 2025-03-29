@@ -80,7 +80,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
     <div className="flex flex-col h-full p-4 md:p-8 lg:p-24">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl  text-crimson-500">{title}</h2>
-        <Link href="/posts" className="text-sm text-muted-foreground flex items-center group">
+        <Link href="/shows" className="text-sm text-muted-foreground flex items-center group">
           View Archive <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </div>
