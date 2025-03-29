@@ -1,69 +1,50 @@
 export interface FilterItem {
-  title: string;
+  id: string;
   slug: string;
-  type: string;
+  title: string;
+  content?: string;
+  type?: string;
+  status?: string;
+  metadata?: any;
+  created_at?: string;
+  modified_at?: string;
+  published_at?: string;
 }
 
 export interface AvailableFilters {
-  [key: string]: FilterItem[];
   genres: FilterItem[];
   locations: FilterItem[];
   hosts: FilterItem[];
   takeovers: FilterItem[];
+  [key: string]: FilterItem[];
 }
 
 export type FilterCategory = keyof AvailableFilters;
 
-export function getFilterItemsFromShow(show: any): Partial<AvailableFilters> {
-  const filters: Partial<AvailableFilters> = {};
-
-  if (show.metadata?.genres) {
-    filters.genres = show.metadata.genres.map((genre: any) => ({
-      title: genre.title,
-      slug: genre.slug,
-      type: genre.type,
-    }));
-  }
-
-  if (show.metadata?.locations) {
-    filters.locations = show.metadata.locations.map((location: any) => ({
-      title: location.title,
-      slug: location.slug,
-      type: location.type,
-    }));
-  }
-
-  if (show.metadata?.regular_hosts) {
-    filters.hosts = show.metadata.regular_hosts.map((host: any) => ({
-      title: host.title,
-      slug: host.slug,
-      type: host.type,
-    }));
-  }
-
-  if (show.metadata?.takeovers) {
-    filters.takeovers = show.metadata.takeovers.map((takeover: any) => ({
-      title: takeover.title,
-      slug: takeover.slug,
-      type: takeover.type,
-    }));
-  }
-
-  return filters;
+export function getFilterItemsFromShow(show: any): AvailableFilters {
+  return {
+    genres: show.metadata?.genres || [],
+    locations: show.metadata?.locations || [],
+    hosts: show.metadata?.regular_hosts || [],
+    takeovers: show.metadata?.takeovers || [],
+  };
 }
 
 export function filterShowsByCategory(shows: any[], category: FilterCategory, subfilter?: string): any[] {
   return shows.filter((show) => {
     if (!show.metadata?.[category]) return false;
     if (!subfilter) return show.metadata[category].length > 0;
-    return show.metadata[category].some((item: any) => item.slug === subfilter);
+    return show.metadata[category].some((item: any) => item.id === subfilter);
   });
 }
 
 export function deduplicateFilters(filters: FilterItem[]): FilterItem[] {
-  const uniqueFilters = new Map<string, FilterItem>();
-  filters.forEach((filter) => {
-    uniqueFilters.set(filter.slug, filter);
+  const seen = new Set();
+  return filters.filter((filter) => {
+    if (seen.has(filter.id)) {
+      return false;
+    }
+    seen.add(filter.id);
+    return true;
   });
-  return Array.from(uniqueFilters.values());
 }

@@ -18,7 +18,7 @@ export default function Footer() {
             <h3 className="text-lg leading-tight  font-medium mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/archive" className="text-sm opacity-80 hover:text-brand-orange transition-colors">
+                <Link href="/posts" className="text-sm opacity-80 hover:text-brand-orange transition-colors">
                   Archive
                 </Link>
               </li>

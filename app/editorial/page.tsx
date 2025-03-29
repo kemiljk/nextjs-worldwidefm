@@ -1,40 +1,108 @@
 "use client";
 
 import { getPosts } from "@/lib/cosmic-service";
-import { ContentToolbar } from "@/components/shared/content-toolbar";
 import { PageHeader } from "@/components/shared/page-header";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PostObject } from "@/lib/cosmic-config";
 import { subDays } from "date-fns";
 import FeaturedContent from "../../components/editorial/featured-content";
 import EditorialSection from "../../components/editorial/editorial-section";
+import { FilterItem as BaseFilterItem } from "@/lib/filter-types";
+import { FilterToolbar } from "./components/filter-toolbar";
 
-interface FilterItem {
-  title: string;
-  slug: string;
-  type: string;
-}
+type FilterItem = BaseFilterItem;
 
 interface AvailableFilters {
   [key: string]: FilterItem[];
-  types: FilterItem[];
+  article: FilterItem[];
+  video: FilterItem[];
   categories: FilterItem[];
 }
 
-interface Section {
-  title: string;
-  posts: PostObject[];
-  layout: "grid" | "list" | "featured";
-}
-
 export default function EditorialPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [posts, setPosts] = useState<PostObject[]>([]);
   const [activeFilter, setActiveFilter] = useState("");
-  const [activeSubfilter, setActiveSubfilter] = useState("");
-  const [availableFilters, setAvailableFilters] = useState<AvailableFilters>({
-    types: [],
+  const [selectedFilters, setSelectedFilters] = useState<{ [key: string]: string[] }>({
+    article: [],
+    video: [],
     categories: [],
   });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [availableFilters, setAvailableFilters] = useState<AvailableFilters>({
+    article: [],
+    video: [],
+    categories: [],
+  });
+
+  // Load URL query parameters on initial render
+  useEffect(() => {
+    // Get filters from URL
+    const categoriesParam = searchParams.get("categories")?.split(",").filter(Boolean) || [];
+    const articleParam = searchParams.get("article")?.split(",").filter(Boolean) || [];
+    const videoParam = searchParams.get("video")?.split(",").filter(Boolean) || [];
+    const searchParam = searchParams.get("search") || "";
+    const newParam = searchParams.get("new");
+
+    // Set active filter if any are present
+    if (newParam === "true") {
+      setActiveFilter("new");
+    } else if (categoriesParam.length) {
+      setActiveFilter("categories");
+    } else if (articleParam.length) {
+      setActiveFilter("article");
+    } else if (videoParam.length) {
+      setActiveFilter("video");
+    }
+
+    // Set filter values
+    setSelectedFilters({
+      article: articleParam,
+      video: videoParam,
+      categories: categoriesParam,
+    });
+
+    // Set search term
+    if (searchParam) {
+      setSearchTerm(searchParam);
+    }
+  }, [searchParams]);
+
+  // Update URL when filters change
+  const updateUrlParams = useCallback(() => {
+    const params = new URLSearchParams();
+
+    // Add active filters to URL
+    if (activeFilter === "new") {
+      params.set("new", "true");
+    } else {
+      if (selectedFilters.categories.length) {
+        params.set("categories", selectedFilters.categories.join(","));
+      }
+      if (selectedFilters.article.length) {
+        params.set("article", selectedFilters.article.join(","));
+      }
+      if (selectedFilters.video.length) {
+        params.set("video", selectedFilters.video.join(","));
+      }
+    }
+
+    // Add search term to URL
+    if (searchTerm) {
+      params.set("search", searchTerm);
+    }
+
+    // Update URL without refreshing the page
+    router.push(`?${params.toString()}`, { scroll: false });
+  }, [activeFilter, selectedFilters, searchTerm, router]);
+
+  // Update URL when filters change
+  useEffect(() => {
+    updateUrlParams();
+  }, [activeFilter, selectedFilters, searchTerm, updateUrlParams]);
 
   // Fetch posts on mount
   useEffect(() => {
@@ -48,40 +116,60 @@ export default function EditorialPage() {
 
       // Extract available filters
       const allFilters: AvailableFilters = {
-        types: [],
+        article: [],
+        video: [],
         categories: [],
       };
 
-      // Collect unique post types
-      const uniqueTypes = new Map<string, FilterItem>();
-      fetchedPosts.forEach((post) => {
-        if (post.metadata.type) {
-          uniqueTypes.set(post.metadata.type.key, {
-            title: post.metadata.type.value,
-            slug: post.metadata.type.key,
-            type: "type",
-          });
-        }
-      });
+      // Create static type filters
+      allFilters.article = [
+        {
+          id: "article",
+          title: "Article",
+          slug: "article",
+          type: "type",
+          content: "",
+          status: "published",
+          created_at: new Date().toISOString(),
+          metadata: null,
+        },
+      ];
 
-      // Convert types to filter items
-      allFilters.types = Array.from(uniqueTypes.values());
+      allFilters.video = [
+        {
+          id: "video",
+          title: "Video",
+          slug: "video",
+          type: "type",
+          content: "",
+          status: "published",
+          created_at: new Date().toISOString(),
+          metadata: null,
+        },
+      ];
 
       // Collect categories using Map to deduplicate
       const uniqueCategories = new Map<string, FilterItem>();
       fetchedPosts.forEach((post) => {
         if (post.metadata.categories) {
           post.metadata.categories.forEach((category) => {
-            uniqueCategories.set(category.slug, {
+            uniqueCategories.set(category.id, {
+              id: category.id,
               title: category.title,
               slug: category.slug,
               type: "category",
+              content: category.content || "",
+              status: category.status || "published",
+              created_at: category.created_at,
+              metadata: category.metadata,
             });
           });
         }
       });
 
-      allFilters.categories = Array.from(uniqueCategories.values());
+      // Sort categories alphabetically
+      allFilters.categories = Array.from(uniqueCategories.values()).sort((a, b) => a.title.localeCompare(b.title));
+
       setAvailableFilters(allFilters);
     };
 
@@ -89,65 +177,120 @@ export default function EditorialPage() {
   }, []);
 
   const handleFilterChange = (filter: string, subfilter?: string) => {
-    // If it's a type filter (dropdown), use the filter value directly
-    if (filter === "types") {
-      setActiveFilter(filter);
-      setActiveSubfilter(subfilter || "");
+    // Clear all filters
+    if (!filter) {
+      setActiveFilter("");
+      setSelectedFilters({
+        article: [],
+        video: [],
+        categories: [],
+      });
       return;
     }
 
-    // For other filters (categories), use the filter as the subfilter
+    // Handle "new" filter (exclusive)
+    if (filter === "new") {
+      setActiveFilter(filter);
+      setSelectedFilters({
+        article: [],
+        video: [],
+        categories: [],
+      });
+      return;
+    }
+
+    // Set active filter category
     setActiveFilter(filter);
-    setActiveSubfilter(filter);
+
+    // Handle subfilter selection (add/remove from the corresponding array)
+    if (subfilter) {
+      setSelectedFilters((prev) => {
+        const filterKey = filter === "categories" ? "categories" : filter === "article" ? "article" : filter === "video" ? "video" : "";
+
+        if (!filterKey) return prev;
+
+        const currentFilters = [...prev[filterKey]];
+        const index = currentFilters.indexOf(subfilter);
+
+        // Toggle the filter
+        if (index > -1) {
+          currentFilters.splice(index, 1);
+        } else {
+          currentFilters.push(subfilter);
+        }
+
+        return {
+          ...prev,
+          [filterKey]: currentFilters,
+        };
+      });
+    }
   };
 
   // Filter posts based on active filter
   const filteredPosts = useMemo(() => {
     if (!posts.length) return [];
-    if (!activeFilter) return posts;
 
-    switch (activeFilter) {
-      case "new": {
-        const thirtyDaysAgo = subDays(new Date(), 30);
-        return posts.filter((post) => {
-          if (!post.metadata?.date) return false;
-          const postDate = new Date(post.metadata.date);
-          return !isNaN(postDate.getTime()) && postDate > thirtyDaysAgo;
-        });
-      }
-      case "types":
-        return posts.filter((post) => {
-          if (!activeSubfilter) return true;
-          return post.metadata.type?.key === activeSubfilter;
-        });
-      case "categories":
-        return posts.filter((post) => {
-          if (!activeSubfilter) return true;
-          return post.metadata.categories?.some((category) => category.slug === activeSubfilter);
-        });
-      default:
-        return posts;
+    let filtered = [...posts];
+
+    // Apply "new" filter if active
+    if (activeFilter === "new") {
+      const thirtyDaysAgo = subDays(new Date(), 30);
+      filtered = filtered.filter((post) => {
+        if (!post.metadata?.date) return false;
+        const postDate = new Date(post.metadata.date);
+        return !isNaN(postDate.getTime()) && postDate >= thirtyDaysAgo;
+      });
     }
-  }, [posts, activeFilter, activeSubfilter]);
+
+    // Apply article filter if there are selected article filters
+    if (selectedFilters.article.length > 0) {
+      filtered = filtered.filter((post) => post.metadata.type?.key === "article");
+    }
+
+    // Apply video filter if there are selected video filters
+    if (selectedFilters.video.length > 0) {
+      filtered = filtered.filter((post) => post.metadata.type?.key === "video");
+    }
+
+    // Apply categories filter if there are selected categories
+    if (selectedFilters.categories.length > 0) {
+      filtered = filtered.filter((post) => {
+        if (!post.metadata.categories?.length) return false;
+
+        // Check if post has ANY of the selected categories
+        return post.metadata.categories.some((category) => selectedFilters.categories.includes(category.id));
+      });
+    }
+
+    // Apply search term filter if search term exists
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter((post) => post.title.toLowerCase().includes(term) || (post.metadata.description ? post.metadata.description.toLowerCase().includes(term) : false) || (post.metadata.excerpt ? post.metadata.excerpt.toLowerCase().includes(term) : false));
+    }
+
+    return filtered;
+  }, [posts, activeFilter, selectedFilters, searchTerm]);
 
   // Organize posts into sections
   const sections = useMemo(() => {
-    if (!posts.length) return [];
+    if (!filteredPosts.length) return [];
 
     // Get featured posts
-    const featuredPosts = posts.filter((post) => post.metadata.is_featured);
+    const featuredPosts = filteredPosts.filter((post) => post.metadata.is_featured);
 
     // Group remaining posts by section
     const sectionMap = new Map<string, PostObject[]>();
 
-    posts
+    filteredPosts
       .filter((post) => !post.metadata.is_featured)
       .forEach((post) => {
-        const sectionName = post.metadata.section_name || "Latest";
-        if (!sectionMap.has(sectionName)) {
-          sectionMap.set(sectionName, []);
+        // Get section title from connected section object or fallback to "Latest"
+        const sectionTitle = post.metadata.section?.title || "Latest";
+        if (!sectionMap.has(sectionTitle)) {
+          sectionMap.set(sectionTitle, []);
         }
-        sectionMap.get(sectionName)?.push(post);
+        sectionMap.get(sectionTitle)?.push(post);
       });
 
     // Convert to array and sort by priority
@@ -162,29 +305,27 @@ export default function EditorialPage() {
         layout: title === "Latest" ? ("grid" as const) : ("list" as const),
       }))
       .sort((a, b) => {
-        const aPriority = posts.find((p) => p.metadata.section_name === a.title)?.metadata.section_priority || 0;
-        const bPriority = posts.find((p) => p.metadata.section_name === b.title)?.metadata.section_priority || 0;
+        // Get priority from section object if available
+        const aPriority = posts.find((p) => p.metadata.section?.title === a.title)?.metadata.section?.metadata?.priority || 0;
+        const bPriority = posts.find((p) => p.metadata.section?.title === b.title)?.metadata.section?.metadata?.priority || 0;
         return bPriority - aPriority;
       });
 
     return [{ title: "Featured", posts: featuredPosts, layout: "featured" as const }, ...sortedSections];
-  }, [posts]);
+  }, [filteredPosts, posts]);
+
+  // Handle search changes
+  const handleSearchChange = useCallback((term: string) => {
+    setSearchTerm(term);
+  }, []);
 
   return (
     <div className="min-h-screen bg-blue-50 dark:bg-blue-950/20 -mx-4 md:-mx-8 lg:-mx-16 px-4 md:px-8 lg:px-24">
       <div className="mx-auto pt-24 pb-16">
         <PageHeader title="Editorial" description="Discover our latest articles, features, and stories." breadcrumbs={[{ href: "/", label: "Home" }, { label: "Editorial" }]} />
 
-        {/* Content Toolbar */}
-        <ContentToolbar
-          onFilterChange={handleFilterChange}
-          availableFilters={availableFilters}
-          filterConfig={[
-            { key: "types", label: "Types" },
-            { key: "categories", label: "Categories" },
-          ]}
-          bgColor="bg-blue-50 dark:bg-blue-950/20"
-        />
+        {/* FilterToolbar */}
+        <FilterToolbar onFilterChange={handleFilterChange} onSearchChange={handleSearchChange} searchTerm={searchTerm} activeFilter={activeFilter} selectedFilters={selectedFilters} availableFilters={availableFilters} />
 
         {/* Sections */}
         {sections.map((section, index) => (

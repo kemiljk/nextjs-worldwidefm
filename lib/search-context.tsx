@@ -2,7 +2,7 @@
 
 import { createContext, useContext } from "react";
 
-export type SearchResultType = "radio-shows" | "posts" | "events" | "videos" | "takovers";
+export type SearchResultType = "radio-shows" | "posts" | "events" | "videos" | "takeovers";
 
 export interface FilterItem {
   title: string;
@@ -22,7 +22,7 @@ export interface SearchResult {
   genres: FilterItem[];
   locations: FilterItem[];
   hosts: FilterItem[];
-  takovers: FilterItem[];
+  takeovers: FilterItem[];
   post_type?: "article" | "video" | "event";
   featured?: boolean;
   metadata?: any;
@@ -33,7 +33,7 @@ export interface SearchFilters {
   genres?: string[];
   locations?: string[];
   hosts?: string[];
-  takovers?: string[];
+  takeovers?: string[];
 }
 
 export interface SearchContextType {
@@ -42,38 +42,54 @@ export interface SearchContextType {
   filters: SearchFilters;
   setFilters: (filters: SearchFilters) => void;
   results: SearchResult[];
+  setResults: (results: SearchResult[]) => void;
   isLoading: boolean;
   performSearch: (term: string) => Promise<void>;
   availableFilters: {
     genres: FilterItem[];
     locations: FilterItem[];
     hosts: FilterItem[];
-    takovers: FilterItem[];
+    takeovers: FilterItem[];
+    types: FilterItem[];
   };
+  toggleGenreFilter: (genre: FilterItem) => void;
+  toggleLocationFilter: (location: FilterItem) => void;
+  toggleHostFilter: (host: FilterItem) => void;
+  toggleTakeoverFilter: (takeover: FilterItem) => void;
+  toggleTypeFilter: (type: FilterItem) => void;
+  allContent: SearchResult[];
+  error: string | null;
 }
 
-const SearchContext = createContext<SearchContextType>({
+export const SearchContext = createContext<SearchContextType>({
   searchTerm: "",
   setSearchTerm: () => {},
   filters: {},
   setFilters: () => {},
   results: [],
+  setResults: () => {},
   isLoading: false,
-  performSearch: async () => {},
+  performSearch: () => Promise.resolve(),
   availableFilters: {
     genres: [],
     locations: [],
     hosts: [],
-    takovers: [],
+    takeovers: [],
+    types: [],
   },
+  toggleGenreFilter: () => {},
+  toggleLocationFilter: () => {},
+  toggleHostFilter: () => {},
+  toggleTakeoverFilter: () => {},
+  toggleTypeFilter: () => {},
+  allContent: [],
+  error: null,
 });
 
-export const useSearch = () => {
+export function useSearch() {
   const context = useContext(SearchContext);
   if (!context) {
     throw new Error("useSearch must be used within a SearchProvider");
   }
   return context;
-};
-
-export { SearchContext };
+}

@@ -1,7 +1,7 @@
 require("dotenv").config();
 const mysql = require("mysql2/promise");
 const { createBucketClient } = require("@cosmicjs/sdk");
-const { parseISO, format } = require("date-fns");
+const { parseISO, format, isValid } = require("date-fns");
 
 // Database configuration
 const dbConfig = {
@@ -20,42 +20,65 @@ const cosmic = createBucketClient({
 
 // Helper function to extract date from title
 function extractDateFromTitle(title) {
-  // Common date patterns in titles
+  // Common date formats in titles
   const datePatterns = [
-    // DD/MM/YYYY or DD-MM-YYYY
-    /(\d{1,2})[/-](\d{1,2})[/-](\d{4})/,
-    // DD Month YYYY
-    /(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})/i,
+    // DD.MM.YY or DD.MM.YYYY
+    /(\d{1,2})\.(\d{1,2})\.(\d{2,4})/,
+    // DD/MM/YY or DD/MM/YYYY
+    /(\d{1,2})\/(\d{1,2})\/(\d{2,4})/,
+    // DD-MM-YY or DD-MM-YYYY
+    /(\d{1,2})-(\d{1,2})-(\d{2,4})/,
+    // YYYY-MM-DD
+    /(\d{4})-(\d{1,2})-(\d{1,2})/,
     // Month DD, YYYY
-    /(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),\s+(\d{4})/i,
+    /([A-Za-z]+)\s+(\d{1,2}),?\s+(\d{4})/,
   ];
 
   for (const pattern of datePatterns) {
     const match = title.match(pattern);
     if (match) {
       try {
-        // For DD/MM/YYYY or DD-MM-YYYY
-        if (match.length === 4 && match[1].length <= 2 && match[2].length <= 2) {
-          const [_, day, month, year] = match;
-          return format(new Date(year, month - 1, day), "yyyy-MM-dd");
+        let year, month, day;
+
+        if (pattern.toString().includes("[A-Za-z]+")) {
+          // Handle "Month DD, YYYY" format
+          const monthName = match[1];
+          day = parseInt(match[2], 10);
+          year = parseInt(match[3], 10);
+
+          // Convert month name to number (1-12)
+          const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+          month = monthNames.findIndex((m) => monthName.toLowerCase().startsWith(m)) + 1;
+        } else if (pattern.toString().includes("\\d{4}-")) {
+          // Handle YYYY-MM-DD format
+          year = parseInt(match[1], 10);
+          month = parseInt(match[2], 10);
+          day = parseInt(match[3], 10);
+        } else {
+          // Handle DD.MM.YY, DD/MM/YY, DD-MM-YY formats
+          day = parseInt(match[1], 10);
+          month = parseInt(match[2], 10);
+          year = parseInt(match[3], 10);
+
+          // Convert 2-digit years to 4-digit
+          if (year < 100) {
+            year += year < 50 ? 2000 : 1900;
+          }
         }
-        // For DD Month YYYY
-        else if (match.length === 4 && match[2].length > 2) {
-          const [_, day, month, year] = match;
-          const monthIndex = new Date(`${month} 1, 2000`).getMonth();
-          return format(new Date(year, monthIndex, day), "yyyy-MM-dd");
+
+        // Validate date components
+        if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > 2100) {
+          continue;
         }
-        // For Month DD, YYYY
-        else if (match.length === 4 && match[1].length > 2) {
-          const [_, month, day, year] = match;
-          const monthIndex = new Date(`${month} 1, 2000`).getMonth();
-          return format(new Date(year, monthIndex, day), "yyyy-MM-dd");
-        }
+
+        // Format date as YYYY-MM-DD
+        return format(new Date(year, month - 1, day), "yyyy-MM-dd");
       } catch (error) {
         console.error(`Error parsing date from title "${title}":`, error);
       }
     }
   }
+
   return null;
 }
 
@@ -93,9 +116,26 @@ async function getShowsFromMySQL() {
 
 async function updateShowBroadcastDate(showId, broadcastDate) {
   try {
+    // Parse the date and ensure it's in YYYY-MM-DD format
+    let formattedDate;
+
+    try {
+      // Try to parse the date
+      const parsedDate = new Date(broadcastDate);
+      if (isValid(parsedDate)) {
+        formattedDate = format(parsedDate, "yyyy-MM-dd");
+      } else {
+        console.log(`Invalid date format for show ${showId}: ${broadcastDate}`);
+        return null;
+      }
+    } catch (error) {
+      console.log(`Error parsing date for show ${showId}: ${broadcastDate}`);
+      return null;
+    }
+
     const response = await cosmic.objects.updateOne(showId, {
       metadata: {
-        broadcast_date: broadcastDate,
+        broadcast_date: formattedDate,
       },
     });
 

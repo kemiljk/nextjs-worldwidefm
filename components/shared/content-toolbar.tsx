@@ -4,12 +4,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FilterItem as BaseFilterItem } from "@/lib/filter-types";
 
-interface FilterItem {
-  title: string;
-  slug: string;
-  type: string;
-}
+type FilterItem = BaseFilterItem;
 
 interface ContentToolbarProps {
   onFilterChange: (filter: string, subfilter?: string) => void;
@@ -52,6 +49,12 @@ export function ContentToolbar({ onFilterChange, availableFilters, filterConfig,
           All
         </Button>
 
+        {showNew && (
+          <Button variant="ghost" className={cn("h-8 shrink-0 hover:bg-bronze-400/10 hover:text-bronze-700", activeFilter === "new" && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterClick("new")}>
+            New
+          </Button>
+        )}
+
         {filterConfig.map(({ key, label, isDropdown }) => {
           const items = availableFilters?.[key] || [];
           if (items.length === 0) return null;
@@ -64,7 +67,7 @@ export function ContentToolbar({ onFilterChange, availableFilters, filterConfig,
                 </SelectTrigger>
                 <SelectContent>
                   {items.map((item) => (
-                    <SelectItem key={`${key}-${item.slug}`} value={item.slug}>
+                    <SelectItem key={`${key}-${item.id}`} value={item.id}>
                       {item.title}
                     </SelectItem>
                   ))}
@@ -74,7 +77,7 @@ export function ContentToolbar({ onFilterChange, availableFilters, filterConfig,
           }
 
           return items.map((item) => (
-            <Button key={`${key}-${item.slug}`} variant="ghost" className={cn("h-8 shrink-0 hover:bg-bronze-400/10 hover:text-bronze-700", activeFilter === item.slug && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterClick(item.slug)}>
+            <Button key={`${key}-${item.id}`} variant="ghost" className={cn("h-8 shrink-0 hover:bg-bronze-400/10 hover:text-bronze-700", activeFilter === item.id && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterClick(item.id)}>
               {item.title}
             </Button>
           ));

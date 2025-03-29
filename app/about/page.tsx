@@ -1,98 +1,88 @@
-import Image from "next/image";
-import Link from "next/link";
-import { Instagram, Twitter, Facebook } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
+import { getAboutPage } from "@/lib/cosmic-service";
+import type { AboutPage } from "@/lib/cosmic-service";
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const about = await getAboutPage();
+
   return (
-    <div className="min-h-screen">
-      <div className="mx-auto pt-32 pb-32">
-        <PageHeader title="About" breadcrumbs={[{ href: "/", label: "Home" }, { label: "About" }]} />
+    <main className="mt-24">
+      <PageHeader title={about.metadata.hero_title} breadcrumbs={[{ href: "/", label: "Home" }, { label: "About" }]} />
 
-        {/* Hero section */}
-        <div className="relative h-[50vh] mb-16 rounded-none overflow-hidden">
-          <Image src="/image-placeholder.svg" alt="Worldwide FM Studio" fill className="object-cover" priority />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent" />
-          <div className="absolute bottom-0 left-0 p-8 md:p-12 text-white max-w-2xl">
-            <h1 className="text-4xl md:text-5xl font-medium mb-4">Worldwide FM</h1>
-            <p className="text-xl md:text-2xl opacity-90">A global music radio platform founded by Gilles Peterson.</p>
-          </div>
+      <div className="relative h-[50vh] mb-16 rounded-none overflow-hidden">
+        <img src={about.metadata.hero_image.imgix_url} alt={about.metadata.hero_title} className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent" />
+        <div className="absolute bottom-0 left-0 p-8 md:p-12 text-white max-w-2xl">
+          <h1 className="text-4xl md:text-5xl font-medium mb-4">{about.metadata.hero_title}</h1>
+          <p className="text-xl md:text-2xl opacity-90">{about.metadata.hero_subtitle}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 py-12">
+        <div className="md:col-span-5">
+          <h2 className="text-3xl font-medium">{about.metadata.mission_title}</h2>
+          <div className="prose mt-4" dangerouslySetInnerHTML={{ __html: about.metadata.mission_content }} />
         </div>
 
-        {/* Mission statement */}
-        <div className="mb-20">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-medium text-brand-orange mb-6">Our Mission</h2>
-            <p className="text-lg mb-6">Worldwide FM showcases emerging talent and celebrates musical heritage, with a focus on global perspectives and local specialists. Our mission is to connect people through music that transcends borders and cultures.</p>
-            <p className="text-lg">Broadcasting high-quality shows, mixes, and live performances from our studios around the world, we aim to promote diversity, discovery, and community through sound.</p>
+        <div className="md:col-span-7">
+          <div className="border-l-2 border-brand-orange pl-6 space-y-8">
+            {about.metadata.timeline?.map((item, index) => (
+              <div key={index}>
+                <h3 className="text-xl font-medium">{item.year}</h3>
+                <h4 className="text-lg text-brand-orange">{item.title}</h4>
+                <p className="text-muted-foreground mt-1">{item.content}</p>
+              </div>
+            ))}
           </div>
         </div>
+      </div>
 
-        {/* Our Story with Timeline */}
-        <div className="mb-20">
-          <h2 className="text-3xl font-medium mb-6">Our Story</h2>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            <div className="md:col-span-5">
-              <div className="aspect-square relative rounded-none overflow-hidden">
-                <Image src="/image-placeholder.svg" alt="Worldwide FM History" fill className="object-cover" />
-              </div>
-            </div>
-            <div className="md:col-span-7">
-              <div className="border-l-2 border-brand-orange pl-6 space-y-8">
-                <div>
-                  <h3 className="text-xl font-medium">2016</h3>
-                  <p className="text-muted-foreground mt-1">Worldwide FM is founded by Gilles Peterson, inspired by his virtual radio station in the video game Grand Theft Auto.</p>
-                </div>
-                <div>
-                  <h3 className="text-xl font-medium">2017</h3>
-                  <p className="text-muted-foreground mt-1">The station expands its reach globally, opening studios in multiple cities around the world.</p>
-                </div>
-                <div>
-                  <h3 className="text-xl font-medium">2019</h3>
-                  <p className="text-muted-foreground mt-1">Worldwide FM wins "Best Online Radio Station" award for its innovative programming and global outlook.</p>
-                </div>
-                <div>
-                  <h3 className="text-xl font-medium">2022</h3>
-                  <p className="text-muted-foreground mt-1">The station launches new initiatives focusing on emergent global scenes, rising talent, and environmental awareness.</p>
-                </div>
-                <div>
-                  <h3 className="text-xl font-medium">Today</h3>
-                  <p className="text-muted-foreground mt-1">Continuing to grow as a platform for musical discovery, community building, and cultural exchange.</p>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 py-12">
+        <div className="md:col-span-5">
+          <h2 className="text-3xl font-medium">{about.metadata.what_we_believe}</h2>
+          <div className="prose mt-4" dangerouslySetInnerHTML={{ __html: about.metadata.what_we_believe_content }} />
         </div>
 
-        {/* Connect section */}
-        <div className="bg-brand-blue text-white rounded-none p-8 md:p-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h2 className="text-3xl font-medium mb-4">Connect With Us</h2>
-              <p className="mb-6">Have questions, feedback, or want to get involved? We'd love to hear from you. Reach out through our social channels or send us an email.</p>
-              <div className="flex gap-4">
-                <Button variant="outline" className="border-white text-white hover:bg-white/10 rounded-full p-3">
-                  <Instagram className="h-5 w-5" />
-                </Button>
-                <Button variant="outline" className="border-white text-white hover:bg-white/10 rounded-full p-3">
-                  <Twitter className="h-5 w-5" />
-                </Button>
-                <Button variant="outline" className="border-white text-white hover:bg-white/10 rounded-full p-3">
-                  <Facebook className="h-5 w-5" />
-                </Button>
+        <div className="md:col-span-7">
+          <div className="border-l-2 border-brand-orange pl-6">
+            <h2 className="text-3xl font-medium">{about.metadata.connect_title}</h2>
+            <div className="prose mt-4" dangerouslySetInnerHTML={{ __html: about.metadata.connect_content }} />
+
+            <div className="mt-8 space-y-4">
+              <div>
+                <h3 className="text-xl font-medium">Contact</h3>
+                <p className="text-muted-foreground mt-1">
+                  {about.metadata.contact_info.metadata.email}
+                  <br />
+                  {about.metadata.contact_info.metadata.phone}
+                  <br />
+                  {about.metadata.contact_info.metadata.location}
+                </p>
               </div>
-            </div>
-            <div>
-              <h3 className="text-xl font-medium mb-4">Contact Information</h3>
-              <p className="mb-2">Email: info@worldwidefm.net</p>
-              <p className="mb-2">General Inquiries: +44 (0)20 1234 5678</p>
-              <p className="mb-6">Studio Location: London, UK</p>
-              <Button className="bg-brand-orange hover:bg-brand-orange/90 text-white">Contact Us</Button>
+
+              <div>
+                <h3 className="text-xl font-medium">Social</h3>
+                <div className="flex gap-4 mt-2">
+                  <a href={about.metadata.social_links.metadata.instagram} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-brand-orange transition-colors">
+                    Instagram
+                  </a>
+                  <a href={about.metadata.social_links.metadata.twitter} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-brand-orange transition-colors">
+                    Twitter
+                  </a>
+                  <a href={about.metadata.social_links.metadata.facebook} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-brand-orange transition-colors">
+                    Facebook
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <div>
+        <hr className="mb-12" />
+        <div className="prose max-w-none space-y-4 dark:prose-invert mb-12" dangerouslySetInnerHTML={{ __html: about.metadata.staff_inclusivity_action_policy }} />
+      </div>
+    </main>
   );
 }

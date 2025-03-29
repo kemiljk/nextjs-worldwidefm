@@ -4,7 +4,9 @@ import ABCDiatype from "next/font/local";
 import Mono from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { SearchProvider } from "@/components/providers/search-provider";
+import SearchProvider from "@/components/providers/search-provider";
+import { MediaPlayerProvider } from "@/components/providers/media-player-provider";
+import MediaPlayer from "@/components/media-player";
 import NavWrapper from "@/components/nav-wrapper";
 import Footer from "@/components/footer";
 
@@ -42,9 +44,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${sans.variable} ${mono.variable} min-h-screen bg-background font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange storageKey="worldwidefm-theme">
           <SearchProvider>
-            <NavWrapper />
-            <main className="px-4 md:px-8 lg:px-16 mx-auto">{children}</main>
-            <Footer />
+            <MediaPlayerProvider>
+              <NavWrapper />
+              <main className="px-4 md:px-8 lg:px-16 mx-auto pb-24">{children}</main>
+              <Footer />
+              <MediaPlayer />
+            </MediaPlayerProvider>
           </SearchProvider>
         </ThemeProvider>
       </body>

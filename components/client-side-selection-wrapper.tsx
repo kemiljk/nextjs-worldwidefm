@@ -49,7 +49,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
       <div className="flex flex-col h-full p-4 md:p-8 lg:p-24">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-medium text-crimson-500">{title}</h2>
-          <Link href="/archive" className="text-sm text-muted-foreground flex items-center group">
+          <Link href="/posts" className="text-sm text-muted-foreground flex items-center group">
             View Archive <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
@@ -64,7 +64,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
                 <h3 className="text-lg font-medium text-bronze-900 dark:text-bronze-50 mb-2">No Shows Available</h3>
                 <p className="text-sm text-bronze-700 dark:text-bronze-300 max-w-sm">Check back later for upcoming shows, or explore our archive for past episodes.</p>
               </div>
-              <Link href="/archive">
+              <Link href="/posts">
                 <Button variant="outline" className="text-brand-orange border-brand-orange hover:bg-brand-orange/10">
                   Browse Archive
                 </Button>
@@ -80,7 +80,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
     <div className="flex flex-col h-full p-24">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-medium text-crimson-500">{title}</h2>
-        <Link href="/archive" className="text-sm text-muted-foreground flex items-center group">
+        <Link href="/posts" className="text-sm text-muted-foreground flex items-center group">
           View Archive <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </div>
@@ -96,7 +96,6 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
                 <div>
                   <h3 className="text-lg leading-tight  font-medium">{selectedShow.title || "Untitled Show"}</h3>
                 </div>
-                <p className="text-sm max-w-[70%]">{selectedShow.description || ""}</p>
                 <Button className="bg-brand-orange hover:bg-brand-orange/90 text-white px-4 py-2 text-sm flex items-center gap-2">
                   <Play className="h-4 w-4 fill-current" /> Listen
                 </Button>

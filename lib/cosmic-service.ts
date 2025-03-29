@@ -1,11 +1,72 @@
 import { createBucketClient } from "@cosmicjs/sdk";
-import { CosmicResponse, RadioShowObject, CategoryObject, ScheduleObject, PostObject } from "./cosmic-config";
+import { CosmicResponse, RadioShowObject, CategoryObject, ScheduleObject, PostObject, AboutObject } from "./cosmic-config";
 
 // Initialize Cosmic client
 export const cosmic = createBucketClient({
   bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG as string,
   readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY as string,
 });
+
+export interface TimelineItem {
+  year: string;
+  title: string;
+  content: string;
+}
+
+export interface AboutMetadata {
+  hero_image: {
+    url: string;
+    imgix_url: string;
+  };
+  hero_title: string;
+  hero_subtitle: string;
+  mission_title: string;
+  mission_content: string;
+  what_we_believe: string;
+  what_we_believe_content: string;
+  timeline: TimelineItem[];
+  connect_title: string;
+  connect_content: string;
+  staff_inclusivity_action_policy: string;
+  social_links: {
+    id: string;
+    slug: string;
+    title: string;
+    content: string;
+    bucket: string;
+    created_at: string;
+    modified_at: string;
+    status: string;
+    published_at: string;
+    type: string;
+    metadata: {
+      instagram: string;
+      twitter: string;
+      facebook: string;
+    };
+  };
+  contact_info: {
+    id: string;
+    slug: string;
+    title: string;
+    content: string;
+    bucket: string;
+    created_at: string;
+    modified_at: string;
+    status: string;
+    published_at: string;
+    type: string;
+    metadata: {
+      email: string;
+      phone: string;
+      location: string;
+    };
+  };
+}
+
+export interface AboutPage {
+  metadata: AboutMetadata;
+}
 
 /**
  * Get all radio shows
@@ -17,8 +78,14 @@ export async function getRadioShows(
     sort?: string;
     status?: string;
     exclude_ids?: string[];
+    filters?: {
+      genre?: string;
+      host?: string;
+      takeover?: string;
+      isNew?: boolean;
+    };
   } = {}
-): Promise<CosmicResponse<RadioShowObject>> {
+): Promise<{ objects: RadioShowObject[]; total: number }> {
   try {
     // Start building the query
     let query: any = {
@@ -36,6 +103,43 @@ export async function getRadioShows(
       };
     }
 
+    // Add filter conditions
+    if (params.filters) {
+      const { genre, host, takeover, isNew } = params.filters;
+
+      if (isNew) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        query = {
+          ...query,
+          "metadata.broadcast_date": {
+            $gte: thirtyDaysAgo.toISOString(),
+          },
+        };
+      }
+
+      if (genre) {
+        query = {
+          ...query,
+          "metadata.genres.id": genre,
+        };
+      }
+
+      if (host) {
+        query = {
+          ...query,
+          "metadata.regular_hosts.id": host,
+        };
+      }
+
+      if (takeover) {
+        query = {
+          ...query,
+          "metadata.takeovers.id": takeover,
+        };
+      }
+    }
+
     const response = await cosmic.objects
       .find(query)
       .props("slug,title,metadata,type")
@@ -44,7 +148,10 @@ export async function getRadioShows(
       .sort(params.sort || "-created_at")
       .depth(1);
 
-    return response;
+    return {
+      objects: response.objects || [],
+      total: response.total || 0,
+    };
   } catch (error) {
     if (error instanceof Error) {
       console.error("Error details:", {
@@ -319,4 +426,19 @@ export async function getPosts(
     }
     throw error;
   }
+}
+
+/**
+ * Get About page data
+ */
+export async function getAboutPage(): Promise<AboutPage> {
+  const { object } = await cosmic.objects
+    .findOne({
+      type: "about",
+      slug: "about",
+    })
+    .props("metadata")
+    .depth(2);
+
+  return object;
 }

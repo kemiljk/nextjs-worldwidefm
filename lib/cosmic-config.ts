@@ -208,6 +208,15 @@ export interface PostObject {
     };
     section_name?: string | null;
     section_priority?: number;
+    section?: {
+      id: string;
+      slug: string;
+      title: string;
+      content?: string;
+      metadata?: {
+        priority?: number;
+      } | null;
+    } | null;
     display_style?: {
       key: string;
       value: string;
@@ -244,5 +253,38 @@ export interface VideoObject {
     description?: string;
     video_url?: string;
     date?: string;
+  };
+}
+
+export interface AboutObject {
+  id: string;
+  slug: string;
+  title: string;
+  type: "about";
+  metadata: {
+    hero_image: CosmicImage;
+    hero_title: string;
+    hero_subtitle: string;
+    mission_title: string;
+    mission_content: string;
+    story_title: string;
+    story_image: CosmicImage;
+    timeline: {
+      year: string;
+      title: string;
+      content: string;
+    }[];
+    connect_title: string;
+    connect_content: string;
+    social_links: {
+      instagram?: string;
+      twitter?: string;
+      facebook?: string;
+    };
+    contact_info: {
+      email: string;
+      phone: string;
+      location: string;
+    };
   };
 }

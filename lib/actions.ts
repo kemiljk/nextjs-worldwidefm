@@ -1,11 +1,13 @@
 "use server";
 
 import { getPosts, getRadioShows, getSchedule, getEditorialHomepage, getRadioShowBySlug } from "./cosmic-service";
-import { SearchResult, SearchResultType } from "./search-context";
+import { SearchResult, SearchResultType, FilterItem } from "./search-context";
 import { PostObject, RadioShowObject, ScheduleObject, VideoObject } from "./cosmic-config";
 import { transformShowToViewData } from "./cosmic-service";
 import { cosmic } from "./cosmic-config";
 import { addHours, isWithinInterval, isAfter } from "date-fns";
+import { getAllShowsFromMixcloud } from "./mixcloud-service";
+import { MixcloudShow } from "./mixcloud-service";
 
 export async function getAllPosts(): Promise<PostObject[]> {
   try {
@@ -21,114 +23,206 @@ export async function getAllPosts(): Promise<PostObject[]> {
   }
 }
 
-export async function getAllShows(): Promise<RadioShowObject[]> {
+export async function getAllShows(skip = 0, limit = 20, filters?: any) {
   try {
-    const response = await getRadioShows({
-      limit: 50,
-      sort: "-metadata.broadcast_date",
+    console.log("Filters received:", JSON.stringify(filters, null, 2));
+
+    // Basic query params with smaller page size and field selection
+    const queryParams: any = {
+      skip,
+      limit,
+      sort: "-created_at",
       status: "published",
+      type: "radio-shows",
+      props: "id,title,slug,metadata.image,metadata.description,metadata.broadcast_date,metadata.genres,metadata.regular_hosts,metadata.takeovers,metadata.locations",
+      cache: true,
+      cache_ttl: 3600, // 1 hour cache
+    };
+
+    // Build query based on filter types
+    const query: any = {};
+
+    // Handle isNew filter
+    if (filters?.isNew) {
+      console.log("Adding isNew filter condition");
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      query.created_at = { $gt: thirtyDaysAgo.toISOString() };
+    }
+
+    // Set up a single $or array for all genre filters
+    const genreConditions: { [key: string]: any }[] = [];
+    // Handle genre filter(s)
+    if (filters?.genre) {
+      console.log("Adding genre filter condition", filters.genre);
+      // Support both single value and array
+      const genreSlugs = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
+      if (genreSlugs.length > 0) {
+        // Add each genre as its own condition - matching ANY will satisfy
+        genreSlugs.forEach((slug: string) => {
+          genreConditions.push({ "metadata.genres.slug": slug });
+        });
+      }
+    }
+
+    // Set up a single $or array for all host filters
+    const hostConditions: { [key: string]: any }[] = [];
+    // Handle host filter(s)
+    if (filters?.host) {
+      console.log("Adding host filter condition", filters.host);
+      // Support both single value and array
+      const hostSlugs = Array.isArray(filters.host) ? filters.host : [filters.host];
+      if (hostSlugs.length > 0) {
+        // Add each host as its own condition - matching ANY will satisfy
+        hostSlugs.forEach((slug: string) => {
+          hostConditions.push({ "metadata.regular_hosts.slug": slug });
+        });
+      }
+    }
+
+    // Set up a single $or array for all takeover filters
+    const takeoverConditions: { [key: string]: any }[] = [];
+    // Handle takeover filter(s)
+    if (filters?.takeover) {
+      console.log("Adding takeover filter condition", filters.takeover);
+      // Support both single value and array
+      const takeoverSlugs = Array.isArray(filters.takeover) ? filters.takeover : [filters.takeover];
+      if (takeoverSlugs.length > 0) {
+        // Add each takeover as its own condition - matching ANY will satisfy
+        takeoverSlugs.forEach((slug: string) => {
+          takeoverConditions.push({ "metadata.takeovers.slug": slug });
+        });
+      }
+    }
+
+    // Apply search term if provided
+    if (filters?.searchTerm) {
+      console.log("Adding search filter condition", filters.searchTerm);
+      query.$or = [{ title: { $regex: filters.searchTerm, $options: "i" } }, { "metadata.description": { $regex: filters.searchTerm, $options: "i" } }, { "metadata.regular_hosts.title": { $regex: filters.searchTerm, $options: "i" } }];
+    }
+
+    // Build a master $and query from all our conditions
+    const masterConditions = [];
+
+    // Add the base query if we have conditions
+    if (Object.keys(query).length > 0) {
+      masterConditions.push(query);
+    }
+
+    // Add genre conditions as an OR group if we have any
+    if (genreConditions.length > 0) {
+      masterConditions.push({ $or: genreConditions });
+    }
+
+    // Add host conditions as an OR group if we have any
+    if (hostConditions.length > 0) {
+      masterConditions.push({ $or: hostConditions });
+    }
+
+    // Add takeover conditions as an OR group if we have any
+    if (takeoverConditions.length > 0) {
+      masterConditions.push({ $or: takeoverConditions });
+    }
+
+    // Apply the final query if we have any conditions
+    if (masterConditions.length > 0) {
+      queryParams.query = masterConditions.length === 1 ? masterConditions[0] : { $and: masterConditions };
+    }
+
+    console.log("Final query params:", JSON.stringify(queryParams, null, 2));
+
+    // Add a timeout to the API request
+    const timeoutPromise = new Promise<{ objects: RadioShowObject[]; total: number }>((_, reject) => {
+      setTimeout(() => reject(new Error("API request timed out")), 30000);
     });
-    return response.objects || [];
+
+    // Fetch content with timeout protection
+    const responsePromise = getRadioShows(queryParams).catch((error) => {
+      console.error("Error in getRadioShows API call:", error);
+      // Return a default empty structure instead of throwing
+      return { objects: [] as RadioShowObject[], total: 0 };
+    });
+
+    const response = await Promise.race([responsePromise, timeoutPromise]);
+
+    console.log(`Retrieved ${response.objects?.length || 0} shows out of ${response.total || 0} total`);
+
+    return {
+      shows: response.objects || [],
+      total: response.total || 0,
+    };
   } catch (error) {
-    console.error("Error in getAllShows:", error);
-    return [];
+    console.error("Error fetching shows:", error);
+    return { shows: [], total: 0 };
   }
 }
 
-export async function getShowBySlug(slug: string): Promise<ReturnType<typeof transformShowToViewData> | null> {
+export async function getShowBySlug(slug: string): Promise<MixcloudShow | null> {
   try {
-    const response = await getRadioShowBySlug(slug);
-    if (!response.object) {
+    // Get all shows from Mixcloud
+    const mixcloudShows = await getAllShowsFromMixcloud();
+
+    // Find the show with the matching slug
+    const show = mixcloudShows.find((show) => show.key === slug || show.slug === slug);
+
+    if (!show) {
       console.error(`No show found for slug: ${slug}`);
       return null;
     }
-    return transformShowToViewData(response.object);
+
+    return show;
   } catch (error) {
     console.error("Error in getShowBySlug:", error);
     return null;
   }
 }
 
-export async function getScheduleData(slug: string = "main-schedule"): Promise<{
-  schedule: ScheduleObject | null;
-  currentShow: ReturnType<typeof transformShowToViewData> | null;
-  upcomingShow: ReturnType<typeof transformShowToViewData> | null;
-  upcomingShows: ReturnType<typeof transformShowToViewData>[];
+export async function getScheduleData(): Promise<{
+  currentShow: MixcloudShow | null;
+  upcomingShow: MixcloudShow | null;
+  upcomingShows: MixcloudShow[];
 }> {
   try {
-    let schedule = null;
-    let currentShow = null;
-    let upcomingShow = null;
-    let upcomingShows: ReturnType<typeof transformShowToViewData>[] = [];
+    // Get all shows from Mixcloud
+    const mixcloudShows = await getAllShowsFromMixcloud();
 
-    // Try to get schedule first
-    const scheduleResponse = await getSchedule(slug);
-    if (scheduleResponse.object) {
-      schedule = scheduleResponse.object;
-    } else {
-      // Fallback to recent shows if schedule is empty
-      const showsResponse = await getRadioShows({
-        limit: 7, // Get enough for current, upcoming, and 5 more
-        sort: "-metadata.broadcast_date",
-        status: "published",
+    const now = new Date();
+
+    // Sort shows by created_time
+    const sortedShows = [...mixcloudShows].sort((a, b) => {
+      const dateA = new Date(a.created_time);
+      const dateB = new Date(b.created_time);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    // Find current show (within last 2 hours)
+    const currentShow =
+      sortedShows.find((show) => {
+        const startTime = new Date(show.created_time);
+        const endTime = addHours(startTime, 2);
+        return isWithinInterval(now, { start: startTime, end: endTime });
+      }) || null;
+
+    // Get upcoming shows (future shows)
+    const futureShows = sortedShows
+      .filter((show) => {
+        const startTime = new Date(show.created_time);
+        return isAfter(startTime, now) && (!currentShow || show.key !== currentShow.key);
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.created_time);
+        const dateB = new Date(b.created_time);
+        return dateA.getTime() - dateB.getTime();
       });
 
-      if (showsResponse.objects && showsResponse.objects.length > 0) {
-        const now = new Date();
-        const allShows = showsResponse.objects
-          .filter((show) => show.metadata?.broadcast_date)
-          .sort((a, b) => {
-            const dateA = new Date(a.metadata.broadcast_date || "");
-            const dateB = new Date(b.metadata.broadcast_date || "");
-            if (isNaN(dateA.getTime())) return 1;
-            if (isNaN(dateB.getTime())) return -1;
-            return dateB.getTime() - dateA.getTime();
-          });
-
-        if (allShows.length > 0) {
-          // Find current show (within last 2 hours)
-          const currentShowObj = allShows.find((show) => {
-            const startTime = new Date(show.metadata.broadcast_date || "");
-            const endTime = addHours(startTime, 2);
-            return isWithinInterval(now, { start: startTime, end: endTime });
-          });
-
-          if (currentShowObj) {
-            currentShow = transformShowToViewData(currentShowObj);
-          }
-
-          // Get upcoming shows (future shows)
-          const upcomingShowsList = allShows
-            .filter((show) => {
-              const startTime = new Date(show.metadata.broadcast_date || "");
-              return isAfter(startTime, now) && (!currentShowObj || show.id !== currentShowObj.id);
-            })
-            .sort((a, b) => {
-              const dateA = new Date(a.metadata.broadcast_date || "");
-              const dateB = new Date(b.metadata.broadcast_date || "");
-              return dateA.getTime() - dateB.getTime();
-            });
-
-          if (upcomingShowsList.length > 0) {
-            upcomingShow = transformShowToViewData(upcomingShowsList[0]);
-            if (upcomingShowsList.length > 1) {
-              upcomingShows = upcomingShowsList.slice(1, 6).map(transformShowToViewData);
-            }
-          }
-        }
-      }
-    }
-
     return {
-      schedule,
       currentShow,
-      upcomingShow,
-      upcomingShows,
+      upcomingShow: futureShows[0] || null,
+      upcomingShows: futureShows.slice(1, 6),
     };
   } catch (error) {
     console.error("Error in getScheduleData:", error);
     return {
-      schedule: null,
       currentShow: null,
       upcomingShow: null,
       upcomingShows: [],
@@ -141,14 +235,19 @@ export async function getEditorialContent(): Promise<{
   featuredPosts: PostObject[];
 }> {
   try {
-    const editorialResponse = await getEditorialHomepage();
     let posts: PostObject[] = [];
     let featuredPosts: PostObject[] = [];
 
-    // First try to get posts from editorial homepage
-    if (editorialResponse.object?.metadata?.featured_posts) {
-      posts = editorialResponse.object.metadata.featured_posts;
-      featuredPosts = posts.slice(0, 3);
+    // Try to get posts from editorial homepage first
+    try {
+      const editorialResponse = await getEditorialHomepage();
+      if (editorialResponse.object?.metadata?.featured_posts) {
+        posts = editorialResponse.object.metadata.featured_posts;
+        featuredPosts = posts.slice(0, 3);
+      }
+    } catch (error) {
+      // If editorial homepage doesn't exist or has no posts, continue to fetch posts directly
+      console.log("No editorial homepage found, fetching posts directly");
     }
 
     // If we don't have enough posts, fetch more
@@ -178,6 +277,13 @@ export async function getEditorialContent(): Promise<{
       }
     }
 
+    // Sort all posts by date to ensure correct order
+    posts.sort((a, b) => {
+      const dateA = a.metadata?.date ? new Date(a.metadata.date).getTime() : 0;
+      const dateB = b.metadata?.date ? new Date(b.metadata.date).getTime() : 0;
+      return dateB - dateA;
+    });
+
     return {
       posts,
       featuredPosts,
@@ -191,39 +297,59 @@ export async function getEditorialContent(): Promise<{
   }
 }
 
-export async function getAllSearchableContent(): Promise<SearchResult[]> {
+export async function getAllSearchableContent(limit?: number): Promise<SearchResult[]> {
   try {
-    const [posts, shows] = await Promise.all([getAllPosts(), getAllShows()]);
+    // Use the limit parameter for shows if provided
+    const showsLimit = limit ?? 1000;
+    const [posts, showsResponse] = await Promise.all([getAllPosts(), getAllShows(0, showsLimit)]);
+
+    // Helper to ensure filter items have correct structure
+    const normalizeFilterItems = (items: any[] = []): FilterItem[] => {
+      return items.filter(Boolean).map((item) => ({
+        title: item.title || "",
+        slug: item.slug || item.id || "",
+        type: item.type || "",
+      }));
+    };
 
     const allContent: SearchResult[] = [
-      ...posts.map((post) => ({
-        id: post.id,
-        title: post.title,
-        type: "posts" as const,
-        description: post.metadata.description || "",
-        excerpt: post.metadata.content || "",
-        image: post.metadata.image?.imgix_url || "/image-placeholder.svg",
-        slug: post.slug,
-        date: post.metadata.date || "",
-        genres: [],
-        locations: [],
-        hosts: [],
-        takovers: [],
-        featured: post.metadata.featured_on_homepage,
-      })),
-      ...shows.map((show) => ({
+      ...posts.map((post) => {
+        // For posts, categories may be stored differently than in shows
+        // We'll extract categories from post.metadata.categories if available
+        const categories = post.metadata?.categories || [];
+
+        // Create empty arrays for filter types that posts might not have
+        return {
+          id: post.id,
+          title: post.title,
+          type: "posts" as const,
+          description: post.metadata?.description || "",
+          excerpt: post.metadata?.content || "",
+          image: post.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          slug: post.slug,
+          date: post.metadata?.date || "",
+          // Map categories to their appropriate filter arrays based on category type if known
+          // For simplicity, we'll just put all categories in genres for now
+          genres: normalizeFilterItems(categories),
+          locations: [], // Posts typically don't have locations
+          hosts: [], // Posts typically don't have hosts
+          takeovers: [], // Posts typically don't have takeovers
+          featured: post.metadata?.featured_on_homepage,
+        };
+      }),
+      ...showsResponse.shows.map((show) => ({
         id: show.id,
         title: show.title,
         type: "radio-shows" as const,
-        description: show.metadata.description || "",
-        excerpt: show.metadata.subtitle || "",
-        image: show.metadata.image?.imgix_url || "/image-placeholder.svg",
+        description: show.metadata?.description || "",
+        excerpt: show.metadata?.subtitle || "",
+        image: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
         slug: show.slug,
-        date: show.metadata.broadcast_date || "",
-        genres: show.metadata.genres || [],
-        locations: show.metadata.locations || [],
-        hosts: show.metadata.regular_hosts || [],
-        takovers: show.metadata.takeovers || [],
+        date: show.metadata?.broadcast_date || "",
+        genres: normalizeFilterItems(show.metadata?.genres || []),
+        locations: normalizeFilterItems(show.metadata?.locations || []),
+        hosts: normalizeFilterItems(show.metadata?.regular_hosts || []),
+        takeovers: normalizeFilterItems(show.metadata?.takeovers || []),
         metadata: show.metadata,
       })),
     ].sort((a, b) => {
@@ -309,5 +435,129 @@ export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
   } catch (error) {
     console.error("Error fetching related posts:", error);
     return [];
+  }
+}
+
+export async function getAllFilters() {
+  try {
+    const { shows } = await getMixcloudShows();
+
+    // Extract unique tags from all shows
+    const tagMap = new Map<string, { name: string; count: number }>();
+    shows.forEach((show) => {
+      show.tags.forEach((tag) => {
+        const existing = tagMap.get(tag.name);
+        if (existing) {
+          existing.count++;
+        } else {
+          tagMap.set(tag.name, { name: tag.name, count: 1 });
+        }
+      });
+    });
+
+    // Convert to sorted array
+    const tags = Array.from(tagMap.values())
+      .sort((a, b) => b.count - a.count)
+      .map((tag) => ({
+        id: tag.name.toLowerCase().replace(/\s+/g, "-"),
+        slug: tag.name.toLowerCase().replace(/\s+/g, "-"),
+        title: tag.name,
+        content: "",
+        bucket: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "",
+        created_at: new Date().toISOString(),
+        modified_at: new Date().toISOString(),
+        published_at: new Date().toISOString(),
+        status: "published",
+        type: "genres",
+        metadata: null,
+      }));
+
+    return {
+      genres: tags,
+      hosts: [], // We'll handle hosts separately if needed
+      takeovers: [], // We'll handle takeovers separately if needed
+      locations: [], // Not available from Mixcloud
+    };
+  } catch (error) {
+    console.error("Error getting filters:", error);
+    return {
+      genres: [],
+      hosts: [],
+      takeovers: [],
+      locations: [],
+    };
+  }
+}
+
+interface MixcloudShowsFilters {
+  genre?: string | string[];
+  host?: string | string[];
+  takeover?: string | string[];
+  searchTerm?: string;
+  isNew?: boolean;
+  skip?: number;
+  limit?: number;
+}
+
+export async function getMixcloudShows(filters: MixcloudShowsFilters = {}): Promise<{ shows: MixcloudShow[]; total: number }> {
+  try {
+    // Get all shows from Mixcloud
+    const mixcloudShows = await getAllShowsFromMixcloud();
+
+    // Apply filters
+    let filteredShows = mixcloudShows;
+
+    // Handle isNew filter
+    if (filters.isNew) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      filteredShows = filteredShows.filter((show) => {
+        const showDate = new Date(show.created_time);
+        return showDate > thirtyDaysAgo;
+      });
+    }
+
+    // Handle genre filter
+    if (filters.genre) {
+      const genreSlugs = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
+      if (genreSlugs.length > 0) {
+        filteredShows = filteredShows.filter((show) => show.tags.some((tag) => genreSlugs.includes(tag.name.toLowerCase().replace(/\s+/g, "-"))));
+      }
+    }
+
+    // Handle host filter
+    if (filters.host) {
+      const hostSlugs = Array.isArray(filters.host) ? filters.host : [filters.host];
+      if (hostSlugs.length > 0) {
+        filteredShows = filteredShows.filter((show) => show.hosts.some((host) => hostSlugs.includes(host.name.toLowerCase().replace(/\s+/g, "-"))));
+      }
+    }
+
+    // Handle takeover filter
+    if (filters.takeover) {
+      const takeoverSlugs = Array.isArray(filters.takeover) ? filters.takeover : [filters.takeover];
+      if (takeoverSlugs.length > 0) {
+        filteredShows = filteredShows.filter((show) => show.name.toLowerCase().includes("takeover") && takeoverSlugs.some((slug: string) => show.name.toLowerCase().includes(slug.replace(/-/g, " "))));
+      }
+    }
+
+    // Handle search term
+    if (filters.searchTerm) {
+      const searchTerm = filters.searchTerm.toLowerCase();
+      filteredShows = filteredShows.filter((show) => show.name.toLowerCase().includes(searchTerm) || show.hosts.some((host) => host.name.toLowerCase().includes(searchTerm)) || show.tags.some((tag) => tag.name.toLowerCase().includes(searchTerm)));
+    }
+
+    // Apply pagination
+    const skip = filters.skip || 0;
+    const limit = filters.limit || 20;
+    const paginatedShows = filteredShows.slice(skip, skip + limit);
+
+    return {
+      shows: paginatedShows,
+      total: filteredShows.length,
+    };
+  } catch (error) {
+    console.error("Error fetching Mixcloud shows:", error);
+    return { shows: [], total: 0 };
   }
 }
