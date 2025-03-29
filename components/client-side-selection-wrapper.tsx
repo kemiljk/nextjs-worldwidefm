@@ -49,7 +49,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
       <div className="flex flex-col h-full p-4 md:p-8 lg:p-24">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl  text-crimson-500">{title}</h2>
-          <Link href="/posts" className="text-sm text-muted-foreground flex items-center group">
+          <Link href="/shows" className="text-sm text-muted-foreground flex items-center group">
             View Archive <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
@@ -64,7 +64,7 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
                 <h3 className="text-lg  text-bronze-900 dark:text-bronze-50 mb-2">No Shows Available</h3>
                 <p className="text-sm text-bronze-700 dark:text-bronze-300 max-w-sm">Check back later for upcoming shows, or explore our archive for past episodes.</p>
               </div>
-              <Link href="/posts">
+              <Link href="/shows">
                 <Button variant="outline" className="text-brand-orange border-brand-orange hover:bg-brand-orange/10">
                   Browse Archive
                 </Button>
