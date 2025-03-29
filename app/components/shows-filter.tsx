@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { FilterItem } from "@/lib/search-context";
+import { Suspense } from "react";
 
 interface ShowsFilterProps {
   genres: FilterItem[];
@@ -14,7 +15,7 @@ interface ShowsFilterProps {
   isNew?: boolean;
 }
 
-export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedHost, selectedTakeover, searchTerm, isNew }: ShowsFilterProps) {
+function ShowsFilterContent({ genres, hosts, takeovers, selectedGenre, selectedHost, selectedTakeover, searchTerm, isNew }: ShowsFilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -150,5 +151,28 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
         </div>
       </div>
     </div>
+  );
+}
+
+// Export a component that wraps the content in a Suspense boundary
+export function ShowsFilter(props: ShowsFilterProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6 animate-pulse">
+          <div className="h-6 w-24 bg-gray-200 mb-4"></div>
+          <div className="h-10 bg-gray-200 mb-2"></div>
+          <div className="h-10 bg-gray-200 mb-4"></div>
+          <div className="h-6 w-16 bg-gray-200 mb-2"></div>
+          <div className="space-y-1">
+            <div className="h-8 bg-gray-200"></div>
+            <div className="h-8 bg-gray-200"></div>
+            <div className="h-8 bg-gray-200"></div>
+          </div>
+        </div>
+      }
+    >
+      <ShowsFilterContent {...props} />
+    </Suspense>
   );
 }
