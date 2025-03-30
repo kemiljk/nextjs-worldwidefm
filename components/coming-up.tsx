@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Play, ChevronRight, ChevronLeft, Radio } from "lucide-react";
+import { ChevronRight, ChevronLeft, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { PlayButton } from "@/components/play-button";
+import { MixcloudShow } from "@/lib/mixcloud-service";
 
 // Define the interface for show data coming from the parent
-interface Show {
+interface Show extends MixcloudShow {
   id: string;
   title: string;
   subtitle: string;
@@ -19,12 +21,12 @@ interface Show {
 }
 
 // Props for the component
-interface ClientSideSelectionWrapperProps {
+interface ComingUpProps {
   featuredShows: Show[];
   title?: string;
 }
 
-export default function ClientSideSelectionWrapper({ featuredShows, title = "COMING UP" }: ClientSideSelectionWrapperProps) {
+export default function ComingUp({ featuredShows, title = "COMING UP" }: ComingUpProps) {
   // State for the selected show and its index
   const [selectedShow, setSelectedShow] = useState<Show | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -92,13 +94,11 @@ export default function ClientSideSelectionWrapper({ featuredShows, title = "COM
           </div>
           <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-2xl p-4 text-white">
             <div className="flex flex-col gap-2">
-              <div className="flex justify-between items-center">
+              <div className="flex sm:flex-col gap-4 justify-between sm:items-start items-center">
                 <div>
                   <h3 className="text-lg leading-tight  ">{selectedShow.title || "Untitled Show"}</h3>
                 </div>
-                <Button className="bg-brand-orange hover:bg-brand-orange/90 text-white px-4 py-2 text-sm flex items-center gap-2">
-                  <Play className="h-4 w-4 fill-current" /> Listen
-                </Button>
+                <PlayButton show={selectedShow} variant="default" size="sm" className="bg-brand-orange hover:bg-brand-orange/90 text-white px-4 py-2 text-sm flex items-center gap-2" />
               </div>
             </div>
           </div>

@@ -35,7 +35,7 @@ export function ShowsGrid({ shows }: ShowsGridProps) {
               </div>
               <div className="p-4">
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {show.tags.slice(0, 3).map((tag) => (
+                  {show.tags.map((tag) => (
                     <span key={tag.key} className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700">
                       {tag.name}
                     </span>

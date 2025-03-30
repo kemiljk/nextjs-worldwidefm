@@ -310,11 +310,14 @@ export default function MediaPlayer() {
   if (!currentShow) return null;
 
   return (
-    <div className={`fixed bottom-0 left-0 ${isExpanded ? "max-w-full" : "max-w-[6.7rem]"} w-full bg-green-500 dark:bg-green-700 text-white rounded-none border-t border-green-900 z-50 flex items-center px-4 py-3 transition-all duration-300`}>
+    <div
+      className={`fixed bottom-0 bg-green-500 dark:bg-green-700 text-white border-t border-green-900 z-50 flex items-center transition-all duration-300 h-16
+        ${isExpanded ? "left-0 right-0 max-w-full px-4" : "left-1/2 transform -translate-x-1/2 max-w-fit px-2 border-l border-r border-green-900"}`}
+    >
       <div ref={containerRef} className="hidden" /> {/* Container for hidden iframe */}
-      <Button variant="ghost" className="text-white hover:bg-white/10 p-2 mr-2 flex-shrink-0" onClick={toggleExpanded}>
+      <button onClick={toggleExpanded} className="text-white hover:bg-white/10 p-2.5 flex-shrink-0 mr-2">
         {isExpanded ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-      </Button>
+      </button>
       {isExpanded ? (
         <>
           <div className="flex items-center flex-1 mx-2 overflow-hidden">
@@ -356,9 +359,9 @@ export default function MediaPlayer() {
           </div>
 
           <div ref={volumeControlRef} className={`relative flex items-center gap-2 transition-opacity duration-200 ${isTransitioning ? "opacity-0" : "opacity-100"}`}>
-            <Button variant="ghost" className="text-white hover:bg-white/10 flex-shrink-0 p-2" onClick={toggleVolumeControl} aria-label="Volume control">
+            <button className="text-white hover:bg-white/10 flex-shrink-0 p-2" onClick={toggleVolumeControl} aria-label="Volume control">
               <Volume2 className="h-5 w-5" />
-            </Button>
+            </button>
 
             {/* Desktop horizontal slider (hidden on mobile when menu closed) */}
             <div className="w-24 mr-2 hidden md:block">
@@ -386,7 +389,7 @@ export default function MediaPlayer() {
           </div>
         </>
       ) : (
-        <div className="flex items-center">
+        <div className="flex items-center justify-center">
           <div className="w-10 h-10 rounded overflow-hidden relative">
             <Image src={currentShow?.pictures.large || "/image-placeholder.svg?w=40&h=40"} alt={currentShow?.name || "Now playing"} fill className="object-cover" />
             {isLive && (

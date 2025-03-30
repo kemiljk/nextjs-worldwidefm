@@ -74,45 +74,90 @@ interface MixcloudResponse {
   name: string;
 }
 
-// Cache configuration
-const CACHE_TTL = 1000 * 60 * 15; // 15 minutes
-let cache: { data: MixcloudShow[]; timestamp: number } | null = null;
-
 interface MixcloudShowsParams {
   tag?: string;
   searchTerm?: string;
   isNew?: boolean;
+  random?: boolean;
+  limit?: number;
 }
 
-export async function getMixcloudShows(params: MixcloudShowsParams = {}, forceRefresh = false): Promise<{ shows: MixcloudShow[]; total: number }> {
-  // Check cache first
-  if (!forceRefresh && cache && Date.now() - cache.timestamp < CACHE_TTL) {
-    return filterShows(cache.data, params);
+// Cache for Mixcloud shows with strong memoization
+type CacheKey = string;
+const showsCache = new Map<
+  CacheKey,
+  {
+    shows: MixcloudShow[];
+    timestamp: number;
   }
+>();
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
 
+// Helper to create a cache key from params
+function createCacheKey(params: MixcloudShowsParams): CacheKey {
+  return JSON.stringify(params || {});
+}
+
+// Update getRandomShowsFromMixcloud to use the API directly
+async function getRandomShowsFromMixcloud(count: number = 4): Promise<MixcloudShow[]> {
   try {
-    // Only fetch the first page of shows (most recent)
-    const response = await fetch("https://api.mixcloud.com/worldwidefm/cloudcasts/");
+    // Get a sample of shows from the API
+    const shows = await getAllShowsFromMixcloud();
+
+    // Shuffle and take the number requested
+    const shuffled = [...shows].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, count);
+  } catch (error) {
+    console.error("Error getting random shows:", error);
+    return [];
+  }
+}
+
+// Update getMixcloudShows to use the archive for random shows
+export async function getMixcloudShows(params: MixcloudShowsParams = {}, forceRefresh = false): Promise<{ shows: MixcloudShow[]; total: number }> {
+  try {
+    // If we're requesting random shows, use the archive
+    if (params.random) {
+      const randomShows = await getRandomShowsFromMixcloud(params.limit || 4);
+      return {
+        shows: randomShows,
+        total: randomShows.length,
+      };
+    }
+
+    const cacheKey = createCacheKey(params);
+    const cached = showsCache.get(cacheKey);
+
+    // Use cache if available and not expired
+    if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return { shows: cached.shows, total: cached.shows.length };
+    }
+
+    // For non-random requests, fetch from Mixcloud API
+    const limit = params.limit || 20;
+    const response = await fetch(`https://api.mixcloud.com/worldwidefm/cloudcasts/?limit=${limit}`, {
+      next: {
+        revalidate: 900,
+        tags: ["mixcloud"],
+      },
+    });
+
     if (!response.ok) {
       throw new Error(`Mixcloud API error: ${response.statusText}`);
     }
 
     const data: MixcloudResponse = await response.json();
-    console.log("Fetched shows:", data.data.length);
+    const shows = filterShows(data.data, params).shows;
 
     // Update cache
-    cache = {
-      data: data.data,
+    showsCache.set(cacheKey, {
+      shows,
       timestamp: Date.now(),
-    };
+    });
 
-    return filterShows(data.data, params);
+    return { shows, total: shows.length };
   } catch (error) {
     console.error("Error fetching Mixcloud shows:", error);
-    // Return cached data if available, even if expired
-    if (cache) {
-      return filterShows(cache.data, params);
-    }
     return { shows: [], total: 0 };
   }
 }
@@ -151,6 +196,7 @@ export function transformMixcloudShow(show: MixcloudShow): Partial<RadioShowObje
     imgix_url: show.pictures.large,
   };
 
+  // Transform all tags into genre objects
   const genreObjects: GenreObject[] = show.tags.map((tag) => ({
     id: tag.name.toLowerCase().replace(/\s+/g, "-"),
     slug: tag.name.toLowerCase().replace(/\s+/g, "-"),
@@ -193,7 +239,7 @@ export function transformMixcloudShow(show: MixcloudShow): Partial<RadioShowObje
       broadcast_date: show.created_time,
       duration: `${Math.floor(show.audio_length / 60)}:${(show.audio_length % 60).toString().padStart(2, "0")}`,
       player: show.url,
-      genres: genreObjects,
+      genres: genreObjects, // Now includes all tags
       locations: [],
       regular_hosts: hostObjects,
       takeovers: [],
@@ -209,6 +255,50 @@ export function transformMixcloudShow(show: MixcloudShow): Partial<RadioShowObje
 }
 
 export async function getAllShowsFromMixcloud(): Promise<MixcloudShow[]> {
-  const result = await getMixcloudShows();
-  return result.shows || [];
+  try {
+    // Make a single API call with a large limit to get a good sample
+    const response = await fetch("https://api.mixcloud.com/worldwidefm/cloudcasts/?limit=100", {
+      next: {
+        revalidate: 900, // 15 minutes
+        tags: ["mixcloud"],
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Mixcloud API error: ${response.statusText}`);
+    }
+
+    const data: MixcloudResponse = await response.json();
+    return data.data;
+  } catch (error) {
+    console.error("Error fetching Mixcloud shows:", error);
+    return [];
+  }
+}
+
+export async function getShowBySlug(slug: string): Promise<MixcloudShow | null> {
+  try {
+    // Clean up the slug to get the show key
+    const showKey = slug.startsWith("/") ? slug : `/${slug}`;
+
+    // Make a direct API call to Mixcloud for this specific show
+    const response = await fetch(`https://api.mixcloud.com${showKey}`, {
+      next: {
+        revalidate: 900, // 15 minutes
+        tags: ["mixcloud"], // Use consistent tag for revalidation
+      },
+    });
+
+    if (!response.ok) {
+      console.error(`Mixcloud API error for show ${showKey}: ${response.statusText}`);
+      return null;
+    }
+
+    const show = await response.json();
+    console.log("Found show:", show.name);
+    return show;
+  } catch (error) {
+    console.error("Error in getShowBySlug:", error);
+    return null;
+  }
 }

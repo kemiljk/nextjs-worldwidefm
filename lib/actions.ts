@@ -159,58 +159,23 @@ export async function getAllShows(skip = 0, limit = 20, filters?: any) {
 
 export async function getShowBySlug(slug: string): Promise<MixcloudShow | null> {
   try {
-    // Get all shows from Mixcloud
-    const mixcloudShows = await getAllShowsFromMixcloud();
-    console.log(`Fetched ${mixcloudShows.length} shows from Mixcloud`);
+    // Clean up the slug to get the show key
+    const showKey = slug.startsWith("/") ? slug : `/${slug}`;
 
-    console.log("Searching for show with slug:", slug);
-
-    // Find the show with the matching slug
-    // Try different formats - the incoming slug might be in different formats
-    const show = mixcloudShows.find((show) => {
-      // Log for debugging
-      console.log(`Comparing show key: ${show.key} with slug: ${slug}`);
-
-      // Direct match
-      if (show.key === slug || show.slug === slug) {
-        console.log("Found direct match");
-        return true;
-      }
-
-      // If slug doesn't start with '/', add it for comparison
-      if (!slug.startsWith("/") && show.key === `/${slug}`) {
-        console.log("Found match with leading slash added");
-        return true;
-      }
-
-      // Try removing any URL encoding
-      const decodedSlug = decodeURIComponent(slug);
-      if (show.key === decodedSlug) {
-        console.log("Found match with URL decoding");
-        return true;
-      }
-
-      // Check if show key is contained in the slug (for complex URLs)
-      // This is risky but may help with debugging
-      if (slug.includes(show.key)) {
-        console.log("Found partial match within slug");
-        return true;
-      }
-
-      // Check if slug is contained in the show key
-      if (show.key.includes(slug)) {
-        console.log("Found partial match within show key");
-        return true;
-      }
-
-      return false;
+    // Make a direct API call to Mixcloud for this specific show
+    const response = await fetch(`https://api.mixcloud.com${showKey}`, {
+      next: {
+        revalidate: 900, // 15 minutes
+        tags: ["shows"],
+      },
     });
 
-    if (!show) {
-      console.error(`No show found for slug: ${slug}`);
+    if (!response.ok) {
+      console.error(`Mixcloud API error for show ${showKey}: ${response.statusText}`);
       return null;
     }
 
+    const show = await response.json();
     console.log("Found show:", show.name);
     return show;
   } catch (error) {

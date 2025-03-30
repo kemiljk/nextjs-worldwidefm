@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "bun run fetch-archive && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "fetch-archive": "bun run scripts/fetch-archive.ts"
   },
   "dependencies": {
     "@cosmicjs/sdk": "^1.4.0",

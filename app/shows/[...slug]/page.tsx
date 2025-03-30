@@ -10,6 +10,9 @@ import { PlayButton } from "@/components/play-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { addHours, isWithinInterval } from "date-fns";
 
+// Add consistent revalidation time for Mixcloud content
+export const revalidate = 900; // 15 minutes
+
 // Generate static params for all shows
 export async function generateStaticParams() {
   try {
@@ -31,6 +34,7 @@ export async function generateStaticParams() {
         const segments = show.key.split("/").filter(Boolean);
         return {
           slug: segments,
+          show, // Pass the show data along with the params
         };
       });
   } catch (error) {
@@ -44,6 +48,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
   const showKey = "/" + params.slug.join("/");
   console.log("Looking for show with key:", showKey);
 
+  // Get the show data directly from getShowBySlug
   const show = await getShowBySlug(showKey);
 
   if (!show) {
