@@ -130,7 +130,7 @@ export default async function Home() {
             {/* UP NEXT */}
             <div className="mt-6">
               <h3 className="text-xl font-medium text-brand-orange mb-4">UP NEXT</h3>
-              <div className="border border-brand-orange/40 p-4 flex sm:flex-col sm:items-start items-center rounded-none justify-between gap-4">
+              <div className="border border-brand-orange/40 p-4 flex flex-col md:flex-row items-start md:items-center rounded-none justify-between gap-4">
                 <p className="text-sm text-foreground">{upcomingShows[0]?.name || "No upcoming show"}</p>
                 <div className="w-max whitespace-nowrap text-brand-orange border border-brand-orange px-4 py-2">Playing Next</div>
               </div>

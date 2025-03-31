@@ -66,11 +66,32 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   const playShow = (show: MixcloudShow) => {
     console.log("Playing show:", show.name);
 
-    // First set the current show
-    setCurrentShow(show);
+    // First check if this is the same show or a different one
+    const isSameShow = currentShow?.key === show.key;
 
-    // Set playing state (this will trigger the useEffect in the player component)
-    setIsPlaying(true);
+    // If it's the same show and already playing, just pause it
+    if (isSameShow && isPlaying) {
+      console.log("Same show already playing, pausing");
+      setIsPlaying(false);
+      return;
+    }
+
+    // If different show, set the current show
+    if (!isSameShow) {
+      console.log("Setting new current show");
+      // For different shows, first pause then update show for smoother transitions
+      if (isPlaying) {
+        setIsPlaying(false);
+      }
+      setCurrentShow(show);
+      // Brief delay before playing the new show
+      setTimeout(() => {
+        setIsPlaying(true);
+      }, 100);
+    } else {
+      // Simply play the current show
+      setIsPlaying(true);
+    }
   };
 
   const pauseShow = () => {
@@ -80,6 +101,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
 
   const togglePlayPause = () => {
     console.log("Toggle play/pause. Current state:", isPlaying ? "playing" : "paused");
+    // Simply toggle the state - direct user interaction ensures browser allows audio
     setIsPlaying(!isPlaying);
   };
 

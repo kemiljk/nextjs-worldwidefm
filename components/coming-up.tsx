@@ -94,7 +94,7 @@ export default function ComingUp({ featuredShows, title = "COMING UP" }: ComingU
           </div>
           <div className="absolute bottom-0 left-0 right-0 bg-black/40 backdrop-blur-2xl p-4 text-white">
             <div className="flex flex-col gap-2">
-              <div className="flex sm:flex-col gap-4 justify-between sm:items-start items-center">
+              <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                 <div>
                   <h3 className="text-lg leading-tight  ">{selectedShow.title || "Untitled Show"}</h3>
                 </div>
