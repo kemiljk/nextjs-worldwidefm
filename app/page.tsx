@@ -9,6 +9,7 @@ import VideoSection from "@/components/video/video-section";
 import { addHours, isWithinInterval, isSameDay } from "date-fns";
 import ComingUp from "@/components/coming-up";
 import GenreSelector from "@/components/genre-selector";
+import { Suspense } from "react";
 
 // Add consistent revalidation time for Mixcloud content
 export const revalidate = 900; // 15 minutes
@@ -143,7 +144,9 @@ export default async function Home() {
         </div>
 
         {/* Genre Selector Section */}
-        <GenreSelector shows={shows} />
+        <Suspense>
+          <GenreSelector shows={shows} />
+        </Suspense>
 
         {/* From The Archive Section */}
         <section className="px-4 md:px-8 lg:px-24 py-16 border-t border-green-900 bg-green-600">

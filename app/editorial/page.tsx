@@ -296,8 +296,10 @@ function EditorialContent() {
 // Main component that uses Suspense
 export default function EditorialPage() {
   return (
-    <Suspense fallback={<div className="container mx-auto px-4 py-8">Loading editorial content...</div>}>
-      <EditorialContent />
-    </Suspense>
+    <div className="min-h-screen">
+      <Suspense>
+        <EditorialContent />
+      </Suspense>
+    </div>
   );
 }

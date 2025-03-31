@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import { getMixcloudShows, getAllFilters } from "@/lib/actions";
 import { PageHeader } from "@/components/shared/page-header";
 import { ShowsFilter } from "../components/shows-filter";
@@ -111,7 +111,15 @@ export default function ShowsPage({ searchParams }: { searchParams: SearchParams
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-8">
         <aside className="lg:block">
-          <ShowsFilter genres={filters.genres} hosts={filters.hosts} takeovers={filters.takeovers} selectedGenre={genre} selectedHost={host} selectedTakeover={takeover} searchTerm={searchTerm} isNew={isNew} />
+          <Suspense
+            fallback={
+              <div className="h-[200px] flex items-center justify-center">
+                <Loader className="h-4 w-4 animate-spin" />
+              </div>
+            }
+          >
+            <ShowsFilter genres={filters.genres} hosts={filters.hosts} takeovers={filters.takeovers} selectedGenre={genre} selectedHost={host} selectedTakeover={takeover} searchTerm={searchTerm} isNew={isNew} />
+          </Suspense>
         </aside>
 
         <main className="lg:col-span-3">
