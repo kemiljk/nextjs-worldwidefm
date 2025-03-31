@@ -1,8 +1,7 @@
 import { createBucketClient } from "@cosmicjs/sdk";
-import { CosmicResponse, RadioShowObject, CategoryObject, ScheduleObject, PostObject, AboutObject } from "./cosmic-config";
+import { CosmicResponse, RadioShowObject, CategoryObject, PostObject, AboutObject } from "./cosmic-config";
 
-// Initialize Cosmic client
-export const cosmic = createBucketClient({
+const cosmic = createBucketClient({
   bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG as string,
   readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY as string,
 });
@@ -222,29 +221,47 @@ export async function getCategoryBySlug(slug: string): Promise<CosmicResponse<Ca
   }
 }
 
-/**
- * Get schedule data
- */
-export async function getSchedule(slug: string = "main-schedule"): Promise<CosmicResponse<ScheduleObject>> {
+interface ScheduleShow {
+  show_key: string;
+  show_time: string;
+  show_day: string;
+  name: string;
+  url: string;
+  picture: string;
+  created_time: string;
+  tags: string[];
+  hosts: string[];
+  duration: number;
+  play_count: number;
+  favorite_count: number;
+  comment_count: number;
+  listener_count: number;
+  repost_count: number;
+}
+
+interface Schedule {
+  id: string;
+  title: string;
+  slug: string;
+  metadata: {
+    shows: ScheduleShow[];
+    is_active: string;
+  };
+}
+
+export async function getSchedule(): Promise<CosmicResponse<Schedule> | null> {
   try {
     const response = await cosmic.objects
       .findOne({
         type: "schedule",
-        slug,
+        slug: "schedule",
       })
-      .props("slug,title,metadata,type")
-      .depth(3); // Increased depth to get more deeply nested objects
+      .props("id,title,slug,metadata");
 
     return response;
   } catch (error) {
-    if (error instanceof Error) {
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      });
-    }
-    throw error;
+    console.error("Error fetching schedule:", error);
+    return null;
   }
 }
 
