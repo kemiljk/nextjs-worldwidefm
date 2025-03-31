@@ -6,11 +6,6 @@ export const cosmic = createBucketClient({
   readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY as string,
 });
 
-export const COSMIC_CONFIG = {
-  bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "",
-  readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY || "",
-};
-
 // Types based on the provided API responses
 export interface CosmicImage {
   url: string;

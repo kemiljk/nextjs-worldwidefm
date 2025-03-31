@@ -216,7 +216,7 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
       {/* Mobile sheet */}
       {isSheetVisible && (
         <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
-          <div className={`bg-background border border-bronze-900 dark:border-bronze-50 w-full h-[80vh] rounded-t-lg p-6 overflow-y-auto ${isClosing ? "animate-slide-down" : "animate-slide-up"}`}>
+          <div className={`bg-background border border-bronze-900 dark:border-bronze-50 w-full h-[80vh] p-6 overflow-y-auto ${isClosing ? "animate-slide-down" : "animate-slide-up"}`}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold">Filters</h2>
               <button onClick={closeSheet} className="p-1 rounded-full hover:bg-gray-100">

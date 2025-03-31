@@ -271,7 +271,7 @@ function EditorialContent() {
   }, [posts, activeFilter, selectedFilters, searchTerm]);
 
   return (
-    <div className="container mx-auto px-4">
+    <div className="container mx-auto px-4 pb-16">
       <PageHeader title="Editorial" />
 
       <div className="mt-8">

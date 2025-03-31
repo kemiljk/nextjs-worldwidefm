@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
-import { SearchDialog } from "./search-dialog";
+import SearchDialog from "./search-dialog";
 
 export function SearchButton() {
   const [open, setOpen] = useState(false);

@@ -574,3 +574,172 @@ export async function getMixcloudShows(filters: MixcloudShowsFilters = {}): Prom
     return { shows: [], total: 0 };
   }
 }
+
+export async function searchContent(query?: string, source?: string, limit: number = 100): Promise<SearchResult[]> {
+  try {
+    // If source is mixcloud, search only in mixcloud
+    if (source === "mixcloud") {
+      const shows = await getAllShowsFromMixcloud();
+      let filteredShows = shows;
+
+      if (query) {
+        const searchTerm = query.toLowerCase();
+        filteredShows = shows.filter((show) => {
+          return show.name.toLowerCase().includes(searchTerm) || show.tags.some((tag) => tag.name.toLowerCase().includes(searchTerm)) || (show.hosts && show.hosts.some((host) => host.name.toLowerCase().includes(searchTerm)));
+        });
+      }
+
+      // Transform shows to SearchResult format
+      return filteredShows.slice(0, limit).map((show) => ({
+        id: show.key,
+        type: "radio-shows",
+        slug: show.key.split("/").pop() || "",
+        title: show.name,
+        description: show.name,
+        image: show.pictures.extra_large,
+        date: show.created_time,
+        genres: show.tags.map((tag) => ({ slug: tag.name.toLowerCase().replace(/\s+/g, "-"), title: tag.name, type: "genres" })),
+        hosts: show.hosts?.map((host) => ({ slug: host.username, title: host.name, type: "hosts" })) || [],
+        locations: [],
+        takeovers: [],
+      }));
+    }
+
+    // If source is cosmic, search only in cosmic
+    if (source === "cosmic") {
+      // Search in posts, videos, and events
+      const [postsResponse, videosResponse] = await Promise.all([
+        cosmic.objects.find({
+          type: "posts",
+          ...(query && {
+            q: query,
+          }),
+          props: "id,title,slug,metadata,created_at",
+          limit,
+          status: "published",
+        }),
+        cosmic.objects.find({
+          type: "videos",
+          ...(query && {
+            q: query,
+          }),
+          props: "id,title,slug,metadata,created_at",
+          limit,
+          status: "published",
+        }),
+      ]);
+
+      const posts = postsResponse.objects || [];
+      const videos = videosResponse.objects || [];
+
+      // Transform and combine results
+      return [...posts, ...videos].map((item) => ({
+        id: item.id,
+        type: item.type === "posts" ? item.metadata.post_type || "posts" : "videos",
+        slug: item.slug,
+        title: item.title,
+        description: item.metadata.description || item.metadata.excerpt || "",
+        image: item.metadata.image?.imgix_url || item.metadata.image?.url || null,
+        date: item.metadata.date || item.created_at,
+        genres: (item.metadata.categories || []).map((cat: any) => ({
+          slug: cat.slug,
+          title: cat.title,
+          type: "genres",
+        })),
+        hosts: [],
+        locations: [],
+        takeovers: [],
+      }));
+    }
+
+    // If no source specified, search in both and combine results
+    const [mixcloudShows, postsResponse, videosResponse] = await Promise.all([
+      getAllShowsFromMixcloud(),
+      cosmic.objects.find({
+        type: "posts",
+        ...(query && {
+          q: query,
+        }),
+        props: "id,title,slug,metadata,created_at",
+        limit,
+        status: "published",
+      }),
+      cosmic.objects.find({
+        type: "videos",
+        ...(query && {
+          q: query,
+        }),
+        props: "id,title,slug,metadata,created_at",
+        limit,
+        status: "published",
+      }),
+    ]);
+
+    let filteredShows = mixcloudShows;
+    if (query) {
+      const searchTerm = query.toLowerCase();
+      filteredShows = mixcloudShows.filter((show) => {
+        return show.name.toLowerCase().includes(searchTerm) || show.tags.some((tag) => tag.name.toLowerCase().includes(searchTerm)) || (show.hosts && show.hosts.some((host) => host.name.toLowerCase().includes(searchTerm)));
+      });
+    }
+
+    const posts = postsResponse.objects || [];
+    const videos = videosResponse.objects || [];
+
+    // Transform and combine all results
+    const results = [
+      ...filteredShows.slice(0, limit).map((show) => ({
+        id: show.key,
+        type: "radio-shows",
+        slug: show.key.split("/").pop() || "",
+        title: show.name,
+        description: show.name,
+        image: show.pictures.extra_large,
+        date: show.created_time,
+        genres: show.tags.map((tag) => ({ slug: tag.name.toLowerCase().replace(/\s+/g, "-"), title: tag.name, type: "genres" })),
+        hosts: show.hosts?.map((host) => ({ slug: host.username, title: host.name, type: "hosts" })) || [],
+        locations: [],
+        takeovers: [],
+      })),
+      ...posts.map((item) => ({
+        id: item.id,
+        type: item.metadata.post_type || "posts",
+        slug: item.slug,
+        title: item.title,
+        description: item.metadata.description || item.metadata.excerpt || "",
+        image: item.metadata.image?.imgix_url || item.metadata.image?.url || null,
+        date: item.metadata.date || item.created_at,
+        genres: (item.metadata.categories || []).map((cat: any) => ({
+          slug: cat.slug,
+          title: cat.title,
+          type: "genres",
+        })),
+        hosts: [],
+        locations: [],
+        takeovers: [],
+      })),
+      ...videos.map((item) => ({
+        id: item.id,
+        type: "videos",
+        slug: item.slug,
+        title: item.title,
+        description: item.metadata.description || "",
+        image: item.metadata.image?.imgix_url || item.metadata.image?.url || null,
+        date: item.metadata.date || item.created_at,
+        genres: (item.metadata.categories || []).map((cat: any) => ({
+          slug: cat.slug,
+          title: cat.title,
+          type: "genres",
+        })),
+        hosts: [],
+        locations: [],
+        takeovers: [],
+      })),
+    ];
+
+    return results.slice(0, limit);
+  } catch (error) {
+    console.error("Search error:", error);
+    return [];
+  }
+}

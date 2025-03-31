@@ -5,21 +5,24 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, X, Music2, Newspaper, Calendar, Video, AlertTriangle, Loader, AlertCircle, FileQuestion, FolderSearch } from "lucide-react";
-import { useSearch, SearchResultType, SearchResult, FilterItem } from "@/lib/search-context";
+import { Search, X, Music2, Newspaper, Calendar, Video, Loader, AlertCircle, FileQuestion, FolderSearch } from "lucide-react";
+import { SearchResultType, SearchResult, FilterItem } from "@/lib/search-context";
+import { useSearch } from "@/lib/hooks/use-search";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { searchContent } from "@/lib/actions";
+import { searchEngine } from "@/lib/search/engine";
+import { SearchFilters, SearchOptions, SearchItem } from "@/lib/search/types";
 
 interface SearchDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-// Define a FilterCategory type for the active tab
-type FilterCategory = "all" | "type" | "genres" | "locations" | "hosts" | "takeovers" | SearchResultType;
+type FilterCategory = "all" | "genres" | "locations" | "hosts" | "takeovers" | "type";
 
 const typeLabels: Record<SearchResultType, { label: string; icon: React.ElementType; color: string }> = {
   "radio-shows": { label: "Radio Shows", icon: Music2, color: "text-bronze-500" },
@@ -29,451 +32,364 @@ const typeLabels: Record<SearchResultType, { label: string; icon: React.ElementT
   takeovers: { label: "Takeovers", icon: Calendar, color: "text-bronze-500" },
 } as const;
 
-export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
+// Helper function to map SearchItem to SearchResult
+const mapSearchItemToResult = (item: SearchItem): SearchResult => ({
+  id: item.id,
+  type: item.contentType as any,
+  slug: item.slug,
+  title: item.title,
+  description: item.description,
+  image: item.image,
+  date: item.date,
+  genres: item.genres,
+  hosts: item.hosts,
+  locations: item.locations,
+  takeovers: item.takeovers,
+});
+
+export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const context = useSearch();
   const [activeTab, setActiveTab] = useState<FilterCategory>("all");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [skip, setSkip] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const observerTarget = useRef<HTMLDivElement>(null);
 
-  // When dialog opens, focus the search input
+  // Load more results when scrolling to bottom
+  const loadMore = async () => {
+    if (isLoadingMore || !hasMore) return;
+
+    setIsLoadingMore(true);
+    try {
+      const nextSkip = skip + 20;
+      const response = await searchContent(context.searchTerm, undefined, 20);
+
+      if (response.length > 0) {
+        // Apply filters to the response
+        let filteredResults = response;
+        if (activeFilters.length > 0) {
+          filteredResults = response.filter((item) => {
+            // Check if any of the item's genres match active filters
+            const matchesGenres = item.genres?.some((genre) => activeFilters.includes(genre.slug));
+            // Check if any of the item's locations match active filters
+            const matchesLocations = item.locations?.some((location) => activeFilters.includes(location.slug));
+            // Check if any of the item's hosts match active filters
+            const matchesHosts = item.hosts?.some((host) => activeFilters.includes(host.slug));
+            // Check if any of the item's takeovers match active filters
+            const matchesTakeovers = item.takeovers?.some((takeover) => activeFilters.includes(takeover.slug));
+            // Check if the item's type matches active filters
+            const matchesType = activeFilters.includes(item.type);
+            // Return true if any of the filters match
+            return matchesGenres || matchesLocations || matchesHosts || matchesTakeovers || matchesType;
+          });
+        }
+
+        context.setResults([...context.results, ...filteredResults]);
+        context.setAllContent([...context.allContent, ...filteredResults]);
+        setHasMore(filteredResults.length === 20);
+        setSkip(nextSkip);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Error loading more results:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  // Set up intersection observer for infinite scroll
   useEffect(() => {
-    if (open && searchInputRef.current) {
-      // Small delay to ensure the dialog is fully rendered
-      setTimeout(() => {
-        searchInputRef.current?.focus();
-      }, 100);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore]);
+
+  // Load initial content when dialog opens
+  useEffect(() => {
+    if (open) {
+      // Load initial content if we don't have any
+      if (!context.allContent || context.allContent.length === 0) {
+        searchContent(undefined, undefined, 20)
+          .then((response) => {
+            context.setResults(response);
+            context.setAllContent(response);
+            setHasMore(response.length === 20);
+            setSkip(20);
+          })
+          .catch((error) => {
+            console.error("Error loading initial content:", error);
+          });
+      }
+      // Focus the input when the dialog opens
+      setTimeout(() => searchInputRef.current?.focus(), 100);
     }
   }, [open]);
 
-  // When dialog is opened, trigger a search if needed
+  // Reset pagination when search term or filters change
   useEffect(() => {
-    if (!open) return;
+    setSkip(0);
+    setHasMore(true);
+  }, [context.searchTerm, activeFilters]);
 
-    console.log(`Search dialog opened, content status:`, {
-      hasResults: context.results.length > 0,
-      hasAllContent: context.allContent.length > 0,
-      isLoading: context.isLoading,
-      searchTerm: context.searchTerm,
-    });
-
-    // If we already have results and there's a search term, don't perform a new search
-    if (context.results.length > 0 && context.searchTerm) {
-      console.log("Already have results for current search term, not reloading");
-      return;
+  // Handle search
+  const handleSearch = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
     }
+    try {
+      // Reset pagination and results
+      setSkip(0);
+      setHasMore(true);
 
-    // If we have no search term and no content/results, load all content
-    if (context.allContent.length === 0 && !context.isLoading) {
-      console.log("Performing initial search to load all content");
+      // Perform new search with current filters
+      const response = await searchContent(context.searchTerm, undefined, 20);
 
-      // Reset filters when opening with fresh search
-      if (Object.keys(context.filters).length > 0) {
-        context.setFilters({});
+      // Apply filters to the response
+      let filteredResults = response;
+
+      // First, apply type filters if any exist
+      const typeFilters = activeFilters.filter((f) => Object.keys(typeLabels).includes(f));
+      if (typeFilters.length > 0) {
+        // If we have type filters, only show items of those types
+        filteredResults = response.filter((item) => typeFilters.includes(item.type));
       }
 
-      context.performSearch("");
-    }
-  }, [open, context]);
+      // Then apply other filters
+      const otherFilters = activeFilters.filter((f) => !Object.keys(typeLabels).includes(f));
+      if (otherFilters.length > 0) {
+        filteredResults = filteredResults.filter((item) => {
+          // Check if any of the item's genres match active filters
+          const matchesGenres = item.genres?.some((genre) => otherFilters.includes(genre.slug));
+          // Check if any of the item's locations match active filters
+          const matchesLocations = item.locations?.some((location) => otherFilters.includes(location.slug));
+          // Check if any of the item's hosts match active filters
+          const matchesHosts = item.hosts?.some((host) => otherFilters.includes(host.slug));
+          // Check if any of the item's takeovers match active filters
+          const matchesTakeovers = item.takeovers?.some((takeover) => otherFilters.includes(takeover.slug));
+          // Return true if any of the filters match
+          return matchesGenres || matchesLocations || matchesHosts || matchesTakeovers;
+        });
+      }
 
-  // Calculate which content to display
-  const sourceContent = useMemo(() => {
-    // If we have search results, use them
-    if (context.results.length > 0) {
-      return context.results;
-    }
-    // Otherwise use all content if available
-    else if (context.allContent.length > 0) {
-      return context.allContent;
-    }
-    // Empty array if nothing available
-    return [];
-  }, [context.results, context.allContent]);
-
-  // Filter content based on active tab
-  const filteredContent = useMemo(() => {
-    if (activeTab === "all") {
-      return sourceContent;
-    } else {
-      return sourceContent.filter((item) => {
-        // For specific filter categories
-        switch (activeTab) {
-          case "genres":
-            return item.genres && item.genres.some((genre) => activeFilters.includes(genre.slug));
-          case "locations":
-            return item.locations && item.locations.some((location) => activeFilters.includes(location.slug));
-          case "hosts":
-            return item.hosts && item.hosts.some((host) => activeFilters.includes(host.slug));
-          case "takeovers":
-            return item.takeovers && item.takeovers.some((takeover) => activeFilters.includes(takeover.slug));
-          case "type":
-            return activeFilters.includes(item.type);
-          default:
-            return true;
-        }
-      });
-    }
-  }, [sourceContent, activeTab, activeFilters]);
-
-  // Function to handle search
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (context.searchTerm.trim()) {
-      context.performSearch(context.searchTerm);
+      context.setResults(filteredResults);
+      context.setAllContent(filteredResults);
+      setHasMore(filteredResults.length === 20);
+      setSkip(20);
+    } catch (error) {
+      console.error("Error performing search:", error);
     }
   };
 
-  // Function to handle opening/closing the dialog
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      // Reset filters and search term on close
-      context.setFilters({});
-      context.setSearchTerm("");
-      setActiveTab("all");
-      setActiveFilters([]);
-    }
-    onOpenChange(open);
-  };
-
-  // Function to toggle filter tab
-  const handleTabChange = (tab: FilterCategory) => {
-    if (activeTab === tab) {
-      setActiveTab("all");
-      setActiveFilters([]);
-    } else {
-      setActiveTab(tab);
-      setActiveFilters([]);
-    }
-  };
-
-  // Function to toggle filter
-  const handleFilterToggle = (filter: FilterItem) => {
-    // Toggle active filters
+  // Function to handle filter toggle
+  const handleFilterToggle = async (filter: FilterItem) => {
+    // Update active filters state
     setActiveFilters((prev) => {
-      if (prev.includes(filter.slug)) {
-        return prev.filter((f) => f !== filter.slug);
+      let newFilters;
+      if (filter.type === "types") {
+        // For type filters, we want to clear any other type filters first
+        const otherTypeFilters = prev.filter((f) => Object.keys(typeLabels).includes(f));
+        newFilters = [...prev.filter((f) => !Object.keys(typeLabels).includes(f))];
+        if (!prev.includes(filter.slug)) {
+          newFilters.push(filter.slug);
+        }
       } else {
-        return [...prev, filter.slug];
-      }
-    });
-
-    // Also use the context filter toggles for better search experience
-    switch (filter.type) {
-      case "genres":
-        context.toggleGenreFilter(filter);
-        break;
-      case "locations":
-        context.toggleLocationFilter(filter);
-        break;
-      case "hosts":
-        context.toggleHostFilter(filter);
-        break;
-      case "takeovers":
-        context.toggleTakeoverFilter(filter);
-        break;
-      case "types":
-        context.toggleTypeFilter(filter);
-        break;
-    }
-  };
-
-  // Helper function to debug host search
-  const debugHostSearch = (name: string) => {
-    if (process.env.NODE_ENV !== "development") return;
-
-    console.log(`Debugging search for host: "${name}"`);
-    let matchCount = 0;
-    const lowerName = name.toLowerCase();
-
-    // Check all content for this host name
-    context.allContent.forEach((item) => {
-      let found = false;
-      const matches: string[] = [];
-
-      // Check hosts
-      const hostsMatch = item.hosts?.some((host) => {
-        const match = host.title.toLowerCase().includes(lowerName);
-        if (match) {
-          matches.push(`host: ${host.title}`);
-          return true;
-        }
-        return false;
-      });
-
-      // Check takeovers
-      const takeoversMatch = item.takeovers?.some((takeover) => {
-        const match = takeover.title.toLowerCase().includes(lowerName);
-        if (match) {
-          matches.push(`takeover: ${takeover.title}`);
-          return true;
-        }
-        return false;
-      });
-
-      // Check genres
-      const genresMatch = item.genres?.some((genre) => {
-        const match = genre.title.toLowerCase().includes(lowerName);
-        if (match) {
-          matches.push(`genre: ${genre.title}`);
-          return true;
-        }
-        return false;
-      });
-
-      // Check title
-      if (item.title.toLowerCase().includes(lowerName)) {
-        matches.push(`title: ${item.title}`);
-        found = true;
+        newFilters = prev.includes(filter.slug) ? prev.filter((f) => f !== filter.slug) : [...prev, filter.slug];
       }
 
-      // Check description/excerpt
-      if (item.description && item.description.toLowerCase().includes(lowerName)) {
-        matches.push(`description: ${item.description.substring(0, 50)}...`);
-        found = true;
-      }
-
-      if (item.excerpt && item.excerpt.toLowerCase().includes(lowerName)) {
-        matches.push(`excerpt: ${item.excerpt.substring(0, 50)}...`);
-        found = true;
-      }
-
-      // Check metadata if available
-      if (item.metadata) {
-        for (const [key, value] of Object.entries(item.metadata)) {
-          if (typeof value === "string" && value.toLowerCase().includes(lowerName)) {
-            matches.push(`metadata.${key}: ${value.substring(0, 50)}...`);
-            found = true;
-          } else if (Array.isArray(value)) {
-            // Handle arrays of strings or objects
-            value.forEach((item: any, index: number) => {
-              if (typeof item === "string" && item.toLowerCase().includes(lowerName)) {
-                matches.push(`metadata.${key}[${index}]: ${item}`);
-                found = true;
-              } else if (item && typeof item === "object") {
-                // Check each property
-                for (const [propKey, propVal] of Object.entries(item)) {
-                  if (typeof propVal === "string" && propVal.toLowerCase().includes(lowerName)) {
-                    matches.push(`metadata.${key}[${index}].${propKey}: ${propVal}`);
-                    found = true;
-                  }
-                }
-              }
-            });
+      // Update context filters
+      switch (filter.type) {
+        case "genres":
+          context.toggleGenreFilter(filter);
+          break;
+        case "locations":
+          context.toggleLocationFilter(filter);
+          break;
+        case "hosts":
+          context.toggleHostFilter(filter);
+          break;
+        case "takeovers":
+          context.toggleTakeoverFilter(filter);
+          break;
+        case "types":
+          // Clear other type filters first
+          const otherTypeFilters = prev.filter((f) => Object.keys(typeLabels).includes(f));
+          otherTypeFilters.forEach((f) => {
+            context.toggleTypeFilter({ slug: f, title: typeLabels[f as SearchResultType].label, type: "types" });
+          });
+          if (!prev.includes(filter.slug)) {
+            context.toggleTypeFilter(filter);
           }
-        }
+          break;
       }
 
-      if (hostsMatch || takeoversMatch || genresMatch || found) {
-        matchCount++;
-        console.log(`Found "${name}" in item: ${item.title} (${item.type})`);
-        console.log(`  Matches: ${matches.join(", ")}`);
-      }
+      // Perform new search with updated filters
+      handleSearch();
+
+      return newFilters;
     });
-
-    console.log(`Total matches for "${name}": ${matchCount} out of ${context.allContent.length} items`);
-
-    if (matchCount === 0 && lowerName === "gilles") {
-      console.log("NO MATCHES FOUND FOR GILLES - Checking raw data structure of a few items:");
-      context.allContent.slice(0, 3).forEach((item, i) => {
-        console.log(`Example Item ${i + 1}: ${item.title}`);
-        console.log(`- Type: ${item.type}`);
-        console.log(`- Hosts:`, item.hosts);
-        console.log(`- Takeovers:`, item.takeovers);
-        if (item.metadata) {
-          console.log(`- Metadata keys:`, Object.keys(item.metadata));
-        }
-      });
-    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-6xl h-[90vh] p-0 gap-0">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[90vw] h-[90vh] p-0 gap-0 overflow-hidden">
         <div className="flex h-full overflow-hidden">
-          {/* Sidebar */}
-          <div className="w-64 border-r shrink-0 h-full overflow-y-auto">
-            <div className="p-4 space-y-6">
-              <div>
-                <h3 className=" mb-2">Content Type</h3>
-                <div className="space-y-2">
-                  <Button key="type-all" variant="ghost" className={cn("flex items-center gap-2 px-3 py-1 text-sm ", activeTab === "all" && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleTabChange("all")}>
-                    All Content
-                  </Button>
-                  {Object.entries(typeLabels).map(([type, { label, icon: Icon, color }]) => (
-                    <Button key={type} variant="ghost" className={cn("flex items-center gap-2 px-3 py-1 text-sm", activeTab === type && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleTabChange(type as SearchResultType)}>
-                      <Icon className="h-4 w-4" style={{ color }} />
-                      {label}
+          {/* Mobile Filter Button */}
+          <div className="sm:hidden absolute left-2 top-2 z-50">
+            <Button variant="ghost" size="icon" onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}>
+              <FolderSearch className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Filters Section */}
+          <div className={cn("w-64 border-r bg-background", "fixed inset-y-0 left-0 z-50 sm:relative sm:block", "transition-transform duration-200 ease-in-out", isMobileFilterOpen ? "translate-x-0" : "-translate-x-full sm:translate-x-0")}>
+            <div className="flex flex-col h-full">
+              <div className="p-4 border-b">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">Filters</h3>
+                  <div className="flex items-center gap-2">
+                    {activeFilters.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6"
+                        onClick={async () => {
+                          // Clear all active filters
+                          activeFilters.forEach((filter) => {
+                            if (filter.startsWith("type-")) {
+                              context.toggleTypeFilter({ slug: filter, title: "", type: "types" });
+                            } else {
+                              context.toggleGenreFilter({ slug: filter, title: "", type: "genres" });
+                            }
+                          });
+                          setActiveFilters([]);
+
+                          // Reset pagination
+                          setSkip(0);
+                          setHasMore(true);
+
+                          // Load initial content
+                          try {
+                            const response = await searchContent(undefined, undefined, 20);
+                            context.setResults(response);
+                            context.setAllContent(response);
+                            setHasMore(response.length === 20);
+                            setSkip(20);
+                          } catch (error) {
+                            console.error("Error loading initial content:", error);
+                          }
+                        }}
+                      >
+                        Clear all
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => setIsMobileFilterOpen(false)}>
+                      <X className="h-4 w-4" />
                     </Button>
-                  ))}
+                  </div>
                 </div>
               </div>
 
-              {context.availableFilters.genres.length > 0 && (
-                <div>
-                  <h3 className=" mb-2">Genres</h3>
-                  <ScrollArea className="h-52">
-                    <div className="space-y-1 pr-4">
-                      <Button key="filter-genre-all" variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start ", (!context.filters.genres || context.filters.genres.length === 0) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(context.availableFilters.genres[0])}>
-                        All Genres
-                      </Button>
-                      {context.availableFilters.genres
-                        .sort((a, b) => a.title.localeCompare(b.title))
-                        .map((genre) => (
-                          <Button key={`filter-genre-${genre.slug}`} variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start", activeFilters.includes(genre.slug) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(genre)}>
-                            {genre.title}
-                          </Button>
-                        ))}
+              <div className="overflow-y-auto h-full bg-background">
+                <div className="p-4 space-y-4">
+                  {/* Content Type Section */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Content Type</h4>
+                    <div className="space-y-1">
+                      {Object.entries(typeLabels).map(([type, { label, icon: Icon, color }]) => (
+                        <button key={type} onClick={() => handleFilterToggle({ slug: type, title: label, type: "types" })} className={cn("flex items-center w-full px-2 py-1.5 text-sm", activeFilters.includes(type) ? "bg-accent" : "hover:bg-accent/5")}>
+                          <Icon className={cn("h-4 w-4 mr-2", color)} />
+                          {label}
+                        </button>
+                      ))}
                     </div>
-                  </ScrollArea>
-                </div>
-              )}
+                  </div>
 
-              {context.availableFilters.locations.length > 0 && (
-                <div>
-                  <h3 className=" mb-2">Locations</h3>
-                  <ScrollArea className="h-40">
-                    <div className="space-y-1 pr-4">
-                      <Button key="filter-location-all" variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start ", (!context.filters.locations || context.filters.locations.length === 0) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(context.availableFilters.locations[0])}>
-                        All Locations
-                      </Button>
-                      {context.availableFilters.locations
-                        .sort((a, b) => a.title.localeCompare(b.title))
-                        .map((location) => (
-                          <Button key={`filter-location-${location.slug}`} variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start", activeFilters.includes(location.slug) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(location)}>
-                            {location.title}
-                          </Button>
-                        ))}
+                  {/* Genres Section */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Genres</h4>
+                    <div className="space-y-1">
+                      {context.availableFilters.genres.map((genre: FilterItem) => (
+                        <button key={genre.slug} onClick={() => handleFilterToggle({ ...genre, type: "genres" })} className={cn("flex items-center w-full px-2 py-1.5 text-sm", activeFilters.includes(genre.slug) ? "bg-accent" : "hover:bg-accent/5")}>
+                          {genre.title}
+                        </button>
+                      ))}
                     </div>
-                  </ScrollArea>
+                  </div>
                 </div>
-              )}
-
-              {context.availableFilters.hosts.length > 0 && (
-                <div>
-                  <h3 className=" mb-2">Hosts</h3>
-                  <ScrollArea className="h-40">
-                    <div className="space-y-1 pr-4">
-                      <Button key="filter-host-all" variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start ", (!context.filters.hosts || context.filters.hosts.length === 0) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(context.availableFilters.hosts[0])}>
-                        All Hosts
-                      </Button>
-                      {context.availableFilters.hosts
-                        .sort((a, b) => a.title.localeCompare(b.title))
-                        .map((host) => (
-                          <Button key={`filter-host-${host.slug}`} variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start", activeFilters.includes(host.slug) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(host)}>
-                            {host.title}
-                          </Button>
-                        ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              )}
-
-              {context.availableFilters.takeovers.length > 0 && (
-                <div>
-                  <h3 className=" mb-2">Takeovers</h3>
-                  <ScrollArea className="h-40">
-                    <div className="space-y-1 pr-4">
-                      <Button key="filter-takeover-all" variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start ", (!context.filters.takeovers || context.filters.takeovers.length === 0) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(context.availableFilters.takeovers[0])}>
-                        All Takeovers
-                      </Button>
-                      {context.availableFilters.takeovers
-                        .sort((a, b) => a.title.localeCompare(b.title))
-                        .map((takeover) => (
-                          <Button key={`filter-takeover-${takeover.slug}`} variant="ghost" className={cn("px-3 py-1 text-sm w-full justify-start", activeFilters.includes(takeover.slug) && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterToggle(takeover)}>
-                            {takeover.title}
-                          </Button>
-                        ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              )}
+              </div>
             </div>
           </div>
 
-          {/* Main Content Area */}
-          <div className="flex-1 h-full flex flex-col overflow-hidden">
-            {/* Search header - fixed */}
-            <div className="border-b p-4 flex items-center gap-4 bg-background">
-              <div className="flex-1 flex items-center gap-2">
-                <Search className="w-5 h-5 text-muted-foreground" />
-                <Input
-                  placeholder="Search shows, articles, events..."
-                  value={context.searchTerm}
-                  onChange={(e) => context.setSearchTerm(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      context.performSearch(context.searchTerm);
-                    }
-                  }}
-                  className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-lg"
-                  ref={searchInputRef}
-                />
-                <Button variant="secondary" className="mr-8" size="sm" onClick={() => context.performSearch(context.searchTerm)}>
-                  <Search className="h-4 w-4" />
+          {/* Main Content Section */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden pt-12">
+            {/* Search Input */}
+            <div className="p-4 border-b flex-shrink-0">
+              <form onSubmit={handleSearch} className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input ref={searchInputRef} placeholder="Search all content..." className="pl-8" value={context.searchTerm} onChange={(e) => context.setSearchTerm(e.target.value)} />
+                </div>
+                <Button type="submit" disabled={context.isLoading} className="bg-bronze-500 text-white hover:bg-bronze-600 disabled:bg-bronze-300">
+                  {context.isLoading ? <Loader className="h-4 w-4 animate-spin" /> : "Search"}
                 </Button>
-                {process.env.NODE_ENV === "development" && (
-                  <Button variant="outline" size="sm" className="text-xs bg-amber-50 border-amber-200 hover:bg-amber-100" onClick={() => debugHostSearch(context.searchTerm)}>
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    Debug Search
-                  </Button>
-                )}
-              </div>
+              </form>
             </div>
 
-            {/* Results grid - scrollable */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-6">
-                {context.isLoading ? (
-                  <div className="h-full flex-1 flex items-center justify-center flex-col space-y-4 p-8">
-                    <Loader className="h-8 w-8 animate-spin text-bronze-500" />
-                    <p className="text-muted-foreground">Loading content...</p>
-                  </div>
-                ) : context.error ? (
-                  <div className="h-full flex-1 flex items-center justify-center flex-col space-y-4 p-8 max-w-2xl text-center">
-                    <AlertCircle className="h-8 w-8 text-red-500" />
-                    <p className="text-muted-foreground">{context.error}</p>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        context.performSearch("");
-                      }}
-                      className="mt-2"
-                    >
-                      Try Again
-                    </Button>
-                  </div>
-                ) : filteredContent.length === 0 ? (
-                  <div className="h-full flex-1 flex items-center justify-center flex-col space-y-4 p-8">
-                    <FolderSearch className="h-8 w-8 text-bronze-500" />
-                    <p className="text-muted-foreground">No results found</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredContent.map((item) => (
-                      <Link key={`${item.type}-${item.slug}`} href={`/${item.type}/${item.slug}`} onClick={() => handleOpenChange(false)} className="group">
-                        <div className="flex flex-col h-full">
-                          <div className="relative aspect-square">
-                            <Image src={item.image || "/image-placeholder.svg"} alt={item.title} fill className="object-cover rounded" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            {/* Results Section */}
+            <ScrollArea
+              className="flex-1"
+              onScrollCapture={(e) => {
+                const target = e.target as HTMLDivElement;
+                const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
+                if (isAtBottom && hasMore && !isLoadingMore) {
+                  loadMore();
+                }
+              }}
+            >
+              <div className="p-4 space-y-4">
+                {context.results.length > 0 ? (
+                  <>
+                    {context.results.map((result: SearchResult) => (
+                      <Link key={`${result.type}-${result.id}-${result.slug}-${result.date}`} href={`/${result.type}/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
+                        <div className="flex items-start gap-4">
+                          <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
+                            <Image src={result.image || "/image-placeholder.svg"} alt={result.title} fill className="object-cover" />
                           </div>
-                          <div className="mt-3">
+                          <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                               {(() => {
-                                const TypeIcon = typeLabels[item.type].icon;
-                                return <TypeIcon className={cn("w-4 h-4", typeLabels[item.type].color)} />;
+                                const TypeIcon = typeLabels[result.type].icon;
+                                return <TypeIcon className={cn("w-4 h-4", typeLabels[result.type].color)} />;
                               })()}
-                              <span>{typeLabels[item.type].label}</span>
-                              {item.date && (
+                              <span>{typeLabels[result.type].label}</span>
+                              {result.date && (
                                 <>
                                   <span>•</span>
-                                  <span>{format(new Date(item.date), "MMM d, yyyy")}</span>
+                                  <span>{format(new Date(result.date), "MMM d, yyyy")}</span>
                                 </>
                               )}
                             </div>
-                            <h3 className=" group-hover:text-primary transition-colors">{item.title}</h3>
-                            {item.genres.length > 0 && (
+                            <h3 className="font-medium mb-1">{result.title}</h3>
+                            {result.description && <p className="text-sm text-muted-foreground line-clamp-2">{result.description}</p>}
+                            {result.genres?.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-2">
-                                {item.genres.slice(0, 3).map((genre) => (
-                                  <Badge key={`${item.slug}-${genre.slug}`} variant="outline" className="text-xs font-normal">
+                                {result.genres.map((genre: FilterItem) => (
+                                  <Badge key={`${result.slug}-${genre.slug}`} variant="outline" className="text-xs">
                                     {genre.title}
                                   </Badge>
                                 ))}
@@ -483,10 +399,30 @@ export function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
                         </div>
                       </Link>
                     ))}
+                    <div className="h-4 flex items-center justify-center">{isLoadingMore && <Loader className="h-4 w-4 animate-spin" />}</div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    {context.isLoading ? (
+                      <>
+                        <Loader className="h-8 w-8 animate-spin mb-4" />
+                        <p className="text-muted-foreground">Searching...</p>
+                      </>
+                    ) : context.searchTerm ? (
+                      <>
+                        <AlertCircle className="h-8 w-8 mb-4 text-muted-foreground" />
+                        <p className="text-muted-foreground">No results found</p>
+                      </>
+                    ) : (
+                      <>
+                        <FileQuestion className="h-8 w-8 mb-4 text-muted-foreground" />
+                        <p className="text-muted-foreground">Start typing to search</p>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
-            </div>
+            </ScrollArea>
           </div>
         </div>
       </DialogContent>
