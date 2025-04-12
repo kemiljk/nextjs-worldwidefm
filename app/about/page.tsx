@@ -9,7 +9,7 @@ export default async function AboutPage() {
     <main>
       <PageHeader title={about.metadata.hero_title} description={about.metadata.hero_subtitle} breadcrumbs={[{ href: "/", label: "Home" }, { label: "About" }]} />
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 py-12">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 py-16">
         <div className="md:col-span-5">
           <div className="prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: about.metadata.mission_content }} />
         </div>

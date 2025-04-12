@@ -58,8 +58,8 @@ export default async function EditorialArticlePage({ params }: { params: { slug:
   // If no image is provided, don't render the hero section
   if (!imageUrl) {
     return (
-      <article className="min-h-screen pt-32">
-        <div className="max-w-4xl mx-auto px-4">
+      <article className="min-h-screen py-16">
+        <div className="max-w-4xl mx-auto lg:px-4">
           <PageHeader title={post.title} description={description} breadcrumbs={breadcrumbs} />
 
           {/* Article Content */}

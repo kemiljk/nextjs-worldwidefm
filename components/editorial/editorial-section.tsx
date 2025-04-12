@@ -51,13 +51,14 @@ export default function EditorialSection({ title, posts, className, isHomepage =
 
   return (
     <section className={cn("", className)}>
-      <div className="flex items-center justify-between mt-12 mb-8">
+      <div className="
+      {`flex items-center justify-between mb-8 ${!isHomepage && 'mt-12'}`}>
         <h2 className="text-xl font-medium text-foreground">{title}</h2>
       </div>
       {isHomepage ? (
         <div className="flex overflow-x-auto hide-scrollbar gap-6 pb-4 -mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24">
           {posts.map((post) => (
-            <Link key={post.id} href={`/posts/${post.slug}`} className="flex-none w-[300px]">
+            <Link key={post.id} href={`/editorial/${post.slug}`} className="flex-none w-[300px]">
               <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
                 <CardContent className="p-0">
                   <div className="relative aspect-square">
@@ -78,7 +79,7 @@ export default function EditorialSection({ title, posts, className, isHomepage =
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             {displayedPosts.map((post) => (
-              <Link key={post.id} href={`/posts/${post.slug}`} className="group">
+              <Link key={post.id} href={`/editorial/${post.slug}`} className="group">
                 <Card className="overflow-hidden border-foreground h-full">
                   <CardContent className="p-0">
                     <div className="relative aspect-square">
