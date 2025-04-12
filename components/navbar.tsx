@@ -21,8 +21,8 @@ export default function Navbar({ navItems }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   // Split nav items into visible and overflow items
-  const visibleNavItems = navItems.slice(0, 4);
-  const overflowNavItems = navItems.slice(4);
+  const visibleNavItems = navItems.slice(0, 5);
+  const overflowNavItems = navItems.slice(5);
 
   return (
     <header className="fixed top-12 border-b border-black dark:border-white left-0 right-0 z-50 transition-all duration-300 bg-background">
@@ -34,9 +34,9 @@ export default function Navbar({ navItems }: NavbarProps) {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:block ml-auto">
-            <ul className="flex items-center">
+            <ul className="flex items-center uppercase">
               {visibleNavItems.map((item) => (
-                <li key={item.name} className="md:border-l md:border-bronze-900 dark:md:border-bronze-50">
+                <li key={item.name} className="md:border-l md:border-black dark:md:border-white">
                   <Link href={item.link} className="text-sm flex items-center h-16 hover:bg-brand-orange transition-colors px-4">
                     {item.name}
                   </Link>
@@ -46,7 +46,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                 <li>
                   <Sheet>
                     <SheetTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-foreground">
+                      <Button variant="ghost" size="sm" className="md:border-l md:border-black dark:md:border-white text-foreground h-16 hover:bg-brand-orange transition-colors px-4">
                         <MoreHorizontal className="size-4" />
                         <span className="sr-only">More menu items</span>
                       </Button>
@@ -59,7 +59,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                         <ul className="space-y-4">
                           {overflowNavItems.map((item) => (
                             <li key={item.name}>
-                              <Link href={item.link} className="block py-2 text-lg hover:text-brand-orange transition-colors">
+                              <Link href={item.link} className="block py-2 text-lg hover:bg-brand-orange transition-colors px-4">
                                 {item.name}
                               </Link>
                             </li>
