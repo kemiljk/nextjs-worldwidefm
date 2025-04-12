@@ -324,7 +324,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                     <h4 className="text-sm font-medium mb-2">Genres</h4>
                     <div className="space-y-1">
                       {context.availableFilters.genres.map((genre: FilterItem) => (
-                        <button key={genre.slug} onClick={() => handleFilterToggle({ ...genre, type: "genres" })} className={cn("flex items-center w-full px-2 py-1.5 text-sm", activeFilters.includes(genre.slug) ? "bg-accent" : "hover:bg-accent/5")}>
+                        <button key={genre.slug} onClick={() => handleFilterToggle({ ...genre, type: "genres" })} className={cn("flex items-center w-full px-2 py-1.5 text-xs uppercase", activeFilters.includes(genre.slug) ? "bg-accent" : "hover:bg-accent/5")}>
                           {genre.title}
                         </button>
                       ))}

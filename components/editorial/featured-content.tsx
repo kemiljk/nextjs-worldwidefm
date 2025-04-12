@@ -28,7 +28,7 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
         return (
           <Link href={`/editorial/${post.slug}`} key={post.slug} className={`group relative ${isLarge ? "lg:col-span-2 lg:row-span-2" : isMedium ? "lg:col-span-2" : ""}`}>
             <div className="relative">
-              <div className={`relative ${isLarge ? "aspect-[16/9]" : "aspect-[4/3]"} w-full overflow-hidden`}>
+              <div className={`relative aspect-square w-full overflow-hidden`}>
                 <Image src={post.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={post.title} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               </div>

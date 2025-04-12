@@ -20,7 +20,7 @@ export default function EditorialSection({ title, posts, layout = "grid", classN
 
   return (
     <div className={cn("", className)}>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mt-12 mb-8">
         <h2 className="text-xl text-foreground">{title}</h2>
         {isHomepage && (
           <Link href="/editorial" className="text-sm text-foreground flex items-center group">
