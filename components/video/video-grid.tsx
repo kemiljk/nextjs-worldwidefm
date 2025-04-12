@@ -22,11 +22,10 @@ export default function VideoGrid({ videos }: VideoGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {videos.map((video, index) => {
-        const key = `${video.id}-${index}`;
         const thumbnailUrl = video.metadata?.image?.imgix_url || (video.metadata?.video_url ? getYouTubeThumbnail(video.metadata.video_url) : "/image-placeholder.svg");
 
         return (
-          <Link key={key} href={`/videos/${video.slug}`}>
+          <Link key={`video-grid-${video.id}-${video.slug}-${video.metadata?.date || ""}-${index}`} href={`/videos/${video.slug}`}>
             <div className="group space-y-3">
               <div className="relative aspect-[16/9] w-full overflow-hidden rounded-none">
                 <Image

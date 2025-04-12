@@ -20,7 +20,7 @@ export function PageHeader({ title, description, breadcrumbs }: PageHeaderProps)
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
           {breadcrumbs.map((item, index) => (
-            <div key={item.key || `${item.label}-${index}`} className="flex items-center gap-2">
+            <div key={`breadcrumb-${item.key || `${item.href || ""}-${item.label}`}-${index}`} className="flex items-center gap-2">
               {item.href ? (
                 <Link href={item.href} className="hover:text-foreground transition-colors">
                   {item.label}

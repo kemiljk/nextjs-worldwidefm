@@ -57,12 +57,22 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
   };
 
   // Get shows based on selection or default to random shows for top genres
-  const displayedShows = selectedGenre
-    ? shows.filter((show) => filterWorldwideFMTags(show.tags).some((tag) => tag.name === selectedGenre)).sort(() => Math.random() - 0.5)
-    : topGenres.map((genre) => {
-        const genreShows = shows.filter((show) => filterWorldwideFMTags(show.tags).some((tag) => tag.name === genre));
-        return genreShows[Math.floor(Math.random() * genreShows.length)];
-      });
+  const displayedShows: MixcloudShow[] = selectedGenre
+    ? Array.from(new Set(shows.filter((show) => filterWorldwideFMTags(show.tags).some((tag) => tag.name === selectedGenre)).map((show) => show.key)))
+        .map((key) => shows.find((show) => show.key === key))
+        .filter((show): show is MixcloudShow => show !== undefined)
+        .sort(() => Math.random() - 0.5)
+    : topGenres
+        .map((genre) => {
+          const genreShows = shows.filter((show) => filterWorldwideFMTags(show.tags).some((tag) => tag.name === genre));
+          return genreShows[Math.floor(Math.random() * genreShows.length)];
+        })
+        .filter((show): show is MixcloudShow => show !== undefined);
+
+  // Remove any duplicate shows that might occur across genres
+  const uniqueShows = Array.from(new Set(displayedShows.map((show) => show.key)))
+    .map((key) => displayedShows.find((show) => show.key === key))
+    .filter((show): show is MixcloudShow => show !== undefined);
 
   return (
     <section className="px-4 md:px-8 lg:px-24 py-16 border-t border-bronze-900 bg-bronze-500">
@@ -71,14 +81,14 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
         <GenreDropdown genres={allGenres} onSelect={handleGenreSelect} selectedGenre={selectedGenre} />
       </div>
       <div className="flex overflow-x-auto hide-scrollbar gap-6 pb-4 -mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24">
-        {displayedShows.map((show) => {
+        {uniqueShows.map((show: MixcloudShow, index: number) => {
           if (!show) return null;
 
           const segments = show.key.split("/").filter(Boolean);
           const showPath = segments.join("/");
 
           return (
-            <Link key={show.key} href={`/shows/${showPath}`} className="flex-none w-[300px]">
+            <Link key={`${show.key}-${index}`} href={`/shows/${showPath}`} className="flex-none w-[300px]">
               <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
                 <CardContent className="p-0">
                   <div className="relative aspect-square">
@@ -86,8 +96,8 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent">
                       <div className="absolute bottom-4 left-4 right-4">
                         <div className="flex flex-wrap gap-1 mb-2">
-                          {filterWorldwideFMTags(show.tags).map((tag) => (
-                            <span key={tag.key} className={cn("px-2 py-1 border border-white/50 rounded-full text-[9.5px] transition-colors uppercase", selectedGenre === tag.name ? "bg-bronze-500 text-white" : "bg-black/40 text-white")}>
+                          {filterWorldwideFMTags(show.tags).map((tag, tagIndex) => (
+                            <span key={`${show.key}-${tag.name}-${tagIndex}`} className={cn("px-2 py-1 border border-white/50 rounded-full text-[9.5px] transition-colors uppercase", selectedGenre === tag.name ? "bg-bronze-500 text-white" : "bg-black/40 text-white")}>
                               {tag.name}
                             </span>
                           ))}

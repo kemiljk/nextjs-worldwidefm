@@ -393,6 +393,7 @@ export async function getEditorialHomepage(): Promise<any> {
  */
 export async function getPosts(
   params: {
+    id?: string;
     limit?: number;
     skip?: number;
     sort?: string;
@@ -420,7 +421,7 @@ export async function getPosts(
 
     const response = await cosmic.objects
       .find(query)
-      .props("slug,title,metadata,type")
+      .props("id,slug,title,metadata,type")
       .limit(params.limit || 10)
       .skip(params.skip || 0)
       .sort(params.sort || "-created_at")

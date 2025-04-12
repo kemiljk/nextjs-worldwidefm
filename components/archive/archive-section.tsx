@@ -19,13 +19,13 @@ export default function ArchiveSection({ shows, className }: ArchiveSectionProps
         </Link>
       </div>
       <div className="flex overflow-x-auto hide-scrollbar gap-6 pb-4 -mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24">
-        {shows.map((show) => {
+        {shows.map((show, index) => {
           // Convert key to path segments
           const segments = show.key.split("/").filter(Boolean);
           const showPath = segments.join("/");
 
           return (
-            <Link key={show.key} href={`/shows/${showPath}`} className="flex-none w-[300px]">
+            <Link key={`archive-show-${show.key}-${show.created_time}-${index}`} href={`/shows/${showPath}`} className="flex-none w-[300px]">
               <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
                 <CardContent className="p-0">
                   <div className="relative aspect-square">
@@ -35,8 +35,8 @@ export default function ArchiveSection({ shows, className }: ArchiveSectionProps
                         <p className="text-xs text-white/60 mb-2">{new Date(show.created_time).toLocaleDateString()}</p>
                         {show.tags && show.tags.length > 0 && (
                           <div className="flex truncate gap-1 mb-2">
-                            {filterWorldwideFMTags(show.tags).map((tag) => (
-                              <span key={tag.key} className="px-2 py-1 border border-white/50 rounded-full text-[9.5px] transition-colors uppercase text-white bg-black/50">
+                            {filterWorldwideFMTags(show.tags).map((tag, tagIndex) => (
+                              <span key={`archive-tag-${show.key}-${show.created_time}-${tag.key}-${tag.url}-${tagIndex}`} className="px-2 py-1 border border-white/50 rounded-full text-[9.5px] transition-colors uppercase text-white bg-black/50">
                                 {tag.name}
                               </span>
                             ))}
