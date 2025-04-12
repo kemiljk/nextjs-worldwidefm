@@ -51,8 +51,7 @@ export default function EditorialSection({ title, posts, className, isHomepage =
 
   return (
     <section className={cn("", className)}>
-      <div className="
-      {`flex items-center justify-between mb-8 ${!isHomepage && 'mt-12'}`}>
+      <div className={`flex items-center justify-between mb-8 ${!isHomepage && 'mt-12'}`}>
         <h2 className="text-xl font-medium text-foreground">{title}</h2>
       </div>
       {isHomepage ? (
