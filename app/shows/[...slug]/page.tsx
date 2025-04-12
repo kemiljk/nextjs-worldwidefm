@@ -113,7 +113,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
                 <h3>Genres</h3>
                 <div className="flex flex-wrap gap-2">
                   {filterWorldwideFMTags(show.tags).map((tag) => (
-                    <span key={tag.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm">
+                    <span key={tag.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
                       {tag.name}
                     </span>
                   ))}

@@ -72,7 +72,7 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
   return (
     <section className="px-4 md:px-8 lg:px-24 py-16 border-t border-bronze-900 bg-bronze-500">
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-xl font-medium text-black dark:text-white">{title}</h2>
+        <h2 className="text-xl font-medium text-foreground">{title}</h2>
         <GenreDropdown genres={allGenres} onSelect={handleGenreSelect} selectedGenre={selectedGenre} />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -92,7 +92,7 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
                       <div className="absolute bottom-4 left-4 right-4">
                         <div className="flex flex-wrap gap-1 mb-2">
                           {filterWorldwideFMTags(show.tags).map((tag) => (
-                            <span key={tag.key} className={cn("px-2 py-1 border border-white/50 rounded-full text-xs transition-colors", selectedGenre === tag.name ? "bg-bronze-500 text-white" : "bg-black/40 text-white")}>
+                            <span key={tag.key} className={cn("px-2 py-1 border border-white/50 rounded-full text-[9.5px] transition-colors uppercase", selectedGenre === tag.name ? "bg-bronze-500 text-white" : "bg-black/40 text-white")}>
                               {tag.name}
                             </span>
                           ))}

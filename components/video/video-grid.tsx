@@ -40,7 +40,7 @@ export default function VideoGrid({ videos }: VideoGridProps) {
                     target.src = "/image-placeholder.svg";
                   }}
                 />
-                <div className="absolute top-6 left-6">
+                <div className="absolute top-2 left-2">
                   <div className="bg-black/80 text-white text-xs px-3 py-1">VIDEO</div>
                 </div>
               </div>

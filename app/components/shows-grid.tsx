@@ -36,7 +36,7 @@ export function ShowsGrid({ shows }: ShowsGridProps) {
               <div className="p-4">
                 <div className="flex flex-wrap gap-2 mb-2">
                   {filterWorldwideFMTags(show.tags).map((tag) => (
-                    <span key={tag.key} className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700">
+                    <span key={tag.key} className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 uppercase">
                       {tag.name}
                     </span>
                   ))}

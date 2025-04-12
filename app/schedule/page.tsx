@@ -77,7 +77,7 @@ export default async function SchedulePage() {
                       {show.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
                           {show.tags.slice(0, 3).map((tag, i) => (
-                            <span key={i} className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700">
+                            <span key={i} className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 uppercase">
                               {tag}
                             </span>
                           ))}

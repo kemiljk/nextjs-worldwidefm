@@ -25,11 +25,11 @@ interface SearchDialogProps {
 type FilterCategory = "all" | "genres" | "locations" | "hosts" | "takeovers" | "type";
 
 const typeLabels: Record<SearchResultType, { label: string; icon: React.ElementType; color: string }> = {
-  "radio-shows": { label: "Radio Shows", icon: Music2, color: "text-black dark:text-white" },
-  posts: { label: "Posts", icon: Newspaper, color: "text-black dark:text-white" },
-  events: { label: "Events", icon: Calendar, color: "text-black dark:text-white" },
-  videos: { label: "Videos", icon: Video, color: "text-black dark:text-white" },
-  takeovers: { label: "Takeovers", icon: Calendar, color: "text-black dark:text-white" },
+  "radio-shows": { label: "Radio Shows", icon: Music2, color: "text-foreground" },
+  posts: { label: "Posts", icon: Newspaper, color: "text-foreground" },
+  events: { label: "Events", icon: Calendar, color: "text-foreground" },
+  videos: { label: "Videos", icon: Video, color: "text-foreground" },
+  takeovers: { label: "Takeovers", icon: Calendar, color: "text-foreground" },
 } as const;
 
 // Helper function to map SearchItem to SearchResult
@@ -389,7 +389,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                             {result.genres?.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-2">
                                 {result.genres.map((genre: FilterItem) => (
-                                  <Badge key={`${result.slug}-${genre.slug}`} variant="outline" className="text-xs">
+                                  <Badge key={`${result.slug}-${genre.slug}`} variant="outline" className="text-xs uppercase">
                                     {genre.title}
                                   </Badge>
                                 ))}

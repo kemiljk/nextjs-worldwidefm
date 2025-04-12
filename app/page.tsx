@@ -112,7 +112,7 @@ export default async function Home() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent">
                   <div className="absolute bottom-4 left-4 right-4">
                     {hasLiveShow && <div className="text-xs font-medium py-1 px-2 bg-black/80 text-white inline-block mb-2">ON NOW</div>}
-                    {showToDisplay?.tags && showToDisplay.tags.length > 0 && <p className="text-sm text-white">{filterWorldwideFMTags(showToDisplay.tags)[0]?.name}</p>}
+                    {showToDisplay?.tags && showToDisplay.tags.length > 0 && <p className="text-sm uppercase text-white">{filterWorldwideFMTags(showToDisplay.tags)[0]?.name}</p>}
                     <h3 className="text-2xl text-white font-display font-medium mt-1">{showToDisplay?.name || "No show available"}</h3>
                   </div>
                 </div>
@@ -130,7 +130,7 @@ export default async function Home() {
                   </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent">
                     <div className="absolute bottom-4 left-4 right-4">
-                      {transformedUpcomingShows[0]?.subtitle && <p className="text-sm text-white">{transformedUpcomingShows[0].subtitle}</p>}
+                      {transformedUpcomingShows[0]?.subtitle && <p className="text-sm uppercase text-white">{transformedUpcomingShows[0].subtitle}</p>}
                       <h3 className="text-2xl text-white font-display mt-1 font-medium">{transformedUpcomingShows[0]?.title || "No show available"}</h3>
                     </div>
                   </div>
@@ -171,7 +171,7 @@ export default async function Home() {
                             {show.tags && show.tags.length > 0 && (
                               <div className="flex truncate gap-1 mb-2">
                                 {filterWorldwideFMTags(show.tags).map((tag) => (
-                                  <span key={tag.key} className="px-2 py-1 border border-white/50 rounded-full text-xs transition-colors text-white bg-black/50">
+                                  <span key={tag.key} className="px-2 py-1 border border-white/50 rounded-full text-[9.5px] transition-colors uppercase text-white bg-black/50">
                                     {tag.name}
                                   </span>
                                 ))}
