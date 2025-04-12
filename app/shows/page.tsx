@@ -106,22 +106,13 @@ export default function ShowsPage({ searchParams }: { searchParams: SearchParams
   }, [hasMore, isLoadingMore]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <PageHeader title="Shows" />
+    <div className="mx-auto px-4 py-8">
+      <div className="flex justify-between w-full">
+        <PageHeader title="Shows" />
+        <ShowsFilter genres={filters.genres} hosts={filters.hosts} takeovers={filters.takeovers} selectedGenre={genre} selectedHost={host} selectedTakeover={takeover} searchTerm={searchTerm} isNew={isNew} />
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mt-8">
-        <aside className="lg:block">
-          <Suspense
-            fallback={
-              <div className="h-[200px] flex items-center justify-center">
-                <Loader className="h-4 w-4 animate-spin" />
-              </div>
-            }
-          >
-            <ShowsFilter genres={filters.genres} hosts={filters.hosts} takeovers={filters.takeovers} selectedGenre={genre} selectedHost={host} selectedTakeover={takeover} searchTerm={searchTerm} isNew={isNew} />
-          </Suspense>
-        </aside>
-
+      <div className="flex flex-col gap-8 mt-8">
         <main className="lg:col-span-3">
           <ShowsGrid shows={shows} />
           <div ref={observerTarget} className="h-4 flex items-center justify-center mt-8">

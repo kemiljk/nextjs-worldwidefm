@@ -3,7 +3,7 @@
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { FilterItem } from "@/lib/search-context";
 import { useCallback, useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Filter } from "lucide-react";
 
 interface ShowsFilterProps {
   genres: FilterItem[];
@@ -20,31 +20,28 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [isSheetVisible, setIsSheetVisible] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
-  // Handle animation timing when opening/closing the sheet
+  // Handle animation timing when opening/closing
   useEffect(() => {
-    if (isSheetOpen) {
-      setIsSheetVisible(true);
+    if (isOpen) {
       setIsClosing(false);
-    } else if (isSheetVisible) {
+    } else if (!isClosing) {
       // Start closing animation
       setIsClosing(true);
-      // Wait for animation to finish before hiding the sheet
+      // Wait for animation to finish before hiding
       const timer = setTimeout(() => {
-        setIsSheetVisible(false);
         setIsClosing(false);
       }, 300); // Same duration as the animation
 
       return () => clearTimeout(timer);
     }
-  }, [isSheetOpen]);
+  }, [isOpen]);
 
-  // Function to close the sheet with animation
-  const closeSheet = useCallback(() => {
-    setIsSheetOpen(false);
+  // Function to close with animation
+  const closeFilter = useCallback(() => {
+    setIsOpen(false);
   }, []);
 
   // Memoize the update function to prevent unnecessary re-renders
@@ -97,10 +94,8 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
 
       // Update the URL with replace instead of push to avoid stacking history entries
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-      // Close sheet on mobile when a filter is selected
-      closeSheet();
     },
-    [searchParams, router, pathname, closeSheet]
+    [searchParams, router, pathname]
   );
 
   const updateSearch = useCallback(
@@ -112,31 +107,24 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
 
   const toggleNew = useCallback(() => {
     router.replace(`${pathname}?${createQueryString("isNew", searchParams.get("isNew") === "true" ? null : "true")}`, { scroll: false });
-    // Close sheet on mobile when the new toggle is selected
-    closeSheet();
-  }, [createQueryString, router, pathname, searchParams, closeSheet]);
+  }, [createQueryString, router, pathname, searchParams]);
 
   const clearFilters = useCallback(() => {
     router.replace(pathname, { scroll: false });
-    // Close sheet on mobile when filters are cleared
-    closeSheet();
-  }, [router, pathname, closeSheet]);
+  }, [router, pathname]);
 
   const hasActiveFilters = selectedGenre || selectedHost || selectedTakeover || searchTerm || isNew;
 
-  const filterContent = (isMobile = false) => (
+  const filterContent = (
     <div className="space-y-6">
       <div>
-        {!isMobile && (
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg">Filters</h2>
-            {hasActiveFilters && (
-              <button onClick={clearFilters} className="text-sm text-foreground">
-                Clear all
-              </button>
-            )}
-          </div>
-        )}
+        <div className="flex justify-between items-center mb-4">
+          {hasActiveFilters && (
+            <button onClick={clearFilters} className="text-sm text-foreground">
+              Clear all
+            </button>
+          )}
+        </div>
 
         <div className="space-y-4">
           {/* Search */}
@@ -160,7 +148,7 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
               <h3 className="text-sm text-foreground mb-2">Genres</h3>
               <div className="space-y-1">
                 {genres.map((genre) => (
-                  <button key={genre.slug} onClick={() => updateFilters("genre", genre.slug)} className={`w-full text-left px-3 py-2 rounded-none text-sm ${selectedGenre === genre.slug ? "bg-bronze-500 text-white" : "hover:bg-gray-100"}`}>
+                  <button key={genre.slug} onClick={() => updateFilters("genre", genre.slug)} className={`w-full text-left px-3 py-2 text-xs uppercase ${selectedGenre === genre.slug ? "bg-black text-white" : "hover:bg-gray-100"}`}>
                     {genre.title}
                   </button>
                 ))}
@@ -202,38 +190,24 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
 
   return (
     <>
-      {/* Desktop view - always visible */}
-      <div className="hidden lg:block">{filterContent(false)}</div>
+      {/* Filter button for both desktop and mobile */}
+      <button onClick={() => setIsOpen(true)} className="w-full lg:w-max h-fit flex items-center justify-center bg-bronze-500 text-white py-3 px-4 mb-4 text-sm gap-2">
+        <Filter className="size-4" />
+        <span>Filters</span>
+        {hasActiveFilters && <span className="bg-white text-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium ml-2">!</span>}
+      </button>
 
-      {/* Mobile filter button */}
-      <div className="lg:hidden">
-        <button onClick={() => setIsSheetOpen(true)} className="w-full flex items-center justify-center bg-bronze-500 text-white py-3 px-4 mb-4">
-          <span className="mr-2">Filters</span>
-          {hasActiveFilters && <span className="bg-white text-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">!</span>}
-        </button>
-      </div>
-
-      {/* Mobile sheet */}
-      {isSheetVisible && (
-        <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
-          <div className={`bg-background border border-black dark:border-white w-full h-[80vh] p-6 overflow-y-auto ${isClosing ? "animate-slide-down" : "animate-slide-up"}`}>
+      {/* Filter panel */}
+      {isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end lg:items-center lg:justify-center">
+          <div className={`bg-background border border-black dark:border-white w-full lg:w-[400px] lg:max-h-[80vh] p-6 overflow-y-auto ${isClosing ? "animate-slide-down lg:animate-fade-out" : "animate-slide-up lg:animate-fade-in"}`}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold">Filters</h2>
-              <button onClick={closeSheet} className="p-1 rounded-full hover:bg-gray-100">
+              <button onClick={closeFilter} className="p-1 rounded-full hover:bg-gray-100">
                 <X size={24} className="text-foreground" />
               </button>
             </div>
-
-            {/* Display clear all button in mobile header if filters are active */}
-            {hasActiveFilters && (
-              <div className="mb-4">
-                <button onClick={clearFilters} className="text-sm text-foreground">
-                  Clear all
-                </button>
-              </div>
-            )}
-
-            {filterContent(true)}
+            {filterContent}
           </div>
         </div>
       )}
