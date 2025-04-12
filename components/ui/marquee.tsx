@@ -1,6 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
-import React, { ComponentPropsWithoutRef, CSSProperties, ElementRef, forwardRef } from "react";
+import React, { ComponentPropsWithoutRef, CSSProperties, forwardRef } from "react";
 
 interface MarqueeProps extends ComponentPropsWithoutRef<"div"> {
   direction?: "left" | "right";
@@ -10,8 +10,8 @@ interface MarqueeProps extends ComponentPropsWithoutRef<"div"> {
   maskEdges?: boolean;
 }
 
-const Marquee = forwardRef<ElementRef<"div">, MarqueeProps>(({ className, speed = "normal", direction = "left", gap = "md", pauseOnHover = false, maskEdges = false, children, ...props }, ref) => {
-  const speedVar = speed === "slow" ? "40s" : speed === "normal" ? "30s" : "10s";
+const Marquee = forwardRef<HTMLDivElement, MarqueeProps>(({ className, speed = "normal", direction = "left", gap = "md", pauseOnHover = false, maskEdges = false, children, ...props }, ref) => {
+  const speedVar = speed === "slow" ? "30s" : speed === "normal" ? "20s" : "10s";
   const directionVar = direction === "left" ? "forwards" : "reverse";
   return (
     <div
