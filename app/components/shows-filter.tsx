@@ -131,7 +131,7 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg">Filters</h2>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="text-sm text-bronze-500 hover:text-bronze-600">
+              <button onClick={clearFilters} className="text-sm text-foreground">
                 Clear all
               </button>
             )}
@@ -141,7 +141,7 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
         <div className="space-y-4">
           {/* Search */}
           <div>
-            <label htmlFor="search" className="block text-sm text-gray-700 mb-1">
+            <label htmlFor="search" className="block text-sm text-foreground mb-1">
               Search
             </label>
             <input type="search" id="search" className="w-full rounded-none border border-gray-300 px-3 py-2 text-sm" placeholder="Search shows..." defaultValue={searchTerm || ""} onChange={(e) => updateSearch(e.target.value)} />
@@ -157,7 +157,7 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
           {/* Genres */}
           {genres.length > 0 && (
             <div>
-              <h3 className="text-sm text-gray-700 mb-2">Genres</h3>
+              <h3 className="text-sm text-foreground mb-2">Genres</h3>
               <div className="space-y-1">
                 {genres.map((genre) => (
                   <button key={genre.slug} onClick={() => updateFilters("genre", genre.slug)} className={`w-full text-left px-3 py-2 rounded-none text-sm ${selectedGenre === genre.slug ? "bg-bronze-500 text-white" : "hover:bg-gray-100"}`}>
@@ -171,7 +171,7 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
           {/* Hosts */}
           {hosts.length > 0 && (
             <div>
-              <h3 className="text-sm text-gray-700 mb-2">Hosts</h3>
+              <h3 className="text-sm text-foreground mb-2">Hosts</h3>
               <div className="space-y-1">
                 {hosts.map((host) => (
                   <button key={host.slug} onClick={() => updateFilters("host", host.slug)} className={`w-full text-left px-3 py-2 rounded-none text-sm ${selectedHost === host.slug ? "bg-bronze-500 text-white" : "hover:bg-gray-100"}`}>
@@ -185,7 +185,7 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
           {/* Takeovers */}
           {takeovers.length > 0 && (
             <div>
-              <h3 className="text-sm text-gray-700 mb-2">Takeovers</h3>
+              <h3 className="text-sm text-foreground mb-2">Takeovers</h3>
               <div className="space-y-1">
                 {takeovers.map((takeover) => (
                   <button key={takeover.slug} onClick={() => updateFilters("takeover", takeover.slug)} className={`w-full text-left px-3 py-2 rounded-none text-sm ${selectedTakeover === takeover.slug ? "bg-bronze-500 text-white" : "hover:bg-gray-100"}`}>
@@ -209,25 +209,25 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
       <div className="lg:hidden">
         <button onClick={() => setIsSheetOpen(true)} className="w-full flex items-center justify-center bg-bronze-500 text-white py-3 px-4 mb-4">
           <span className="mr-2">Filters</span>
-          {hasActiveFilters && <span className="bg-white text-bronze-500 rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">!</span>}
+          {hasActiveFilters && <span className="bg-white text-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium">!</span>}
         </button>
       </div>
 
       {/* Mobile sheet */}
       {isSheetVisible && (
         <div className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
-          <div className={`bg-background border border-bronze-900 dark:border-bronze-50 w-full h-[80vh] p-6 overflow-y-auto ${isClosing ? "animate-slide-down" : "animate-slide-up"}`}>
+          <div className={`bg-background border border-black dark:border-white w-full h-[80vh] p-6 overflow-y-auto ${isClosing ? "animate-slide-down" : "animate-slide-up"}`}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold">Filters</h2>
               <button onClick={closeSheet} className="p-1 rounded-full hover:bg-gray-100">
-                <X size={24} className="text-gray-700" />
+                <X size={24} className="text-foreground" />
               </button>
             </div>
 
             {/* Display clear all button in mobile header if filters are active */}
             {hasActiveFilters && (
               <div className="mb-4">
-                <button onClick={clearFilters} className="text-sm text-bronze-500 hover:text-bronze-600">
+                <button onClick={clearFilters} className="text-sm text-foreground">
                   Clear all
                 </button>
               </div>

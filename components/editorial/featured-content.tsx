@@ -33,12 +33,12 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                <div className="font-mono text-[12px] leading-none uppercase tracking-wider mb-2 opacity-90">{formattedDate}</div>
+                <div className="text-[12px] leading-none uppercase tracking-wider mb-2 opacity-90">{formattedDate}</div>
                 <h3 className={` ${isLarge ? "text-2xl" : "text-xl"} group-hover:text-brand-orange transition-colors line-clamp-2`}>{post.title}</h3>
                 {isLarge && <p className="mt-2 text-sm line-clamp-2 opacity-90">{post.metadata.excerpt}</p>}
                 <div className="flex flex-wrap gap-2 mt-3">
                   {post.metadata.categories?.map((category) => (
-                    <span key={category.slug} className="font-mono text-[10px] leading-none uppercase tracking-wider px-2 py-1 rounded-full border border-white/30">
+                    <span key={category.slug} className="text-[10px] leading-none uppercase tracking-wider px-2 py-1 rounded-full border border-white/30">
                       {category.title}
                     </span>
                   ))}

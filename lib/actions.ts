@@ -8,6 +8,7 @@ import { cosmic } from "./cosmic-config";
 import { addHours, isWithinInterval, isAfter } from "date-fns";
 import { getAllShowsFromMixcloud } from "./mixcloud-service";
 import { MixcloudShow } from "./mixcloud-service";
+import { filterWorldwideFMTags } from "./mixcloud-service";
 
 export async function getAllPosts(): Promise<PostObject[]> {
   try {
@@ -449,10 +450,10 @@ export async function getAllFilters() {
   try {
     const { shows } = await getMixcloudShows();
 
-    // Extract unique tags from all shows
+    // Extract unique tags from all shows, filtering out "Worldwide FM"
     const tagMap = new Map<string, { name: string; count: number }>();
     shows.forEach((show) => {
-      show.tags.forEach((tag) => {
+      filterWorldwideFMTags(show.tags).forEach((tag) => {
         const existing = tagMap.get(tag.name);
         if (existing) {
           existing.count++;

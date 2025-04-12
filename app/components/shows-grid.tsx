@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, Play } from "lucide-react";
-import { MixcloudShow } from "@/lib/mixcloud-service";
+import { MixcloudShow, filterWorldwideFMTags } from "@/lib/mixcloud-service";
 import { PlayButton } from "@/components/play-button";
 
 interface ShowsGridProps {
@@ -12,7 +12,7 @@ export function ShowsGrid({ shows }: ShowsGridProps) {
   if (shows.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-600">No shows found</p>
+        <p className="text-foreground">No shows found</p>
       </div>
     );
   }
@@ -35,7 +35,7 @@ export function ShowsGrid({ shows }: ShowsGridProps) {
               </div>
               <div className="p-4">
                 <div className="flex flex-wrap gap-2 mb-2">
-                  {show.tags.map((tag) => (
+                  {filterWorldwideFMTags(show.tags).map((tag) => (
                     <span key={tag.key} className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700">
                       {tag.name}
                     </span>
@@ -43,16 +43,13 @@ export function ShowsGrid({ shows }: ShowsGridProps) {
                 </div>
                 <h3 className="font-medium line-clamp-1">{show.name}</h3>
                 <div className="mt-2 space-y-1">
-                  {show.hosts.length > 0 && <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">Hosted by: {show.hosts.map((host) => host.name).join(", ")}</p>}
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(show.created_time).toLocaleDateString()}</p>
+                  {show.hosts.length > 0 && <p className="text-sm text-foreground line-clamp-1">Hosted by: {show.hosts.map((host) => host.name).join(", ")}</p>}
+                  <p className="text-xs text-foreground">{new Date(show.created_time).toLocaleDateString()}</p>
                 </div>
                 <div className="flex justify-between items-center mt-4">
-                  <span className="text-bronze-500 hover:text-bronze-600 text-sm font-medium">View Details</span>
+                  <span className="text-foreground text-sm font-medium">View Details</span>
                   <div className="flex items-center gap-2">
-                    <PlayButton show={show} variant="ghost" size="sm" className="h-8 px-2">
-                      <Play className="w-4 h-4 mr-1" /> Play
-                    </PlayButton>
-                    <ChevronRight className="w-4 h-4 text-bronze-500" />
+                    <PlayButton show={show} variant="ghost" size="icon" className="h-8 w-8" />
                   </div>
                 </div>
               </div>

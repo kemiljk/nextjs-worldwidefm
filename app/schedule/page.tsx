@@ -68,12 +68,12 @@ export default async function SchedulePage() {
                     {/* Show info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{show.show_day}</span>
-                        <span className="text-sm text-gray-400 dark:text-gray-500">•</span>
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{show.show_time}</span>
+                        <span className="text-sm font-medium text-foreground">{show.show_day}</span>
+                        <span className="text-sm text-foreground">•</span>
+                        <span className="text-sm font-medium text-foreground">{show.show_time}</span>
                       </div>
-                      <h3 className="text-lg leading-tight text-gray-900 dark:text-gray-100 group-hover:text-brand-orange transition-colors">{show.name}</h3>
-                      {show.hosts.length > 0 && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">Hosted by: {show.hosts.join(", ")}</p>}
+                      <h3 className="text-lg leading-tight text-foreground group-hover:text-foreground transition-colors">{show.name}</h3>
+                      {show.hosts.length > 0 && <p className="text-sm text-foreground mt-1 line-clamp-1">Hosted by: {show.hosts.join(", ")}</p>}
                       {show.tags.length > 0 && (
                         <div className="flex flex-wrap gap-2 mt-2">
                           {show.tags.slice(0, 3).map((tag, i) => (
@@ -87,7 +87,7 @@ export default async function SchedulePage() {
 
                     {/* Action button */}
                     <div className="flex-shrink-0">
-                      <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-600 group-hover:text-brand-orange transition-colors" />
+                      <ChevronRight className="h-5 w-5 text-foreground group-hover:text-foreground transition-colors" />
                     </div>
                   </Link>
                 );
@@ -95,7 +95,7 @@ export default async function SchedulePage() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-24 text-center px-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No Current Schedule</h2>
+              <h2 className="text-xl font-semibold text-foreground mb-2">No Current Schedule</h2>
               <p className="text-muted-foreground mb-8 max-w-lg">Our weekly schedule is currently being updated. In the meantime, you can browse our complete archive of shows.</p>
               <div className="flex gap-4">
                 <Link href="/">

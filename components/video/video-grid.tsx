@@ -45,7 +45,7 @@ export default function VideoGrid({ videos }: VideoGridProps) {
                 </div>
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg leading-tight  line-clamp-2 group-hover:text-crimson-50 transition-colors">{video.title}</h3>
+                <h3 className="text-lg leading-tight line-clamp-2 group-hover:text-black dark:group-hover:text-white transition-colors">{video.title}</h3>
                 {video.metadata?.description && <p className="text-sm text-muted-foreground line-clamp-2">{video.metadata.description}</p>}
               </div>
             </div>

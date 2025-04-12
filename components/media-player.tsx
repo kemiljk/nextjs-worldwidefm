@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider";
 import { addHours, isWithinInterval } from "date-fns";
 import { useMediaPlayer } from "@/components/providers/media-player-provider";
 import { useIsMobile } from "@/hooks/use-mobile";
+import Marquee from "./ui/marquee";
 
 export default function MediaPlayer() {
   const { currentShow, isPlaying, volume, setVolume, togglePlayPause } = useMediaPlayer();
@@ -19,6 +20,7 @@ export default function MediaPlayer() {
   const [mixcloudWidget, setMixcloudWidget] = useState<any>(null);
   const [isWidgetReady, setIsWidgetReady] = useState(false);
   const [volumeControlOpen, setVolumeControlOpen] = useState(false);
+  const [isMarqueeing, setIsMarqueeing] = useState(false);
   const titleRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -249,6 +251,30 @@ export default function MediaPlayer() {
     }
   }, [currentShow, isExpanded]);
 
+  // Handle marquee animation
+  useEffect(() => {
+    if (!needsMarquee || !titleRef.current) return;
+
+    let timeout: NodeJS.Timeout;
+    let interval: NodeJS.Timeout;
+
+    const startMarquee = () => {
+      setIsMarqueeing(true);
+      timeout = setTimeout(() => {
+        setIsMarqueeing(false);
+        // Wait 3 seconds before starting again
+        interval = setTimeout(startMarquee, 3000);
+      }, 7000); // Time it takes to scroll
+    };
+
+    startMarquee();
+
+    return () => {
+      clearTimeout(timeout);
+      clearTimeout(interval);
+    };
+  }, [needsMarquee]);
+
   // Handle transition state
   useEffect(() => {
     if (isTransitioning) {
@@ -294,105 +320,70 @@ export default function MediaPlayer() {
 
   return (
     <>
-      <div ref={containerRef} className="hidden" /> {/* Container for iframe - will be made visible by code */}
-      <div
-        className={`fixed bottom-0 bg-green-500 dark:bg-green-700 text-white border-t border-green-900 z-50 flex items-center transition-all duration-300 h-16
-          ${isExpanded ? "left-0 right-0 max-w-full px-4" : "left-1/2 transform -translate-x-1/2 max-w-fit px-2 border-l border-r border-green-900"}`}
-      >
-        <button onClick={toggleExpanded} className="text-white hover:bg-white/10 p-2.5 flex-shrink-0 mr-2">
-          {isExpanded ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
-        </button>
-        {isExpanded ? (
-          <>
-            <div className="flex items-center flex-1 mx-2 overflow-hidden">
-              <div className="w-10 h-10 rounded overflow-hidden mr-3 flex-shrink-0 relative">
-                <Image src={currentShow?.pictures.large || "/image-placeholder.svg?w=40&h=40"} alt={currentShow?.name || "Now playing"} fill className="object-cover" />
-                {isLive && (
-                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                      <Radio className="h-4 w-4 text-white" />
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 overflow-hidden">
-                <div ref={titleRef} className={`font-medium whitespace-nowrap ${isPlaying && needsMarquee ? "animate-marquee" : "truncate"}`}>
-                  {currentShow?.name || "No show playing"}
-                </div>
-                <div className="flex items-center gap-2">
-                  {isLive && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-xs text-white/90">LIVE</span>
-                    </div>
-                  )}
-                  {currentShow?.tags && currentShow.tags.length > 0 && (
-                    <div className="text-sm text-white/70 truncate flex items-center gap-2">
-                      {currentShow.tags
-                        .map((tag) => (
-                          <span key={tag.key} className="text-xs bg-white/10 px-2 py-0.5 rounded-full">
-                            {tag.name}
-                          </span>
-                        ))
-                        .slice(0, 2)}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div ref={volumeControlRef} className={`relative flex items-center gap-2 transition-opacity duration-200 ${isTransitioning ? "opacity-0" : "opacity-100"}`}>
-              {isMobile ? (
-                <button className="text-white hover:bg-white/10 flex-shrink-0 p-2" onClick={toggleVolumeControl} aria-label="Volume control">
-                  <Volume2 className="h-5 w-5" />
-                </button>
-              ) : (
-                <div className="text-white flex-shrink-0 p-2">
-                  <Volume2 className="h-5 w-5" />
-                </div>
-              )}
-
-              {/* Desktop horizontal slider (hidden on mobile when menu closed) */}
-              <div className="w-24 mr-2 hidden md:block">
-                <Slider defaultValue={[1]} max={1} step={0.1} value={[volume]} onValueChange={handleVolumeChange} className="cursor-pointer" />
-              </div>
-
-              {/* Mobile horizontal slider popup */}
-              <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-green-600 dark:bg-green-800 p-3 rounded-lg shadow-lg md:hidden transition-all duration-300 ${volumeControlOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"}`}>
-                <div className="w-[140px]">
-                  <Slider defaultValue={[1]} max={1} step={0.01} value={[volume]} onValueChange={handleVolumeChange} className="cursor-pointer" />
-                </div>
-              </div>
-            </div>
-
-            <div className={`border-l border-white/20 pl-2 flex items-center gap-2 flex-shrink-0 transition-opacity duration-200 ${isTransitioning ? "opacity-0" : "opacity-100"}`}>
-              <button
-                className={`text-white border-t border-white px-4 py-2 rounded-xs uppercase text-sm font-medium custom-play-button ${isLive ? "bg-red-500 hover:bg-red-600" : "bg-gradient-to-b from-gray-900 to-gray-700"}`}
-                style={{
-                  boxShadow: "0px -2px 1px 0px rgba(255, 255, 255, 0.00) inset, 0px -1px 0px 0px #181B1B inset",
-                }}
-                onClick={togglePlayPause}
-              >
-                {isPlaying ? "STOP" : isLive ? "LISTEN LIVE" : "PLAY"}
-              </button>
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center justify-center">
-            <div className="w-10 h-10 rounded overflow-hidden relative">
+      <div ref={containerRef} className="hidden" />
+      <div className="fixed top-0 bg-gray-950 text-white z-50 flex items-center transition-all duration-300 h-12 left-0 right-0 max-w-full px-4">
+        <>
+          <div className="flex items-center flex-1 mx-2 gap-3 overflow-hidden">
+            <div className="w-10 h-10 rounded overflow-hidden z-10 flex-shrink-0 relative">
               <Image src={currentShow?.pictures.large || "/image-placeholder.svg?w=40&h=40"} alt={currentShow?.name || "Now playing"} fill className="object-cover" />
               {isLive && (
                 <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <Radio className="h-4 w-4 text-white" />
+                  </div>
                 </div>
               )}
-              <button onClick={togglePlayPause} className="absolute inset-0 bg-black/30 flex items-center justify-center hover:bg-black/40 transition-colors">
-                {isPlaying ? <Pause className="h-5 w-5 text-white" /> : <Play className="h-5 w-5 text-white" />}
-              </button>
+            </div>
+            <div className="w-56 overflow-hidden">
+              <div ref={titleRef} className="text-sm whitespace-nowrap">
+                <Marquee>{currentShow?.name || "No show playing"}</Marquee>
+              </div>
+              {isLive && (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-xs text-white/90 uppercase">On air</span>
+                </div>
+              )}
             </div>
           </div>
-        )}
+
+          <div ref={volumeControlRef} className="relative flex items-center gap-2 transition-opacity duration-200">
+            {isMobile ? (
+              <button className="text-white hover:bg-white/10 flex-shrink-0 p-2" onClick={toggleVolumeControl} aria-label="Volume control">
+                <Volume2 className="h-5 w-5" />
+              </button>
+            ) : (
+              <div className="text-white flex-shrink-0 p-2">
+                <Volume2 className="h-5 w-5" />
+              </div>
+            )}
+
+            {/* Desktop horizontal slider (hidden on mobile when menu closed) */}
+            <div className="w-24 mr-2 hidden md:block">
+              <Slider defaultValue={[1]} max={1} step={0.1} value={[volume]} onValueChange={handleVolumeChange} className="cursor-pointer" />
+            </div>
+
+            {/* Mobile horizontal slider popup */}
+            <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-green-600 dark:bg-green-800 p-3 rounded-lg shadow-lg md:hidden transition-all duration-300 ${volumeControlOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"}`}>
+              <div className="w-[140px]">
+                <Slider defaultValue={[1]} max={1} step={0.01} value={[volume]} onValueChange={handleVolumeChange} className="cursor-pointer" />
+              </div>
+            </div>
+          </div>
+
+          <div className={`border-l border-white/20 pl-2 flex items-center gap-2 flex-shrink-0 transition-opacity duration-200 ${isTransitioning ? "opacity-0" : "opacity-100"}`}>
+            <button
+              className={`text-white border-t border-white/20 px-4 py-2 rounded-xs uppercase text-sm font-medium custom-play-button ${isLive ? "bg-red-500 hover:bg-red-600" : "bg-gradient-to-b from-gray-900 to-gray-700"}`}
+              style={{
+                boxShadow: "0px -2px 1px 0px rgba(255, 255, 255, 0.00) inset, 0px -1px 0px 0px #181B1B inset",
+              }}
+              onClick={togglePlayPause}
+            >
+              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+            </button>
+          </div>
+        </>
       </div>
     </>
   );

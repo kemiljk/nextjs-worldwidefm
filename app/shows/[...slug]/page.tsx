@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { PlayButton } from "@/components/play-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { addHours, isWithinInterval } from "date-fns";
+import { filterWorldwideFMTags } from "@/lib/mixcloud-service";
 
 // Add consistent revalidation time for Mixcloud content
 export const revalidate = 900; // 15 minutes
@@ -66,12 +67,12 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
   const { shows: allShows } = await getMixcloudShows();
 
   // Find related shows based on matching tags
-  const showTags = show.tags.map((tag) => tag.name.toLowerCase());
+  const showTags = filterWorldwideFMTags(show.tags).map((tag) => tag.name.toLowerCase());
   const relatedShows = allShows
     .filter(
       (s) =>
         s.key !== show.key && // Not the current show
-        s.tags.some((tag) => showTags.includes(tag.name.toLowerCase())) // Has at least one matching tag
+        filterWorldwideFMTags(s.tags).some((tag) => showTags.includes(tag.name.toLowerCase())) // Has at least one matching tag
     )
     .slice(0, 3); // Limit to 3 related shows
 
@@ -111,7 +112,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
               <>
                 <h3>Genres</h3>
                 <div className="flex flex-wrap gap-2">
-                  {show.tags.map((tag) => (
+                  {filterWorldwideFMTags(show.tags).map((tag) => (
                     <span key={tag.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm">
                       {tag.name}
                     </span>
@@ -186,7 +187,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
                         </div>
                       </div>
                       <div className="absolute top-2 right-2">
-                        <PlayButton show={relatedShow} size="sm" variant="secondary" className="opacity-80 hover:opacity-100" />
+                        <PlayButton show={relatedShow} size="icon" variant="secondary" className="opacity-80 hover:opacity-100" />
                       </div>
                     </div>
                   </Card>

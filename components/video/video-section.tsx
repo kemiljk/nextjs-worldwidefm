@@ -14,8 +14,8 @@ export default function VideoSection({ title = "VIDEOS", videos, className = "mb
   return (
     <section className={cn("", className)}>
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-xl  text-crimson-50">{title}</h2>
-        <Link href="/videos" className="text-sm text-crimson-50 flex items-center group hover:text-crimson-50/80 transition-colors">
+        <h2 className="text-xl text-black dark:text-white">{title}</h2>
+        <Link href="/videos" className="text-sm text-black dark:text-white flex items-center group hover:text-black/80 dark:hover:text-white/80 transition-colors">
           View All <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </div>

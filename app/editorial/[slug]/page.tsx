@@ -69,12 +69,12 @@ export default async function EditorialArticlePage({ params }: { params: { slug:
           <div className="mt-16 pt-8 border-t">
             <div className="flex flex-wrap gap-3">
               {categories.map((category: Category) => (
-                <span key={category.slug} className="font-mono text-[10px] leading-none uppercase tracking-wider px-2 py-1 rounded-full border border-bronze-900 dark:border-bronze-50">
+                <span key={category.slug} className="text-[10px] leading-none uppercase tracking-wider px-2 py-1 rounded-full border border-black dark:border-white">
                   {category.title}
                 </span>
               ))}
             </div>
-            {author && <div className="font-mono text-[12px] leading-none uppercase tracking-wider text-muted-foreground mt-4">By {typeof author === "string" ? author : author.title || "Unknown"}</div>}
+            {author && <div className="text-[12px] leading-none uppercase tracking-wider text-muted-foreground mt-4">By {typeof author === "string" ? author : author.title || "Unknown"}</div>}
           </div>
         </div>
 
@@ -107,7 +107,7 @@ export default async function EditorialArticlePage({ params }: { params: { slug:
         {/* Content overlay */}
         <div className="absolute inset-0 flex items-end">
           <div className="max-w-4xl mx-auto px-4 pb-16">
-            <div className="font-mono text-[12px] leading-none uppercase tracking-wider text-white/80 mb-4">{formattedDate}</div>
+            <div className="text-[12px] leading-none uppercase tracking-wider text-white/80 mb-4">{formattedDate}</div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl  text-white mb-4">{post.title}</h1>
             <p className="text-xl text-white/80">{description}</p>
           </div>
@@ -122,12 +122,12 @@ export default async function EditorialArticlePage({ params }: { params: { slug:
         <div className="mt-16 pt-8 border-t">
           <div className="flex flex-wrap gap-3">
             {categories.map((category: Category) => (
-              <span key={category.slug} className="font-mono text-[10px] leading-none uppercase tracking-wider px-2 py-1 rounded-full border border-bronze-900 dark:border-bronze-50">
+              <span key={category.slug} className="text-[10px] leading-none uppercase tracking-wider px-2 py-1 rounded-full border border-black dark:border-white">
                 {category.title}
               </span>
             ))}
           </div>
-          {author && <div className="font-mono text-[12px] leading-none uppercase tracking-wider text-muted-foreground mt-4">By {typeof author === "string" ? author : author.title || "Unknown"}</div>}
+          {author && <div className="text-[12px] leading-none uppercase tracking-wider text-muted-foreground mt-4">By {typeof author === "string" ? author : author.title || "Unknown"}</div>}
         </div>
       </div>
 

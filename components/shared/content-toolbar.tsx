@@ -45,12 +45,12 @@ export function ContentToolbar({ onFilterChange, availableFilters, filterConfig,
   return (
     <div className={`sticky top-16 z-10 ${bgColor} border-b border-bronze-700`}>
       <div className="flex h-14 items-center gap-4 overflow-x-auto pb-2">
-        <Button variant="ghost" className={cn("h-8 shrink-0 hover:bg-bronze-400/10 hover:text-bronze-700", !activeFilter && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterClick("")}>
+        <Button variant="ghost" className={cn("h-8 shrink-0 hover:bg-bronze-400/10 hover:text-black dark:hover:text-white", !activeFilter && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterClick("")}>
           All
         </Button>
 
         {showNew && (
-          <Button variant="ghost" className={cn("h-8 shrink-0 hover:bg-bronze-400/10 hover:text-bronze-700", activeFilter === "new" && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterClick("new")}>
+          <Button variant="ghost" className={cn("h-8 shrink-0 hover:bg-bronze-400/10 hover:text-black dark:hover:text-white", activeFilter === "new" && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterClick("new")}>
             New
           </Button>
         )}
@@ -77,7 +77,7 @@ export function ContentToolbar({ onFilterChange, availableFilters, filterConfig,
           }
 
           return items.map((item) => (
-            <Button key={`${key}-${item.id}`} variant="ghost" className={cn("h-8 shrink-0 hover:bg-bronze-400/10 hover:text-bronze-700", activeFilter === item.id && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterClick(item.id)}>
+            <Button key={`${key}-${item.id}`} variant="ghost" className={cn("h-8 shrink-0 hover:bg-bronze-400/10 hover:text-black dark:hover:text-white", activeFilter === item.id && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterClick(item.id)}>
               {item.title}
             </Button>
           ));

@@ -13,20 +13,11 @@ export interface TimelineItem {
 }
 
 export interface AboutMetadata {
-  hero_image: {
-    url: string;
-    imgix_url: string;
-  };
   hero_title: string;
   hero_subtitle: string;
-  mission_title: string;
   mission_content: string;
-  what_we_believe: string;
-  what_we_believe_content: string;
-  timeline: TimelineItem[];
   connect_title: string;
   connect_content: string;
-  staff_inclusivity_action_policy: string;
   social_links: {
     id: string;
     slug: string;
@@ -64,6 +55,9 @@ export interface AboutMetadata {
 }
 
 export interface AboutPage {
+  slug: string;
+  title: string;
+  type: string;
   metadata: AboutMetadata;
 }
 

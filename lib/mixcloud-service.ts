@@ -63,6 +63,13 @@ export interface MixcloudShow {
   }>;
   hidden_stats: boolean;
   audio_length: number;
+
+  // Add a getter for filtered tags
+  filteredTags(): Array<{
+    key: string;
+    url: string;
+    name: string;
+  }>;
 }
 
 interface MixcloudResponse {
@@ -162,18 +169,22 @@ export async function getMixcloudShows(params: MixcloudShowsParams = {}, forceRe
   }
 }
 
+export function filterWorldwideFMTags<T extends { name: string }>(tags: T[]): T[] {
+  return tags.filter((tag) => tag.name.toLowerCase() !== "worldwide fm");
+}
+
 function filterShows(shows: MixcloudShow[], params: MixcloudShowsParams): { shows: MixcloudShow[]; total: number } {
   let filteredShows = [...shows];
 
   // Filter by tag
   if (params.tag) {
-    filteredShows = filteredShows.filter((show) => show.tags.some((tag) => tag.name.toLowerCase() === params.tag?.toLowerCase()));
+    filteredShows = filteredShows.filter((show) => filterWorldwideFMTags(show.tags).some((tag) => tag.name.toLowerCase() === params.tag?.toLowerCase()));
   }
 
   // Filter by search term
   if (params.searchTerm) {
     const searchLower = params.searchTerm.toLowerCase();
-    filteredShows = filteredShows.filter((show) => show.name.toLowerCase().includes(searchLower) || show.tags.some((tag) => tag.name.toLowerCase().includes(searchLower)));
+    filteredShows = filteredShows.filter((show) => show.name.toLowerCase().includes(searchLower) || filterWorldwideFMTags(show.tags).some((tag) => tag.name.toLowerCase().includes(searchLower)));
   }
 
   // Filter by isNew (shows from last 30 days)
@@ -196,8 +207,8 @@ export function transformMixcloudShow(show: MixcloudShow): Partial<RadioShowObje
     imgix_url: show.pictures.large,
   };
 
-  // Transform all tags into genre objects
-  const genreObjects: GenreObject[] = show.tags.map((tag) => ({
+  // Filter out Worldwide FM from tags when creating genre objects
+  const genreObjects: GenreObject[] = filterWorldwideFMTags(show.tags).map((tag) => ({
     id: tag.name.toLowerCase().replace(/\s+/g, "-"),
     slug: tag.name.toLowerCase().replace(/\s+/g, "-"),
     title: tag.name,
@@ -208,22 +219,6 @@ export function transformMixcloudShow(show: MixcloudShow): Partial<RadioShowObje
     published_at: now,
     status: "published",
     type: "genres",
-    metadata: null,
-  }));
-
-  // Extract hosts from the show name and hosts array
-  const hostNames = show.hosts.map((host) => host.name);
-  const hostObjects = hostNames.map((name) => ({
-    id: name.toLowerCase().replace(/\s+/g, "-"),
-    slug: name.toLowerCase().replace(/\s+/g, "-"),
-    title: name,
-    content: "",
-    bucket: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "",
-    created_at: now,
-    modified_at: now,
-    published_at: now,
-    status: "published",
-    type: "hosts",
     metadata: null,
   }));
 
@@ -239,9 +234,21 @@ export function transformMixcloudShow(show: MixcloudShow): Partial<RadioShowObje
       broadcast_date: show.created_time,
       duration: `${Math.floor(show.audio_length / 60)}:${(show.audio_length % 60).toString().padStart(2, "0")}`,
       player: show.url,
-      genres: genreObjects, // Now includes all tags
+      genres: genreObjects,
       locations: [],
-      regular_hosts: hostObjects,
+      regular_hosts: show.hosts.map((host) => ({
+        id: host.name.toLowerCase().replace(/\s+/g, "-"),
+        slug: host.username,
+        title: host.name,
+        content: "",
+        bucket: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "",
+        created_at: now,
+        modified_at: now,
+        published_at: now,
+        status: "published",
+        type: "hosts",
+        metadata: null,
+      })),
       takeovers: [],
       featured_on_homepage: false,
       tracklist: null,

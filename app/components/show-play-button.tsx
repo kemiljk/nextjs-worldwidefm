@@ -32,24 +32,8 @@ export function ShowPlayButton({ show, variant = "outline", size = "icon", class
   };
 
   return (
-    <Button variant={variant} size={size} onClick={handleClick} className={cn(size === "icon" && "h-14 w-14 rounded-full", className)} {...props}>
-      {children ? (
-        children
-      ) : (
-        <>
-          {isCurrentlyPlaying ? (
-            <>
-              <Pause className={cn(size !== "icon" && "mr-2", "h-5 w-5")} />
-              {size !== "icon" && "Stop"}
-            </>
-          ) : (
-            <>
-              <Play className={cn(size !== "icon" && "mr-2", "h-5 w-5")} />
-              {size !== "icon" && "Play"}
-            </>
-          )}
-        </>
-      )}
+    <Button variant={variant} size={size} onClick={handleClick} className={cn(size === "icon" && "size-8 rounded-full", className)} {...props}>
+      {children ? children : isCurrentlyPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
     </Button>
   );
 }

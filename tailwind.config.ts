@@ -136,6 +136,7 @@ const config = {
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
       },
       letterSpacing: {
         tight: "-0.02em",
@@ -149,6 +150,19 @@ const config = {
         lg: "16px",
         xl: "20px",
         "2xl": "24px",
+      },
+      keyframes: {
+        "marquee-move-text": {
+          from: {
+            transform: "translateX(0)",
+          },
+          to: {
+            transform: "translateX(-50%)",
+          },
+        },
+      },
+      animation: {
+        "marquee-move": "marquee-move-text var(--speed, 15s) linear infinite var(--direction, forwards)",
       },
     },
   },

@@ -6,32 +6,32 @@
   :root {
     /* Mapping to match our Figma color system */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 0 0% 0%; /* Black text in light mode */
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 0 0% 0%; /* Black text in light mode */
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 0 0% 0%; /* Black text in light mode */
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 0 0% 0%; /* Black text in light mode */
+    --primary-foreground: 0 0% 100%; /* White background for primary */
 
     --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary-foreground: 0 0% 0%; /* Black text in light mode */
 
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 0 0% 0%; /* Black text in light mode */
 
     --accent: 33 100% 45%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent-foreground: 0 0% 0%; /* Black text in light mode */
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 0%; /* Black text in light mode */
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 0 0% 0%; /* Black ring in light mode */
 
     --radius: 0.5rem;
 
@@ -48,37 +48,37 @@
   @media (prefers-color-scheme: dark) {
     :root {
       --background: 0 0% 0%;
-      --foreground: 210 40% 98%;
+      --foreground: 0 0% 100%; /* White text in dark mode */
 
       /* Update brand colors for dark mode */
       --brand-blue: 198 25% 35%; /* sky-700 for dark mode */
       --brand-blue-light: 198 28% 45%; /* sky-600 for dark mode */
       --sky: 198 28% 45%; /* For EDITORIAL - sky-600 for dark mode */
 
-      --card: 222.2 84% 4.9%;
-      --card-foreground: 210 40% 98%;
+      --card: 0 0% 0%;
+      --card-foreground: 0 0% 100%; /* White text in dark mode */
 
-      --popover: 222.2 84% 4.9%;
-      --popover-foreground: 210 40% 98%;
+      --popover: 0 0% 0%;
+      --popover-foreground: 0 0% 100%; /* White text in dark mode */
 
-      --primary: 210 40% 98%;
-      --primary-foreground: 222.2 47.4% 11.2%;
+      --primary: 0 0% 100%; /* White text in dark mode */
+      --primary-foreground: 0 0% 0%; /* Black background for primary */
 
       --secondary: 217.2 32.6% 17.5%;
-      --secondary-foreground: 210 40% 98%;
+      --secondary-foreground: 0 0% 100%; /* White text in dark mode */
 
       --muted: 217.2 32.6% 17.5%;
-      --muted-foreground: 215 20.2% 65.1%;
+      --muted-foreground: 0 0% 100%; /* White text in dark mode */
 
       --accent: 217.2 32.6% 17.5%;
-      --accent-foreground: 210 40% 98%;
+      --accent-foreground: 0 0% 100%; /* White text in dark mode */
 
       --destructive: 0 62.8% 30.6%;
-      --destructive-foreground: 210 40% 98%;
+      --destructive-foreground: 0 0% 100%; /* White text in dark mode */
 
       --border: 217.2 32.6% 17.5%;
       --input: 217.2 32.6% 17.5%;
-      --ring: 212.7 26.8% 83.9%;
+      --ring: 0 0% 100%; /* White ring in dark mode */
     }
   }
 }
@@ -91,13 +91,22 @@
     @apply bg-brand-beige text-foreground;
   }
 
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display leading-tight;
+  }
+
   .prose h1,
   .prose h2,
   .prose h3,
   .prose h4,
   .prose h5,
   .prose h6 {
-    @apply font-normal;
+    @apply font-normal font-display;
   }
 }
 
@@ -108,21 +117,9 @@
   }
 }
 
-/* Custom animations */
-@keyframes marquee {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-100%);
-  }
-}
-
-.animate-marquee {
-  display: inline-block;
-  padding-right: 2rem;
-  animation: marquee 10s linear infinite;
-  white-space: nowrap;
+.mask-edges-sm {
+  mask: linear-gradient(90deg, transparent, white 2%, white 98%, transparent);
+  -webkit-mask: linear-gradient(90deg, transparent, white 1%, white 99%, transparent);
 }
 
 /* Add animation for slide-up sheet */

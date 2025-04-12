@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import Logo from "./logo";
-import { transformShowToViewData } from "@/lib/cosmic-service";
 import { SearchButton } from "./search/search-button";
-import { getScheduleData } from "@/lib/actions";
 
 type NavItem = {
   name: string;
@@ -21,39 +19,59 @@ interface NavbarProps {
 
 export default function Navbar({ navItems }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentShow, setCurrentShow] = useState<ReturnType<typeof transformShowToViewData> | null>(null);
 
-  useEffect(() => {
-    async function fetchCurrentShow() {
-      try {
-        const { currentShow } = await getScheduleData();
-        setCurrentShow(currentShow);
-      } catch (error) {
-        console.error("Error fetching current show:", error);
-      }
-    }
-
-    fetchCurrentShow();
-  }, []);
+  // Split nav items into visible and overflow items
+  const visibleNavItems = navItems.slice(0, 4);
+  const overflowNavItems = navItems.slice(4);
 
   return (
-    <header className="fixed top-0 border-b border-bronze-900 dark:border-bronze-50 left-0 right-0 z-50 transition-all duration-300 bg-background">
+    <header className="fixed top-12 border-b border-black dark:border-white left-0 right-0 z-50 transition-all duration-300 bg-background">
       <div className="mx-auto pl-4 flex justify-between items-center">
-        <div className="flex items-center gap-4 py-4">
+        <div className="flex items-center gap-4 w-full">
           <Link href="/" className="flex items-center">
-            <Logo className="w-auto h-8" />
+            <Logo className="w-auto h-8 text-foreground" />
           </Link>
 
-          {/* Now Playing indicator */}
-          {currentShow && (
-            <div className="hidden md:flex items-center gap-2 ml-8">
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-              <div className="flex flex-col">
-                <span className="text-xs  text-muted-foreground uppercase">On now</span>
-                <span className="text-sm ">{currentShow.title}</span>
-              </div>
-            </div>
-          )}
+          {/* Desktop Navigation */}
+          <nav className="hidden md:block ml-auto">
+            <ul className="flex items-center">
+              {visibleNavItems.map((item) => (
+                <li key={item.name} className="md:border-l md:border-bronze-900 dark:md:border-bronze-50">
+                  <Link href={item.link} className="text-sm flex items-center h-16 hover:bg-brand-orange transition-colors px-4">
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
+              {overflowNavItems.length > 0 && (
+                <li>
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-foreground">
+                        <MoreHorizontal className="size-4" />
+                        <span className="sr-only">More menu items</span>
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+                      <SheetHeader>
+                        <SheetTitle className="text-left">More</SheetTitle>
+                      </SheetHeader>
+                      <nav className="mt-8">
+                        <ul className="space-y-4">
+                          {overflowNavItems.map((item) => (
+                            <li key={item.name}>
+                              <Link href={item.link} className="block py-2 text-lg hover:text-brand-orange transition-colors">
+                                {item.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </nav>
+                    </SheetContent>
+                  </Sheet>
+                </li>
+              )}
+            </ul>
+          </nav>
         </div>
 
         <div className="flex items-center">
@@ -61,9 +79,10 @@ export default function Navbar({ navItems }: NavbarProps) {
             <SearchButton />
           </div>
 
+          {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-foreground size-16" onClick={() => setIsOpen(true)}>
+              <Button variant="ghost" size="icon" className="text-foreground size-16 md:hidden" onClick={() => setIsOpen(true)}>
                 <MoreHorizontal className="size-6" />
                 <span className="sr-only">Open menu</span>
               </Button>
@@ -77,7 +96,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                   <SearchButton />
                 </div>
                 <ul className="space-y-4">
-                  {navItems.map((item, index) => (
+                  {navItems.map((item) => (
                     <li key={item.name}>
                       <Link href={item.link} className="block py-2 text-lg hover:text-brand-orange transition-colors" onClick={() => setIsOpen(false)}>
                         {item.name}

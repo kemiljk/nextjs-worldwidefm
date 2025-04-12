@@ -25,11 +25,11 @@ interface SearchDialogProps {
 type FilterCategory = "all" | "genres" | "locations" | "hosts" | "takeovers" | "type";
 
 const typeLabels: Record<SearchResultType, { label: string; icon: React.ElementType; color: string }> = {
-  "radio-shows": { label: "Radio Shows", icon: Music2, color: "text-bronze-500" },
-  posts: { label: "Posts", icon: Newspaper, color: "text-blue-500" },
-  events: { label: "Events", icon: Calendar, color: "text-green-500" },
-  videos: { label: "Videos", icon: Video, color: "text-red-500" },
-  takeovers: { label: "Takeovers", icon: Calendar, color: "text-bronze-500" },
+  "radio-shows": { label: "Radio Shows", icon: Music2, color: "text-black dark:text-white" },
+  posts: { label: "Posts", icon: Newspaper, color: "text-black dark:text-white" },
+  events: { label: "Events", icon: Calendar, color: "text-black dark:text-white" },
+  videos: { label: "Videos", icon: Video, color: "text-black dark:text-white" },
+  takeovers: { label: "Takeovers", icon: Calendar, color: "text-black dark:text-white" },
 } as const;
 
 // Helper function to map SearchItem to SearchResult
