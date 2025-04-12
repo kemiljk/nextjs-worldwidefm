@@ -13,6 +13,7 @@ interface EditorialSectionProps {
   posts: Post[];
   className?: string;
   isHomepage?: boolean;
+  layout?: "grid" | "list";
 }
 
 export default function EditorialSection({ title, posts, className, isHomepage = false }: EditorialSectionProps) {

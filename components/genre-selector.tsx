@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { MixcloudShow, filterWorldwideFMTags } from "@/lib/mixcloud-service";
 import { PlayButton } from "@/components/play-button";
@@ -33,7 +32,6 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
   // Sort genres by count and take top 4 for initial view
   const topGenres = Object.entries(genreCounts)
     .sort(([, a], [, b]) => b - a)
-    .slice(0, 4)
     .map(([name]) => name);
 
   // Get all unique genres for the dropdown
@@ -60,10 +58,7 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
 
   // Get shows based on selection or default to random shows for top genres
   const displayedShows = selectedGenre
-    ? shows
-        .filter((show) => filterWorldwideFMTags(show.tags).some((tag) => tag.name === selectedGenre))
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 4)
+    ? shows.filter((show) => filterWorldwideFMTags(show.tags).some((tag) => tag.name === selectedGenre)).sort(() => Math.random() - 0.5)
     : topGenres.map((genre) => {
         const genreShows = shows.filter((show) => filterWorldwideFMTags(show.tags).some((tag) => tag.name === genre));
         return genreShows[Math.floor(Math.random() * genreShows.length)];
@@ -72,10 +67,10 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
   return (
     <section className="px-4 md:px-8 lg:px-24 py-16 border-t border-bronze-900 bg-bronze-500">
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-xl font-medium text-foreground">{title}</h2>
+        <h2 className="text-xl font-medium text-bronze-50">{title}</h2>
         <GenreDropdown genres={allGenres} onSelect={handleGenreSelect} selectedGenre={selectedGenre} />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="flex overflow-x-auto hide-scrollbar gap-6 pb-4 -mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24">
         {displayedShows.map((show) => {
           if (!show) return null;
 
@@ -83,7 +78,7 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
           const showPath = segments.join("/");
 
           return (
-            <Link key={show.key} href={`/shows/${showPath}`}>
+            <Link key={show.key} href={`/shows/${showPath}`} className="flex-none w-[300px]">
               <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
                 <CardContent className="p-0">
                   <div className="relative aspect-square">
