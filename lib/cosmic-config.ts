@@ -149,15 +149,77 @@ export interface PostObject {
   slug: string;
   title: string;
   type: string;
+  created_at: string;
   metadata: {
-    date: string;
-    image: CosmicImage;
-    categories: CategoryObject[];
-    authors: AuthorObject[];
-    content: string;
-    excerpt: string;
-    post_type: "article" | "video" | "event";
-    featured: boolean;
+    type?: {
+      key: string;
+      value: string;
+    };
+    categories?: {
+      id: string;
+      slug: string;
+      title: string;
+      content: string;
+      bucket: string;
+      created_at: string;
+      modified_at: string;
+      status: string;
+      published_at: string;
+      modified_by: string;
+      created_by: string;
+      type: string;
+      metadata: null;
+    }[];
+    image?: {
+      url: string;
+      imgix_url: string;
+    };
+    author?:
+      | {
+          id: string;
+          slug: string;
+          title: string;
+          content: string;
+          bucket: string;
+          created_at: string;
+          modified_at: string;
+          status: string;
+          published_at: string;
+          modified_by: string;
+          created_by: string;
+          type: string;
+          metadata: null;
+        }
+      | string;
+    date?: string;
+    excerpt?: string | null;
+    description?: string | null;
+    content?: string;
+    featured_on_homepage?: boolean;
+    is_featured?: boolean;
+    featured_size?: {
+      key: string;
+      value: string;
+    };
+    section_name?: string | null;
+    section_priority?: number;
+    section?: {
+      id: string;
+      slug: string;
+      title: string;
+      content?: string;
+      metadata?: {
+        priority?: number;
+      } | null;
+    } | null;
+    display_style?: {
+      key: string;
+      value: string;
+    };
+    image_aspect_ratio?: {
+      key: string;
+      value: string;
+    };
   };
 }
 
