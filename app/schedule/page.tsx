@@ -36,12 +36,23 @@ export default async function SchedulePage() {
     // Continue with empty schedule items
   }
 
-  // Sort shows by day of the week if we have any
+  // Group shows by day
   const daysOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-  const sortedItems = [...scheduleItems].sort((a, b) => {
-    const dayA = daysOrder.indexOf(a.show_day);
-    const dayB = daysOrder.indexOf(b.show_day);
-    return dayA - dayB;
+  const showsByDay = scheduleItems.reduce((acc, show) => {
+    if (!acc[show.show_day]) {
+      acc[show.show_day] = [];
+    }
+    acc[show.show_day].push(show);
+    return acc;
+  }, {} as Record<string, ScheduleShow[]>);
+
+  // Sort shows within each day by time
+  Object.keys(showsByDay).forEach((day) => {
+    showsByDay[day].sort((a, b) => {
+      const timeA = a.show_time.split(":").map(Number);
+      const timeB = b.show_time.split(":").map(Number);
+      return timeA[0] * 60 + timeA[1] - (timeB[0] * 60 + timeB[1]);
+    });
   });
 
   return (
@@ -50,46 +61,47 @@ export default async function SchedulePage() {
         <PageHeader title="Weekly Schedule" description={isActive ? "Tune in to our shows throughout the week." : "Our schedule is currently being updated."} breadcrumbs={[{ href: "/", label: "Home" }, { label: "Schedule" }]} />
 
         {/* Schedule list */}
-        <div className="bg-background rounded-none shadow-sm overflow-hidden">
-          {isActive && sortedItems.length > 0 ? (
+        <div className="overflow-hidden">
+          {isActive && scheduleItems.length > 0 ? (
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
-              {sortedItems.map((show, index) => {
-                // Extract show key segments for the link
-                const segments = show.show_key.split("/").filter(Boolean);
-                const showPath = segments.join("/");
+              {daysOrder.map((day) => {
+                const dayShows = showsByDay[day] || [];
+                if (dayShows.length === 0) return null;
 
                 return (
-                  <Link href={`/shows/${showPath}`} key={index} className="flex items-center gap-4 p-4 hover:bg-bronze-50 dark:hover:bg-bronze-900 transition-colors group">
-                    {/* Show thumbnail */}
-                    <div className="w-16 h-16 flex-shrink-0 rounded-none overflow-hidden relative">
-                      <Image src={show.picture || "/image-placeholder.svg"} alt={show.name} fill className="object-cover" />
-                    </div>
+                  <div key={day} className="py-4">
+                    <h2 className="text-xl font-bold mb-4">{day}</h2>
+                    <div className="space-y-4">
+                      {dayShows.map((show) => {
+                        // Extract show key segments for the link
+                        const segments = show.show_key.split("/").filter(Boolean);
+                        const showPath = segments.join("/");
 
-                    {/* Show info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-foreground">{show.show_day}</span>
-                        <span className="text-sm text-foreground">•</span>
-                        <span className="text-sm font-medium text-foreground">{show.show_time}</span>
-                      </div>
-                      <h3 className="text-lg leading-tight text-foreground group-hover:text-foreground transition-colors">{show.name}</h3>
-                      {show.hosts.length > 0 && <p className="text-sm text-foreground mt-1 line-clamp-1">Hosted by: {show.hosts.join(", ")}</p>}
-                      {show.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {show.tags.slice(0, 3).map((tag, i) => (
-                            <span key={i} className="text-xs px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 uppercase">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                        return (
+                          <Link href={`/shows/${showPath}`} key={show.show_key} className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors group">
+                            {/* Show thumbnail */}
+                            <div className="w-16 h-16 flex-shrink-0 rounded-none overflow-hidden relative">
+                              <Image src={show.picture || "/image-placeholder.svg"} alt={show.name} fill className="object-cover" />
+                            </div>
 
-                    {/* Action button */}
-                    <div className="flex-shrink-0">
-                      <ChevronRight className="h-5 w-5 text-foreground group-hover:text-foreground transition-colors" />
+                            {/* Show info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-medium text-foreground">{show.show_time}</span>
+                              </div>
+                              <h3 className="text-lg leading-tight text-foreground group-hover:text-foreground transition-colors">{show.name}</h3>
+                              {show.hosts.length > 0 && <p className="text-sm text-foreground mt-1 line-clamp-1">Hosted by: {show.hosts.join(", ")}</p>}
+                            </div>
+
+                            {/* Action button */}
+                            <div className="flex-shrink-0">
+                              <ChevronRight className="h-5 w-5 text-foreground group-hover:text-foreground transition-colors" />
+                            </div>
+                          </Link>
+                        );
+                      })}
                     </div>
-                  </Link>
+                  </div>
                 );
               })}
             </div>
