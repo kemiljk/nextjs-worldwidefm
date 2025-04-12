@@ -107,7 +107,7 @@ export default function ShowsPage({ searchParams }: { searchParams: SearchParams
 
   return (
     <div className="mx-auto lg:px-4 py-16">
-      <div className="flex justify-between w-full">
+      <div className="flex justify-between w-full gap-8">
         <PageHeader title="Shows" />
         <ShowsFilter genres={filters.genres} hosts={filters.hosts} takeovers={filters.takeovers} selectedGenre={genre} selectedHost={host} selectedTakeover={takeover} searchTerm={searchTerm} isNew={isNew} />
       </div>

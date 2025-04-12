@@ -191,7 +191,7 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
   return (
     <>
       {/* Filter button for both desktop and mobile */}
-      <button onClick={() => setIsOpen(true)} className="w-full lg:w-max h-fit flex items-center justify-center bg-bronze-500 text-white py-3 px-4 mb-4 text-sm gap-2">
+      <button onClick={() => setIsOpen(true)} className="w-max h-fit flex items-center justify-center bg-bronze-500 text-white py-3 px-4 mb-4 text-sm gap-2">
         <Filter className="size-4" />
         <span>Filters</span>
         {hasActiveFilters && <span className="bg-white text-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs font-medium ml-2">!</span>}
