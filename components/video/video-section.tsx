@@ -33,7 +33,7 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
           const thumbnail = video.metadata?.image?.imgix_url || (youtubeId ? `https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg` : "/image-placeholder.svg");
 
           return (
-            <Link key={video.id} href={`/video/${video.slug}`} className="flex-none w-1/2 lg:w-1/3">
+            <Link key={video.id} href={`/video/${video.slug}`} className="flex-none w-3/4 lg:w-1/3">
               <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
                 <CardContent className="p-0">
                   <div className="relative aspect-video">
