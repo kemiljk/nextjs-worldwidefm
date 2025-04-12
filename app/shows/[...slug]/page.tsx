@@ -157,7 +157,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
               <div>
                 <dt className="text-gray-600 dark:text-gray-400">Listen on Mixcloud</dt>
                 <dd>
-                  <a href={show.url} target="_blank" rel="noopener noreferrer" className="text-bronze-500 hover:text-bronze-600">
+                  <a href={show.url} target="_blank" rel="noopener noreferrer" className="text-foreground">
                     Open in Mixcloud
                   </a>
                 </dd>
@@ -178,7 +178,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
               return (
                 <Link key={relatedShow.key} href={`/shows/${segments.join("/")}`}>
                   <Card className="overflow-hidden h-full hover:shadow-lg transition-all">
-                    <div className="aspect-video relative">
+                    <div className="aspect-square relative">
                       <Image src={relatedShow.pictures.extra_large} alt={relatedShow.name} fill className="object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end">
                         <div className="p-4 w-full">
