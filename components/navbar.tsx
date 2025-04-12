@@ -25,7 +25,7 @@ export default function Navbar({ navItems }: NavbarProps) {
   const overflowNavItems = navItems.slice(5);
 
   return (
-    <header className="fixed top-12 border-b border-black dark:border-white left-0 right-0 z-50 transition-all duration-300 bg-background">
+    <header className="fixed top-12 border-b border-t border-black dark:border-white left-0 right-0 z-50 transition-all duration-300 bg-background">
       <div className="mx-auto pl-4 flex justify-between items-center">
         <div className="flex items-center gap-4 w-full">
           <Link href="/" className="flex items-center">
@@ -82,7 +82,7 @@ export default function Navbar({ navItems }: NavbarProps) {
           {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-foreground size-16 md:hidden" onClick={() => setIsOpen(true)}>
+              <Button variant="ghost" size="icon" className="text-foreground size-16 border-l border-foreground md:hidden" onClick={() => setIsOpen(true)}>
                 <MoreHorizontal className="size-6" />
                 <span className="sr-only">Open menu</span>
               </Button>
