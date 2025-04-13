@@ -89,7 +89,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
         <div className="md:col-span-2">
-          <div className="aspect-video relative mb-6 group">
+          <div className="aspect-square relative mb-6 group">
             <Image src={show.pictures.extra_large} alt={show.name} fill className="object-cover" />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <PlayButton show={show} isLive={isLive} />

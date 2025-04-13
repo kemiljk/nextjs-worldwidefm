@@ -11,7 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import Marquee from "./ui/marquee";
 
 export default function MediaPlayer() {
-  const { currentShow, isPlaying, volume, setVolume, togglePlayPause } = useMediaPlayer();
+  const { currentShow, isPlaying, volume, setVolume, togglePlayPause, setIsPlaying } = useMediaPlayer();
   const [isExpanded, setIsExpanded] = useState(true);
   const [needsMarquee, setNeedsMarquee] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -220,16 +220,32 @@ export default function MediaPlayer() {
     });
   }, [volume, mixcloudWidget]);
 
-  // Handle messages from widget for older implementation
+  // Handle messages from widget
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== "https://player-widget.mixcloud.com") return;
 
-      console.log("Received message from Mixcloud widget:", event.data);
-
       try {
         const data = JSON.parse(event.data);
-        console.log("Parsed message data:", data);
+
+        // Handle widget initialization
+        if (data.type === "ready" && data.mixcloud === "playerWidget") {
+          setIsWidgetReady(true);
+
+          // If we're supposed to be playing, start playback now
+          if (isPlaying && mixcloudWidget) {
+            mixcloudWidget.play().catch((err: any) => {
+              console.error("Error playing after widget ready:", err);
+            });
+          }
+        }
+
+        // Handle play/pause events from the widget
+        if (data.type === "event" && data.data?.eventName === "play") {
+          setIsPlaying(true);
+        } else if (data.type === "event" && data.data?.eventName === "pause") {
+          setIsPlaying(false);
+        }
       } catch (e) {
         console.log("Received non-JSON message from widget");
       }
@@ -237,7 +253,7 @@ export default function MediaPlayer() {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
+  }, [isPlaying, mixcloudWidget, setIsPlaying]);
 
   // Check if title needs marquee effect
   useEffect(() => {

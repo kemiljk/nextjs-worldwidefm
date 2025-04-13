@@ -10,6 +10,7 @@ import ArchiveSection from "@/components/archive/archive-section";
 import { addHours, isWithinInterval, isSameDay } from "date-fns";
 import GenreSelector from "@/components/genre-selector";
 import { Suspense } from "react";
+import FeaturedSections from "@/components/featured-sections";
 
 // Add consistent revalidation time for Mixcloud content
 export const revalidate = 900; // 15 minutes
@@ -92,53 +93,9 @@ export default async function Home() {
       {/* Main content */}
       <div className="mx-auto mt-4">
         {/* NOW and LATER sections */}
-        <div className="grid grid-cols-1 md:grid-cols-2 relative z-10">
-          {/* Left featured section */}
-          <div className="flex flex-col h-full p-4 md:p-8 lg:p-10 border-b md:border-b-0 md:border-r border-black dark:border-white">
-            <Card className="overflow-hidden shadow-none border-none relative">
-              <CardContent className="p-0">
-                <div className="relative aspect-square">
-                  <Image src={showToDisplay?.pictures.extra_large || "/image-placeholder.svg"} alt={showToDisplay?.name || "Show"} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority />
-                  {/* Only show the ON AIR indicator for current live shows */}
-                  {hasLiveShow && (
-                    <div className="absolute bottom-4 right-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                        <span className="text-sm text-white">ON AIR</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent">
-                  <div className="absolute bottom-4 left-4 right-4">
-                    {hasLiveShow && <div className="text-xs font-medium py-1 px-2 bg-black/80 text-white inline-block mb-2">ON NOW</div>}
-                    {showToDisplay?.tags && showToDisplay.tags.length > 0 && <p className="text-sm uppercase text-white">{filterWorldwideFMTags(showToDisplay.tags)[0]?.name}</p>}
-                    <h3 className="text-2xl text-white font-display font-medium mt-1">{showToDisplay?.name || "No show available"}</h3>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right featured section */}
-          <div className="h-full">
-            <div className="flex flex-col h-full p-4 md:p-8 lg:p-10">
-              <Card className="overflow-hidden border-none shadow-none flex-grow">
-                <CardContent className="p-0 relative h-full flex flex-col">
-                  <div className="aspect-square w-full relative">
-                    <Image src={transformedUpcomingShows[0]?.image || "/image-placeholder.svg"} alt={transformedUpcomingShows[0]?.title || "Featured Show"} fill className="object-cover" />
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent">
-                    <div className="absolute bottom-4 left-4 right-4">
-                      {transformedUpcomingShows[0]?.subtitle && <p className="text-sm uppercase text-white">{transformedUpcomingShows[0].subtitle}</p>}
-                      <h3 className="text-2xl text-white font-display mt-1 font-medium">{transformedUpcomingShows[0]?.title || "No show available"}</h3>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
+        <Suspense>
+          <FeaturedSections showToDisplay={showToDisplay} hasLiveShow={hasLiveShow} transformedUpcomingShows={transformedUpcomingShows} />
+        </Suspense>
 
         {/* Genre Selector Section */}
         <Suspense>

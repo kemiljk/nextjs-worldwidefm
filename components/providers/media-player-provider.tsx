@@ -11,6 +11,7 @@ interface MediaPlayerContextType {
   playShow: (show: MixcloudShow) => void;
   pauseShow: () => void;
   togglePlayPause: () => void;
+  setIsPlaying: (playing: boolean) => void;
 }
 
 const MediaPlayerContext = createContext<MediaPlayerContextType | undefined>(undefined);
@@ -115,6 +116,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
         playShow,
         pauseShow,
         togglePlayPause,
+        setIsPlaying,
       }}
     >
       {children}
