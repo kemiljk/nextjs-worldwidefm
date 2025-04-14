@@ -52,6 +52,17 @@ export interface AboutMetadata {
       location: string;
     };
   };
+  partner_with_us_title: string;
+  partner_with_us_description: string;
+  partner_with_us: PartnerWithUs[];
+}
+
+export interface PartnerWithUs {
+  logo: {
+    url: string;
+    imgix_url: string;
+  };
+  name: string;
 }
 
 export interface AboutPage {

@@ -48,6 +48,22 @@ export default async function AboutPage() {
             </div>
           </div>
         </div>
+        <div className="md:col-span-5">
+          <h2 className="text-3xl ">{about.metadata.partner_with_us_title}</h2>
+          <div className="prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: about.metadata.partner_with_us_description }} />
+        </div>
+        <div className="md:col-span-7">
+          <div className="border-l-2 border-brand-orange pl-6">
+            <h3 className="text-xl ">Partners</h3>
+            <div className="flex flex-wrap gap-4">
+              {about.metadata.partner_with_us.map((partner) => (
+                <div key={partner.name}>
+                  <img src={partner.logo.url} alt={partner.name} className="w-24 h-24 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   );
