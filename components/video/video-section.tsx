@@ -1,9 +1,11 @@
-import Image from "next/image";
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
-import { VideoObject } from "@/lib/cosmic-config";
+'use client';
+
+import Image from 'next/image';
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { VideoObject } from '@/lib/cosmic-config';
 
 interface Video extends VideoObject {}
 
@@ -19,7 +21,7 @@ function getYouTubeThumbnail(url: string): string {
   if (match && match[2].length === 11) {
     return `https://img.youtube.com/vi/${match[2]}/maxresdefault.jpg`;
   }
-  return "";
+  return '';
 }
 
 function getVimeoThumbnail(url: string): string {
@@ -29,44 +31,58 @@ function getVimeoThumbnail(url: string): string {
   if (match && match[1]) {
     return `https://vumbnail.com/${match[1]}.jpg`;
   }
-  return "";
+  return '';
 }
 
 export default function VideoSection({ videos, className }: VideoSectionProps) {
   return (
-    <section className={cn("", className)}>
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-xl font-medium text-crimson-50">VIDEO</h2>
-        <Link href="/videos" className="text-sm text-crimson-50 flex items-center group">
-          View All <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
+    <section className={cn('', className)}>
+      <div className='flex items-center justify-between mb-8'>
+        <h2 className='text-xl font-medium text-crimson-50'>VIDEO</h2>
+        <Link
+          href='/videos'
+          className='text-sm text-crimson-50 flex items-center group'
+        >
+          View All{' '}
+          <ChevronRight className='h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform' />
         </Link>
       </div>
-      <div className="flex overflow-x-auto hide-scrollbar gap-6 pb-4 -mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24">
+      <div className='flex overflow-x-auto hide-scrollbar gap-6 pb-4 -mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24'>
         {videos.map((video) => {
-          const youtubeId = video.metadata?.video_url ? getYouTubeThumbnail(video.metadata.video_url) : "";
-          const vimeoId = video.metadata?.video_url ? getVimeoThumbnail(video.metadata.video_url) : "";
-          const thumbnailUrl = video.metadata?.image?.imgix_url || youtubeId || vimeoId || "/image-placeholder.svg";
+          const youtubeId = video.metadata?.video_url
+            ? getYouTubeThumbnail(video.metadata.video_url)
+            : '';
+          const vimeoId = video.metadata?.video_url
+            ? getVimeoThumbnail(video.metadata.video_url)
+            : '';
+          const thumbnailUrl =
+            video.metadata?.image?.imgix_url || youtubeId || vimeoId || '/image-placeholder.svg';
 
           return (
-            <Link key={video.id} href={`/videos/${video.slug}`} className="flex-none w-3/4 lg:w-1/3">
-              <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
-                <CardContent className="p-0">
-                  <div className="relative aspect-video">
+            <Link
+              key={video.id}
+              href={`/videos/${video.slug}`}
+              className='flex-none w-3/4 lg:w-1/3'
+            >
+              <Card className='overflow-hidden border-none hover:shadow-lg transition-shadow'>
+                <CardContent className='p-0'>
+                  <div className='relative aspect-video'>
                     <Image
                       src={thumbnailUrl}
                       alt={video.title}
                       fill
-                      className="object-cover"
-                      onError={(e) => {
-                        // Fallback to placeholder if image fails to load
-                        const target = e.target as HTMLImageElement;
-                        target.src = "/image-placeholder.svg";
-                      }}
+                      className='object-cover'
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent">
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <p className="text-xs text-white/60 mb-2">{video.metadata?.date ? new Date(video.metadata.date).toLocaleDateString() : ""}</p>
-                        <h3 className="text-lg leading-tight text-white font-display line-clamp-2">{video.title}</h3>
+                    <div className='absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent'>
+                      <div className='absolute bottom-4 left-4 right-4'>
+                        <p className='text-xs text-white/60 mb-2'>
+                          {video.metadata?.date
+                            ? new Date(video.metadata.date).toLocaleDateString()
+                            : ''}
+                        </p>
+                        <h3 className='text-lg leading-tight text-white font-display line-clamp-2'>
+                          {video.title}
+                        </h3>
                       </div>
                     </div>
                   </div>
