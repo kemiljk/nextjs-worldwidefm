@@ -248,6 +248,21 @@ export interface VideoObject {
     description?: string;
     video_url?: string;
     date?: string;
+    categories?: {
+      id: string;
+      slug: string;
+      title: string;
+      content: string;
+      bucket: string;
+      created_at: string;
+      modified_at: string;
+      status: string;
+      published_at: string;
+      modified_by: string;
+      created_by: string;
+      type: string;
+      metadata: null;
+    }[];
   };
 }
 

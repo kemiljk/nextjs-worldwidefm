@@ -18,11 +18,23 @@ function getYouTubeThumbnail(url: string): string {
   return "";
 }
 
+function getVimeoThumbnail(url: string): string {
+  // Extract video ID from Vimeo URL
+  const regExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
+  const match = url.match(regExp);
+  if (match && match[1]) {
+    return `https://vumbnail.com/${match[1]}.jpg`;
+  }
+  return "";
+}
+
 export default function VideoGrid({ videos }: VideoGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {videos.map((video, index) => {
-        const thumbnailUrl = video.metadata?.image?.imgix_url || (video.metadata?.video_url ? getYouTubeThumbnail(video.metadata.video_url) : "/image-placeholder.svg");
+        const youtubeId = video.metadata?.video_url ? getYouTubeThumbnail(video.metadata.video_url) : "";
+        const vimeoId = video.metadata?.video_url ? getVimeoThumbnail(video.metadata.video_url) : "";
+        const thumbnailUrl = video.metadata?.image?.imgix_url || youtubeId || vimeoId || "/image-placeholder.svg";
 
         return (
           <Link key={`video-grid-${video.id}-${video.slug}-${video.metadata?.date || ""}-${index}`} href={`/videos/${video.slug}`}>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { getMixcloudShows, getAllFilters } from "@/lib/actions";
 import { PageHeader } from "@/components/shared/page-header";
 import { ShowsFilter } from "../components/shows-filter";
@@ -10,16 +11,9 @@ import { Loader } from "lucide-react";
 // Force dynamic mode to prevent the issue with ISR and repeated POST requests
 export const dynamic = "force-dynamic";
 
-interface SearchParamsType {
-  genre?: string;
-  host?: string;
-  takeover?: string;
-  searchTerm?: string;
-  isNew?: string;
-}
-
 // Client component to handle filters and display, no data fetching here
-export default function ShowsPage({ searchParams }: { searchParams: SearchParamsType }) {
+export default function ShowsPage() {
+  const searchParams = useSearchParams();
   const [shows, setShows] = useState<any[]>([]);
   const [filters, setFilters] = useState<any>({ genres: [], hosts: [], takeovers: [] });
   const [skip, setSkip] = useState(0);
@@ -28,11 +22,11 @@ export default function ShowsPage({ searchParams }: { searchParams: SearchParams
   const observerTarget = useRef<HTMLDivElement>(null);
 
   // Parse search params safely
-  const genre = searchParams?.genre ?? undefined;
-  const host = searchParams?.host ?? undefined;
-  const takeover = searchParams?.takeover ?? undefined;
-  const searchTerm = searchParams?.searchTerm ?? undefined;
-  const isNew = searchParams?.isNew === "true";
+  const genre = searchParams.get("genre") ?? undefined;
+  const host = searchParams.get("host") ?? undefined;
+  const takeover = searchParams.get("takeover") ?? undefined;
+  const searchTerm = searchParams.get("searchTerm") ?? undefined;
+  const isNew = searchParams.get("isNew") === "true";
 
   // Load initial data
   useEffect(() => {

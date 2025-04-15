@@ -15,7 +15,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, breadcrumbs }: PageHeaderProps) {
   return (
-    <div>
+    <div className="pt-16">
       {/* Breadcrumb navigation */}
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4">

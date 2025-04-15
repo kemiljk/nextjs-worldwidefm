@@ -54,11 +54,11 @@ export default async function AboutPage() {
         </div>
         <div className="md:col-span-7">
           <div className="border-l-2 border-brand-orange pl-6">
-            <h3 className="text-xl ">Partners</h3>
+            <h3 className="text-xl mb-4">Partners</h3>
             <div className="flex flex-wrap gap-4">
               {about.metadata.partner_with_us.map((partner) => (
                 <div key={partner.name}>
-                  <img src={partner.logo.url} alt={partner.name} className="w-24 h-24 rounded-full" />
+                  <img src={partner.logo.url} alt={partner.name} className="size-24" />
                 </div>
               ))}
             </div>
