@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MixcloudShow, filterWorldwideFMTags } from "@/lib/mixcloud-service";
 import { PlayButton } from "@/components/play-button";
 import { GenreDropdown } from "@/components/genre-dropdown";
+import Marquee from "@/components/ui/marquee";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 import { cn } from "@/lib/utils";
@@ -75,12 +76,12 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
     .filter((show): show is MixcloudShow => show !== undefined);
 
   return (
-    <section className="px-4 md:px-8 lg:px-24 py-16 border-t border-bronze-900 bg-bronze-500">
+    <section className="px-4 md:px-8 lg:px-24 py-8 border-t border-bronze-900 bg-bronze-500">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-xl font-medium text-bronze-50">{title}</h2>
         <GenreDropdown genres={allGenres} onSelect={handleGenreSelect} selectedGenre={selectedGenre} />
       </div>
-      <div className="flex overflow-x-auto hide-scrollbar gap-6 pb-4 -mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24">
+      <Marquee className="-mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24" speed="slow" pauseOnHover>
         {uniqueShows.map((show: MixcloudShow, index: number) => {
           if (!show) return null;
 
@@ -114,7 +115,7 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
             </Link>
           );
         })}
-      </div>
+      </Marquee>
     </section>
   );
 }

@@ -29,7 +29,7 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
       <div className="grid grid-cols-1 gap-6">
         {articles.map((article, index) => (
           <Link key={index} href={`/articles/${article.slug}`}>
-            <Card ref={index === articles.length - 1 ? lastArticleRef : undefined} className="overflow-hidden  hover:shadow-md transition-all duration-200 bg-tan-50/25 dark:bg-gray-900 border-sky-50">
+            <Card ref={index === articles.length - 1 ? lastArticleRef : undefined} className="overflow-hidden  hover:shadow-md transition-all duration-200 bg-card dark:bg-gray-900 border-sky-50">
               <CardContent className="p-0 flex flex-col md:flex-row h-full">
                 <div className="relative w-full md:w-[250px] aspect-square shrink-0">
                   <Image src={article.metadata.image?.imgix_url || "/image-placeholder.svg"} alt={article.title} fill className="object-cover" />

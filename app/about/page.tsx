@@ -15,7 +15,7 @@ export default async function AboutPage() {
         </div>
 
         <div className="md:col-span-7">
-          <div className="border-l-2 border-brand-orange pl-6">
+          <div className="border-l-2 border-bronze-500 pl-6">
             <h2 className="text-3xl ">{about.metadata.connect_title}</h2>
             <div className="prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: about.metadata.connect_content }} />
 
@@ -34,13 +34,13 @@ export default async function AboutPage() {
               <div>
                 <h3 className="text-xl ">Social</h3>
                 <div className="flex gap-4 mt-2">
-                  <a href={about.metadata.social_links.metadata.instagram} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-brand-orange transition-colors">
+                  <a href={about.metadata.social_links.metadata.instagram} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
                     Instagram
                   </a>
-                  <a href={about.metadata.social_links.metadata.twitter} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-brand-orange transition-colors">
+                  <a href={about.metadata.social_links.metadata.twitter} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
                     Twitter
                   </a>
-                  <a href={about.metadata.social_links.metadata.facebook} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-brand-orange transition-colors">
+                  <a href={about.metadata.social_links.metadata.facebook} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
                     Facebook
                   </a>
                 </div>
@@ -53,7 +53,7 @@ export default async function AboutPage() {
           <div className="prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: about.metadata.partner_with_us_description }} />
         </div>
         <div className="md:col-span-7">
-          <div className="border-l-2 border-brand-orange pl-6">
+          <div className="border-l-2 border-bronze-500 pl-6">
             <h3 className="text-xl mb-4">Partners</h3>
             <div className="flex flex-wrap gap-4">
               {about.metadata.partner_with_us.map((partner) => (

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { PostObject } from "@/lib/cosmic-config";
 import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
+import Marquee from "@/components/ui/marquee";
 
 interface Post extends PostObject {}
 
@@ -51,11 +52,11 @@ export default function EditorialSection({ title, posts, className, isHomepage =
 
   return (
     <section className={cn("", className)}>
-      <div className={`flex items-center justify-between mb-8 ${!isHomepage && 'mt-12'}`}>
+      <div className={`flex items-center justify-between mb-8 ${!isHomepage && "mt-12"}`}>
         <h2 className="text-xl font-medium text-foreground">{title}</h2>
       </div>
       {isHomepage ? (
-        <div className="flex overflow-x-auto hide-scrollbar gap-6 pb-4 -mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24">
+        <Marquee className="-mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24" speed="slow" pauseOnHover>
           {posts.map((post) => (
             <Link key={post.id} href={`/editorial/${post.slug}`} className="flex-none w-[300px]">
               <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
@@ -73,7 +74,7 @@ export default function EditorialSection({ title, posts, className, isHomepage =
               </Card>
             </Link>
           ))}
-        </div>
+        </Marquee>
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">

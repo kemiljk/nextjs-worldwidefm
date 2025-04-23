@@ -104,7 +104,7 @@ export default function PostsGrid({ initialPosts, activeFilter = "", activeSubfi
                 </div>
                 <div className="mt-2">
                   <div className="text-xs leading-none uppercase text-muted-foreground mb-1">{formattedDate}</div>
-                  <h3 className=" text-base group-hover:text-brand-sky-50 transition-colors line-clamp-2">{post.title}</h3>
+                  <h3 className=" text-base group-hover:text-sky-50 transition-colors line-clamp-2">{post.title}</h3>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {post.metadata.categories?.map((category) => (
                       <span key={category.slug} className="text-[9.5px] leading-none uppercase px-2 py-1 rounded-full border border-black dark:border-white">

@@ -103,13 +103,13 @@ export default async function Home() {
         </Suspense>
 
         {/* From The Archive Section */}
-        <ArchiveSection shows={archiveShows} className="px-4 md:px-8 lg:px-24 py-16 border-t border-green-900 bg-green-600" />
+        <ArchiveSection shows={archiveShows} className="px-4 md:px-8 lg:px-24 py-8 border-t border-green-900 bg-green-600" />
 
         {/* Video Section */}
-        <VideoSection videos={videos} className="px-4 md:px-8 lg:px-24 py-16 border-t border-crimson-900 bg-crimson-500" />
+        <VideoSection videos={videos} className="px-4 md:px-8 lg:px-24 py-8 border-t border-crimson-900 bg-crimson-500" />
 
         {/* Editorial section */}
-        <EditorialSection title="POSTS" posts={posts} className="px-4 md:px-8 lg:px-24 py-16 border-t border-sky-900 bg-sky-300" isHomepage={true} />
+        <EditorialSection title="POSTS" posts={posts} className="px-4 md:px-8 lg:px-24 py-8 border-t border-sky-900 bg-sky-300" isHomepage={true} />
       </div>
     </div>
   );

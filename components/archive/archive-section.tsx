@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
 import { MixcloudShow, filterWorldwideFMTags } from "@/lib/mixcloud-service";
+import Marquee from "@/components/ui/marquee";
 
 interface ArchiveSectionProps {
   shows: MixcloudShow[];
@@ -18,7 +19,7 @@ export default function ArchiveSection({ shows, className }: ArchiveSectionProps
           View All <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </div>
-      <div className="flex overflow-x-auto hide-scrollbar gap-6 pb-4 -mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24">
+      <Marquee className="-mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24" speed="slow" pauseOnHover>
         {shows.map((show, index) => {
           // Convert key to path segments
           const segments = show.key.split("/").filter(Boolean);
@@ -51,7 +52,7 @@ export default function ArchiveSection({ shows, className }: ArchiveSectionProps
             </Link>
           );
         })}
-      </div>
+      </Marquee>
     </section>
   );
 }

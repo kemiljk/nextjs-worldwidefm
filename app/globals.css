@@ -34,26 +34,12 @@
     --ring: 0 0% 0%; /* Black ring in light mode */
 
     --radius: 0.5rem;
-
-    /* Custom brand colors - mapping to our new variables */
-    --brand-beige: 37 30% 94%;
-    --brand-blue: 198 20% 70%; /* sky-200 for light mode */
-    --brand-blue-light: 198 18% 80%; /* sky-100 for light mode */
-    --brand-orange: 33 100% 45%; /* Maps to bronze-500 */
-    --bronze-500: 33 100% 45%; /* Slightly darker bronze for highlights */
-    --crimson: 346 84% 61%; /* For LATER/Schedule/posts */
-    --sky: 198 18% 80%; /* For EDITORIAL - sky-100 for light mode */
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
       --background: 0 0% 0%;
       --foreground: 0 0% 100%; /* White text in dark mode */
-
-      /* Update brand colors for dark mode */
-      --brand-blue: 198 25% 35%; /* sky-700 for dark mode */
-      --brand-blue-light: 198 28% 45%; /* sky-600 for dark mode */
-      --sky: 198 28% 45%; /* For EDITORIAL - sky-600 for dark mode */
 
       --card: 0 0% 0%;
       --card-foreground: 0 0% 100%; /* White text in dark mode */
@@ -88,7 +74,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-brand-beige text-foreground;
+    @apply bg-background text-foreground;
   }
 
   h1,

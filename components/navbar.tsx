@@ -37,7 +37,7 @@ export default function Navbar({ navItems }: NavbarProps) {
             <ul className="flex items-center uppercase">
               {visibleNavItems.map((item) => (
                 <li key={item.name} className="md:border-l md:border-black dark:md:border-white">
-                  <Link href={item.link} className="text-sm flex items-center h-16 hover:bg-brand-orange transition-colors px-4">
+                  <Link href={item.link} className="text-sm flex items-center h-16 hover:bg-bronze-500 transition-colors px-4">
                     {item.name}
                   </Link>
                 </li>
@@ -46,7 +46,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                 <li>
                   <Sheet>
                     <SheetTrigger asChild>
-                      <Button variant="ghost" size="sm" className="md:border-l md:border-black dark:md:border-white text-foreground h-16 hover:bg-brand-orange transition-colors px-4">
+                      <Button variant="ghost" size="sm" className="md:border-l md:border-black dark:md:border-white text-foreground h-16 hover:bg-bronze-500 transition-colors px-4">
                         <MoreHorizontal className="size-4" />
                         <span className="sr-only">More menu items</span>
                       </Button>
@@ -59,7 +59,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                         <ul className="space-y-4">
                           {overflowNavItems.map((item) => (
                             <li key={item.name}>
-                              <Link href={item.link} className="block py-2 text-lg hover:bg-brand-orange transition-colors px-4">
+                              <Link href={item.link} className="block py-2 text-lg hover:bg-bronze-500 transition-colors px-4">
                                 {item.name}
                               </Link>
                             </li>
@@ -98,7 +98,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                 <ul className="space-y-4">
                   {navItems.map((item) => (
                     <li key={item.name}>
-                      <Link href={item.link} className="block py-2 text-lg hover:text-brand-orange transition-colors" onClick={() => setIsOpen(false)}>
+                      <Link href={item.link} className="block py-2 text-lg hover:text-bronze-500 transition-colors" onClick={() => setIsOpen(false)}>
                         {item.name}
                       </Link>
                     </li>

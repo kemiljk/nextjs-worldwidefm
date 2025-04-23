@@ -71,10 +71,25 @@ export function useSchedule(slug = "main-schedule") {
     async function fetchSchedule() {
       try {
         setLoading(true);
-        const response = await getSchedule(slug);
+        const response = await getSchedule();
 
-        if (response.object) {
-          setSchedule(response.object);
+        if (response?.object) {
+          setSchedule({
+            slug: response.object.slug,
+            title: response.object.title,
+            type: "schedule",
+            metadata: {
+              shows: [],
+              scheduled_shows: [],
+              is_active: response.object.metadata.is_active === "true",
+              special_scheduling_options: {
+                override_normal_schedule: false,
+                override_reason: null,
+                special_insertions: [],
+              },
+              schedule_notes: null,
+            },
+          });
         } else {
           // If no schedule, get shows based on broadcast dates
           const showsResponse = await getRadioShows({

@@ -35,7 +35,7 @@ export default function FeaturedSections({ showToDisplay, hasLiveShow, transform
               <Image src={showToDisplay?.pictures.extra_large || "/image-placeholder.svg"} alt={showToDisplay?.name || "Show"} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority />
               {/* Only show the ON AIR indicator for current live shows */}
               {hasLiveShow && (
-                <div className="absolute bottom-4 right-4">
+                <div className="absolute top-4 left-4">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
                     <span className="text-sm text-white">ON AIR</span>
@@ -46,7 +46,6 @@ export default function FeaturedSections({ showToDisplay, hasLiveShow, transform
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent">
               <div className="absolute bottom-4 left-4 right-4">
                 {hasLiveShow && <div className="text-xs font-medium py-1 px-2 bg-black/80 text-white inline-block mb-2">ON NOW</div>}
-                {showToDisplay?.tags && showToDisplay.tags.length > 0 && <p className="text-sm uppercase text-white">{showToDisplay.tags[0]?.name}</p>}
                 <h3 className="text-2xl text-white font-display font-medium mt-1">{showToDisplay?.name || "No show available"}</h3>
               </div>
             </div>
@@ -64,7 +63,6 @@ export default function FeaturedSections({ showToDisplay, hasLiveShow, transform
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent">
                 <div className="absolute bottom-4 left-4 right-4">
-                  {transformedUpcomingShows[0]?.subtitle && <p className="text-sm uppercase text-white">{transformedUpcomingShows[0].subtitle}</p>}
                   <h3 className="text-2xl text-white font-display mt-1 font-medium">{transformedUpcomingShows[0]?.title || "No show available"}</h3>
                 </div>
               </div>

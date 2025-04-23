@@ -18,22 +18,22 @@ export default function Footer() {
             <h3 className="text-lg leading-tight mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/shows" className="text-sm opacity-80 hover:text-brand-orange transition-colors">
+                <Link href="/shows" className="text-sm opacity-80 hover:opacity-100 transition-colors">
                   Archive
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="text-sm opacity-80 hover:text-brand-orange transition-colors">
+                <Link href="/about" className="text-sm opacity-80 hover:opacity-100 transition-colors">
                   About
                 </Link>
               </li>
               <li>
-                <Link href="/contact" className="text-sm opacity-80 hover:text-brand-orange transition-colors">
+                <Link href="/contact" className="text-sm opacity-80 hover:opacity-100 transition-colors">
                   Contact
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-sm opacity-80 hover:text-brand-orange transition-colors">
+                <Link href="/privacy" className="text-sm opacity-80 hover:opacity-100 transition-colors">
                   Privacy Policy
                 </Link>
               </li>
