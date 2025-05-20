@@ -6,6 +6,7 @@ import { useMediaPlayer } from "@/components/providers/media-player-provider";
 import { MixcloudShow } from "@/lib/mixcloud-service";
 import { ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { addHours, isWithinInterval } from "date-fns";
 
 interface PlayButtonProps extends ButtonProps {
   show: MixcloudShow;
@@ -13,12 +14,19 @@ interface PlayButtonProps extends ButtonProps {
   size?: "default" | "sm" | "lg" | "icon";
   children?: React.ReactNode;
   isLive?: boolean;
+  label?: string;
 }
 
-export function PlayButton({ show, variant = "outline", size = "icon", className, children, isLive = false, ...props }: PlayButtonProps) {
-  const { playShow, currentShow, isPlaying, pauseShow } = useMediaPlayer();
+export function PlayButton({ show, variant = "outline", size = "icon", className, children, isLive = false, label, ...props }: PlayButtonProps) {
+  const { playShow, currentShow, archivedShow, isPlaying, pauseShow } = useMediaPlayer();
 
-  const isCurrentShow = currentShow?.key === show.key;
+  // Check if show is currently live
+  const now = new Date();
+  const startTime = new Date(show.created_time);
+  const endTime = addHours(startTime, 2); // Assume 2-hour shows
+  const showIsLive = isWithinInterval(now, { start: startTime, end: endTime });
+
+  const isCurrentShow = showIsLive ? currentShow?.key === show.key : archivedShow?.key === show.key;
   const isCurrentlyPlaying = isCurrentShow && isPlaying;
 
   const handleClick = (e: React.MouseEvent) => {
@@ -37,13 +45,14 @@ export function PlayButton({ show, variant = "outline", size = "icon", className
     return (
       <button
         onClick={handleClick}
-        className={cn("text-white border-t border-white/20 px-4 py-2 rounded-xs uppercase text-sm flex justify-center items-center font-medium w-full", isLive ? "bg-red-500 hover:bg-red-600" : "bg-gradient-to-b from-gray-900 to-gray-700", className)}
+        className={cn("text-white border-t border-white/20 px-4 py-2 rounded-xs uppercase text-sm flex justify-center items-center font-medium w-full", showIsLive ? "bg-red-500 hover:bg-red-600" : "bg-gradient-to-b from-gray-900 to-gray-700", className)}
         style={{
           boxShadow: "0px -2px 1px 0px rgba(255, 255, 255, 0.00) inset, 0px -1px 0px 0px #181B1B inset",
         }}
         {...props}
       >
         {isCurrentlyPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
+        {label && <span className="ml-2">{label}</span>}
       </button>
     );
   }

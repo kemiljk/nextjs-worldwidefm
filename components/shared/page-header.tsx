@@ -11,11 +11,12 @@ interface PageHeaderProps {
   title: string;
   description?: string;
   breadcrumbs?: BreadcrumbItem[];
+  paddingTop?: boolean;
 }
 
-export function PageHeader({ title, description, breadcrumbs }: PageHeaderProps) {
+export function PageHeader({ title, description, breadcrumbs, paddingTop = true }: PageHeaderProps) {
   return (
-    <div className="pt-16">
+    <div className={`${paddingTop ? "pt-16" : "pt-4"}`}>
       {/* Breadcrumb navigation */}
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-4">

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronRight, Play } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { getShowBySlug, getMixcloudShows } from "@/lib/actions";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
@@ -10,6 +10,8 @@ import { PlayButton } from "@/components/play-button";
 import { Card, CardContent } from "@/components/ui/card";
 import { addHours, isWithinInterval } from "date-fns";
 import { filterWorldwideFMTags } from "@/lib/mixcloud-service";
+import MediaPlayer from "@/components/media-player";
+import ArchivePlayer from "@/components/archive-player";
 
 // Add consistent revalidation time for Mixcloud content
 export const revalidate = 900; // 15 minutes
@@ -57,7 +59,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
     notFound();
   }
 
-  // Check if show is currently live (created within last 2 hours)
+  // Check if show is currently live
   const now = new Date();
   const startTime = new Date(show.created_time);
   const endTime = addHours(startTime, 2);
@@ -78,24 +80,16 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
 
   return (
     <div className="mx-auto py-16">
-      <div className="mb-8">
-        <Link href="/shows" className="text-foreground flex items-center gap-1">
-          <ChevronRight className="w-4 h-4 rotate-180" />
-          Back to Shows
-        </Link>
-      </div>
+      <Link href="/shows" className="text-foreground flex items-center gap-1">
+        <ChevronRight className="w-4 h-4 rotate-180" />
+        Back to Shows
+      </Link>
 
-      <PageHeader title={show.name} />
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
-        <div className="md:col-span-2">
-          <div className="aspect-square relative mb-6 group">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8">
+        <div className="md:col-span-1">
+          <div className="aspect-square relative">
             <Image src={show.pictures.extra_large} alt={show.name} fill className="object-cover" />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <PlayButton show={show} isLive={isLive} />
-            </div>
-
-            {/* Show live badge if the show is live */}
+            {isLive && <PlayButton show={show} isLive={isLive} />}
             {isLive && (
               <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full flex items-center gap-2">
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
@@ -103,66 +97,52 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
               </div>
             )}
           </div>
-
-          <div className="prose max-w-none dark:prose-invert">
-            <h2>About this show</h2>
-            <p>{show.name}</p>
-
-            {show.tags.length > 0 && (
-              <>
-                <h3>Genres</h3>
-                <div className="flex flex-wrap gap-2">
-                  {filterWorldwideFMTags(show.tags).map((tag) => (
-                    <span key={tag.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
-                      {tag.name}
-                    </span>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {show.hosts.length > 0 && (
-              <>
-                <h3>Hosts</h3>
-                <div className="flex flex-wrap gap-2">
-                  {show.hosts.map((host) => (
-                    <span key={host.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm">
-                      {host.name}
-                    </span>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
         </div>
 
         <div>
           <div className="bg-white dark:bg-gray-900 p-6">
-            <h3 className="text-lg mb-4">Show Details</h3>
-            <dl className="space-y-4">
+            <div className="space-y-6">
               <div>
-                <dt className="text-gray-600 dark:text-gray-400">Air Date</dt>
                 <dd>{new Date(show.created_time).toLocaleDateString()}</dd>
               </div>
-              <div>
-                <dt className="text-gray-600 dark:text-gray-400">Duration</dt>
-                <dd>{Math.floor(show.audio_length / 60)} minutes</dd>
+              {!isLive && (
+                <div>
+                  <PlayButton show={show} variant="default" size="lg" isLive={false} className="w-max" label="Play Show" />
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8">
+              <div className="prose max-w-none dark:prose-invert">
+                <p>{show.name}</p>
+
+                {show.tags.length > 0 && (
+                  <>
+                    <h3>Genres</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {filterWorldwideFMTags(show.tags).map((tag) => (
+                        <span key={tag.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
+                          {tag.name}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {show.hosts.length > 0 && (
+                  <>
+                    <h3>Hosts</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {show.hosts.map((host) => (
+                        <span key={host.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm">
+                          {host.name}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-              <div>
-                <dt className="text-gray-600 dark:text-gray-400">Play This Show</dt>
-                <dd className="mt-2">
-                  <PlayButton show={show} variant="default" size="lg" isLive={isLive} className="w-full" />
-                </dd>
-              </div>
-              <div>
-                <dt className="text-gray-600 dark:text-gray-400">Listen on Mixcloud</dt>
-                <dd>
-                  <a href={show.url} target="_blank" rel="noopener noreferrer" className="text-foreground">
-                    Open in Mixcloud
-                  </a>
-                </dd>
-              </div>
-            </dl>
+            </div>
           </div>
         </div>
       </div>
@@ -173,7 +153,6 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
           <h2 className="text-2xl font-semibold mb-6">Related Shows</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {relatedShows.map((relatedShow) => {
-              // Convert the related show key to path segments for the link
               const segments = relatedShow.key.split("/").filter(Boolean);
               return (
                 <Link key={relatedShow.key} href={`/shows/${segments.join("/")}`}>
@@ -197,6 +176,9 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
           </div>
         </section>
       )}
+
+      {/* Render appropriate player based on show status */}
+      {isLive ? <MediaPlayer /> : <ArchivePlayer />}
     </div>
   );
 }

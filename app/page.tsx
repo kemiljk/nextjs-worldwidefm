@@ -109,7 +109,7 @@ export default async function Home() {
         <VideoSection videos={videos} className="px-4 md:px-8 lg:px-24 py-8 border-t border-crimson-900 bg-crimson-500" />
 
         {/* Editorial section */}
-        <EditorialSection title="POSTS" posts={posts} className="px-4 md:px-8 lg:px-24 py-8 border-t border-sky-900 bg-sky-300" isHomepage={true} />
+        <EditorialSection title="POSTS" posts={posts} className="px-4 md:px-8 lg:px-24 py-8 border-t border-sky-900 bg-sky-300 dark:bg-sky-800" isHomepage={true} />
       </div>
     </div>
   );

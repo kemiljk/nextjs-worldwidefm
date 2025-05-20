@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { getMixcloudShows, MixcloudShow } from "@/lib/mixcloud-service";
+import { addHours, isWithinInterval } from "date-fns";
 
 interface MediaPlayerContextType {
   currentShow: MixcloudShow | null;
@@ -12,6 +13,10 @@ interface MediaPlayerContextType {
   pauseShow: () => void;
   togglePlayPause: () => void;
   setIsPlaying: (playing: boolean) => void;
+  setCurrentShow: (show: MixcloudShow | null) => void;
+  isLive: boolean;
+  archivedShow: MixcloudShow | null;
+  setArchivedShow: (show: MixcloudShow | null) => void;
 }
 
 const MediaPlayerContext = createContext<MediaPlayerContextType | undefined>(undefined);
@@ -26,8 +31,10 @@ export function useMediaPlayer() {
 
 export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   const [currentShow, setCurrentShow] = useState<MixcloudShow | null>(null);
+  const [archivedShow, setArchivedShow] = useState<MixcloudShow | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [shows, setShows] = useState<MixcloudShow[]>([]);
+  const [isLive, setIsLive] = useState(false);
 
   // Initialize volume from localStorage or use default
   const [volume, setVolumeState] = useState<number>(() => {
@@ -53,8 +60,23 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
       try {
         const result = await getMixcloudShows();
         setShows(result.shows);
-        if (result.shows.length > 0 && !currentShow) {
+
+        // Find the most recent live show
+        const now = new Date();
+        const liveShow = result.shows.find((show) => {
+          const startTime = new Date(show.created_time);
+          const endTime = addHours(startTime, 2);
+          return isWithinInterval(now, { start: startTime, end: endTime });
+        });
+
+        // If there's a live show, set it as current
+        if (liveShow) {
+          setCurrentShow(liveShow);
+          setIsLive(true);
+        } else if (result.shows.length > 0) {
+          // Otherwise set the most recent show
           setCurrentShow(result.shows[0]);
+          setIsLive(false);
         }
       } catch (error) {
         console.error("Failed to load shows:", error);
@@ -64,33 +86,42 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     loadShows();
   }, []);
 
+  // Check if current show is live
+  useEffect(() => {
+    if (currentShow) {
+      const now = new Date();
+      const startTime = new Date(currentShow.created_time);
+      const endTime = addHours(startTime, 2);
+      const showIsLive = isWithinInterval(now, { start: startTime, end: endTime });
+      setIsLive(showIsLive);
+    } else {
+      setIsLive(false);
+    }
+  }, [currentShow]);
+
   const playShow = (show: MixcloudShow) => {
     console.log("Playing show:", show.name);
 
-    // First check if this is the same show or a different one
-    const isSameShow = currentShow?.key === show.key;
+    // Check if the show is currently live
+    const now = new Date();
+    const startTime = new Date(show.created_time);
+    const endTime = addHours(startTime, 2);
+    const showIsLive = isWithinInterval(now, { start: startTime, end: endTime });
 
-    // If it's the same show and already playing, just pause it
-    if (isSameShow && isPlaying) {
-      console.log("Same show already playing, pausing");
-      setIsPlaying(false);
+    // If it's a live show, play it in the top player
+    if (showIsLive) {
+      setCurrentShow(show);
+      setIsLive(true);
+      setIsPlaying(true);
       return;
     }
 
-    // If different show, set the current show
-    if (!isSameShow) {
-      console.log("Setting new current show");
-      // For different shows, first pause then update show for smoother transitions
-      if (isPlaying) {
-        setIsPlaying(false);
-      }
-      setCurrentShow(show);
-      // Brief delay before playing the new show
-      setTimeout(() => {
-        setIsPlaying(true);
-      }, 100);
+    // For archived shows, always play in the bottom player
+    const isSameShow = archivedShow?.key === show.key;
+    if (isSameShow && isPlaying) {
+      setIsPlaying(false);
     } else {
-      // Simply play the current show
+      setArchivedShow(show);
       setIsPlaying(true);
     }
   };
@@ -117,6 +148,10 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
         pauseShow,
         togglePlayPause,
         setIsPlaying,
+        setCurrentShow,
+        isLive,
+        archivedShow,
+        setArchivedShow,
       }}
     >
       {children}

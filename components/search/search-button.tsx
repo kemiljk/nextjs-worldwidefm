@@ -10,7 +10,7 @@ export function SearchButton() {
 
   return (
     <>
-      <Button variant="ghost" size="sm" className="lg:w-[200px] h-16 lg:border-l lg:border-r lg:border-bronze-900 lg:dark:border-bronze-50 justify-start text-muted-foreground" onClick={() => setOpen(true)}>
+      <Button variant="ghost" size="sm" className="lg:w-[200px] h-16 lg:border-l border-foreground justify-start text-muted-foreground" onClick={() => setOpen(true)}>
         <Search className="mr-2 h-4 w-4" />
         Search
       </Button>

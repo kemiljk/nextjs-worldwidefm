@@ -2,18 +2,17 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { Play, Pause, Radio, Circle } from "lucide-react";
+import { Play, Pause, X } from "lucide-react";
 import { useMediaPlayer } from "@/components/providers/media-player-provider";
 
-export default function MediaPlayer() {
-  const { currentShow, isPlaying, volume, togglePlayPause, setIsPlaying, isLive } = useMediaPlayer();
+export default function ArchivePlayer() {
+  const { archivedShow, isPlaying, volume, togglePlayPause, setIsPlaying, setArchivedShow } = useMediaPlayer();
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [mixcloudWidget, setMixcloudWidget] = useState<any>(null);
   const [isWidgetReady, setIsWidgetReady] = useState(false);
   const titleRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const lastShowKeyRef = useRef<string | null>(null);
 
   // Load Mixcloud widget script
   useEffect(() => {
@@ -46,11 +45,10 @@ export default function MediaPlayer() {
   useEffect(() => {
     if (!scriptLoaded) return;
 
-    // Create iframe if it doesn't exist - we'll keep just one iframe throughout
+    // Create iframe if it doesn't exist
     if (!iframeRef.current && containerRef.current) {
       console.log("Creating persistent Mixcloud iframe");
 
-      // Create a technically visible iframe (browsers require this for audio)
       const iframe = document.createElement("iframe");
       iframe.style.position = "fixed";
       iframe.style.bottom = "0";
@@ -75,16 +73,13 @@ export default function MediaPlayer() {
       setIsWidgetReady(false);
       setMixcloudWidget(null);
 
-      // Use the simplest URL format possible with full permissions
       const widgetUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(showKey)}&mini=1&hide_artwork=1&autoplay=0`;
 
-      // Only update if the URL changed to avoid unnecessary reloads
       if (iframeRef.current.src !== widgetUrl) {
         console.log("Setting widget URL:", widgetUrl);
         iframeRef.current.src = widgetUrl;
       }
 
-      // Initialize widget when iframe loads
       iframeRef.current.onload = () => {
         if (!window.Mixcloud || !iframeRef.current) return;
 
@@ -97,7 +92,6 @@ export default function MediaPlayer() {
             .then(() => {
               console.log("Mixcloud widget ready for show:", showKey);
 
-              // Register critical events
               widget.events.play.on(() => {
                 console.log("Widget event: play");
               });
@@ -110,18 +104,15 @@ export default function MediaPlayer() {
                 console.error("Widget event: error", error);
               });
 
-              // Set initial volume and store the widget
               widget
                 .setVolume(volume)
                 .then(() => {
                   console.log("Volume set on widget");
-                  // Store widget only after volume is set successfully
                   setMixcloudWidget(widget);
                   setIsWidgetReady(true);
                 })
                 .catch((err) => {
                   console.error("Error setting volume:", err);
-                  // Still store widget even if volume setting fails
                   setMixcloudWidget(widget);
                   setIsWidgetReady(true);
                 });
@@ -138,16 +129,14 @@ export default function MediaPlayer() {
     };
 
     // Load the current show when it changes
-    if (currentShow) {
-      loadShow(currentShow.key);
-      lastShowKeyRef.current = currentShow.key;
+    if (archivedShow) {
+      loadShow(archivedShow.key);
     }
 
-    // Cleanup only when component unmounts
     return () => {
       console.log("Cleaning up Mixcloud widget on unmount");
     };
-  }, [currentShow, scriptLoaded, volume]);
+  }, [archivedShow, scriptLoaded, volume]);
 
   // Handle playback state changes
   useEffect(() => {
@@ -156,16 +145,13 @@ export default function MediaPlayer() {
     console.log(`Handle playback change to ${isPlaying ? "playing" : "paused"}`);
 
     if (isPlaying) {
-      // Add a slight delay to ensure browser recognizes the user interaction
       setTimeout(() => {
-        // Wrap in try-catch for better error handling
         try {
           console.log("Calling play() on Mixcloud widget");
           mixcloudWidget
             .play()
             .then(() => {
               console.log("Play successful");
-              // Set volume after successful play
               mixcloudWidget.setVolume(volume);
             })
             .catch((err: any) => {
@@ -203,11 +189,9 @@ export default function MediaPlayer() {
       try {
         const data = JSON.parse(event.data);
 
-        // Handle widget initialization
         if (data.type === "ready" && data.mixcloud === "playerWidget") {
           setIsWidgetReady(true);
 
-          // If we're supposed to be playing, start playback now
           if (isPlaying && mixcloudWidget) {
             mixcloudWidget.play().catch((err: any) => {
               console.error("Error playing after widget ready:", err);
@@ -215,7 +199,6 @@ export default function MediaPlayer() {
           }
         }
 
-        // Handle play/pause events from the widget
         if (data.type === "event" && data.data?.eventName === "play") {
           setIsPlaying(true);
         } else if (data.type === "event" && data.data?.eventName === "pause") {
@@ -230,42 +213,42 @@ export default function MediaPlayer() {
     return () => window.removeEventListener("message", handleMessage);
   }, [isPlaying, mixcloudWidget, setIsPlaying]);
 
-  // If no current show, don't render the player
-  if (!currentShow) return null;
+  // If no archived show or not playing, don't render the player
+  if (!archivedShow || !isPlaying) return null;
+
+  const handleDismiss = () => {
+    if (mixcloudWidget) {
+      mixcloudWidget.pause();
+    }
+    setArchivedShow(null);
+    setIsPlaying(false);
+  };
 
   return (
     <>
       <div ref={containerRef} className="hidden" />
-      <div className="fixed top-0 bg-gray-950 text-white z-50 flex items-center transition-all duration-300 h-12 left-0 right-0 max-w-full px-4">
+      <div className="fixed bottom-0 bg-gray-950 text-white z-40 flex items-center transition-all duration-300 h-12 left-0 right-0 max-w-full px-4">
         <>
           <div className="flex items-center mx-2 gap-3 overflow-hidden">
             <div className="w-10 h-10 rounded overflow-hidden z-10 flex-shrink-0 relative">
-              <Image src={currentShow?.pictures.large || "/image-placeholder.svg?w=40&h=40"} alt={currentShow?.name || "Now playing"} fill className="object-cover" />
-              {isLive && (
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-crimson-500 animate-pulse" />
-                    <Radio className="h-4 w-4 text-white" />
-                  </div>
-                </div>
-              )}
+              <Image src={archivedShow?.pictures.large || "/image-placeholder.svg?w=40&h=40"} alt={archivedShow?.name || "Now playing"} fill className="object-cover" />
             </div>
             <div>
               <div ref={titleRef} className="text-sm whitespace-nowrap">
-                {currentShow?.name || "No show playing"}
+                {archivedShow?.name || "No show playing"}
               </div>
-              {isLive && (
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-crimson-500 animate-pulse" />
-                  <span className="text-xs text-white/90 uppercase">On air</span>
-                </div>
-              )}
             </div>
           </div>
 
           <div className={`border-l border-white/20 pl-4 ml-4 flex items-center flex-shrink-0 transition-opacity duration-200`}>
-            <button className={`text-white rounded-full ${isLive ? "text-crimson-500" : "text-white"}`} onClick={togglePlayPause}>
-              {isPlaying ? <Pause className="h-5 w-5" /> : isLive ? <Circle className="h-5 w-5 animate-pulse" /> : <Play className="h-5 w-5" />}
+            <button className="text-white rounded-full" onClick={togglePlayPause}>
+              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+            </button>
+          </div>
+
+          <div className="border-l border-white/20 pl-4 ml-4 flex items-center flex-shrink-0">
+            <button className="text-white/70 hover:text-white transition-colors" onClick={handleDismiss}>
+              <X className="h-5 w-5" />
             </button>
           </div>
         </>
