@@ -46,23 +46,35 @@ export async function generateStaticParams() {
   }
 }
 
+// Helper function to determine if the show is from RadioCult
+function isRadioCultShow(show: any): boolean {
+  return show && show.__source === "radiocult";
+}
+
 export default async function ShowPage({ params }: { params: { slug: string[] } }) {
   // Convert the array of path segments back to a Mixcloud key format
   const showKey = "/" + params.slug.join("/");
+  const showSlug = params.slug[params.slug.length - 1]; // Last segment for RadioCult slug
   console.log("Looking for show with key:", showKey);
 
   // Get the show data directly from getShowBySlug
-  const show = await getShowBySlug(showKey);
+  const show = await getShowBySlug(showSlug);
 
   if (!show) {
     console.error("Show not found for key:", showKey);
     notFound();
   }
 
+  // Check if this is a RadioCult show
+  const isRadioCult = isRadioCultShow(show);
+
   // Check if show is currently live
   const now = new Date();
   const startTime = new Date(show.created_time);
-  const endTime = addHours(startTime, 2);
+  const endTime = isRadioCult
+    ? new Date(show.endTime || show.created_time) // Use actual end time for RadioCult events
+    : addHours(startTime, 2); // Assume 2 hours for Mixcloud shows
+
   const isLive = isWithinInterval(now, { start: startTime, end: endTime });
 
   // Get related shows based on tags
@@ -104,8 +116,13 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
             <div className="space-y-6">
               <div>
                 <dd>{new Date(show.created_time).toLocaleDateString()}</dd>
+                {isRadioCult && (
+                  <dd className="mt-1">
+                    {new Date(show.created_time).toLocaleTimeString()} - {new Date(show.endTime).toLocaleTimeString()}
+                  </dd>
+                )}
               </div>
-              {!isLive && (
+              {!isLive && !isRadioCult && (
                 <div>
                   <PlayButton show={show} variant="default" size="lg" isLive={false} className="w-max" label="Play Show" />
                 </div>
@@ -115,6 +132,11 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
             <div className="mt-8">
               <div className="prose max-w-none dark:prose-invert">
                 <p>{show.name}</p>
+                {isRadioCult && show.description && (
+                  <div className="mt-4">
+                    <p>{show.description}</p>
+                  </div>
+                )}
 
                 {show.tags.length > 0 && (
                   <>
@@ -178,7 +200,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
       )}
 
       {/* Render appropriate player based on show status */}
-      {isLive ? <MediaPlayer /> : <ArchivePlayer />}
+      {isLive && !isRadioCult ? <MediaPlayer /> : <ArchivePlayer />}
     </div>
   );
 }

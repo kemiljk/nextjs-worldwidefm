@@ -9,6 +9,7 @@ import { addHours, isWithinInterval, isAfter } from "date-fns";
 import { getAllShowsFromMixcloud } from "./mixcloud-service";
 import { MixcloudShow } from "./mixcloud-service";
 import { filterWorldwideFMTags } from "./mixcloud-service";
+import { getEventBySlug as getRadioCultEventBySlug, getEvents as getRadioCultEvents, RadioCultEvent, getScheduleData as getRadioCultScheduleData } from "./radiocult-service";
 
 export async function getAllPosts(): Promise<PostObject[]> {
   try {
@@ -158,7 +159,94 @@ export async function getAllShows(skip = 0, limit = 20, filters?: any) {
   }
 }
 
-export async function getShowBySlug(slug: string): Promise<MixcloudShow | null> {
+export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioCultEvent | null> {
+  // First try RadioCult
+  try {
+    // If this is a full Mixcloud path with multiple segments, don't try RadioCult
+    if (slug.includes("/")) {
+      // This is a Mixcloud path, skip RadioCult lookup
+    } else {
+      const radioCultEvent = await getRadioCultEventBySlug(slug);
+      if (radioCultEvent) {
+        // Convert RadioCult event to a format similar to MixcloudShow for compatibility
+        const adaptedEvent: any = {
+          key: radioCultEvent.slug,
+          name: radioCultEvent.showName,
+          url: `/shows/${radioCultEvent.slug}`,
+          pictures: {
+            small: radioCultEvent.imageUrl || "/image-placeholder.svg",
+            thumbnail: radioCultEvent.imageUrl || "/image-placeholder.svg",
+            medium_mobile: radioCultEvent.imageUrl || "/image-placeholder.svg",
+            medium: radioCultEvent.imageUrl || "/image-placeholder.svg",
+            large: radioCultEvent.imageUrl || "/image-placeholder.svg",
+            "320wx320h": radioCultEvent.imageUrl || "/image-placeholder.svg",
+            extra_large: radioCultEvent.imageUrl || "/image-placeholder.svg",
+            "640wx640h": radioCultEvent.imageUrl || "/image-placeholder.svg",
+            "768wx768h": radioCultEvent.imageUrl || "/image-placeholder.svg",
+            "1024wx1024h": radioCultEvent.imageUrl || "/image-placeholder.svg",
+          },
+          created_time: radioCultEvent.startTime,
+          updated_time: radioCultEvent.updatedAt,
+          play_count: 0,
+          favorite_count: 0,
+          comment_count: 0,
+          listener_count: 0,
+          repost_count: 0,
+          tags: radioCultEvent.tags.map((tag) => ({
+            key: tag.toLowerCase().replace(/\s+/g, "-"),
+            url: `/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`,
+            name: tag,
+          })),
+          slug: radioCultEvent.slug,
+          user: {
+            key: "radiocult",
+            url: "/",
+            name: "RadioCult",
+            username: "radiocult",
+            pictures: {
+              small: "/logo.svg",
+              thumbnail: "/logo.svg",
+              medium_mobile: "/logo.svg",
+              medium: "/logo.svg",
+              large: "/logo.svg",
+              "320wx320h": "/logo.svg",
+              extra_large: "/logo.svg",
+              "640wx640h": "/logo.svg",
+            },
+          },
+          hosts: radioCultEvent.artists.map((artist) => ({
+            key: artist.id,
+            url: `/artists/${artist.slug}`,
+            name: artist.name,
+            username: artist.slug,
+            pictures: {
+              small: artist.imageUrl || "/image-placeholder.svg",
+              thumbnail: artist.imageUrl || "/image-placeholder.svg",
+              medium_mobile: artist.imageUrl || "/image-placeholder.svg",
+              medium: artist.imageUrl || "/image-placeholder.svg",
+              large: artist.imageUrl || "/image-placeholder.svg",
+              "320wx320h": artist.imageUrl || "/image-placeholder.svg",
+              extra_large: artist.imageUrl || "/image-placeholder.svg",
+              "640wx640h": artist.imageUrl || "/image-placeholder.svg",
+            },
+          })),
+          hidden_stats: false,
+          audio_length: radioCultEvent.duration * 60, // convert minutes to seconds
+          endTime: radioCultEvent.endTime, // Add endTime for RadioCult events
+          description: radioCultEvent.description, // Add description for RadioCult events
+          __source: "radiocult", // Add a source marker to identify RadioCult events
+        };
+
+        console.log("Found RadioCult event:", adaptedEvent.name);
+        return adaptedEvent;
+      }
+    }
+  } catch (error) {
+    console.error("Error finding RadioCult event:", error);
+    // Continue to try Mixcloud
+  }
+
+  // Then try Mixcloud
   try {
     // Clean up the slug to get the show key
     const showKey = slug.startsWith("/") ? slug : `/${slug}`;
@@ -177,7 +265,7 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | null> 
     }
 
     const show = await response.json();
-    console.log("Found show:", show.name);
+    console.log("Found Mixcloud show:", show.name);
     return show;
   } catch (error) {
     console.error("Error in getShowBySlug:", error);
@@ -186,12 +274,31 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | null> 
 }
 
 export async function getScheduleData(): Promise<{
-  currentShow: MixcloudShow | null;
-  upcomingShow: MixcloudShow | null;
-  upcomingShows: MixcloudShow[];
+  currentShow: MixcloudShow | any | null;
+  upcomingShow: MixcloudShow | any | null;
+  upcomingShows: (MixcloudShow | any)[];
 }> {
   try {
-    // Get all shows from Mixcloud
+    // First try to get data from RadioCult
+    try {
+      const { currentEvent, upcomingEvent, upcomingEvents } = await getRadioCultScheduleData();
+
+      // Convert RadioCult events to MixcloudShow format
+      const adaptCurrentEvent = currentEvent ? convertRadioCultEventToMixcloudFormat(currentEvent) : null;
+      const adaptUpcomingEvent = upcomingEvent ? convertRadioCultEventToMixcloudFormat(upcomingEvent) : null;
+      const adaptUpcomingEvents = upcomingEvents.map(convertRadioCultEventToMixcloudFormat);
+
+      return {
+        currentShow: adaptCurrentEvent,
+        upcomingShow: adaptUpcomingEvent,
+        upcomingShows: adaptUpcomingEvents,
+      };
+    } catch (error) {
+      console.error("Error getting RadioCult schedule data, falling back to Mixcloud:", error);
+      // Fall back to Mixcloud data
+    }
+
+    // Get all shows from Mixcloud as fallback
     const mixcloudShows = await getAllShowsFromMixcloud();
 
     const now = new Date();
@@ -236,6 +343,77 @@ export async function getScheduleData(): Promise<{
       upcomingShows: [],
     };
   }
+}
+
+// Helper to convert RadioCult event to Mixcloud format
+function convertRadioCultEventToMixcloudFormat(event: RadioCultEvent): any {
+  return {
+    key: event.slug,
+    name: event.showName,
+    url: `/shows/${event.slug}`,
+    pictures: {
+      small: event.imageUrl || "/image-placeholder.svg",
+      thumbnail: event.imageUrl || "/image-placeholder.svg",
+      medium_mobile: event.imageUrl || "/image-placeholder.svg",
+      medium: event.imageUrl || "/image-placeholder.svg",
+      large: event.imageUrl || "/image-placeholder.svg",
+      "320wx320h": event.imageUrl || "/image-placeholder.svg",
+      extra_large: event.imageUrl || "/image-placeholder.svg",
+      "640wx640h": event.imageUrl || "/image-placeholder.svg",
+      "768wx768h": event.imageUrl || "/image-placeholder.svg",
+      "1024wx1024h": event.imageUrl || "/image-placeholder.svg",
+    },
+    created_time: event.startTime,
+    updated_time: event.updatedAt,
+    play_count: 0,
+    favorite_count: 0,
+    comment_count: 0,
+    listener_count: 0,
+    repost_count: 0,
+    tags: event.tags.map((tag) => ({
+      key: tag.toLowerCase().replace(/\s+/g, "-"),
+      url: `/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`,
+      name: tag,
+    })),
+    slug: event.slug,
+    user: {
+      key: "radiocult",
+      url: "/",
+      name: "RadioCult",
+      username: "radiocult",
+      pictures: {
+        small: "/logo.svg",
+        thumbnail: "/logo.svg",
+        medium_mobile: "/logo.svg",
+        medium: "/logo.svg",
+        large: "/logo.svg",
+        "320wx320h": "/logo.svg",
+        extra_large: "/logo.svg",
+        "640wx640h": "/logo.svg",
+      },
+    },
+    hosts: event.artists.map((artist) => ({
+      key: artist.id,
+      url: `/artists/${artist.slug}`,
+      name: artist.name,
+      username: artist.slug,
+      pictures: {
+        small: artist.imageUrl || "/image-placeholder.svg",
+        thumbnail: artist.imageUrl || "/image-placeholder.svg",
+        medium_mobile: artist.imageUrl || "/image-placeholder.svg",
+        medium: artist.imageUrl || "/image-placeholder.svg",
+        large: artist.imageUrl || "/image-placeholder.svg",
+        "320wx320h": artist.imageUrl || "/image-placeholder.svg",
+        extra_large: artist.imageUrl || "/image-placeholder.svg",
+        "640wx640h": artist.imageUrl || "/image-placeholder.svg",
+      },
+    })),
+    hidden_stats: false,
+    audio_length: event.duration * 60, // convert minutes to seconds
+    endTime: event.endTime, // Add endTime for RadioCult events
+    description: event.description, // Add description for RadioCult events
+    __source: "radiocult", // Add a source marker to identify RadioCult events
+  };
 }
 
 export async function getEditorialContent(): Promise<{
@@ -313,7 +491,7 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
 
     // Helper to ensure filter items have correct structure
     const normalizeFilterItems = (items: any[] = []): FilterItem[] => {
-      return items.filter(Boolean).map((item) => ({
+      return items.filter(Boolean).map((item: { title?: string; slug?: string; id?: string; type?: string }) => ({
         title: item.title || "",
         slug: item.slug || item.id || "",
         type: item.type || "",
@@ -507,74 +685,191 @@ interface MixcloudShowsFilters {
   limit?: number;
 }
 
-export async function getMixcloudShows(filters: MixcloudShowsFilters = {}): Promise<{ shows: MixcloudShow[]; total: number }> {
+export async function getMixcloudShows(filters: MixcloudShowsFilters = {}): Promise<{ shows: (MixcloudShow | any)[]; total: number }> {
   try {
-    // Get all shows from Mixcloud
-    const mixcloudResult = await getAllShowsFromMixcloud();
+    // Get Mixcloud shows
+    const { shows: mixcloudShows } = await getMixcloudShowsOriginal(filters);
 
-    // Ensure we have a valid array of shows
-    const mixcloudShows = Array.isArray(mixcloudResult) ? mixcloudResult : [];
+    // Get RadioCult events
+    const { events: radioCultEvents } = await getRadioCultEvents({ limit: 100 });
 
-    console.log("Fetched shows:", mixcloudShows.length);
+    // Convert RadioCult events to MixcloudShow format
+    const adaptedEvents = radioCultEvents.map((event) => ({
+      key: event.slug,
+      name: event.showName,
+      url: `/shows/${event.slug}`,
+      pictures: {
+        small: event.imageUrl || "/image-placeholder.svg",
+        thumbnail: event.imageUrl || "/image-placeholder.svg",
+        medium_mobile: event.imageUrl || "/image-placeholder.svg",
+        medium: event.imageUrl || "/image-placeholder.svg",
+        large: event.imageUrl || "/image-placeholder.svg",
+        "320wx320h": event.imageUrl || "/image-placeholder.svg",
+        extra_large: event.imageUrl || "/image-placeholder.svg",
+        "640wx640h": event.imageUrl || "/image-placeholder.svg",
+        "768wx768h": event.imageUrl || "/image-placeholder.svg",
+        "1024wx1024h": event.imageUrl || "/image-placeholder.svg",
+      },
+      created_time: event.startTime,
+      updated_time: event.updatedAt,
+      play_count: 0,
+      favorite_count: 0,
+      comment_count: 0,
+      listener_count: 0,
+      repost_count: 0,
+      tags: event.tags.map((tag) => ({
+        key: tag.toLowerCase().replace(/\s+/g, "-"),
+        url: `/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`,
+        name: tag,
+      })),
+      slug: event.slug,
+      user: {
+        key: "radiocult",
+        url: "/",
+        name: "RadioCult",
+        username: "radiocult",
+        pictures: {
+          small: "/logo.svg",
+          thumbnail: "/logo.svg",
+          medium_mobile: "/logo.svg",
+          medium: "/logo.svg",
+          large: "/logo.svg",
+          "320wx320h": "/logo.svg",
+          extra_large: "/logo.svg",
+          "640wx640h": "/logo.svg",
+        },
+      },
+      hosts: event.artists.map((artist) => ({
+        key: artist.id,
+        url: `/artists/${artist.slug}`,
+        name: artist.name,
+        username: artist.slug,
+        pictures: {
+          small: artist.imageUrl || "/image-placeholder.svg",
+          thumbnail: artist.imageUrl || "/image-placeholder.svg",
+          medium_mobile: artist.imageUrl || "/image-placeholder.svg",
+          medium: artist.imageUrl || "/image-placeholder.svg",
+          large: artist.imageUrl || "/image-placeholder.svg",
+          "320wx320h": artist.imageUrl || "/image-placeholder.svg",
+          extra_large: artist.imageUrl || "/image-placeholder.svg",
+          "640wx640h": artist.imageUrl || "/image-placeholder.svg",
+        },
+      })),
+      hidden_stats: false,
+      audio_length: event.duration * 60, // convert minutes to seconds
+      __source: "radiocult", // Add a source marker to identify RadioCult events
+    }));
 
-    // Apply filters
-    let filteredShows = [...mixcloudShows];
+    // Combine shows from both sources
+    const combinedShows = [...mixcloudShows, ...adaptedEvents];
 
-    // Handle isNew filter
+    // Apply any filtering if needed
+    let filteredShows = combinedShows;
+
+    if (filters.searchTerm) {
+      const searchTerm = filters.searchTerm.toLowerCase();
+      filteredShows = filteredShows.filter((show) => show.name.toLowerCase().includes(searchTerm) || show.tags.some((tag: any) => tag.name.toLowerCase().includes(searchTerm)));
+    }
+
+    if (filters.genre) {
+      const genres = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
+      filteredShows = filteredShows.filter((show) => show.tags.some((tag: any) => genres.includes(tag.name.toLowerCase())));
+    }
+
+    if (filters.host) {
+      const hosts = Array.isArray(filters.host) ? filters.host : [filters.host];
+      filteredShows = filteredShows.filter((show) => show.hosts.some((host: any) => hosts.includes(host.name.toLowerCase())));
+    }
+
     if (filters.isNew) {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      filteredShows = filteredShows.filter((show) => {
-        const showDate = new Date(show.created_time);
-        return showDate > thirtyDaysAgo;
-      });
+      filteredShows = filteredShows.filter((show) => new Date(show.created_time) > thirtyDaysAgo);
     }
 
-    // Handle genre filter
-    if (filters.genre) {
-      const genreSlugs = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
-      if (genreSlugs.length > 0) {
-        filteredShows = filteredShows.filter((show) => show.tags && Array.isArray(show.tags) && show.tags.some((tag) => genreSlugs.includes(tag.name.toLowerCase().replace(/\s+/g, "-"))));
-      }
-    }
-
-    // Handle host filter
-    if (filters.host) {
-      const hostSlugs = Array.isArray(filters.host) ? filters.host : [filters.host];
-      if (hostSlugs.length > 0) {
-        filteredShows = filteredShows.filter((show) => show.hosts && Array.isArray(show.hosts) && show.hosts.some((host) => hostSlugs.includes(host.name.toLowerCase().replace(/\s+/g, "-"))));
-      }
-    }
-
-    // Handle takeover filter
-    if (filters.takeover) {
-      const takeoverSlugs = Array.isArray(filters.takeover) ? filters.takeover : [filters.takeover];
-      if (takeoverSlugs.length > 0) {
-        filteredShows = filteredShows.filter((show) => show.name && show.name.toLowerCase().includes("takeover") && takeoverSlugs.some((slug: string) => show.name.toLowerCase().includes(slug.replace(/-/g, " "))));
-      }
-    }
-
-    // Handle search term
-    if (filters.searchTerm) {
-      const searchTerm = filters.searchTerm.toLowerCase();
-      filteredShows = filteredShows.filter((show) => (show.name && show.name.toLowerCase().includes(searchTerm)) || (show.hosts && Array.isArray(show.hosts) && show.hosts.some((host) => host.name.toLowerCase().includes(searchTerm))) || (show.tags && Array.isArray(show.tags) && show.tags.some((tag) => tag.name.toLowerCase().includes(searchTerm))));
-    }
+    // Sort by created_time (newest first)
+    filteredShows.sort((a, b) => new Date(b.created_time).getTime() - new Date(a.created_time).getTime());
 
     // Apply pagination
     const skip = filters.skip || 0;
     const limit = filters.limit || 20;
     const paginatedShows = filteredShows.slice(skip, skip + limit);
 
-    // Return the shows
     return {
       shows: paginatedShows,
       total: filteredShows.length,
     };
   } catch (error) {
-    console.error("Error fetching Mixcloud shows:", error);
-    return { shows: [], total: 0 };
+    console.error("Error in getMixcloudShows:", error);
+
+    // Try to return just Mixcloud shows if RadioCult fails
+    try {
+      return await getMixcloudShowsOriginal(filters);
+    } catch (e) {
+      console.error("Fallback to original Mixcloud shows failed:", e);
+      return { shows: [], total: 0 };
+    }
   }
 }
+
+// Rename the original function to avoid conflicts
+const getMixcloudShowsOriginal = async (filters: MixcloudShowsFilters = {}): Promise<{ shows: MixcloudShow[]; total: number }> => {
+  try {
+    // Convert the simplified filter object to Mixcloud params
+    const params: {
+      limit: number;
+      isNew?: boolean;
+      searchTerm?: string;
+      tag?: string;
+    } = {
+      limit: filters.limit || 20,
+    };
+
+    if (filters.genre && typeof filters.genre === "string") {
+      params.tag = filters.genre;
+    }
+
+    if (filters.searchTerm) {
+      params.searchTerm = filters.searchTerm;
+    }
+
+    if (filters.isNew) {
+      params.isNew = true;
+    }
+
+    // Get shows from Mixcloud
+    const response = await fetch(`https://api.mixcloud.com/worldwidefm/cloudcasts/?limit=${params.limit}${params.tag ? `&tag=${params.tag}` : ""}${params.searchTerm ? `&q=${params.searchTerm}` : ""}`, {
+      next: {
+        revalidate: 900, // 15 minutes
+        tags: ["mixcloud"],
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Mixcloud API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Filter the shows if needed
+    let filteredShows = data.data;
+
+    // If isNew is set, filter to shows from the last 30 days
+    if (params.isNew) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      filteredShows = filteredShows.filter((show: MixcloudShow) => new Date(show.created_time) > thirtyDaysAgo);
+    }
+
+    return {
+      shows: filteredShows,
+      total: filteredShows.length,
+    };
+  } catch (error) {
+    console.error("Error fetching from Mixcloud:", error);
+    return { shows: [], total: 0 };
+  }
+};
 
 export async function searchContent(query?: string, source?: string, limit: number = 100): Promise<SearchResult[]> {
   try {
