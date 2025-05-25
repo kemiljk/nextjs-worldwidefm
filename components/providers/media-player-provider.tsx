@@ -38,10 +38,9 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
 
   // Initialize volume from localStorage or use default
   const [volume, setVolumeState] = useState<number>(() => {
-    // Only run in browser
     if (typeof window !== "undefined") {
       const savedVolume = localStorage.getItem("mixcloud-player-volume");
-      return savedVolume ? parseFloat(savedVolume) : 1; // Default to 1 if not found
+      return savedVolume ? parseFloat(savedVolume) : 1;
     }
     return 1;
   });
@@ -73,10 +72,6 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
         if (liveShow) {
           setCurrentShow(liveShow);
           setIsLive(true);
-        } else if (result.shows.length > 0) {
-          // Otherwise set the most recent show
-          setCurrentShow(result.shows[0]);
-          setIsLive(false);
         }
       } catch (error) {
         console.error("Failed to load shows:", error);
@@ -113,6 +108,10 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
       setCurrentShow(show);
       setIsLive(true);
       setIsPlaying(true);
+      // Pause any archived show that might be playing
+      if (archivedShow) {
+        setArchivedShow(null);
+      }
       return;
     }
 
@@ -133,7 +132,6 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
 
   const togglePlayPause = () => {
     console.log("Toggle play/pause. Current state:", isPlaying ? "playing" : "paused");
-    // Simply toggle the state - direct user interaction ensures browser allows audio
     setIsPlaying(!isPlaying);
   };
 

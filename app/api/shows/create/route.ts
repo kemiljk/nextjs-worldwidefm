@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get all available tags from RadioCult
-    const allTags = await getTags();
+    const allTags = await getTags(false, true);
 
     // Format tags for Cosmic
     // Current timestamp for created/modified/published dates

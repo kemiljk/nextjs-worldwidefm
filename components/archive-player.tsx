@@ -13,6 +13,7 @@ export default function ArchivePlayer() {
   const titleRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastShowKeyRef = useRef<string | null>(null);
 
   // Load Mixcloud widget script
   useEffect(() => {
@@ -43,7 +44,7 @@ export default function ArchivePlayer() {
 
   // Initialize Mixcloud widget
   useEffect(() => {
-    if (!scriptLoaded) return;
+    if (!scriptLoaded || !archivedShow) return;
 
     // Create iframe if it doesn't exist
     if (!iframeRef.current && containerRef.current) {
@@ -128,9 +129,9 @@ export default function ArchivePlayer() {
       };
     };
 
-    // Load the current show when it changes
     if (archivedShow) {
       loadShow(archivedShow.key);
+      lastShowKeyRef.current = archivedShow.key;
     }
 
     return () => {
@@ -213,9 +214,6 @@ export default function ArchivePlayer() {
     return () => window.removeEventListener("message", handleMessage);
   }, [isPlaying, mixcloudWidget, setIsPlaying]);
 
-  // If no archived show or not playing, don't render the player
-  if (!archivedShow || !isPlaying) return null;
-
   const handleDismiss = () => {
     if (mixcloudWidget) {
       mixcloudWidget.pause();
@@ -224,34 +222,35 @@ export default function ArchivePlayer() {
     setIsPlaying(false);
   };
 
+  // If no archived show, don't render the player
+  if (!archivedShow) return null;
+
   return (
     <>
       <div ref={containerRef} className="hidden" />
-      <div className="fixed bottom-0 bg-gray-950 text-white z-40 flex items-center transition-all duration-300 h-12 left-0 right-0 max-w-full px-4">
-        <>
-          <div className="flex items-center mx-2 gap-3 overflow-hidden">
-            <div className="w-10 h-10 rounded overflow-hidden z-10 flex-shrink-0 relative">
-              <Image src={archivedShow?.pictures.large || "/image-placeholder.svg?w=40&h=40"} alt={archivedShow?.name || "Now playing"} fill className="object-cover" />
-            </div>
-            <div>
-              <div ref={titleRef} className="text-sm whitespace-nowrap">
-                {archivedShow?.name || "No show playing"}
-              </div>
+      <div className="fixed bottom-0 bg-gray-950 text-white z-50 flex items-center transition-all duration-300 h-12 left-0 right-0 max-w-full px-4">
+        <div className="flex items-center mx-2 gap-3 overflow-hidden">
+          <div className="w-10 h-10 rounded overflow-hidden z-10 flex-shrink-0 relative">
+            <Image src={archivedShow.pictures.large || "/image-placeholder.svg?w=40&h=40"} alt={archivedShow.name || "Now playing"} fill className="object-cover" />
+          </div>
+          <div>
+            <div ref={titleRef} className="text-sm whitespace-nowrap">
+              {archivedShow.name || "No show playing"}
             </div>
           </div>
+        </div>
 
-          <div className={`border-l border-white/20 pl-4 ml-4 flex items-center flex-shrink-0 transition-opacity duration-200`}>
-            <button className="text-white rounded-full" onClick={togglePlayPause}>
-              {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-            </button>
-          </div>
+        <div className="border-l border-white/20 pl-4 ml-4 flex items-center flex-shrink-0 transition-opacity duration-200">
+          <button className="text-white rounded-full" onClick={togglePlayPause}>
+            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+          </button>
+        </div>
 
-          <div className="border-l border-white/20 pl-4 ml-4 flex items-center flex-shrink-0">
-            <button className="text-white/70 hover:text-white transition-colors" onClick={handleDismiss}>
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </>
+        <div className="border-l border-white/20 pl-4 flex ml-auto items-center flex-shrink-0">
+          <button className="text-white/70 hover:text-white transition-colors" onClick={handleDismiss}>
+            <X className="h-5 w-5" />
+          </button>
+        </div>
       </div>
     </>
   );

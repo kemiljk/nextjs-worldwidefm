@@ -9,6 +9,8 @@ import { MediaPlayerProvider } from "@/components/providers/media-player-provide
 import MediaPlayer from "@/components/media-player";
 import NavWrapper from "@/components/nav-wrapper";
 import Footer from "@/components/footer";
+import LivePlayer from "@/components/live-player";
+import ArchivePlayer from "@/components/archive-player";
 
 const sans = ABCDiatype({
   src: "./fonts/ABCDiatypeSemi-MonoVariable-Trial.woff2",
@@ -44,6 +46,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange storageKey="worldwidefm-theme">
           <SearchProvider>
             <MediaPlayerProvider>
+              <LivePlayer />
+              <ArchivePlayer />
               <NavWrapper />
               <main className="px-4 md:px-8 lg:px-16 mx-auto pt-24">{children}</main>
               <Footer />

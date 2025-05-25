@@ -200,11 +200,16 @@ function filterShows(shows: MixcloudShow[], params: MixcloudShowsParams): { show
   };
 }
 
+export function getLargestMixcloudImage(pictures: MixcloudShow["pictures"]): string {
+  return pictures["1024wx1024h"] || pictures.extra_large || pictures.large || pictures.medium || pictures.thumbnail || pictures.small || "";
+}
+
 export function transformMixcloudShow(show: MixcloudShow): Partial<RadioShowObject> {
   const now = new Date().toISOString();
+  const largestImage = getLargestMixcloudImage(show.pictures);
   const cosmicImage: CosmicImage = {
-    url: show.pictures.large,
-    imgix_url: show.pictures.large,
+    url: largestImage,
+    imgix_url: largestImage,
   };
 
   // Filter out Worldwide FM from tags when creating genre objects

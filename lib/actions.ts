@@ -1,15 +1,15 @@
 "use server";
 
-import { getPosts, getRadioShows, getSchedule, getEditorialHomepage, getRadioShowBySlug } from "./cosmic-service";
-import { SearchResult, SearchResultType, FilterItem } from "./search-context";
-import { PostObject, RadioShowObject, ScheduleObject, VideoObject } from "./cosmic-config";
-import { transformShowToViewData } from "./cosmic-service";
+import { getPosts, getRadioShows, getEditorialHomepage } from "./cosmic-service";
+import { SearchResult, FilterItem } from "./search-context";
+import { PostObject, RadioShowObject, VideoObject } from "./cosmic-config";
 import { cosmic } from "./cosmic-config";
 import { addHours, isWithinInterval, isAfter } from "date-fns";
 import { getAllShowsFromMixcloud } from "./mixcloud-service";
 import { MixcloudShow } from "./mixcloud-service";
 import { filterWorldwideFMTags } from "./mixcloud-service";
-import { getEventBySlug as getRadioCultEventBySlug, getEvents as getRadioCultEvents, RadioCultEvent, getScheduleData as getRadioCultScheduleData } from "./radiocult-service";
+import { getEventBySlug as getRadioCultEventBySlug, getEvents as getRadioCultEvents, RadioCultEvent, getScheduleData as getRadioCultScheduleData, getTags } from "./radiocult-service";
+import FormData from "form-data";
 
 export async function getAllPosts(): Promise<PostObject[]> {
   try {
@@ -997,7 +997,7 @@ export async function searchContent(query?: string, source?: string, limit: numb
         locations: [],
         takeovers: [],
       })),
-      ...posts.map((item) => ({
+      ...posts.map((item: any) => ({
         id: item.id,
         type: item.metadata.post_type || "posts",
         slug: item.slug,
@@ -1014,7 +1014,7 @@ export async function searchContent(query?: string, source?: string, limit: numb
         locations: [],
         takeovers: [],
       })),
-      ...videos.map((item) => ({
+      ...videos.map((item: any) => ({
         id: item.id,
         type: "videos",
         slug: item.slug,
@@ -1038,4 +1038,69 @@ export async function searchContent(query?: string, source?: string, limit: numb
     console.error("Search error:", error);
     return [];
   }
+}
+
+// Server action to fetch tags
+export async function fetchTags() {
+  "use server";
+
+  try {
+    const tags = await getTags(false, true); // Use secret key for server-side operations
+    return { success: true, tags };
+  } catch (error) {
+    console.error("Error fetching tags:", error);
+    return { success: false, error: "Failed to fetch tags" };
+  }
+}
+
+export async function uploadMediaToRadioCultAndCosmic(file: File, metadata: Record<string, any> = {}) {
+  // Upload to RadioCult
+  const stationId = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
+  const secretKey = process.env.RADIOCULT_SECRET_KEY;
+  if (!stationId || !secretKey) {
+    throw new Error("Missing RadioCult station ID or secret key");
+  }
+
+  // Prepare form data for RadioCult
+  const rcForm = new FormData();
+  rcForm.append("stationMedia", file as any); // Node.js: use createReadStream, but File is fine in edge/serverless
+  rcForm.append("metadata", JSON.stringify(metadata));
+
+  const rcRes = await fetch(`https://api.radiocult.fm/api/station/${stationId}/media/track`, {
+    method: "POST",
+    headers: {
+      ...rcForm.getHeaders?.(),
+      "x-api-key": secretKey,
+    },
+    body: rcForm as any,
+  });
+  if (!rcRes.ok) {
+    throw new Error("Failed to upload to RadioCult");
+  }
+  const rcJson = await rcRes.json();
+  const radiocultMediaId = rcJson.track?.id;
+
+  // Upload to Cosmic
+  // (Assume you have a helper for this, e.g. createObject or a direct upload endpoint)
+  // If using REST API:
+  const cosmicForm = new FormData();
+  cosmicForm.append("media", file as any);
+  const cosmicRes = await fetch(`https://api.cosmicjs.com/v2/buckets/${process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG}/media`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.COSMIC_WRITE_KEY}`,
+      ...cosmicForm.getHeaders?.(),
+    },
+    body: cosmicForm as any,
+  });
+  if (!cosmicRes.ok) {
+    throw new Error("Failed to upload to Cosmic");
+  }
+  const cosmicJson = await cosmicRes.json();
+  const cosmicMedia = cosmicJson.media;
+
+  return {
+    radiocultMediaId,
+    cosmicMedia,
+  };
 }

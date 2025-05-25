@@ -10,7 +10,7 @@ export default function AddShowPage() {
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-6">Add Show</h1>
-      <div className="bg-background border rounded-md p-6">
+      <div className="bg-background border rounded-none p-6">
         <AddShowForm />
       </div>
     </div>

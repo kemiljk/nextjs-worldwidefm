@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { RadioCultArtist, RadioCultTag, getArtists, getTags } from "@/lib/radiocult-service";
+import { Location, getCountries, getCities } from "@/lib/location-service";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +17,9 @@ import { toast } from "sonner";
 import { AddNewArtist } from "./add-new-artist";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import { fetchTags, uploadMediaToRadioCultAndCosmic } from "@/lib/actions";
+import { debounce } from "lodash";
+import { Command, CommandInput, CommandList, CommandItem, CommandEmpty } from "@/components/ui/command";
 
 // Form schema using zod
 const formSchema = z.object({
@@ -39,9 +43,14 @@ const formSchema = z.object({
   extraDetails: z.string().optional(),
   tags: z.array(z.string()).default([]),
   featuredOnHomepage: z.boolean().default(false),
+  locationType: z.enum(["city", "country"]).optional(),
+  locationId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+
+// Helper to get city display label
+const getCityLabel = (city: Location | undefined) => (city ? `${city.name}${city.region ? `, ${city.region}` : ""}` : "");
 
 export function AddShowForm() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -49,6 +58,17 @@ export function AddShowForm() {
   const [tags, setTags] = useState<RadioCultTag[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedTagInput, setSelectedTagInput] = useState<string>("");
+  const [countries, setCountries] = useState<Location[]>([]);
+  const [cities, setCities] = useState<Location[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<string>("");
+  const [cityError, setCityError] = useState<string>("");
+  const [cityInput, setCityInput] = useState<string>("");
+  const [cityOptions, setCityOptions] = useState<Location[]>([]);
+  const [isCityLoading, setIsCityLoading] = useState<boolean>(false);
+  const [selectedCityObj, setSelectedCityObj] = useState<Location | undefined>(undefined);
+  // Track if the user is actively typing
+  const [isTyping, setIsTyping] = useState(false);
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
 
   // Initialize the form
   const form = useForm<FormValues>({
@@ -58,24 +78,31 @@ export function AddShowForm() {
       description: "",
       startDate: "",
       startTime: "",
-      duration: "60", // Default 60 minutes
+      duration: "60",
       tracklist: "",
       extraDetails: "",
       tags: [],
       featuredOnHomepage: false,
+      locationType: undefined,
+      locationId: undefined,
     },
   });
 
-  // Fetch artists and tags when component mounts
+  // Fetch artists, tags, and countries when component mounts
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
         // Fetch data in parallel
-        const [artistList, tagsList] = await Promise.all([getArtists(), getTags()]);
+        const [artistList, tagsResult, countriesList] = await Promise.all([getArtists(), fetchTags(), getCountries()]);
 
         setArtists(artistList);
-        setTags(tagsList);
+        if (tagsResult.success) {
+          setTags(tagsResult.tags ?? []);
+        } else {
+          toast.error("Failed to load tags");
+        }
+        setCountries(countriesList);
       } catch (error) {
         console.error("Error fetching data:", error);
         toast.error("Failed to load data");
@@ -86,6 +113,40 @@ export function AddShowForm() {
 
     fetchData();
   }, []);
+
+  // Debounced city fetcher
+  const fetchCityOptions = debounce(async (country: string, name: string) => {
+    if (!country || !name) {
+      setCityOptions([]);
+      return;
+    }
+    setIsCityLoading(true);
+    setCityError("");
+    try {
+      const cities = await getCities(country, name);
+      console.log("Fetched cities for:", { country, name, cities });
+      setCityOptions(cities);
+      if (cities.length === 0) {
+        setCityError("No cities found matching your input");
+      }
+    } catch (error) {
+      setCityError("Failed to load cities. Please check your API key.");
+      console.error("City fetch error:", error);
+    } finally {
+      setIsCityLoading(false);
+    }
+  }, 400);
+
+  // Watch for city input changes
+  useEffect(() => {
+    if (form.watch("locationType") === "city" && selectedCountry && cityInput.length > 1 && isTyping) {
+      fetchCityOptions(selectedCountry, cityInput);
+    } else if (isTyping) {
+      setCityOptions([]);
+    }
+    // Cancel debounce on unmount
+    return () => fetchCityOptions.cancel();
+  }, [cityInput, selectedCountry, form.watch("locationType"), isTyping]);
 
   // Update form value when selected tags change
   useEffect(() => {
@@ -127,7 +188,19 @@ export function AddShowForm() {
     setIsLoading(true);
 
     try {
-      // First we'll create the content in Cosmic to get approval
+      let radiocultMediaId: string | undefined = undefined;
+      let cosmicMedia: any = undefined;
+      if (mediaFile) {
+        // Upload to RadioCult and Cosmic
+        const uploadResult = await uploadMediaToRadioCultAndCosmic(mediaFile, {
+          title: values.title,
+          artist: artists.find((a) => a.id === values.artistId)?.name || undefined,
+        });
+        radiocultMediaId = uploadResult.radiocultMediaId;
+        cosmicMedia = uploadResult.cosmicMedia;
+      }
+
+      // Create the show in Cosmic
       const response = await fetch("/api/shows/create", {
         method: "POST",
         headers: {
@@ -136,6 +209,8 @@ export function AddShowForm() {
         body: JSON.stringify({
           ...values,
           status: "draft", // Set as draft for approval
+          radiocult_media_id: radiocultMediaId,
+          media_file: cosmicMedia,
         }),
       });
 
@@ -153,6 +228,7 @@ export function AddShowForm() {
       // Reset the form
       form.reset();
       setSelectedTags([]);
+      setMediaFile(null);
     } catch (error) {
       console.error("Error submitting form:", error);
       toast.error("Failed to submit show", {
@@ -162,6 +238,12 @@ export function AddShowForm() {
       setIsLoading(false);
     }
   };
+
+  // Find the selected city object
+  const selectedCity = selectedCityObj;
+
+  // Merge selected city into cityOptions if not present
+  const mergedCityOptions = selectedCityObj && !cityOptions.some((c) => c.id === selectedCityObj.id) ? [selectedCityObj, ...cityOptions] : cityOptions;
 
   return (
     <Form {...form}>
@@ -352,6 +434,176 @@ export function AddShowForm() {
               </FormItem>
             )}
           />
+        </div>
+
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">4. Location</h2>
+
+          <FormField
+            control={form.control}
+            name="locationType"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Location Type</FormLabel>
+                <Select
+                  disabled={isLoading}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                    form.setValue("locationId", undefined);
+                    setSelectedCountry("");
+                  }}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select location type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="country">Country</SelectItem>
+                    <SelectItem value="city">City</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormDescription>Choose whether to specify a country or city</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {form.watch("locationType") === "country" && (
+            <FormField
+              control={form.control}
+              name="locationId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Country</FormLabel>
+                  <Select disabled={isLoading || countries.length === 0} onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a country" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <ScrollArea className="h-[200px]">
+                        {countries.map((country) => (
+                          <SelectItem key={country.id} value={country.id}>
+                            {country.name}
+                          </SelectItem>
+                        ))}
+                      </ScrollArea>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
+          {form.watch("locationType") === "city" && (
+            <>
+              <FormField
+                control={form.control}
+                name="locationId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Country (for city selection)</FormLabel>
+                    <Select
+                      disabled={isLoading || countries.length === 0}
+                      onValueChange={(value) => {
+                        setSelectedCountry(value);
+                        field.onChange(undefined);
+                        setCityInput("");
+                        setCityOptions([]);
+                        setSelectedCityObj(undefined);
+                      }}
+                      value={selectedCountry}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a country first" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <ScrollArea className="h-[200px]">
+                          {countries.map((country) => (
+                            <SelectItem key={country.id} value={country.id}>
+                              {country.name}
+                            </SelectItem>
+                          ))}
+                        </ScrollArea>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {selectedCountry && (
+                <FormField
+                  control={form.control}
+                  name="locationId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <Command className="w-full border rounded-none">
+                        <CommandInput
+                          placeholder="Type to search for a city"
+                          value={selectedCityObj ? getCityLabel(selectedCityObj) : cityInput}
+                          onValueChange={(val) => {
+                            setCityInput(val);
+                            setIsTyping(true);
+                            setSelectedCityObj(undefined);
+                            field.onChange("");
+                          }}
+                          disabled={isLoading}
+                        />
+                        <CommandList>
+                          {isCityLoading && <div className="p-2 text-sm text-muted-foreground">Loading cities...</div>}
+                          {!isCityLoading && cityOptions.length === 0 && <CommandEmpty>No cities found</CommandEmpty>}
+                          {cityOptions.map((city) => (
+                            <CommandItem
+                              key={city.id}
+                              value={city.id}
+                              onSelect={() => {
+                                field.onChange(city.id);
+                                setSelectedCityObj(city);
+                                setCityInput(""); // Clear input so label is shown from selectedCityObj
+                                setIsTyping(false);
+                              }}
+                            >
+                              <span>{city.name}</span>
+                              {city.region && <span style={{ color: "#888", marginLeft: 8, fontSize: "0.95em" }}>{city.region}</span>}
+                            </CommandItem>
+                          ))}
+                        </CommandList>
+                      </Command>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">5. Media File</h2>
+          <FormItem>
+            <FormLabel>Upload MP3</FormLabel>
+            <FormControl>
+              <Input
+                type="file"
+                accept="audio/mp3"
+                disabled={isLoading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null;
+                  setMediaFile(file);
+                }}
+              />
+            </FormControl>
+            {mediaFile && <div className="text-sm text-muted-foreground mt-1">Selected: {mediaFile.name}</div>}
+            <FormDescription>Upload your show as an MP3 file. This will be sent to both RadioCult and Cosmic.</FormDescription>
+          </FormItem>
         </div>
 
         <div className="flex justify-end">

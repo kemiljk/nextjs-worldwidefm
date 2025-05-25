@@ -661,7 +661,7 @@ export function transformRadioCultEvent(event: RadioCultEvent): Partial<RadioSho
 /**
  * Get tags from RadioCult
  */
-export async function getTags(forceRefresh = false): Promise<RadioCultTag[]> {
+export async function getTags(forceRefresh = false, useSecretKey = false): Promise<RadioCultTag[]> {
   const endpoint = `/api/station/${STATION_ID}/media/tag`;
   const cacheKey = createCacheKey(endpoint);
   const cached = dataCache.get(cacheKey);
@@ -672,8 +672,8 @@ export async function getTags(forceRefresh = false): Promise<RadioCultTag[]> {
   }
 
   try {
-    // This endpoint requires a secret key
-    const data = await fetchFromRadioCult<{ success: boolean; tags: RadioCultTag[] }>(endpoint, {}, true);
+    // Use publishable key by default, secret key only when explicitly requested
+    const data = await fetchFromRadioCult<{ success: boolean; tags: RadioCultTag[] }>(endpoint, {}, useSecretKey);
 
     // Update cache
     dataCache.set(cacheKey, {
