@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { AddNewArtist } from "./add-new-artist";
@@ -20,6 +19,7 @@ import { X } from "lucide-react";
 import { fetchTags, uploadMediaToRadioCultAndCosmic } from "@/lib/actions";
 import { debounce } from "lodash";
 import { Command, CommandInput, CommandList, CommandItem, CommandEmpty } from "@/components/ui/command";
+import { Dropzone } from "@/components/ui/dropzone";
 
 // Form schema using zod
 const formSchema = z.object({
@@ -59,7 +59,6 @@ export function AddShowForm() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedTagInput, setSelectedTagInput] = useState<string>("");
   const [countries, setCountries] = useState<Location[]>([]);
-  const [cities, setCities] = useState<Location[]>([]);
   const [selectedCountry, setSelectedCountry] = useState<string>("");
   const [cityError, setCityError] = useState<string>("");
   const [cityInput, setCityInput] = useState<string>("");
@@ -239,17 +238,11 @@ export function AddShowForm() {
     }
   };
 
-  // Find the selected city object
-  const selectedCity = selectedCityObj;
-
-  // Merge selected city into cityOptions if not present
-  const mergedCityOptions = selectedCityObj && !cityOptions.some((c) => c.id === selectedCityObj.id) ? [selectedCityObj, ...cityOptions] : cityOptions;
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">1. Show Details</h2>
+          <h2 className="text-xl font-semibold">Show Details</h2>
 
           <FormField
             control={form.control}
@@ -325,7 +318,7 @@ export function AddShowForm() {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">2. Artist</h2>
+          <h2 className="text-xl font-semibold">Artist</h2>
 
           <FormField
             control={form.control}
@@ -360,7 +353,7 @@ export function AddShowForm() {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">3. Additional Information</h2>
+          <h2 className="text-xl font-semibold">Additional Information</h2>
 
           <FormField
             control={form.control}
@@ -437,7 +430,7 @@ export function AddShowForm() {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">4. Location</h2>
+          <h2 className="text-xl font-semibold">Location</h2>
 
           <FormField
             control={form.control}
@@ -545,37 +538,59 @@ export function AddShowForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>City</FormLabel>
-                      <Command className="w-full border rounded-none">
-                        <CommandInput
-                          placeholder="Type to search for a city"
-                          value={selectedCityObj ? getCityLabel(selectedCityObj) : cityInput}
-                          onValueChange={(val) => {
-                            setCityInput(val);
-                            setIsTyping(true);
-                            setSelectedCityObj(undefined);
-                            field.onChange("");
-                          }}
-                          disabled={isLoading}
-                        />
-                        <CommandList>
-                          {isCityLoading && <div className="p-2 text-sm text-muted-foreground">Loading cities...</div>}
-                          {!isCityLoading && cityOptions.length === 0 && <CommandEmpty>No cities found</CommandEmpty>}
-                          {cityOptions.map((city) => (
-                            <CommandItem
-                              key={city.id}
-                              value={city.id}
-                              onSelect={() => {
-                                field.onChange(city.id);
-                                setSelectedCityObj(city);
-                                setCityInput(""); // Clear input so label is shown from selectedCityObj
-                                setIsTyping(false);
+                      <Command className="w-full border rounded-none relative">
+                        <div className="relative">
+                          <CommandInput
+                            placeholder="Type to search for a city"
+                            value={selectedCityObj ? getCityLabel(selectedCityObj) : cityInput}
+                            onValueChange={(val) => {
+                              setCityInput(val);
+                              setIsTyping(true);
+                              setSelectedCityObj(undefined);
+                              field.onChange("");
+                            }}
+                            disabled={!!selectedCityObj || isLoading}
+                            style={{ width: "100%" }}
+                          />
+                          {selectedCityObj && (
+                            <button
+                              type="button"
+                              aria-label="Clear city selection"
+                              onClick={() => {
+                                setSelectedCityObj(undefined);
+                                setCityInput("");
+                                setCityOptions([]);
+                                field.onChange("");
                               }}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                              tabIndex={0}
                             >
-                              <span>{city.name}</span>
-                              {city.region && <span style={{ color: "#888", marginLeft: 8, fontSize: "0.95em" }}>{city.region}</span>}
-                            </CommandItem>
-                          ))}
-                        </CommandList>
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                        {!selectedCityObj && (
+                          <CommandList>
+                            {isCityLoading && <div className="p-2 text-sm text-muted-foreground">Loading cities...</div>}
+                            {!isCityLoading && cityOptions.length === 0 && <CommandEmpty>No cities found</CommandEmpty>}
+                            {cityOptions.map((city) => (
+                              <CommandItem
+                                key={city.id}
+                                value={city.id}
+                                onSelect={() => {
+                                  field.onChange(city.id);
+                                  setSelectedCityObj(city);
+                                  setCityInput(getCityLabel(city));
+                                  setCityOptions([]);
+                                  setIsTyping(false);
+                                }}
+                              >
+                                <span>{city.name}</span>
+                                {city.region && <span style={{ color: "#888", marginLeft: 8, fontSize: "0.95em" }}>{city.region}</span>}
+                              </CommandItem>
+                            ))}
+                          </CommandList>
+                        )}
                       </Command>
                       <FormMessage />
                     </FormItem>
@@ -587,22 +602,19 @@ export function AddShowForm() {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">5. Media File</h2>
+          <h2 className="text-xl font-semibold">Media File</h2>
           <FormItem>
             <FormLabel>Upload MP3</FormLabel>
             <FormControl>
-              <Input
-                type="file"
-                accept="audio/mp3"
+              <Dropzone
+                accept="audio/*"
                 disabled={isLoading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0] || null;
-                  setMediaFile(file);
-                }}
+                onFileSelect={setMediaFile}
+                selectedFile={mediaFile}
+                maxSize={100 * 1024 * 1024} // 100MB limit
               />
             </FormControl>
-            {mediaFile && <div className="text-sm text-muted-foreground mt-1">Selected: {mediaFile.name}</div>}
-            <FormDescription>Upload your show as an MP3 file. This will be sent to both RadioCult and Cosmic.</FormDescription>
+            <FormDescription>Upload your show as an MP3 file. Maximum file size is 100MB.</FormDescription>
           </FormItem>
         </div>
 

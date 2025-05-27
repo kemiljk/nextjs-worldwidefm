@@ -85,7 +85,7 @@ export default function LivePlayer() {
 
       <div className="border-l border-white/20 pl-4 ml-4 flex items-center flex-shrink-0 transition-opacity duration-200">
         <button className={`rounded-full ${isLive ? "text-crimson-500" : "text-white/50"}`} onClick={togglePlayPause} disabled={!isLive}>
-          {isPlaying ? <Pause className="h-5 w-5" /> : <Circle className={`h-5 w-5 ${isLive ? "animate-pulse" : ""}`} />}
+          {isPlaying ? <Pause className="h-5 w-5" /> : <Circle className={`h-5 w-5 ${isLive ? "animate-pulse text-crimson-500" : "hidden"}`} />}
         </button>
       </div>
     </div>
