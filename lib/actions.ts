@@ -160,85 +160,91 @@ export async function getAllShows(skip = 0, limit = 20, filters?: any) {
 }
 
 export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioCultEvent | null> {
-  // First try RadioCult
+  // First try RadioCult only if this is a potential live show
   try {
     // If this is a full Mixcloud path with multiple segments, don't try RadioCult
     if (slug.includes("/")) {
       // This is a Mixcloud path, skip RadioCult lookup
     } else {
-      const radioCultEvent = await getRadioCultEventBySlug(slug);
-      if (radioCultEvent) {
-        // Convert RadioCult event to a format similar to MixcloudShow for compatibility
-        const adaptedEvent: any = {
-          key: radioCultEvent.slug,
-          name: radioCultEvent.showName,
-          url: `/shows/${radioCultEvent.slug}`,
-          pictures: {
-            small: radioCultEvent.imageUrl || "/image-placeholder.svg",
-            thumbnail: radioCultEvent.imageUrl || "/image-placeholder.svg",
-            medium_mobile: radioCultEvent.imageUrl || "/image-placeholder.svg",
-            medium: radioCultEvent.imageUrl || "/image-placeholder.svg",
-            large: radioCultEvent.imageUrl || "/image-placeholder.svg",
-            "320wx320h": radioCultEvent.imageUrl || "/image-placeholder.svg",
-            extra_large: radioCultEvent.imageUrl || "/image-placeholder.svg",
-            "640wx640h": radioCultEvent.imageUrl || "/image-placeholder.svg",
-            "768wx768h": radioCultEvent.imageUrl || "/image-placeholder.svg",
-            "1024wx1024h": radioCultEvent.imageUrl || "/image-placeholder.svg",
-          },
-          created_time: radioCultEvent.startTime,
-          updated_time: radioCultEvent.updatedAt,
-          play_count: 0,
-          favorite_count: 0,
-          comment_count: 0,
-          listener_count: 0,
-          repost_count: 0,
-          tags: radioCultEvent.tags.map((tag) => ({
-            key: tag.toLowerCase().replace(/\s+/g, "-"),
-            url: `/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`,
-            name: tag,
-          })),
-          slug: radioCultEvent.slug,
-          user: {
-            key: "radiocult",
-            url: "/",
-            name: "RadioCult",
-            username: "radiocult",
-            pictures: {
-              small: "/logo.svg",
-              thumbnail: "/logo.svg",
-              medium_mobile: "/logo.svg",
-              medium: "/logo.svg",
-              large: "/logo.svg",
-              "320wx320h": "/logo.svg",
-              extra_large: "/logo.svg",
-              "640wx640h": "/logo.svg",
-            },
-          },
-          hosts: radioCultEvent.artists.map((artist) => ({
-            key: artist.id,
-            url: `/artists/${artist.slug}`,
-            name: artist.name,
-            username: artist.slug,
-            pictures: {
-              small: artist.imageUrl || "/image-placeholder.svg",
-              thumbnail: artist.imageUrl || "/image-placeholder.svg",
-              medium_mobile: artist.imageUrl || "/image-placeholder.svg",
-              medium: artist.imageUrl || "/image-placeholder.svg",
-              large: artist.imageUrl || "/image-placeholder.svg",
-              "320wx320h": artist.imageUrl || "/image-placeholder.svg",
-              extra_large: artist.imageUrl || "/image-placeholder.svg",
-              "640wx640h": artist.imageUrl || "/image-placeholder.svg",
-            },
-          })),
-          hidden_stats: false,
-          audio_length: radioCultEvent.duration * 60, // convert minutes to seconds
-          endTime: radioCultEvent.endTime, // Add endTime for RadioCult events
-          description: radioCultEvent.description, // Add description for RadioCult events
-          __source: "radiocult", // Add a source marker to identify RadioCult events
-        };
+      // Check if this could be a live show by checking if the slug matches today's date
+      const today = new Date();
+      const isPotentialLiveShow = slug.toLowerCase().includes(today.toISOString().split("T")[0].replace(/-/g, ""));
 
-        console.log("Found RadioCult event:", adaptedEvent.name);
-        return adaptedEvent;
+      if (isPotentialLiveShow) {
+        const radioCultEvent = await getRadioCultEventBySlug(slug);
+        if (radioCultEvent) {
+          // Convert RadioCult event to a format similar to MixcloudShow for compatibility
+          const adaptedEvent: any = {
+            key: radioCultEvent.slug,
+            name: radioCultEvent.showName,
+            url: `/shows/${radioCultEvent.slug}`,
+            pictures: {
+              small: radioCultEvent.imageUrl || "/image-placeholder.svg",
+              thumbnail: radioCultEvent.imageUrl || "/image-placeholder.svg",
+              medium_mobile: radioCultEvent.imageUrl || "/image-placeholder.svg",
+              medium: radioCultEvent.imageUrl || "/image-placeholder.svg",
+              large: radioCultEvent.imageUrl || "/image-placeholder.svg",
+              "320wx320h": radioCultEvent.imageUrl || "/image-placeholder.svg",
+              extra_large: radioCultEvent.imageUrl || "/image-placeholder.svg",
+              "640wx640h": radioCultEvent.imageUrl || "/image-placeholder.svg",
+              "768wx768h": radioCultEvent.imageUrl || "/image-placeholder.svg",
+              "1024wx1024h": radioCultEvent.imageUrl || "/image-placeholder.svg",
+            },
+            created_time: radioCultEvent.startTime,
+            updated_time: radioCultEvent.updatedAt,
+            play_count: 0,
+            favorite_count: 0,
+            comment_count: 0,
+            listener_count: 0,
+            repost_count: 0,
+            tags: radioCultEvent.tags.map((tag) => ({
+              key: tag.toLowerCase().replace(/\s+/g, "-"),
+              url: `/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`,
+              name: tag,
+            })),
+            slug: radioCultEvent.slug,
+            user: {
+              key: "radiocult",
+              url: "/",
+              name: "RadioCult",
+              username: "radiocult",
+              pictures: {
+                small: "/logo.svg",
+                thumbnail: "/logo.svg",
+                medium_mobile: "/logo.svg",
+                medium: "/logo.svg",
+                large: "/logo.svg",
+                "320wx320h": "/logo.svg",
+                extra_large: "/logo.svg",
+                "640wx640h": "/logo.svg",
+              },
+            },
+            hosts: radioCultEvent.artists.map((artist) => ({
+              key: artist.id,
+              url: `/artists/${artist.slug}`,
+              name: artist.name,
+              username: artist.slug,
+              pictures: {
+                small: artist.imageUrl || "/image-placeholder.svg",
+                thumbnail: artist.imageUrl || "/image-placeholder.svg",
+                medium_mobile: artist.imageUrl || "/image-placeholder.svg",
+                medium: artist.imageUrl || "/image-placeholder.svg",
+                large: artist.imageUrl || "/image-placeholder.svg",
+                "320wx320h": artist.imageUrl || "/image-placeholder.svg",
+                extra_large: artist.imageUrl || "/image-placeholder.svg",
+                "640wx640h": artist.imageUrl || "/image-placeholder.svg",
+              },
+            })),
+            hidden_stats: false,
+            audio_length: radioCultEvent.duration * 60, // convert minutes to seconds
+            endTime: radioCultEvent.endTime, // Add endTime for RadioCult events
+            description: radioCultEvent.description, // Add description for RadioCult events
+            __source: "radiocult", // Add a source marker to identify RadioCult events
+          };
+
+          console.log("Found RadioCult event:", adaptedEvent.name);
+          return adaptedEvent;
+        }
       }
     }
   } catch (error) {
@@ -249,7 +255,12 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioC
   // Then try Mixcloud
   try {
     // Clean up the slug to get the show key
-    const showKey = slug.startsWith("/") ? slug : `/${slug}`;
+    let showKey = slug.startsWith("/") ? slug : `/${slug}`;
+
+    // If the key doesn't start with /worldwidefm/, add it
+    if (!showKey.startsWith("/worldwidefm/")) {
+      showKey = `/worldwidefm${showKey}`;
+    }
 
     // Make a direct API call to Mixcloud for this specific show
     const response = await fetch(`https://api.mixcloud.com${showKey}`, {
