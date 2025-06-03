@@ -5,6 +5,7 @@ import AirProExtended from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import SearchProvider from "@/components/providers/search-provider";
+import { AuthProvider } from "@/cosmic/blocks/user-management/AuthContext";
 import { MediaPlayerProvider } from "@/components/providers/media-player-provider";
 import MediaPlayer from "@/components/media-player";
 import NavWrapper from "@/components/nav-wrapper";
@@ -44,16 +45,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={`${sans.variable} ${display.variable} min-h-screen bg-background font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange storageKey="worldwidefm-theme">
-          <SearchProvider>
-            <MediaPlayerProvider>
-              <LivePlayer />
-              <ArchivePlayer />
-              <NavWrapper />
-              <main className="px-4 md:px-8 lg:px-16 mx-auto pt-24">{children}</main>
-              <Footer />
-              <MediaPlayer />
-            </MediaPlayerProvider>
-          </SearchProvider>
+          <AuthProvider>
+            <SearchProvider>
+              <MediaPlayerProvider>
+                <LivePlayer />
+                <ArchivePlayer />
+                <NavWrapper />
+                <main className="px-4 md:px-8 lg:px-16 mx-auto pt-24">{children}</main>
+                <Footer />
+                <MediaPlayer />
+              </MediaPlayerProvider>
+            </SearchProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { getMixcloudShows, getAllFilters } from '@/lib/actions';
-import { PageHeader } from '@/components/shared/page-header';
-import { ShowsFilter } from '../components/shows-filter';
-import { ShowsGrid } from '../components/shows-grid';
-import { Loader } from 'lucide-react';
+import React, { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { getMixcloudShows, getAllFilters } from "@/lib/actions";
+import { PageHeader } from "@/components/shared/page-header";
+import { ShowsFilter } from "../../components/shows-filter";
+import { ShowsGrid } from "../../components/shows-grid";
+import { Loader } from "lucide-react";
 
 export default function ShowsClient() {
   const searchParams = useSearchParams();
@@ -18,11 +18,11 @@ export default function ShowsClient() {
   const observerTarget = useRef<HTMLDivElement>(null);
 
   // Parse search params safely
-  const genre = searchParams.get('genre') ?? undefined;
-  const host = searchParams.get('host') ?? undefined;
-  const takeover = searchParams.get('takeover') ?? undefined;
-  const searchTerm = searchParams.get('searchTerm') ?? undefined;
-  const isNew = searchParams.get('isNew') === 'true';
+  const genre = searchParams.get("genre") ?? undefined;
+  const host = searchParams.get("host") ?? undefined;
+  const takeover = searchParams.get("takeover") ?? undefined;
+  const searchTerm = searchParams.get("searchTerm") ?? undefined;
+  const isNew = searchParams.get("isNew") === "true";
 
   // Load initial data
   useEffect(() => {
@@ -71,7 +71,7 @@ export default function ShowsClient() {
         setHasMore(false);
       }
     } catch (error) {
-      console.error('Error loading more shows:', error);
+      console.error("Error loading more shows:", error);
     } finally {
       setIsLoadingMore(false);
     }
@@ -96,29 +96,17 @@ export default function ShowsClient() {
   }, [hasMore, isLoadingMore]);
 
   return (
-    <div className='mx-auto lg:px-4 py-16'>
-      <div className='flex justify-between w-full gap-8'>
-        <PageHeader title='Shows' />
-        <ShowsFilter
-          genres={filters.genres}
-          hosts={filters.hosts}
-          takeovers={filters.takeovers}
-          selectedGenre={genre}
-          selectedHost={host}
-          selectedTakeover={takeover}
-          searchTerm={searchTerm}
-          isNew={isNew}
-        />
+    <div className="mx-auto lg:px-4 py-16">
+      <div className="flex justify-between w-full gap-8">
+        <PageHeader title="Shows" />
+        <ShowsFilter genres={filters.genres} hosts={filters.hosts} takeovers={filters.takeovers} selectedGenre={genre} selectedHost={host} selectedTakeover={takeover} searchTerm={searchTerm} isNew={isNew} />
       </div>
 
-      <div className='flex flex-col gap-8 mt-8'>
-        <main className='lg:col-span-3'>
+      <div className="flex flex-col gap-8 mt-8">
+        <main className="lg:col-span-3">
           <ShowsGrid shows={shows} />
-          <div
-            ref={observerTarget}
-            className='h-4 flex items-center justify-center mt-8'
-          >
-            {isLoadingMore && <Loader className='h-4 w-4 animate-spin' />}
+          <div ref={observerTarget} className="h-4 flex items-center justify-center mt-8">
+            {isLoadingMore && <Loader className="h-4 w-4 animate-spin" />}
           </div>
         </main>
       </div>
