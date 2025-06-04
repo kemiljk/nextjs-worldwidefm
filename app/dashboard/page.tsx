@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 export default function DashboardPage() {
   return (
     <div className="container mx-auto py-8 px-4">
-      <Suspense fallback={<Loader2 className="text-accent mx-auto w-8 h-8 animate-spin" />}>
+      <Suspense fallback={<Loader2 className="text-primary mx-auto w-8 h-8 animate-spin" />}>
         <DashboardClient />
       </Suspense>
     </div>

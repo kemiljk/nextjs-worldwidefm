@@ -1,7 +1,3 @@
-import Image from "next/image";
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { getVideos, getAllPosts } from "@/lib/actions";
 import { getMixcloudShows, MixcloudShow, filterWorldwideFMTags } from "@/lib/mixcloud-service";
 import EditorialSection from "@/components/editorial/editorial-section";

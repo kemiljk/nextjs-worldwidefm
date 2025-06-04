@@ -4,7 +4,7 @@ import { Loader2 } from "lucide-react";
 
 export default function VerifyPage() {
   return (
-    <Suspense fallback={<Loader2 className="text-blue-600 mx-auto w-8 h-8 animate-spin" />}>
+    <Suspense fallback={<Loader2 className="text-accent mx-auto w-8 h-8 animate-spin" />}>
       <VerifyClient />
     </Suspense>
   );

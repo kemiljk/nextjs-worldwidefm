@@ -1,90 +1,87 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { Button } from "@/cosmic/elements/Button"
-import { Input } from "@/cosmic/elements/Input"
-import { Label } from "@/cosmic/elements/Label"
-import { Loader2 } from "lucide-react"
+import { useState } from "react";
+import Link from "next/link";
+import { Button } from "@/cosmic/elements/Button";
+import { Input } from "@/cosmic/elements/Input";
+import { Label } from "@/cosmic/elements/Label";
+import { Loader2, Mail } from "lucide-react";
 
 interface ForgotPasswordFormProps {
-  onSubmit: (formData: FormData) => Promise<any>
+  onSubmit: (formData: FormData) => Promise<any>;
 }
 
-export default function ForgotPasswordForm({
-  onSubmit,
-}: ForgotPasswordFormProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
+export default function ForgotPasswordForm({ onSubmit }: ForgotPasswordFormProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
     try {
-      const formData = new FormData(e.currentTarget)
-      const result = await onSubmit(formData)
+      const formData = new FormData(e.currentTarget);
+      const result = await onSubmit(formData);
 
       if (result.error) {
-        throw new Error(result.error)
+        setError(result.error);
+        return;
       }
 
-      setSuccess(true)
+      setSuccess(true);
     } catch (err: any) {
-      console.error(err.message || "An error occurred")
+      setError(err.message || "An error occurred");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (success) {
     return (
-      <div className="mx-auto mt-8 max-w-md p-4 text-center">
-        <h2 className="mb-4 text-xl font-bold">Check Your Email</h2>
-        <p className="mb-4">
-          If an account exists with that email address, we&apos;ve sent
-          instructions to reset your password.
-        </p>
-        <Link href="/login" className="text-blue-600">
-          Return to login
-        </Link>
+      <div className="py-8">
+        <div className="mx-auto max-w-md">
+          <div className="bg-card p-8 shadow-sm text-center">
+            <Mail className="mx-auto size-16 text-sky-500 mb-4" />
+            <h2 className="font-display text-2xl font-normal tracking-tight mb-4">Check Your Email</h2>
+            <p className="text-muted-foreground mb-6">If an account exists with that email address, we've sent instructions to reset your password.</p>
+            <Button asChild>
+              <Link href="/login">Return to login</Link>
+            </Button>
+          </div>
+        </div>
       </div>
-    )
+    );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto mt-8 max-w-md space-y-6">
-      <h1 className="text-center text-2xl font-bold">Reset Password</h1>
-      <p className="text-center text-gray-600">
-        Enter your email address and we&apos;ll send you instructions to reset
-        your password.
-      </p>
+    <div className="py-8">
+      <div className="mx-auto max-w-md">
+        <div className="bg-card p-8 shadow-sm">
+          <h1 className="font-display text-3xl font-normal tracking-tight text-center mb-4">Reset Password</h1>
+          <p className="text-center text-muted-foreground mb-8">Enter your email address and we'll send you instructions to reset your password.</p>
 
-      <div>
-        <Label htmlFor="email">Email</Label>
-        <Input
-          type="email"
-          id="email"
-          name="email"
-          required
-          placeholder="Enter your email address"
-          autoFocus
-        />
+          {error && <div className="mb-6 p-4 bg-crimson-50 border border-crimson-200 text-crimson-800 text-sm">{error}</div>}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input type="email" id="email" name="email" required placeholder="Enter your email address" autoFocus />
+            </div>
+
+            <Button type="submit" disabled={isLoading} className="w-full">
+              {isLoading ? <Loader2 className="size-4 animate-spin" /> : "Send Reset Instructions"}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center text-sm text-muted-foreground">
+            <Link href="/login" className="text-primary hover:underline font-medium">
+              Back to login
+            </Link>
+          </div>
+        </div>
       </div>
-
-      <Button type="submit" disabled={isLoading} className="w-full">
-        {isLoading ? (
-          <Loader2 className="size-5 animate-spin" />
-        ) : (
-          "Send Reset Instructions"
-        )}
-      </Button>
-
-      <div className="text-center text-sm">
-        <Link href="/login" className="text-blue-600">
-          Back to login
-        </Link>
-      </div>
-    </form>
-  )
+    </div>
+  );
 }
