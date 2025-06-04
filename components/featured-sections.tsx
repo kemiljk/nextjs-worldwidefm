@@ -28,7 +28,7 @@ export default function FeaturedSections({ showToDisplay, hasLiveShow, transform
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 relative z-10">
       {/* Left featured section */}
-      <div className="flex flex-col h-full p-4 md:p-8 lg:p-10 border-b md:border-b-0 md:border-r border-black dark:border-white">
+      <div className="flex flex-col h-full p-4 md:p-8 lg:p-10 border-b md:border-r border-black dark:border-white">
         <Card className="overflow-hidden shadow-none border-none relative cursor-pointer" onClick={() => showToDisplay && handleShowClick(showToDisplay)}>
           <CardContent className="p-0">
             <div className="relative aspect-square">
@@ -55,7 +55,7 @@ export default function FeaturedSections({ showToDisplay, hasLiveShow, transform
 
       {/* Right featured section */}
       <div className="h-full">
-        <div className="flex flex-col h-full p-4 md:p-8 lg:p-10">
+        <div className="flex flex-col h-full p-4 md:p-8 lg:p-10 border-b border-black dark:border-white">
           <Card className="overflow-hidden border-none shadow-none flex-grow cursor-pointer" onClick={() => transformedUpcomingShows[0] && handleShowClick(transformedUpcomingShows[0])}>
             <CardContent className="p-0 relative h-full flex flex-col">
               <div className="aspect-square w-full relative">
