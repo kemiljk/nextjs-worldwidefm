@@ -1,6 +1,6 @@
 "use server";
 
-import { getPosts, getRadioShows, getEditorialHomepage } from "./cosmic-service";
+import { getPosts, getRadioShows, getEditorialHomepage, getRadioShowBySlug } from "./cosmic-service";
 import { SearchResult, FilterItem } from "./search-context";
 import { PostObject, RadioShowObject, VideoObject } from "./cosmic-config";
 import { cosmic } from "./cosmic-config";
@@ -157,6 +157,73 @@ export async function getAllShows(skip = 0, limit = 20, filters?: any) {
     console.error("Error fetching shows:", error);
     return { shows: [], total: 0 };
   }
+}
+
+/**
+ * Enhanced function that merges Mixcloud and Cosmic CMS data for richer show details
+ */
+export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
+  // First get the base show data (from Mixcloud or RadioCult)
+  const baseShow = await getShowBySlug(slug);
+  if (!baseShow) {
+    return null;
+  }
+
+  // Try to find matching Cosmic CMS data
+  let cosmicShow = null;
+  try {
+    // Try to find by exact slug match first
+    const cosmicResponse = await getRadioShowBySlug(slug);
+    cosmicShow = cosmicResponse?.object || null;
+
+    // If no exact match, try to find by title match
+    if (!cosmicShow) {
+      const showName = "name" in baseShow ? baseShow.name : "showName" in baseShow ? baseShow.showName : "";
+      if (showName) {
+        const allShows = await getRadioShows({ limit: 1000 });
+        cosmicShow = allShows.objects.find((show) => show.title.toLowerCase().includes(showName.toLowerCase()) || showName.toLowerCase().includes(show.title.toLowerCase())) || null;
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching Cosmic CMS data:", error);
+  }
+
+  // Helper function to safely get properties
+  const getShowName = (show: any) => show.name || show.showName || "";
+  const getShowDescription = (show: any) => show.description || "";
+  const getShowImage = (show: any) => show.pictures?.extra_large || show.imageUrl || "";
+  const getShowTags = (show: any) => show.tags || [];
+  const getShowHosts = (show: any) => show.hosts || [];
+
+  // Merge the data, prioritizing Cosmic CMS data when available
+  const enhancedShow = {
+    ...baseShow,
+    // Merge Cosmic CMS metadata if available
+    ...(cosmicShow && {
+      cosmicData: cosmicShow,
+      subtitle: cosmicShow.metadata?.subtitle || getShowName(baseShow),
+      description: cosmicShow.metadata?.description || getShowDescription(baseShow),
+      body_text: cosmicShow.metadata?.body_text,
+      tracklist: cosmicShow.metadata?.tracklist,
+      duration: cosmicShow.metadata?.duration,
+      broadcast_date: cosmicShow.metadata?.broadcast_date,
+      broadcast_time: cosmicShow.metadata?.broadcast_time,
+      player: cosmicShow.metadata?.player,
+      page_link: cosmicShow.metadata?.page_link,
+      // Enhanced image - prefer Cosmic CMS if available
+      enhanced_image: cosmicShow.metadata?.image?.imgix_url || getShowImage(baseShow),
+      // Enhanced genres - merge Mixcloud tags with Cosmic genres
+      enhanced_genres: [...(getShowTags(baseShow).length > 0 ? filterWorldwideFMTags(getShowTags(baseShow)) : []), ...(cosmicShow.metadata?.genres || [])],
+      // Enhanced hosts - merge Mixcloud hosts with Cosmic regular_hosts
+      enhanced_hosts: [...getShowHosts(baseShow), ...(cosmicShow.metadata?.regular_hosts || [])],
+      // Additional Cosmic-only fields
+      locations: cosmicShow.metadata?.locations || [],
+      takeovers: cosmicShow.metadata?.takeovers || [],
+      featured_on_homepage: cosmicShow.metadata?.featured_on_homepage || false,
+    }),
+  };
+
+  return enhancedShow;
 }
 
 export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioCultEvent | null> {
@@ -1163,4 +1230,27 @@ export async function uploadMediaToRadioCultAndCosmic(file: File, metadata: Reco
     radiocultMediaId,
     cosmicMedia,
   };
+}
+
+/**
+ * Helper function to get host profile URL if it exists
+ */
+export async function getHostProfileUrl(hostName: string): Promise<string | null> {
+  try {
+    const { getHostByName, getHosts } = await import("./cosmic-service");
+
+    // First try to find by exact name match
+    let host = await getHostByName(hostName);
+
+    if (!host) {
+      // Try to find by similar name
+      const allHosts = await getHosts({ limit: 1000 });
+      host = allHosts.objects.find((h) => h.title.toLowerCase().includes(hostName.toLowerCase()) || hostName.toLowerCase().includes(h.title.toLowerCase()));
+    }
+
+    return host ? `/hosts/${host.slug}` : null;
+  } catch (error) {
+    console.error("Error getting host profile URL:", error);
+    return null;
+  }
 }

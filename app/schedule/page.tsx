@@ -101,13 +101,16 @@ export default async function SchedulePage() {
 
   // Group shows by day
   const daysOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-  const showsByDay = scheduleItems.reduce((acc, show) => {
-    if (!acc[show.show_day]) {
-      acc[show.show_day] = [];
-    }
-    acc[show.show_day].push(show);
-    return acc;
-  }, {} as Record<string, ScheduleShow[]>);
+  const showsByDay = scheduleItems.reduce(
+    (acc, show) => {
+      if (!acc[show.show_day]) {
+        acc[show.show_day] = [];
+      }
+      acc[show.show_day].push(show);
+      return acc;
+    },
+    {} as Record<string, ScheduleShow[]>
+  );
 
   // Sort shows within each day by time
   Object.keys(showsByDay).forEach((day) => {
@@ -148,7 +151,19 @@ export default async function SchedulePage() {
                               <span className="text-sm font-medium text-foreground">{show.show_time}</span>
                             </div>
                             <h3 className="text-lg leading-tight text-foreground group-hover:text-foreground transition-colors">{show.name}</h3>
-                            {show.hosts.length > 0 && <p className="text-sm text-foreground mt-1 line-clamp-1">Hosted by: {show.hosts.join(", ")}</p>}
+                            {show.hosts.length > 0 && (
+                              <p className="text-sm text-foreground mt-1 line-clamp-1">
+                                Hosted by:{" "}
+                                {show.hosts.map((hostName, index) => (
+                                  <span key={hostName}>
+                                    <Link href={`/hosts/${hostName.toLowerCase().replace(/\s+/g, "-")}`} className="hover:underline transition-colors">
+                                      {hostName}
+                                    </Link>
+                                    {index < show.hosts.length - 1 && ", "}
+                                  </span>
+                                ))}
+                              </p>
+                            )}
                           </div>
 
                           {/* Action button */}

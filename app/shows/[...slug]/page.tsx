@@ -1,16 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { getShowBySlug, getMixcloudShows } from "@/lib/actions";
+import { getMixcloudShows, getEnhancedShowBySlug } from "@/lib/actions";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { MixcloudShow } from "@/lib/mixcloud-service";
-import { Button } from "@/components/ui/button";
 import { PlayButton } from "@/components/play-button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { addHours, isWithinInterval } from "date-fns";
 import { filterWorldwideFMTags } from "@/lib/mixcloud-service";
-import ArchivePlayer from "@/components/archive-player";
 
 // Add consistent revalidation time for Mixcloud content
 export const revalidate = 900; // 15 minutes
@@ -61,8 +59,8 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
   const showSlug = params.slug[params.slug.length - 1]; // Last segment for RadioCult slug
   console.log("Looking for show with key:", showKey);
 
-  // Get the show data directly from getShowBySlug
-  const rawShow = await getShowBySlug(showSlug);
+  // Get the enhanced show data that merges Mixcloud and Cosmic CMS data
+  const rawShow = await getEnhancedShowBySlug(showSlug);
 
   if (!rawShow) {
     console.error("Show not found for key:", showKey);
@@ -107,7 +105,8 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
   }
 
   const displayName = show.name || show.showName || "Untitled Show";
-  const displayImage = show.pictures?.extra_large || show.imageUrl || "/image-placeholder.svg";
+  const displayImage = (show as any).enhanced_image || show.pictures?.extra_large || show.imageUrl || "/image-placeholder.svg";
+  const displayDescription = show.description || (isRadioCult ? show.description : undefined);
 
   return (
     <div className="space-y-8">
@@ -116,7 +115,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
         Back to Shows
       </Link>
 
-      <PageHeader title={displayName} description={isRadioCult ? show.description : undefined} />
+      <PageHeader title={displayName} description={displayDescription} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="aspect-square relative">
@@ -140,6 +139,8 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
                     {startTime.toLocaleTimeString()} - {new Date(show.endTime).toLocaleTimeString()}
                   </dd>
                 )}
+                {(show as any).broadcast_time && <dd className="mt-1 text-sm text-muted-foreground">Broadcast: {(show as any).broadcast_time}</dd>}
+                {(show as any).duration && <dd className="mt-1 text-sm text-muted-foreground">Duration: {(show as any).duration}</dd>}
               </div>
               {!isLive && !isRadioCult && (
                 <div>
@@ -148,29 +149,111 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
               )}
             </div>
 
-            {show.tags && show.tags.length > 0 && (
+            {/* Enhanced Hosts Section */}
+            {((show as any).enhanced_hosts?.length > 0 || show.hosts?.length > 0 || (isRadioCult && (show as any).artists?.length > 0)) && (
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold mb-4">Hosts</h3>
+                <div className="flex flex-wrap gap-2">
+                  {(show as any).enhanced_hosts?.map((host: any) => (
+                    <Link key={host.id || host.key} href={`/hosts/${host.slug || host.username}`} className="bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 px-3 py-1 rounded-full text-sm transition-colors">
+                      {host.title || host.name}
+                    </Link>
+                  )) ||
+                    show.hosts?.map((host) => (
+                      <Link key={host.key} href={`/hosts/${host.username}`} className="bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 px-3 py-1 rounded-full text-sm transition-colors">
+                        {host.name}
+                      </Link>
+                    )) ||
+                    (isRadioCult &&
+                      (show as any).artists?.map((artist: any) => (
+                        <Link key={artist.id} href={`/hosts/${artist.slug}`} className="bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 px-3 py-1 rounded-full text-sm transition-colors">
+                          {artist.name}
+                        </Link>
+                      )))}
+                </div>
+              </div>
+            )}
+
+            {/* Enhanced Genres Section */}
+            {((show as any).enhanced_genres?.length > 0 || show.tags?.length > 0) && (
               <div className="mt-8">
                 <h3 className="text-lg font-semibold mb-4">Genres</h3>
                 <div className="flex flex-wrap gap-2">
-                  {isRadioCult
-                    ? // For RadioCult shows, tags might be strings
-                      show.tags.map((tag: any) => (
-                        <span key={typeof tag === "string" ? tag : tag.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
-                          {typeof tag === "string" ? tag : tag.name}
-                        </span>
-                      ))
-                    : // For Mixcloud shows, filter and use proper tag structure
-                      filterWorldwideFMTags(show.tags).map((tag) => (
-                        <span key={tag.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
-                          {tag.name}
-                        </span>
-                      ))}
+                  {(show as any).enhanced_genres?.map((genre: any) => (
+                    <span key={genre.id || genre.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
+                      {genre.title || genre.name}
+                    </span>
+                  )) ||
+                    (isRadioCult
+                      ? // For RadioCult shows, tags might be strings
+                        show.tags.map((tag: any) => (
+                          <span key={typeof tag === "string" ? tag : tag.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
+                            {typeof tag === "string" ? tag : tag.name}
+                          </span>
+                        ))
+                      : // For Mixcloud shows, filter and use proper tag structure
+                        filterWorldwideFMTags(show.tags).map((tag) => (
+                          <span key={tag.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
+                            {tag.name}
+                          </span>
+                        )))}
+                </div>
+              </div>
+            )}
+
+            {/* Locations Section */}
+            {(show as any).locations?.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold mb-4">Locations</h3>
+                <div className="flex flex-wrap gap-2">
+                  {(show as any).locations.map((location: any) => (
+                    <span key={location.id} className="bg-green-100 dark:bg-green-900 px-3 py-1 rounded-full text-sm">
+                      {location.title}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Takeovers Section */}
+            {(show as any).takeovers?.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold mb-4">Takeovers</h3>
+                <div className="flex flex-wrap gap-2">
+                  {(show as any).takeovers.map((takeover: any) => (
+                    <span key={takeover.id} className="bg-purple-100 dark:bg-purple-900 px-3 py-1 rounded-full text-sm">
+                      {takeover.title}
+                    </span>
+                  ))}
                 </div>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Additional Content Sections */}
+      {((show as any).body_text || (show as any).tracklist) && (
+        <div className="space-y-8">
+          {(show as any).body_text && (
+            <section className="bg-white dark:bg-gray-900 p-6 rounded-lg">
+              <h2 className="text-2xl font-bold mb-4">About This Show</h2>
+              <div className="prose dark:prose-invert max-w-none">
+                <p className="text-muted-foreground leading-relaxed">{(show as any).body_text}</p>
+              </div>
+            </section>
+          )}
+
+          {(show as any).tracklist && (
+            <section className="bg-white dark:bg-gray-900 p-6 rounded-lg">
+              <h2 className="text-2xl font-bold mb-4">Tracklist</h2>
+              <div className="prose dark:prose-invert max-w-none">
+                <pre className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">{(show as any).tracklist}</pre>
+              </div>
+            </section>
+          )}
+        </div>
+      )}
 
       {relatedShows.length > 0 && (
         <section className="space-y-4">

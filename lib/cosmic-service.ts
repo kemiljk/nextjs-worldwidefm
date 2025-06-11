@@ -465,3 +465,70 @@ export async function getAboutPage(): Promise<AboutPage> {
 
   return object;
 }
+
+/**
+ * Get all hosts
+ */
+export async function getHosts(
+  params: {
+    limit?: number;
+    skip?: number;
+    sort?: string;
+    status?: string;
+  } = {}
+): Promise<{ objects: any[]; total: number }> {
+  try {
+    const response = await cosmic.objects
+      .find({
+        type: "hosts",
+        status: params.status || "published",
+      })
+      .props("id,slug,title,content,metadata")
+      .limit(params.limit || 50)
+      .skip(params.skip || 0)
+      .sort(params.sort || "title")
+      .depth(1);
+
+    return {
+      objects: response.objects || [],
+      total: response.total || 0,
+    };
+  } catch (error) {
+    console.error("Error fetching hosts:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get a single host by slug
+ */
+export async function getHostBySlug(slug: string): Promise<CosmicResponse<any>> {
+  try {
+    const response = await cosmic.objects.findOne({ type: "hosts", slug }).props("id,slug,title,content,metadata").depth(1);
+    return response;
+  } catch (error) {
+    console.error(`Error fetching host by slug ${slug}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get host by name (for cases where we don't have the exact slug)
+ */
+export async function getHostByName(name: string): Promise<any | null> {
+  try {
+    const response = await cosmic.objects
+      .find({
+        type: "hosts",
+        title: { $regex: name, $options: "i" },
+      })
+      .props("id,slug,title,content,metadata")
+      .limit(1)
+      .depth(1);
+
+    return response.objects?.[0] || null;
+  } catch (error) {
+    console.error(`Error fetching host by name ${name}:`, error);
+    return null;
+  }
+}
