@@ -293,6 +293,12 @@ export async function getArtistSchedule(artistId: string, startDate?: string, en
  * Get scheduled events from RadioCult
  */
 export async function getEvents(params: RadioCultEventsParams = {}, forceRefresh = false): Promise<{ events: RadioCultEvent[]; total: number }> {
+  // Early check for required environment variables
+  if (!STATION_ID || !RADIOCULT_PUBLISHABLE_KEY) {
+    console.log("RadioCult not configured, returning empty events");
+    return { events: [], total: 0 };
+  }
+
   const queryParams = new URLSearchParams();
 
   if (params.startDate) {
@@ -331,28 +337,8 @@ export async function getEvents(params: RadioCultEventsParams = {}, forceRefresh
   }
 
   try {
-    // Fetch data from the API
-    const response = await fetch(`${RADIOCULT_API_BASE_URL}${endpoint}`, {
-      headers: {
-        "x-api-key": RADIOCULT_PUBLISHABLE_KEY,
-      },
-      next: {
-        revalidate: 900, // 15 minutes
-        tags: ["radiocult"],
-      },
-    });
-
-    if (!response.ok) {
-      console.error(`RadioCult API error: ${response.status} ${response.statusText} for endpoint ${endpoint}`);
-      throw new Error(`RadioCult API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    if (data.success === false) {
-      console.error(`RadioCult API success=false for endpoint ${endpoint}: ${data.error || "Unknown error"}`);
-      throw new Error(`RadioCult API error: ${data.error || "Unknown error"}`);
-    }
+    // Use the safer fetchFromRadioCult helper
+    const data = await fetchFromRadioCult<any>(endpoint);
 
     // Different endpoints have different response formats
     let events: RadioCultEvent[] = [];

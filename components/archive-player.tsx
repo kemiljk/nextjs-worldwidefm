@@ -6,7 +6,7 @@ import { Play, Pause, X } from "lucide-react";
 import { useMediaPlayer } from "@/components/providers/media-player-provider";
 
 export default function ArchivePlayer() {
-  const { archivedShow, isPlaying, volume, togglePlayPause, setIsPlaying, setArchivedShow } = useMediaPlayer();
+  const { archivedShow, isArchivePlaying, archiveVolume, toggleArchivePlayPause, setIsArchivePlaying, setArchivedShow } = useMediaPlayer();
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [mixcloudWidget, setMixcloudWidget] = useState<any>(null);
   const [isWidgetReady, setIsWidgetReady] = useState(false);
@@ -42,32 +42,18 @@ export default function ArchivePlayer() {
     }
   }, []);
 
-  // Initialize Mixcloud widget
+  // Initialize widget when script is loaded and show is selected
   useEffect(() => {
     if (!scriptLoaded || !archivedShow) return;
 
-    // Create iframe if it doesn't exist
-    if (!iframeRef.current && containerRef.current) {
-      console.log("Creating persistent Mixcloud iframe");
+    const showKey = archivedShow.key;
 
-      const iframe = document.createElement("iframe");
-      iframe.style.position = "fixed";
-      iframe.style.bottom = "0";
-      iframe.style.right = "0";
-      iframe.style.width = "2px";
-      iframe.style.height = "2px";
-      iframe.style.opacity = "0.01";
-      iframe.style.pointerEvents = "none";
-      iframe.style.zIndex = "-1";
-      iframe.allow = "autoplay";
-      iframe.title = "Mixcloud Player";
-
-      containerRef.current.appendChild(iframe);
-      iframeRef.current = iframe;
+    // If it's the same show, don't reinitialize
+    if (lastShowKeyRef.current === showKey && mixcloudWidget && isWidgetReady) {
+      return;
     }
 
-    // Function to load a specific show into the player
-    const loadShow = (showKey: string) => {
+    const initializeWidget = () => {
       if (!iframeRef.current) return;
 
       console.log("Loading show:", showKey);
@@ -95,10 +81,12 @@ export default function ArchivePlayer() {
 
               widget.events.play.on(() => {
                 console.log("Widget event: play");
+                setIsArchivePlaying(true);
               });
 
               widget.events.pause.on(() => {
                 console.log("Widget event: pause");
+                setIsArchivePlaying(false);
               });
 
               widget.events.error.on((error: any) => {
@@ -106,16 +94,44 @@ export default function ArchivePlayer() {
               });
 
               widget
-                .setVolume(volume)
+                .setVolume(archiveVolume)
                 .then(() => {
                   console.log("Volume set on widget");
                   setMixcloudWidget(widget);
                   setIsWidgetReady(true);
+                  lastShowKeyRef.current = showKey;
+
+                  // Auto-play the new show with a small delay to ensure widget is fully ready
+                  setTimeout(() => {
+                    console.log("Auto-playing new archive show");
+                    widget
+                      .play()
+                      .then(() => {
+                        console.log("Auto-play successful");
+                        setIsArchivePlaying(true);
+                      })
+                      .catch((err) => {
+                        console.error("Auto-play failed:", err);
+                      });
+                  }, 100);
                 })
                 .catch((err) => {
                   console.error("Error setting volume:", err);
                   setMixcloudWidget(widget);
                   setIsWidgetReady(true);
+                  lastShowKeyRef.current = showKey;
+
+                  // Try auto-play even if volume setting failed
+                  setTimeout(() => {
+                    widget
+                      .play()
+                      .then(() => {
+                        setIsArchivePlaying(true);
+                      })
+                      .catch((playErr) => {
+                        console.error("Auto-play failed after volume error:", playErr);
+                      });
+                  }, 100);
                 });
             })
             .catch((error) => {
@@ -129,120 +145,84 @@ export default function ArchivePlayer() {
       };
     };
 
-    if (archivedShow) {
-      loadShow(archivedShow.key);
-      lastShowKeyRef.current = archivedShow.key;
-    }
-
-    return () => {
-      console.log("Cleaning up Mixcloud widget on unmount");
-    };
-  }, [archivedShow, scriptLoaded, volume]);
-
-  // Handle playback state changes
-  useEffect(() => {
-    if (!mixcloudWidget || !isWidgetReady) return;
-
-    console.log(`Handle playback change to ${isPlaying ? "playing" : "paused"}`);
-
-    if (isPlaying) {
-      setTimeout(() => {
-        try {
-          console.log("Calling play() on Mixcloud widget");
-          mixcloudWidget
-            .play()
-            .then(() => {
-              console.log("Play successful");
-              mixcloudWidget.setVolume(volume);
-            })
-            .catch((err: any) => {
-              console.error("Play failed:", err);
-            });
-        } catch (err) {
-          console.error("Exception during play attempt:", err);
-        }
-      }, 100);
-    } else {
-      try {
-        console.log("Calling pause() on Mixcloud widget");
-        mixcloudWidget.pause();
-      } catch (err) {
-        console.error("Exception during pause attempt:", err);
-      }
-    }
-  }, [isPlaying, mixcloudWidget, isWidgetReady, volume]);
+    initializeWidget();
+  }, [scriptLoaded, archivedShow, archiveVolume]);
 
   // Handle volume changes
   useEffect(() => {
-    if (!mixcloudWidget) return;
+    if (mixcloudWidget && isWidgetReady) {
+      mixcloudWidget.setVolume(archiveVolume).catch((error: any) => {
+        console.error("Error setting volume:", error);
+      });
+    }
+  }, [archiveVolume, mixcloudWidget, isWidgetReady]);
 
-    console.log("Volume changed, applying to widget:", volume);
-    mixcloudWidget.setVolume(volume).catch((err: any) => {
-      console.error("Error setting volume:", err);
-    });
-  }, [volume, mixcloudWidget]);
-
-  // Handle messages from widget
+  // Handle play/pause state changes
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== "https://player-widget.mixcloud.com") return;
+    if (!mixcloudWidget || !isWidgetReady) return;
 
-      try {
-        const data = JSON.parse(event.data);
+    if (isArchivePlaying) {
+      mixcloudWidget.play().catch((error: any) => {
+        console.error("Error playing:", error);
+        setIsArchivePlaying(false);
+      });
+    } else {
+      mixcloudWidget.pause().catch((error: any) => {
+        console.error("Error pausing:", error);
+      });
+    }
+  }, [isArchivePlaying, mixcloudWidget, isWidgetReady, setIsArchivePlaying]);
 
-        if (data.type === "ready" && data.mixcloud === "playerWidget") {
-          setIsWidgetReady(true);
-
-          if (isPlaying && mixcloudWidget) {
-            mixcloudWidget.play().catch((err: any) => {
-              console.error("Error playing after widget ready:", err);
-            });
-          }
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (mixcloudWidget) {
+        try {
+          mixcloudWidget.pause();
+        } catch (error) {
+          console.error("Error pausing widget on cleanup:", error);
         }
-
-        if (data.type === "event" && data.data?.eventName === "play") {
-          setIsPlaying(true);
-        } else if (data.type === "event" && data.data?.eventName === "pause") {
-          setIsPlaying(false);
-        }
-      } catch (e) {
-        console.log("Received non-JSON message from widget");
       }
     };
-
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [isPlaying, mixcloudWidget, setIsPlaying]);
+  }, [mixcloudWidget]);
 
   const handleDismiss = () => {
     if (mixcloudWidget) {
-      mixcloudWidget.pause();
+      try {
+        mixcloudWidget.pause();
+      } catch (error) {
+        console.error("Error pausing widget:", error);
+      }
     }
     setArchivedShow(null);
-    setIsPlaying(false);
+    setIsArchivePlaying(false);
   };
 
-  // If no archived show, don't render the player
-  if (!archivedShow) return null;
+  // Don't render if no archived show is selected (AFTER all hooks)
+  if (!archivedShow) {
+    return null;
+  }
 
   return (
     <>
       <div ref={containerRef} className="hidden" />
+      <iframe ref={iframeRef} className="hidden" width="100%" height="60" frameBorder="0" allow="autoplay" />
       <div className="fixed bottom-0 bg-gray-950 text-white z-50 flex items-center transition-all duration-300 h-12 left-0 right-0 max-w-full px-4">
         <div className="flex items-center mx-2 gap-3 overflow-hidden">
           <div className="w-10 h-10 rounded overflow-hidden z-10 flex-shrink-0 relative">
-            <Image src={archivedShow.pictures.large || "/image-placeholder.svg?w=40&h=40"} alt={archivedShow.name || "Now playing"} fill className="object-cover" />
+            <Image src={archivedShow.pictures.large || "/image-placeholder.svg?w=40&h=40"} alt={archivedShow.name} fill className="object-cover" />
           </div>
           <div>
             <div ref={titleRef} className="text-sm whitespace-nowrap">
-              {archivedShow.name || "No show playing"}
+              {archivedShow.name}
             </div>
+            <div className="text-xs text-white/60">Archive</div>
           </div>
         </div>
 
         <div className="border-l border-white/20 pl-4 ml-4 flex items-center flex-shrink-0 transition-opacity duration-200">
-          <button className="text-white rounded-full" onClick={togglePlayPause}>
-            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+          <button className="text-white rounded-full" onClick={toggleArchivePlayPause}>
+            {isArchivePlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
           </button>
         </div>
 
