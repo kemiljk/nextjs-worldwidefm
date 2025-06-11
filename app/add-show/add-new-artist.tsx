@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Dropzone } from "@/components/ui/dropzone";
 import { toast } from "sonner";
 import { RadioCultArtist } from "@/lib/radiocult-service";
 
@@ -16,7 +17,6 @@ import { RadioCultArtist } from "@/lib/radiocult-service";
 const artistFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().optional(),
-  imageUrl: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
   instagram: z.string().optional(),
   twitter: z.string().optional(),
   facebook: z.string().optional(),
@@ -31,9 +31,33 @@ interface AddNewArtistProps {
   onArtistCreated: (artist: RadioCultArtist) => void;
 }
 
+// Function to upload image to Cosmic only via API route
+async function uploadToCosmicOnly(file: File): Promise<string | null> {
+  try {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const response = await fetch("/api/upload-image", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.url || null;
+  } catch (error) {
+    console.error("Error uploading to Cosmic:", error);
+    return null;
+  }
+}
+
 export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   // Initialize form
   const form = useForm<ArtistFormValues>({
@@ -41,7 +65,6 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
     defaultValues: {
       name: "",
       description: "",
-      imageUrl: "",
       instagram: "",
       twitter: "",
       facebook: "",
@@ -56,6 +79,16 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
     setIsLoading(true);
 
     try {
+      // Upload image if provided
+      let imageUrl: string | undefined = undefined;
+      if (imageFile) {
+        const uploadedUrl = await uploadToCosmicOnly(imageFile);
+        if (!uploadedUrl) {
+          throw new Error("Failed to upload image");
+        }
+        imageUrl = uploadedUrl;
+      }
+
       // Create social links object
       const socialLinks: Record<string, string> = {};
 
@@ -75,7 +108,7 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
         body: JSON.stringify({
           name: values.name,
           description: values.description,
-          imageUrl: values.imageUrl,
+          imageUrl,
           socialLinks,
         }),
       });
@@ -92,6 +125,7 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
       // Close the dialog and reset form
       setOpen(false);
       form.reset();
+      setImageFile(null);
 
       // Notify parent component
       onArtistCreated(data.artist);
@@ -147,20 +181,18 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Image URL</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://example.com/image.jpg" {...field} value={field.value || ""} />
-                  </FormControl>
-                  <FormDescription>URL to an image of the artist</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormItem>
+              <FormLabel>Artist Image</FormLabel>
+              <Dropzone
+                accept="image/*"
+                disabled={isLoading}
+                onFileSelect={setImageFile}
+                selectedFile={imageFile}
+                maxSize={10 * 1024 * 1024} // 10MB limit for images
+                className="cursor-pointer"
+              />
+              <FormDescription>Upload an image of the artist. Maximum file size is 10MB.</FormDescription>
+            </FormItem>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField

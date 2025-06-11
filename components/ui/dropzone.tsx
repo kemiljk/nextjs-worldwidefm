@@ -29,9 +29,28 @@ export function Dropzone({ onFileSelect, selectedFile, accept, maxSize, classNam
   };
 
   const validateFile = (file: File): boolean => {
-    if (accept && !file.type.match(accept.replace(/,/g, "|"))) {
-      setError(`File type not supported. Please upload ${accept}`);
-      return false;
+    if (accept) {
+      // Split accept string by comma and check if file type matches any of them
+      const acceptedTypes = accept.split(",").map((type) => type.trim());
+      const isValidType = acceptedTypes.some((acceptedType) => {
+        // Handle wildcard patterns like "audio/*"
+        if (acceptedType.endsWith("/*")) {
+          const category = acceptedType.slice(0, -2);
+          return file.type.startsWith(category + "/");
+        }
+        // Handle exact MIME type matches
+        return file.type === acceptedType;
+      });
+
+      if (!isValidType) {
+        // More user-friendly error message for audio files
+        if (acceptedTypes.some((type) => type.startsWith("audio"))) {
+          setError(`Please select an audio file (MP3, WAV, M4A, AAC, or FLAC)`);
+        } else {
+          setError(`File type not supported. Please upload: ${acceptedTypes.join(", ")}`);
+        }
+        return false;
+      }
     }
 
     if (maxSize && file.size > maxSize) {
@@ -49,15 +68,19 @@ export function Dropzone({ onFileSelect, selectedFile, accept, maxSize, classNam
     setIsDragging(false);
 
     const file = e.dataTransfer.files?.[0];
-    if (file && validateFile(file)) {
-      onFileSelect(file);
+    if (file) {
+      validateFile(file); // This sets error state if invalid
+      onFileSelect(file); // Always select the file
     }
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
-    if (file && validateFile(file)) {
+    if (file) {
       onFileSelect(file);
+    } else {
+      onFileSelect(null);
+      setError(null);
     }
   };
 
@@ -66,15 +89,18 @@ export function Dropzone({ onFileSelect, selectedFile, accept, maxSize, classNam
   };
 
   return (
-    <div className={cn("relative flex flex-col items-center justify-center w-full h-32 border border-dashed transition-colors", isDragging ? "border-border bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50", className)} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onClick={handleClick}>
+    <div className={cn("cursor-pointer relative flex flex-col items-center justify-center w-full h-32 border border-dashed transition-colors", isDragging ? "border-border bg-primary/5" : "border-muted-foreground/25 hover:border-primary/50", className)} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} onClick={handleClick}>
       <input ref={inputRef} type="file" className="hidden" accept={accept} onChange={handleFileInput} {...props} />
       <div className="flex flex-col items-center justify-center text-center">
         <Upload className={cn("h-8 w-8 mb-2", isDragging ? "text-primary" : "text-muted-foreground")} />
         {selectedFile ? (
-          <div className="text-sm text-muted-foreground">Selected: {selectedFile.name}</div>
+          <div className="space-y-1">
+            <div className={cn("text-sm", error ? "text-destructive" : "text-muted-foreground")}>Selected: {selectedFile.name}</div>
+            <div className="text-xs text-muted-foreground">{(selectedFile.size / (1024 * 1024)).toFixed(1)} MB</div>
+          </div>
         ) : (
           <>
-            <p className="text-sm font-medium">Drag and drop your file here</p>
+            <p className="text-sm font-medium">Drag and drop your audio file here</p>
             <p className="text-xs text-muted-foreground mt-1">or click to browse</p>
           </>
         )}

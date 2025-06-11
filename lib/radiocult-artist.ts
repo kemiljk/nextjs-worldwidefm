@@ -30,12 +30,24 @@ export async function createArtist(artistData: {
     }
 
     // Prepare the data for creating a new artist
-    const createData = {
+    const createData: any = {
       name: artistData.name,
       description: artistData.description || `${artistData.name} - Artist`,
-      imageUrl: artistData.imageUrl || "",
-      socialLinks: artistData.socialLinks || {},
     };
+
+    // Add socials if provided (using correct RadioCult field names)
+    if (artistData.socialLinks && Object.keys(artistData.socialLinks).length > 0) {
+      createData.socials = {};
+      if (artistData.socialLinks.instagram) createData.socials.instagramHandle = artistData.socialLinks.instagram;
+      if (artistData.socialLinks.twitter) createData.socials.twitterHandle = artistData.socialLinks.twitter;
+      if (artistData.socialLinks.facebook) createData.socials.facebook = artistData.socialLinks.facebook;
+      if (artistData.socialLinks.mixcloud) createData.socials.mixcloud = artistData.socialLinks.mixcloud;
+      if (artistData.socialLinks.soundcloud) createData.socials.soundcloud = artistData.socialLinks.soundcloud;
+      if (artistData.socialLinks.website) createData.socials.site = artistData.socialLinks.website;
+    }
+
+    // Note: Image/logo upload is not supported during artist creation
+    // Images would need to be uploaded separately via the RadioCult UI or another endpoint
 
     // Send the creation request to RadioCult
     const response = await fetch(`${RADIOCULT_API_BASE_URL}/api/station/${STATION_ID}/artists`, {

@@ -16,11 +16,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createArtistSchema.parse(body);
 
-    // Create the artist in RadioCult
+    // Create the artist in RadioCult with social links
+    // Note: Image is stored in Cosmic but not sent to RadioCult during creation
     const artist = await createArtist({
       name: validatedData.name,
       description: validatedData.description,
-      imageUrl: validatedData.imageUrl || undefined,
+      imageUrl: validatedData.imageUrl || undefined, // Stored for future reference
       socialLinks: validatedData.socialLinks,
     });
 

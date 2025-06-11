@@ -4,6 +4,7 @@ import { createBucketClient } from "@cosmicjs/sdk";
 export const cosmic = createBucketClient({
   bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG as string,
   readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY as string,
+  writeKey: process.env.COSMIC_WRITE_KEY as string,
 });
 
 // Types based on the provided API responses

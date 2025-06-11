@@ -15,8 +15,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { AddNewArtist } from "./add-new-artist";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
-import { fetchTags, uploadMediaToRadioCultAndCosmic } from "@/lib/actions";
+import { X, CheckCircle, ArrowLeft } from "lucide-react";
+import { fetchTags } from "@/lib/actions";
 import { debounce } from "lodash";
 import { Command, CommandInput, CommandList, CommandItem, CommandEmpty } from "@/components/ui/command";
 import { Dropzone } from "@/components/ui/dropzone";
@@ -54,6 +54,8 @@ const getCityLabel = (city: Location | undefined) => (city ? `${city.name}${city
 
 export function AddShowForm() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [submittedShowTitle, setSubmittedShowTitle] = useState<string>("");
   const [artists, setArtists] = useState<RadioCultArtist[]>([]);
   const [tags, setTags] = useState<RadioCultTag[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -182,6 +184,13 @@ export function AddShowForm() {
     return tag ? tag.name : tagId;
   };
 
+  // Handle creating another show
+  const handleCreateAnother = () => {
+    setIsSubmitted(false);
+    setSubmittedShowTitle("");
+    // Form is already reset from the previous submission
+  };
+
   // Handle form submission
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
@@ -189,14 +198,49 @@ export function AddShowForm() {
     try {
       let radiocultMediaId: string | undefined = undefined;
       let cosmicMedia: any = undefined;
+
+      // Upload media file separately if provided
       if (mediaFile) {
-        // Upload to RadioCult and Cosmic
-        const uploadResult = await uploadMediaToRadioCultAndCosmic(mediaFile, {
-          title: values.title,
-          artist: artists.find((a) => a.id === values.artistId)?.name || undefined,
+        const formData = new FormData();
+        formData.append("media", mediaFile);
+        formData.append(
+          "metadata",
+          JSON.stringify({
+            title: values.title,
+            artist: artists.find((a) => a.id === values.artistId)?.name || undefined,
+          })
+        );
+
+        const uploadResponse = await fetch("/api/upload-media", {
+          method: "POST",
+          body: formData,
         });
+
+        if (!uploadResponse.ok) {
+          const uploadError = await uploadResponse.json();
+          throw new Error(uploadError.error || "Failed to upload media");
+        }
+
+        const uploadResult = await uploadResponse.json();
         radiocultMediaId = uploadResult.radiocultMediaId;
         cosmicMedia = uploadResult.cosmicMedia;
+
+        console.log("🎵 Media upload result:", {
+          radiocultMediaId: uploadResult.radiocultMediaId,
+          hasCosmicMedia: !!uploadResult.cosmicMedia,
+          message: uploadResult.message,
+        });
+
+        // Show info message if RadioCult upload was skipped
+        if (!uploadResult.radiocultMediaId && uploadResult.message) {
+          toast.info("Media Upload Info", {
+            description: uploadResult.message,
+          });
+        } else if (uploadResult.radiocultMediaId) {
+          toast.success("Media Upload Success", {
+            description: `Successfully uploaded to both RadioCult (ID: ${uploadResult.radiocultMediaId}) and Cosmic`,
+          });
+        }
       }
 
       // Create the show in Cosmic
@@ -220,11 +264,11 @@ export function AddShowForm() {
 
       const data = await response.json();
 
-      toast.success("Show submitted for approval!", {
-        description: "Once approved, it will be published to RadioCult.",
-      });
+      // Set success state
+      setSubmittedShowTitle(values.title);
+      setIsSubmitted(true);
 
-      // Reset the form
+      // Reset the form for potential next submission
       form.reset();
       setSelectedTags([]);
       setMediaFile(null);
@@ -237,6 +281,34 @@ export function AddShowForm() {
       setIsLoading(false);
     }
   };
+
+  // Show success view if submitted
+  if (isSubmitted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center">
+        <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full">
+          <CheckCircle className="w-8 h-8 text-green-600" />
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="text-2xl font-semibold text-gray-900">Show Submitted Successfully!</h2>
+          <p className="text-gray-600 max-w-md">
+            "<strong>{submittedShowTitle}</strong>" has been submitted for approval. Once approved, it will be published to RadioCult and appear on your station.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button onClick={handleCreateAnother} className="flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Upload Another Show
+          </Button>
+          <Button variant="outline" onClick={() => (window.location.href = "/")}>
+            Return to Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
@@ -604,17 +676,15 @@ export function AddShowForm() {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Media File</h2>
           <FormItem>
-            <FormLabel>Upload MP3</FormLabel>
-            <FormControl>
-              <Dropzone
-                accept="audio/*"
-                disabled={isLoading}
-                onFileSelect={setMediaFile}
-                selectedFile={mediaFile}
-                maxSize={100 * 1024 * 1024} // 100MB limit
-              />
-            </FormControl>
-            <FormDescription>Upload your show as an MP3 file. Maximum file size is 100MB.</FormDescription>
+            <FormLabel>Upload Audio File</FormLabel>
+            <Dropzone
+              accept="audio/mpeg,audio/mp3,audio/wav,audio/m4a,audio/aac,audio/flac"
+              disabled={isLoading}
+              onFileSelect={setMediaFile}
+              selectedFile={mediaFile}
+              maxSize={100 * 1024 * 1024} // 100MB limit
+            />
+            <FormDescription>Upload your show as an audio file (MP3, WAV, M4A, AAC, FLAC). Maximum file size is 100MB.</FormDescription>
           </FormItem>
         </div>
 
