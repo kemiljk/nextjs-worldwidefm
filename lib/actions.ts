@@ -564,15 +564,67 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
 
 export async function getVideos(limit: number = 4): Promise<VideoObject[]> {
   try {
+    // First get videos
     const response = await cosmic.objects.find({
       type: "videos",
       limit,
-      props: "slug,title,metadata,type",
+      props: "id,slug,title,metadata,type",
+      depth: 1,
+    });
+
+    const videos = response.objects || [];
+    console.log("DEBUG getVideos: Raw video (before category expansion):", JSON.stringify(videos[0], null, 2));
+
+    // Get all video categories
+    const categoriesResponse = await cosmic.objects.find({
+      type: "video-categories",
+      props: "id,slug,title,content,bucket,created_at,modified_at,status,published_at,modified_by,created_by,type,metadata",
+      depth: 1,
+    });
+
+    const allCategories = categoriesResponse.objects || [];
+    console.log("DEBUG getVideos: All categories:", allCategories);
+
+    // Create a map of category ID to category object
+    const categoryMap = new Map<string, any>();
+    allCategories.forEach((category: any) => {
+      categoryMap.set(category.id, category);
+    });
+
+    // Expand category IDs to full category objects
+    const videosWithExpandedCategories = videos.map((video: any) => {
+      if (video.metadata?.categories) {
+        const expandedCategories = video.metadata.categories.map((categoryId: string) => categoryMap.get(categoryId)).filter(Boolean); // Remove any null/undefined entries
+
+        return {
+          ...video,
+          metadata: {
+            ...video.metadata,
+            categories: expandedCategories,
+          },
+        };
+      }
+      return video;
+    });
+
+    console.log("DEBUG getVideos: Video with expanded categories:", JSON.stringify(videosWithExpandedCategories[0], null, 2));
+    return videosWithExpandedCategories;
+  } catch (error) {
+    console.error("Error in getVideos:", error);
+    return [];
+  }
+}
+
+export async function getVideoCategories(): Promise<any[]> {
+  try {
+    const response = await cosmic.objects.find({
+      type: "video-categories",
+      props: "id,slug,title,content,bucket,created_at,modified_at,status,published_at,modified_by,created_by,type,metadata",
       depth: 1,
     });
     return response.objects || [];
   } catch (error) {
-    console.error("Error in getVideos:", error);
+    console.error("Error in getVideoCategories:", error);
     return [];
   }
 }
