@@ -27,18 +27,6 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  console.log("DEBUG Videos: Available categories:", availableCategories);
-  console.log(
-    "DEBUG Videos: All videos structure:",
-    initialVideos.map((v) => ({
-      title: v.title,
-      metadata: v.metadata,
-      hasCategories: !!v.metadata?.categories,
-      categoriesLength: v.metadata?.categories?.length || 0,
-    }))
-  );
-  console.log("DEBUG Videos: Raw first video:", initialVideos[0]);
-
   const [videos, setVideos] = useState<VideoObject[]>(initialVideos);
 
   const [activeFilter, setActiveFilter] = useState("");
@@ -99,11 +87,8 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
   }, [activeFilter, selectedFilters, searchTerm, updateUrlParams]);
 
   const handleFilterChange = (filter: string, subfilter?: string) => {
-    console.log("DEBUG Videos: handleFilterChange called with:", { filter, subfilter });
-
     // Clear all filters
     if (!filter) {
-      console.log("DEBUG Videos: Clearing all filters");
       setActiveFilter("");
       setSelectedFilters({
         categories: [],
@@ -113,7 +98,6 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
 
     // Handle "new" filter (exclusive)
     if (filter === "new") {
-      console.log("DEBUG Videos: Setting new filter");
       setActiveFilter(filter);
       setSelectedFilters({
         categories: [],
@@ -122,39 +106,29 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
     }
 
     // Set active filter category
-    console.log("DEBUG Videos: Setting active filter to:", filter);
     setActiveFilter(filter);
 
     // Handle subfilter selection (add/remove from the corresponding array)
     if (subfilter) {
-      console.log("DEBUG Videos: Handling subfilter:", subfilter);
       setSelectedFilters((prev) => {
         const filterKey = filter === "categories" ? "categories" : "";
 
-        if (!filterKey) {
-          console.log("DEBUG Videos: No valid filter key for:", filter);
-          return prev;
-        }
+        if (!filterKey) return prev;
 
         const currentFilters = [...prev[filterKey]];
         const index = currentFilters.indexOf(subfilter);
 
         // Toggle the filter
         if (index > -1) {
-          console.log("DEBUG Videos: Removing filter:", subfilter);
           currentFilters.splice(index, 1);
         } else {
-          console.log("DEBUG Videos: Adding filter:", subfilter);
           currentFilters.push(subfilter);
         }
 
-        const newFilters = {
+        return {
           ...prev,
           [filterKey]: currentFilters,
         };
-
-        console.log("DEBUG Videos: New selected filters:", newFilters);
-        return newFilters;
       });
     }
   };
@@ -177,27 +151,10 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
 
     // Apply categories filter if there are selected categories
     if (selectedFilters.categories.length > 0) {
-      console.log("DEBUG Videos: Selected category filters:", selectedFilters.categories);
-      console.log("DEBUG Videos: Before filtering:", filtered.length, "videos");
-
       filtered = filtered.filter((video) => {
-        if (!video.metadata?.categories) {
-          console.log("DEBUG Videos: Video has no categories:", video.title);
-          return false;
-        }
-
-        const videoCategorySlugs = video.metadata.categories.map((c) => c.slug);
-        const hasMatch = video.metadata.categories.some((category) => selectedFilters.categories.includes(category.slug));
-
-        console.log("DEBUG Videos: Video:", video.title);
-        console.log("  - Video categories:", videoCategorySlugs);
-        console.log("  - Selected filters:", selectedFilters.categories);
-        console.log("  - Has match:", hasMatch);
-
-        return hasMatch;
+        if (!video.metadata?.categories) return false;
+        return video.metadata.categories.some((category) => selectedFilters.categories.includes(category.slug));
       });
-
-      console.log("DEBUG Videos: After filtering:", filtered.length, "videos");
     }
 
     // Apply search term if any

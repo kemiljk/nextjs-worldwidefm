@@ -573,7 +573,6 @@ export async function getVideos(limit: number = 4): Promise<VideoObject[]> {
     });
 
     const videos = response.objects || [];
-    console.log("DEBUG getVideos: Raw video (before category expansion):", JSON.stringify(videos[0], null, 2));
 
     // Get all video categories
     const categoriesResponse = await cosmic.objects.find({
@@ -583,7 +582,6 @@ export async function getVideos(limit: number = 4): Promise<VideoObject[]> {
     });
 
     const allCategories = categoriesResponse.objects || [];
-    console.log("DEBUG getVideos: All categories:", allCategories);
 
     // Create a map of category ID to category object
     const categoryMap = new Map<string, any>();
@@ -607,7 +605,6 @@ export async function getVideos(limit: number = 4): Promise<VideoObject[]> {
       return video;
     });
 
-    console.log("DEBUG getVideos: Video with expanded categories:", JSON.stringify(videosWithExpandedCategories[0], null, 2));
     return videosWithExpandedCategories;
   } catch (error) {
     console.error("Error in getVideos:", error);
