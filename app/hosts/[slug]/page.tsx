@@ -13,40 +13,76 @@ export const revalidate = 900; // 15 minutes
 
 // Generate static params for all hosts
 export async function generateStaticParams() {
+  console.log("🔍 generateStaticParams: Starting host static params generation");
+  console.log("Environment check:", {
+    bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG ? "✅ Set" : "❌ Missing",
+    readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY ? "✅ Set" : "❌ Missing",
+  });
+
   try {
     // Get all hosts from Cosmic CMS
     const response = await cosmic.objects
       .find({
-        type: "hosts",
+        type: "regular-hosts",
         status: "published",
       })
       .props("slug")
       .limit(1000);
 
-    return (
+    console.log("🔍 generateStaticParams: Cosmic response:", {
+      totalObjects: response.objects?.length || 0,
+      hasObjects: !!response.objects,
+      firstFewSlugs: response.objects?.slice(0, 5).map((h: any) => h.slug) || [],
+    });
+
+    const params =
       response.objects?.map((host: any) => ({
         slug: host.slug,
-      })) || []
-    );
+      })) || [];
+
+    console.log("🔍 generateStaticParams: Generated params:", params);
+    return params;
   } catch (error) {
-    console.error("Error generating static params for hosts:", error);
+    console.error("❌ Error generating static params for hosts:", error);
+    if (error instanceof Error) {
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+    }
     return [];
   }
 }
 
 async function getHostBySlug(slug: string) {
+  console.log(`🔍 getHostBySlug: Fetching host with slug: ${slug}`);
+
   try {
     const response = await cosmic.objects
       .findOne({
-        type: "hosts",
+        type: "regular-hosts",
         slug: slug,
       })
       .props("id,slug,title,content,metadata")
       .depth(1);
 
+    console.log(`🔍 getHostBySlug: Response for ${slug}:`, {
+      hasObject: !!response?.object,
+      objectId: response?.object?.id,
+      objectTitle: response?.object?.title,
+    });
+
     return response?.object || null;
   } catch (error) {
-    console.error(`Error fetching host by slug ${slug}:`, error);
+    console.error(`❌ Error fetching host by slug ${slug}:`, error);
+    if (error instanceof Error) {
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+    }
     return null;
   }
 }
@@ -67,14 +103,24 @@ async function getShowsByHost(hostId: string) {
 }
 
 export default async function HostPage({ params }: { params: { slug: string } }) {
+  console.log(`🔍 HostPage: Starting render for slug: ${params.slug}`);
+
   const host = await getHostBySlug(params.slug);
 
+  console.log(`🔍 HostPage: Host fetch result for ${params.slug}:`, {
+    hostFound: !!host,
+    hostId: host?.id,
+    hostTitle: host?.title,
+  });
+
   if (!host) {
+    console.log(`❌ HostPage: No host found for slug ${params.slug}, calling notFound()`);
     notFound();
   }
 
   // Get shows hosted by this person
   const hostedShows = await getShowsByHost(host.id);
+  console.log(`🔍 HostPage: Found ${hostedShows.length} hosted shows for ${host.title}`);
 
   const hostImage = host.metadata?.image?.imgix_url || "/image-placeholder.svg";
   const hostDescription = host.metadata?.description || host.content || "";

@@ -9,6 +9,7 @@ import { PlayButton } from "@/components/play-button";
 import { Card } from "@/components/ui/card";
 import { addHours, isWithinInterval } from "date-fns";
 import { filterWorldwideFMTags } from "@/lib/mixcloud-service";
+import { findHostSlug, displayNameToSlug } from "@/lib/host-matcher";
 
 // Add consistent revalidation time for Mixcloud content
 export const revalidate = 900; // 15 minutes
@@ -51,6 +52,33 @@ function isRadioCultShow(show: any): boolean {
 // Type guard to check if the show is a MixcloudShow
 function isMixcloudShow(show: any): show is MixcloudShow {
   return show && show.key && show.pictures && show.tags && !show.__source;
+}
+
+// Component to render host links with intelligent slug matching
+async function HostLink({ host, className }: { host: any; className: string }) {
+  let href = "#";
+  let displayName = host.title || host.name;
+
+  if (host.slug) {
+    // Enhanced host with proper slug
+    href = `/hosts/${host.slug}`;
+  } else {
+    // Try to find matching slug from Cosmic CMS
+    const matchedSlug = await findHostSlug(displayName);
+    if (matchedSlug) {
+      href = `/hosts/${matchedSlug}`;
+    } else {
+      // Fallback to converted slug format
+      const fallbackSlug = displayNameToSlug(displayName);
+      href = `/hosts/${fallbackSlug}`;
+    }
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {displayName}
+    </Link>
+  );
 }
 
 export default async function ShowPage({ params }: { params: { slug: string[] } }) {
@@ -154,22 +182,12 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
               <div className="mt-8">
                 <h3 className="text-lg font-semibold mb-4">Hosts</h3>
                 <div className="flex flex-wrap gap-2">
-                  {(show as any).enhanced_hosts?.map((host: any) => (
-                    <Link key={host.id || host.key} href={`/hosts/${host.slug || host.username}`} className="bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 px-3 py-1 rounded-full text-sm transition-colors">
-                      {host.title || host.name}
-                    </Link>
-                  )) ||
-                    show.hosts?.map((host) => (
-                      <Link key={host.key} href={`/hosts/${host.username}`} className="bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 px-3 py-1 rounded-full text-sm transition-colors">
-                        {host.name}
-                      </Link>
-                    )) ||
-                    (isRadioCult &&
-                      (show as any).artists?.map((artist: any) => (
-                        <Link key={artist.id} href={`/hosts/${artist.slug}`} className="bg-blue-100 dark:bg-blue-900 hover:bg-blue-200 dark:hover:bg-blue-800 px-3 py-1 rounded-full text-sm transition-colors">
-                          {artist.name}
-                        </Link>
-                      )))}
+                  {/* Prioritize enhanced hosts with proper slugs */}
+                  {(show as any).enhanced_hosts?.length > 0
+                    ? (show as any).enhanced_hosts.map((host: any) => <HostLink key={host.id || host.key} host={host} className="bg-bronze-50 dark:bg-bronze-950 hover:bg-bronze-300 dark:hover:bg-bronze-900 text-bronze-900 dark:text-bronze-100 px-3 py-1 rounded-full text-sm transition-colors border border-bronze-300 dark:border-bronze-600" />)
+                    : show.hosts?.map((host) => <HostLink key={host.key} host={host} className="bg-bronze-50 dark:bg-bronze-950 hover:bg-bronze-300 dark:hover:bg-bronze-900 text-bronze-900 dark:text-bronze-100 px-3 py-1 rounded-full text-sm transition-colors border border-bronze-300 dark:border-bronze-600" />)}
+                  {/* RadioCult artists */}
+                  {isRadioCult && (show as any).artists?.map((artist: any) => <HostLink key={artist.id} host={artist} className="bg-bronze-50 dark:bg-bronze-950 hover:bg-bronze-300 dark:hover:bg-bronze-900 text-bronze-900 dark:text-bronze-100 px-3 py-1 rounded-full text-sm transition-colors border border-bronze-300 dark:border-bronze-600" />)}
                 </div>
               </div>
             )}
