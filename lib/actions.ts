@@ -164,203 +164,199 @@ export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
 }
 
 export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioCultEvent | any | null> {
-  // First try RadioCult only if this is a potential live show
-  try {
-    // If this is a full Mixcloud path with multiple segments, don't try RadioCult lookup
-    if (slug.includes("/")) {
-      // This is a Mixcloud path, skip RadioCult lookup
-    } else {
-      // Check if this could be a live show by checking if the slug matches today's date
-      const today = new Date();
-      const isPotentialLiveShow = slug.toLowerCase().includes(today.toISOString().split("T")[0].replace(/-/g, ""));
+  // Normalize slug/key in all reasonable ways
+  const slugVariants = [slug, slug.startsWith("/") ? slug.slice(1) : "/" + slug, slug.startsWith("/worldwidefm/") ? slug : "/worldwidefm/" + (slug.startsWith("/") ? slug.slice(1) : slug), slug.replace(/^\/worldwidefm\//, "")];
 
-      if (isPotentialLiveShow) {
-        const radioCultEvent = await getRadioCultEventBySlug(slug);
-        if (radioCultEvent) {
-          // Convert RadioCult event to a format similar to MixcloudShow for compatibility
-          const adaptedEvent: any = {
-            key: radioCultEvent.slug,
-            name: radioCultEvent.showName,
-            url: `/shows/${radioCultEvent.slug}`,
-            pictures: {
-              small: radioCultEvent.imageUrl || "/image-placeholder.svg",
-              thumbnail: radioCultEvent.imageUrl || "/image-placeholder.svg",
-              medium_mobile: radioCultEvent.imageUrl || "/image-placeholder.svg",
-              medium: radioCultEvent.imageUrl || "/image-placeholder.svg",
-              large: radioCultEvent.imageUrl || "/image-placeholder.svg",
-              "320wx320h": radioCultEvent.imageUrl || "/image-placeholder.svg",
-              extra_large: radioCultEvent.imageUrl || "/image-placeholder.svg",
-              "640wx640h": radioCultEvent.imageUrl || "/image-placeholder.svg",
-              "768wx768h": radioCultEvent.imageUrl || "/image-placeholder.svg",
-              "1024wx1024h": radioCultEvent.imageUrl || "/image-placeholder.svg",
-            },
-            created_time: radioCultEvent.startTime,
-            updated_time: radioCultEvent.updatedAt,
-            play_count: 0,
-            favorite_count: 0,
-            comment_count: 0,
-            listener_count: 0,
-            repost_count: 0,
-            tags: radioCultEvent.tags.map((tag) => ({
-              key: tag.toLowerCase().replace(/\s+/g, "-"),
-              url: `/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`,
-              name: tag,
-            })),
-            slug: radioCultEvent.slug,
-            user: {
-              key: "radiocult",
-              url: "/",
-              name: "RadioCult",
-              username: "radiocult",
+  // Try RadioCult (if likely a live show)
+  for (const variant of slugVariants) {
+    try {
+      // Only try RadioCult if not a Mixcloud path
+      if (!variant.includes("/")) {
+        const today = new Date();
+        const isPotentialLiveShow = variant.toLowerCase().includes(today.toISOString().split("T")[0].replace(/-/g, ""));
+        if (isPotentialLiveShow) {
+          const radioCultEvent = await getRadioCultEventBySlug(variant);
+          if (radioCultEvent) {
+            // Convert RadioCult event to a format similar to MixcloudShow for compatibility
+            const adaptedEvent: any = {
+              key: radioCultEvent.slug,
+              name: radioCultEvent.showName,
+              url: `/shows/${radioCultEvent.slug}`,
               pictures: {
-                small: "/logo.svg",
-                thumbnail: "/logo.svg",
-                medium_mobile: "/logo.svg",
-                medium: "/logo.svg",
-                large: "/logo.svg",
-                "320wx320h": "/logo.svg",
-                extra_large: "/logo.svg",
-                "640wx640h": "/logo.svg",
+                small: radioCultEvent.imageUrl || "/image-placeholder.svg",
+                thumbnail: radioCultEvent.imageUrl || "/image-placeholder.svg",
+                medium_mobile: radioCultEvent.imageUrl || "/image-placeholder.svg",
+                medium: radioCultEvent.imageUrl || "/image-placeholder.svg",
+                large: radioCultEvent.imageUrl || "/image-placeholder.svg",
+                "320wx320h": radioCultEvent.imageUrl || "/image-placeholder.svg",
+                extra_large: radioCultEvent.imageUrl || "/image-placeholder.svg",
+                "640wx640h": radioCultEvent.imageUrl || "/image-placeholder.svg",
+                "768wx768h": radioCultEvent.imageUrl || "/image-placeholder.svg",
+                "1024wx1024h": radioCultEvent.imageUrl || "/image-placeholder.svg",
               },
-            },
-            hosts: radioCultEvent.artists.map((artist) => ({
-              key: artist.id,
-              url: `/artists/${artist.slug}`,
-              name: artist.name,
-              username: artist.slug,
-              pictures: {
-                small: artist.imageUrl || "/image-placeholder.svg",
-                thumbnail: artist.imageUrl || "/image-placeholder.svg",
-                medium_mobile: artist.imageUrl || "/image-placeholder.svg",
-                medium: artist.imageUrl || "/image-placeholder.svg",
-                large: artist.imageUrl || "/image-placeholder.svg",
-                "320wx320h": artist.imageUrl || "/image-placeholder.svg",
-                extra_large: artist.imageUrl || "/image-placeholder.svg",
-                "640wx640h": artist.imageUrl || "/image-placeholder.svg",
+              created_time: radioCultEvent.startTime,
+              updated_time: radioCultEvent.updatedAt,
+              play_count: 0,
+              favorite_count: 0,
+              comment_count: 0,
+              listener_count: 0,
+              repost_count: 0,
+              tags: radioCultEvent.tags.map((tag) => ({
+                key: tag.toLowerCase().replace(/\s+/g, "-"),
+                url: `/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`,
+                name: tag,
+              })),
+              slug: radioCultEvent.slug,
+              user: {
+                key: "radiocult",
+                url: "/",
+                name: "RadioCult",
+                username: "radiocult",
+                pictures: {
+                  small: "/logo.svg",
+                  thumbnail: "/logo.svg",
+                  medium_mobile: "/logo.svg",
+                  medium: "/logo.svg",
+                  large: "/logo.svg",
+                  "320wx320h": "/logo.svg",
+                  extra_large: "/logo.svg",
+                  "640wx640h": "/logo.svg",
+                },
               },
-            })),
-            hidden_stats: false,
-            audio_length: radioCultEvent.duration * 60, // convert minutes to seconds
-            endTime: radioCultEvent.endTime, // Add endTime for RadioCult events
-            description: radioCultEvent.description, // Add description for RadioCult events
-            __source: "radiocult",
-          };
+              hosts: radioCultEvent.artists.map((artist) => ({
+                key: artist.id,
+                url: `/artists/${artist.slug}`,
+                name: artist.name,
+                username: artist.slug,
+                pictures: {
+                  small: artist.imageUrl || "/image-placeholder.svg",
+                  thumbnail: artist.imageUrl || "/image-placeholder.svg",
+                  medium_mobile: artist.imageUrl || "/image-placeholder.svg",
+                  medium: artist.imageUrl || "/image-placeholder.svg",
+                  large: artist.imageUrl || "/image-placeholder.svg",
+                  "320wx320h": artist.imageUrl || "/image-placeholder.svg",
+                  extra_large: artist.imageUrl || "/image-placeholder.svg",
+                  "640wx640h": artist.imageUrl || "/image-placeholder.svg",
+                },
+              })),
+              hidden_stats: false,
+              audio_length: radioCultEvent.duration * 60, // convert minutes to seconds
+              endTime: radioCultEvent.endTime, // Add endTime for RadioCult events
+              description: radioCultEvent.description, // Add description for RadioCult events
+              __source: "radiocult",
+            };
 
-          console.log("Found RadioCult event:", adaptedEvent.name);
-          return adaptedEvent;
+            console.log("Found RadioCult event:", adaptedEvent.name);
+            return adaptedEvent;
+          }
         }
       }
+    } catch (error) {
+      console.error(`Error finding RadioCult event for slug variant '${variant}':`, error);
     }
-  } catch (error) {
-    console.error("Error finding RadioCult event:", error);
-    // Continue to try Mixcloud
   }
 
-  // Then try Mixcloud
-  try {
-    // Clean up the slug to get the show key
-    let showKey = slug.startsWith("/") ? slug : `/${slug}`;
-
-    // If the key doesn't start with /worldwidefm/, add it
-    if (!showKey.startsWith("/worldwidefm/")) {
-      showKey = `/worldwidefm${showKey}`;
+  // Try Mixcloud by key
+  for (const variant of slugVariants) {
+    try {
+      let showKey = variant.startsWith("/") ? variant : "/" + variant;
+      if (!showKey.startsWith("/worldwidefm/")) {
+        showKey = `/worldwidefm${showKey}`;
+      }
+      const response = await fetch(`https://api.mixcloud.com${showKey}`, {
+        next: { revalidate: 900, tags: ["shows"] },
+      });
+      if (response.ok) {
+        const show = await response.json();
+        console.log("Found Mixcloud show for variant:", showKey);
+        return show;
+      }
+    } catch (error) {
+      console.error(`Error in getShowBySlug (Mixcloud) for variant '${variant}':`, error);
     }
-
-    // Make a direct API call to Mixcloud for this specific show
-    const response = await fetch(`https://api.mixcloud.com${showKey}`, {
-      next: {
-        revalidate: 900, // 15 minutes
-        tags: ["shows"],
-      },
-    });
-
-    if (response.ok) {
-      const show = await response.json();
-      console.log("Found Mixcloud show:", show.name);
-      return show;
-    }
-  } catch (error) {
-    console.error("Error in getShowBySlug (Mixcloud):", error);
   }
 
-  // If not found in Mixcloud, try Cosmic radio-shows by slug
-  try {
-    const cosmicResponse = await getRadioShowBySlug(slug);
-    if (cosmicResponse?.object) {
-      const show = cosmicResponse.object;
-      // Normalize to MixcloudShow-like shape for compatibility
-      return {
-        key: show.slug,
-        name: show.title,
-        url: `/shows/${show.slug}`,
-        pictures: {
-          small: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          thumbnail: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          medium_mobile: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          medium: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          "320wx320h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          "640wx640h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          "768wx768h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          "1024wx1024h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-        },
-        created_time: show.metadata?.broadcast_date || show.created_at,
-        updated_time: show.modified_at,
-        play_count: 0,
-        favorite_count: 0,
-        comment_count: 0,
-        listener_count: 0,
-        repost_count: 0,
-        tags: (show.metadata?.genres || []).map((genre: any) => ({
-          key: genre.slug || genre.id,
-          url: `/genres/${genre.slug || genre.id}`,
-          name: genre.title,
-        })),
-        slug: show.slug,
-        user: {
-          key: "cosmic",
-          url: "/",
-          name: "Cosmic",
-          username: "cosmic",
+  // Try Cosmic by slug
+  for (const variant of slugVariants) {
+    try {
+      const cosmicResponse = await getRadioShowBySlug(variant);
+      if (cosmicResponse?.object) {
+        const show = cosmicResponse.object;
+        // Normalize to MixcloudShow-like shape for compatibility
+        return {
+          key: show.slug,
+          name: show.title,
+          url: `/shows/${show.slug}`,
           pictures: {
-            small: "/logo.svg",
-            thumbnail: "/logo.svg",
-            medium_mobile: "/logo.svg",
-            medium: "/logo.svg",
-            large: "/logo.svg",
-            "320wx320h": "/logo.svg",
-            extra_large: "/logo.svg",
-            "640wx640h": "/logo.svg",
+            small: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+            thumbnail: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+            medium_mobile: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+            medium: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+            large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+            "320wx320h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+            extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+            "640wx640h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+            "768wx768h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+            "1024wx1024h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
           },
-        },
-        hosts: (show.metadata?.regular_hosts || []).map((host: any) => ({
-          key: host.slug || host.id,
-          url: `/hosts/${host.slug || host.id}`,
-          name: host.title,
-          username: host.slug || host.id,
-          pictures: {
-            small: host.image?.imgix_url || "/image-placeholder.svg",
-            thumbnail: host.image?.imgix_url || "/image-placeholder.svg",
-            medium_mobile: host.image?.imgix_url || "/image-placeholder.svg",
-            medium: host.image?.imgix_url || "/image-placeholder.svg",
-            large: host.image?.imgix_url || "/image-placeholder.svg",
-            "320wx320h": host.image?.imgix_url || "/image-placeholder.svg",
-            extra_large: host.image?.imgix_url || "/image-placeholder.svg",
-            "640wx640h": host.image?.imgix_url || "/image-placeholder.svg",
+          created_time: show.metadata?.broadcast_date || show.created_at,
+          updated_time: show.modified_at,
+          play_count: 0,
+          favorite_count: 0,
+          comment_count: 0,
+          listener_count: 0,
+          repost_count: 0,
+          tags: (show.metadata?.genres || []).map((genre: any) => ({
+            key: genre.slug || genre.id,
+            url: `/genres/${genre.slug || genre.id}`,
+            name: genre.title,
+          })),
+          slug: show.slug,
+          user: {
+            key: "cosmic",
+            url: "/",
+            name: "Cosmic",
+            username: "cosmic",
+            pictures: {
+              small: "/logo.svg",
+              thumbnail: "/logo.svg",
+              medium_mobile: "/logo.svg",
+              medium: "/logo.svg",
+              large: "/logo.svg",
+              "320wx320h": "/logo.svg",
+              extra_large: "/logo.svg",
+              "640wx640h": "/logo.svg",
+            },
           },
-        })),
-        hidden_stats: false,
-        audio_length: 0,
-        endTime: null,
-        description: show.metadata?.description || "",
-        __source: "cosmic",
-      };
+          hosts: (show.metadata?.regular_hosts || []).map((host: any) => ({
+            key: host.slug || host.id,
+            url: `/hosts/${host.slug || host.id}`,
+            name: host.title,
+            username: host.slug || host.id,
+            pictures: {
+              small: host.image?.imgix_url || "/image-placeholder.svg",
+              thumbnail: host.image?.imgix_url || "/image-placeholder.svg",
+              medium_mobile: host.image?.imgix_url || "/image-placeholder.svg",
+              medium: host.image?.imgix_url || "/image-placeholder.svg",
+              large: host.image?.imgix_url || "/image-placeholder.svg",
+              "320wx320h": host.image?.imgix_url || "/image-placeholder.svg",
+              extra_large: host.image?.imgix_url || "/image-placeholder.svg",
+              "640wx640h": host.image?.imgix_url || "/image-placeholder.svg",
+            },
+          })),
+          hidden_stats: false,
+          audio_length: 0,
+          endTime: null,
+          description: show.metadata?.description || "",
+          __source: "cosmic",
+        };
+      }
+    } catch (error) {
+      console.error(`Error in getShowBySlug (Cosmic) for variant '${variant}':`, error);
     }
-  } catch (error) {
-    console.error("Error in getShowBySlug (Cosmic):", error);
   }
 
+  console.warn(`No show found for any slug variant: ${slugVariants.join(", ")}`);
   return null;
 }
 
