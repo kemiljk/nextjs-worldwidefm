@@ -36,7 +36,7 @@ export async function getAllPosts(): Promise<PostObject[]> {
   }
 }
 
-export async function getAllShows(skip = 0, limit = 20, filters?: any) {
+export async function getAllShows(cosmicSkip = 0, mixcloudSkip = 0, limit = 20, filters?: any) {
   try {
     console.log('Filters received:', JSON.stringify(filters, null, 2));
 
@@ -53,8 +53,8 @@ export async function getAllShows(skip = 0, limit = 20, filters?: any) {
       cache_ttl: 3600, // 1 hour cache
     };
 
-    // Build query based on filter types
-    const query: any = {};
+    // Paginate Mixcloud manually (API doesn't support skip)
+    const pagedMixcloud = mixcloudShows.slice(mixcloudSkip, mixcloudSkip + limit);
 
     // Handle isNew filter
     if (filters?.isNew) {
@@ -78,6 +78,7 @@ export async function getAllShows(skip = 0, limit = 20, filters?: any) {
         });
       }
     }
+    const allShows = Array.from(allShowsMap.values());
 
     // Set up a single $or array for all host filters
     const hostConditions: { [key: string]: any }[] = [];
@@ -171,8 +172,10 @@ export async function getAllShows(skip = 0, limit = 20, filters?: any) {
     );
 
     return {
-      shows: response.objects || [],
-      total: response.total || 0,
+      shows: blended,
+      hasMore,
+      cosmicSkip: newCosmicSkip,
+      mixcloudSkip: newMixcloudSkip,
     };
   } catch (error) {
     console.error('Error fetching shows:', error);
@@ -370,6 +373,86 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioC
     console.error('Error in getShowBySlug (Mixcloud):', error, 'slug:', slug);
     return null;
   }
+
+  // If not found in Mixcloud, try Cosmic radio-shows by slug
+  try {
+    const cosmicResponse = await getRadioShowBySlug(slug);
+    if (cosmicResponse?.object) {
+      const show = cosmicResponse.object;
+      // Normalize to MixcloudShow-like shape for compatibility
+      return {
+        key: show.slug,
+        name: show.title,
+        url: `/shows/${show.slug}`,
+        pictures: {
+          small: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          thumbnail: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          medium_mobile: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          medium: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          "320wx320h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          "640wx640h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          "768wx768h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          "1024wx1024h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        },
+        created_time: show.metadata?.broadcast_date || show.created_at,
+        updated_time: show.modified_at,
+        play_count: 0,
+        favorite_count: 0,
+        comment_count: 0,
+        listener_count: 0,
+        repost_count: 0,
+        tags: (show.metadata?.genres || []).map((genre: any) => ({
+          key: genre.slug || genre.id,
+          url: `/genres/${genre.slug || genre.id}`,
+          name: genre.title,
+        })),
+        slug: show.slug,
+        user: {
+          key: "cosmic",
+          url: "/",
+          name: "Cosmic",
+          username: "cosmic",
+          pictures: {
+            small: "/logo.svg",
+            thumbnail: "/logo.svg",
+            medium_mobile: "/logo.svg",
+            medium: "/logo.svg",
+            large: "/logo.svg",
+            "320wx320h": "/logo.svg",
+            extra_large: "/logo.svg",
+            "640wx640h": "/logo.svg",
+          },
+        },
+        hosts: (show.metadata?.regular_hosts || []).map((host: any) => ({
+          key: host.slug || host.id,
+          url: `/hosts/${host.slug || host.id}`,
+          name: host.title,
+          username: host.slug || host.id,
+          pictures: {
+            small: host.image?.imgix_url || "/image-placeholder.svg",
+            thumbnail: host.image?.imgix_url || "/image-placeholder.svg",
+            medium_mobile: host.image?.imgix_url || "/image-placeholder.svg",
+            medium: host.image?.imgix_url || "/image-placeholder.svg",
+            large: host.image?.imgix_url || "/image-placeholder.svg",
+            "320wx320h": host.image?.imgix_url || "/image-placeholder.svg",
+            extra_large: host.image?.imgix_url || "/image-placeholder.svg",
+            "640wx640h": host.image?.imgix_url || "/image-placeholder.svg",
+          },
+        })),
+        hidden_stats: false,
+        audio_length: 0,
+        endTime: null,
+        description: show.metadata?.description || "",
+        __source: "cosmic",
+      };
+    }
+  } catch (error) {
+    console.error("Error in getShowBySlug (Cosmic):", error);
+  }
+
+  return null;
 }
 
 export async function getScheduleData(): Promise<{
@@ -786,20 +869,15 @@ export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
 
 export async function getAllFilters() {
   try {
-    const { shows } = await getMixcloudShows();
+    // Fetch all filter collections in parallel from Cosmic
+    const [genresRes, hostsRes, takeoversRes, locationsRes] = await Promise.all([
+      cosmic.objects.find({ type: "genres", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+      cosmic.objects.find({ type: "regular-hosts", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+      cosmic.objects.find({ type: "takeovers", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+      cosmic.objects.find({ type: "locations", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+    ]);
 
-    // Extract unique tags from all shows, filtering out "Worldwide FM"
-    const tagMap = new Map<string, { name: string; count: number }>();
-    shows.forEach((show) => {
-      filterWorldwideFMTags(show.tags).forEach((tag) => {
-        const existing = tagMap.get(tag.name);
-        if (existing) {
-          existing.count++;
-        } else {
-          tagMap.set(tag.name, { name: tag.name, count: 1 });
-        }
-      });
-    });
+    const toFilterItems = (objects: any[] = [], type: string): FilterItem[] => objects.map((obj) => ({ id: obj.id, slug: obj.slug, title: obj.title, type }));
 
     // Convert to sorted array
     const tags = Array.from(tagMap.values())
@@ -818,12 +896,7 @@ export async function getAllFilters() {
         metadata: null,
       }));
 
-    return {
-      genres: tags,
-      hosts: [], // We'll handle hosts separately if needed
-      takeovers: [], // We'll handle takeovers separately if needed
-      locations: [], // Not available from Mixcloud
-    };
+    return { genres, hosts, takeovers, locations };
   } catch (error) {
     console.error('Error getting filters:', error);
     return {
@@ -1117,8 +1190,8 @@ export async function searchContent(
           status: 'published',
         }),
       ]);
-
       const posts = postsResponse.objects || [];
+      const events = eventsResponse.objects || [];
       const videos = videosResponse.objects || [];
 
       // Transform and combine results
@@ -1142,7 +1215,7 @@ export async function searchContent(
     }
 
     // If no source specified, search in both and combine results
-    const [mixcloudShows, postsResponse, videosResponse] = await Promise.all([
+    const [mixcloudShows, postsResponse, eventsResponse, videosResponse, takeoversResponse] = await Promise.all([
       getAllShowsFromMixcloud(),
       cosmic.objects.find({
         type: 'posts',
@@ -1177,9 +1250,9 @@ export async function searchContent(
     }
 
     const posts = postsResponse.objects || [];
+    const events = eventsResponse.objects || [];
     const videos = videosResponse.objects || [];
-
-    // Transform and combine all results
+    const takeovers = takeoversResponse.objects || [];
     const results = [
       ...filteredShows.slice(0, limit).map((show) => ({
         id: show.key,
@@ -1235,7 +1308,6 @@ export async function searchContent(
         takeovers: [],
       })),
     ];
-
     return results.slice(0, limit);
   } catch (error) {
     console.error('Search error:', error);
