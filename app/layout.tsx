@@ -1,7 +1,7 @@
 import type React from "react";
 import type { Metadata } from "next";
-import ABCDiatype from "next/font/local";
-import AirProExtended from "next/font/local";
+import Nimbus from "next/font/local";
+import AirCompressed from "next/font/local";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import SearchProvider from "@/components/providers/search-provider";
@@ -12,16 +12,18 @@ import Footer from "@/components/footer";
 import LivePlayer from "@/components/live-player";
 import ArchivePlayer from "@/components/archive-player";
 
-const sans = ABCDiatype({
-  src: "./fonts/ABCDiatypeSemi-MonoVariable-Trial.woff2",
-  weight: "300 400 500 600 700 800",
-  style: "normal",
+const sans = Nimbus({
+  src: [
+    { path: "./fonts/nimbus-light.woff2", weight: "300", style: "normal" },
+    { path: "./fonts/nimbus-regular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/nimbus-bold.woff2", weight: "700", style: "normal" },
+  ],
   display: "swap",
   variable: "--font-sans",
 });
 
-const display = AirProExtended({
-  src: "./fonts/AirProExtended-Bold.woff2",
+const display = AirCompressed({
+  src: "./fonts/aircompressed-black.woff2",
   style: "normal",
   display: "swap",
   variable: "--font-display",
