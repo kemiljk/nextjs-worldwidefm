@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/shows/sync",
-      "schedule": "*/5 * * * *",
+      "schedule": "0 0 * * *",
       "method": "POST",
       "headers": {
         "x-api-key": "@SYNC_API_KEY"
