@@ -14,35 +14,29 @@ import { findHostSlug, displayNameToSlug } from "@/lib/host-matcher";
 // Add consistent revalidation time for Mixcloud content
 export const revalidate = 900; // 15 minutes
 
-// Generate static params for all shows
+// Generate static params for the most recent 100 shows only
 export async function generateStaticParams() {
   try {
-    const { shows } = await getMixcloudShows();
-
-    // Ensure we have a valid array of shows
+    const { shows } = await getMixcloudShows({ limit: 100 });
     if (!shows || !Array.isArray(shows)) {
       console.log("No valid shows found for static params generation");
       return [];
     }
-
-    console.log("Fetched shows:", shows.length);
-
     return shows
-      .filter((show) => show && show.key) // Filter out any null/undefined shows or shows without keys
+      .filter((show) => show && show.key)
       .map((show) => {
-        // Split the show key to get segments (remove empty segments)
-        // For example: "/worldwidefm/show-name" => ["worldwidefm", "show-name"]
         const segments = show.key.split("/").filter(Boolean);
-        return {
-          slug: segments,
-          show, // Pass the show data along with the params
-        };
+        return { slug: segments };
       });
   } catch (error) {
     console.error("Error generating static params:", error);
     return [];
   }
 }
+
+// Enable dynamic fallback for all other slugs
+export const dynamicParams = true;
+export const dynamic = "force-dynamic";
 
 // Type guard to check if the show is from RadioCult
 function isRadioCultShow(show: any): boolean {
