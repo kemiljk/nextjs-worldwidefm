@@ -91,7 +91,7 @@ export default function DashboardClient() {
   return (
     <div className="py-8">
       <div className="max-w-2xl mx-auto px-4">
-        <h1 className="font-display text-4xl font-normal tracking-tight text-center mb-8">Welcome, {userData.metadata.first_name}!</h1>
+        <h1 className="font-display uppercase text-4xl font-normal tracking-tight text-center mb-8">Welcome, {userData.metadata.first_name}!</h1>
         <UserProfileForm user={userData} />
       </div>
     </div>

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ChevronRight } from "lucide-react";
 import { MixcloudShow, filterWorldwideFMTags } from "@/lib/mixcloud-service";
 import Marquee from "@/components/ui/marquee";
+import { formatDateShort } from "@/lib/utils";
 
 interface ArchiveSectionProps {
   shows: MixcloudShow[];
@@ -14,7 +15,7 @@ export default function ArchiveSection({ shows, className }: ArchiveSectionProps
   return (
     <section className={className}>
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-h7 font-display font-normal text-almostblack">FROM THE ARCHIVE</h2>
+        <h2 className="text-h7 font-display uppercase font-normal text-almostblack">FROM THE ARCHIVE</h2>
         <Link href="/shows" className="text-sm text-green-50 flex items-center group">
           View All <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
         </Link>
@@ -33,7 +34,7 @@ export default function ArchiveSection({ shows, className }: ArchiveSectionProps
                     <Image src={show.pictures.extra_large} alt={show.name} fill className="object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent">
                       <div className="absolute bottom-4 left-4 right-4">
-                        <p className="text-xs text-white/60 mb-2">{new Date(show.created_time).toLocaleDateString()}</p>
+                        <p className="text-xs text-white/60 mb-2">{formatDateShort(show.created_time)}</p>
                         {show.tags && show.tags.length > 0 && (
                           <div className="flex truncate gap-1 mb-2">
                             {filterWorldwideFMTags(show.tags).map((tag, tagIndex) => (

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { SearchItem } from "@/lib/search/types";
+import { cn, formatDateShort } from "@/lib/utils";
 
 interface ShowsGridProps {
   shows: SearchItem[];
@@ -32,7 +33,7 @@ export function ShowsGrid({ shows, sentinelRef }: ShowsGridProps) {
                 </div> */}
               </div>
               <div className="p-4">
-                {show.date && <p className="text-xs text-foreground mb-1">{new Date(show.date).toLocaleDateString()}</p>}
+                {show.date && <p className="text-xs text-foreground mb-1">{formatDateShort(show.date)}</p>}
                 <h3 className="text-m7 font-mono font-normal text-almostblack line-clamp-2">{show.title}</h3>
                 <div className="flex flex-wrap gap-2 mt-4">
                   {show.genres?.slice(0, 3).map((genre) => (

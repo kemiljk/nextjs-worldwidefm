@@ -3,6 +3,7 @@ import { HomepageHeroItem, CosmicItem } from "@/lib/cosmic-types";
 import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDateShort } from "@/lib/utils";
 
 interface HomepageHeroProps {
   heroLayout: string;
@@ -17,18 +18,15 @@ const renderHeroItem = (item: CosmicItem, isPriority: boolean) => {
   const href = item.type === "radio-shows" ? `/shows/${item.slug}` : item.type === "posts" ? `/editorial/${item.slug}` : "#";
 
   return (
-    <Card key={item.slug} className="overflow-hidden shadow-none border-none relative cursor-pointer h-full flex flex-col">
+    <Card key={item.slug} className="overflow-hidden shadow-none border border-black dark:border-white rounded-none relative cursor-pointer h-full flex flex-col">
       <Link href={href} className="flex flex-col h-full">
-        <CardContent className="p-0 flex-grow">
-          <div className="relative aspect-video w-full h-full max-h-[80dvh]">
-            {item.metadata.image?.url && <Image src={item.metadata.image.url} alt={item.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={isPriority} />}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent">
-              <div className="absolute bottom-4 left-4 right-4">
-                <h3 className="text-h8 font-display font-normal text-white">{item.title}</h3>
-                {item.metadata.subtitle && <p className="text-sm text-gray-200 mt-2 line-clamp-2">{item.metadata.subtitle}</p>}
-                {item.metadata.description && <p className="text-xs md:text-sm text-white max-w-xl mt-2 line-clamp-3">{item.metadata.description}</p>}
-              </div>
-            </div>
+        <CardContent className="p-0 flex-grow flex flex-col">
+          <div className="relative aspect-[21/9] w-full border-b border-black dark:border-white bg-gray-100 flex items-center justify-center">{item.metadata.image?.url && <Image src={item.metadata.image.url} alt={item.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={isPriority} />}</div>
+          <div className="absolute bottom-0 left-0 right-0 flex flex-col p-4 flex-1 justify-end">
+            <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display font-normal p-1 text-left">{item.metadata.date && formatDateShort(item.metadata.date)}</div>
+            <h3 className="bg-white border border-almostblack text-h8 leading-none font-display font-normal text-almostblack p-1 text-left w-fit">{item.title}</h3>
+            {item.metadata.subtitle && <p className="text-m7 font-mono font-normal text-almostblack/90 line-clamp-2 text-left">{item.metadata.subtitle}</p>}
+            {/* {item.metadata.description && <p className="text-m8 font-mono font-normal text-almostblack/70 max-w-xl mt-2 line-clamp-3 text-left">{item.metadata.description}</p>} */}
           </div>
         </CardContent>
       </Link>
@@ -64,7 +62,7 @@ const HomepageHero: React.FC<HomepageHeroProps> = ({ heroLayout, heroItems }) =>
   console.warn(`HomepageHero: Encountered an unexpected or not-yet-implemented heroLayout: "${heroLayout}"`);
   return (
     <div className="p-4 md:p-8 lg:p-10 border-b border-black dark:border-white">
-      <h2 className="text-h7 font-display font-normal text-almostblack mb-2">Hero Section (Layout: {heroLayout})</h2>
+      <h2 className="text-h7 font-display uppercase font-normal text-almostblack mb-2">Hero Section (Layout: {heroLayout})</h2>
       <p className="text-red-500 font-semibold">Warning: Layout '{heroLayout}' is not recognized or fully implemented for the Hero section.</p>
     </div>
   );

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { getAllPosts } from "@/lib/actions";
-import { cn } from "@/lib/utils";
+import { cn, formatDateShort } from "@/lib/utils";
 import { PostObject } from "@/lib/cosmic-config";
 import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
@@ -53,7 +53,7 @@ export default function EditorialSection({ title, posts, className, isHomepage =
   return (
     <section className={cn("", className)}>
       <div className={`flex items-center justify-between mb-8 ${!isHomepage && "mt-12"}`}>
-        <h2 className="text-h7 font-display font-normal text-almostblack">{title}</h2>
+        <h2 className="text-h7 font-display uppercase font-normal text-almostblack">{title}</h2>
       </div>
       {isHomepage ? (
         <Marquee className="-mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24" speed="slow" pauseOnHover>
@@ -65,7 +65,7 @@ export default function EditorialSection({ title, posts, className, isHomepage =
                     <Image src={post.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={post.title} fill className="object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent">
                       <div className="absolute bottom-4 left-4 right-4">
-                        <p className="text-xs text-white/60 mb-2">{post.metadata?.date ? new Date(post.metadata.date).toLocaleDateString() : ""}</p>
+                        <p className="text-xs text-white/60 mb-2">{post.metadata?.date ? formatDateShort(post.metadata.date) : ""}</p>
                         <h3 className="text-m5 font-mono font-normal text-white line-clamp-2">{post.title}</h3>
                       </div>
                     </div>
@@ -86,7 +86,7 @@ export default function EditorialSection({ title, posts, className, isHomepage =
                       <Image src={post.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={post.title} fill className="object-cover" />
                     </div>
                     <div className="p-4">
-                      <p className="text-xs text-foreground-700 mb-2">{post.metadata?.date ? new Date(post.metadata.date).toLocaleDateString() : ""}</p>
+                      <p className="text-xs text-foreground-700 mb-2">{post.metadata?.date ? formatDateShort(post.metadata.date) : ""}</p>
                       <h3 className="text-m7 font-mono font-normal text-almostblack line-clamp-2">{post.title}</h3>
                     </div>
                   </CardContent>

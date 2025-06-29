@@ -1,12 +1,9 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     {
       "path": "/api/shows/sync",
-      "schedule": "0 0 * * *",
-      "headers": {
-        "x-api-key": "@SYNC_API_KEY"
-      },
-      "timeout": "15s"
+      "schedule": "0 0 * * *"
     }
   ]
 }

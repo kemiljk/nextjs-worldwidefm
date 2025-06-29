@@ -7,20 +7,36 @@ import { Card, CardContent } from "@/components/ui/card";
 // Reusable Item Card (similar to the one in HomepageHero, could be centralized)
 const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
   const href = item.type === "radio-shows" ? `/shows/${item.slug}` : item.type === "posts" ? `/editorial/${item.slug}` : "#";
-  // Fallback image if not provided
   const imageUrl = item.metadata.image?.url || item.metadata.featured_image?.imgix_url || "/image-placeholder.svg";
+  const tags = item.metadata.tags || item.metadata.categories || [];
+  const label = item.metadata.label || item.metadata.author || "";
+  const location = item.metadata.location || item.metadata.origin || "";
 
   return (
-    <Card className="overflow-hidden border border-black dark:border-white h-full flex flex-col">
+    <Card className="overflow-hidden bg-white dark:bg-black h-full flex flex-col border border-black dark:border-white rounded-none shadow-none">
       <Link href={href} className="flex flex-col h-full group">
-        <CardContent className="p-0 flex-grow">
-          <div className="relative aspect-video w-full">
-            <Image src={imageUrl} alt={item.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300 ease-in-out" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+        <CardContent className="p-0 flex-grow flex flex-col">
+          <div className="relative aspect-[1.1/1] w-full border-b border-black dark:border-white bg-gray-100 flex items-center justify-center">
+            <Image src={imageUrl} alt={item.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
           </div>
-          <div className="p-4 bg-card">
-            <h3 className="text-m5 font-mono font-normal text-almostblack group-hover:underline">{item.title}</h3>
-            {item.metadata.subtitle && <p className="text-sm text-muted-foreground line-clamp-2">{item.metadata.subtitle}</p>}
-            {/* Add more metadata display based on item.type if needed */}
+          <div className="flex flex-col gap-2 p-4 flex-1 justify-end">
+            <h3 className="text-m4 font-mono font-normal text-almostblack mb-1 text-left">{item.title}</h3>
+            {(label || location) && (
+              <div className="text-m7 font-mono font-normal text-almostblack opacity-80 text-left">
+                {label}
+                {label && location && " | "}
+                {location}
+              </div>
+            )}
+            {tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {tags.map((tag: any, idx: number) => (
+                  <span key={idx} className="border border-black dark:border-white text-m8 font-mono px-2 py-1 rounded-none uppercase tracking-wide bg-transparent">
+                    {typeof tag === "string" ? tag : tag.title || tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </CardContent>
       </Link>
@@ -77,7 +93,7 @@ const CosmicSectionComponent: React.FC<CosmicSectionProps> = ({ section }) => {
 
   return (
     <section className="py-8 md:py-12 lg:py-16 px-4 md:px-8 lg:px-16">
-      <h2 className="text-h7 font-display font-normal text-almostblack mb-6 md:mb-8">{section.title}</h2>
+      <h2 className="text-h7 font-display uppercase font-normal text-almostblack mb-6 md:mb-8">{section.title}</h2>
       {renderItems()}
     </section>
   );

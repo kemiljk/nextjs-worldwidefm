@@ -176,7 +176,7 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
         <VideoGrid videos={filteredVideos} />
       ) : (
         <div className="py-16 text-center">
-          <h3 className="text-xl font-medium">No videos found</h3>
+          <h3 className="text-m5 font-mono font-normal text-almostblack">No videos found</h3>
           <p className="text-gray-500 mt-2">Try adjusting your filters or search term.</p>
         </div>
       )}

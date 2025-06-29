@@ -29,28 +29,32 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
       <div className="grid grid-cols-1 gap-6">
         {articles.map((article, index) => (
           <Link key={index} href={`/articles/${article.slug}`}>
-            <Card ref={index === articles.length - 1 ? lastArticleRef : undefined} className="overflow-hidden  hover:shadow-md transition-all duration-200 bg-card dark:bg-gray-900 border-sky-50">
-              <CardContent className="p-0 flex flex-col md:flex-row h-full">
-                <div className="relative w-full md:w-[250px] aspect-square shrink-0">
+            <Card ref={index === articles.length - 1 ? lastArticleRef : undefined} className="overflow-hidden bg-white dark:bg-gray-900 h-full flex flex-col border border-black dark:border-white rounded-none shadow-none">
+              <CardContent className="p-0 flex-grow flex flex-col">
+                <div className="relative aspect-[1.1/1] w-full border-b border-black dark:border-white bg-gray-100 flex items-center justify-center">
                   <Image src={article.metadata.image?.imgix_url || "/image-placeholder.svg"} alt={article.title} fill className="object-cover" />
                 </div>
-                <div className="p-5 flex-grow flex flex-col">
-                  <div>
-                    {article.metadata.categories && article.metadata.categories.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {article.metadata.categories.map((category, index) => (
-                          <Badge key={index} variant="secondary" className="bg-gray-100 uppercase dark:bg-gray-800 text-foreground hover:bg-gray-200 dark:hover:bg-gray-700">
-                            {category.title}
-                          </Badge>
-                        ))}
-                      </div>
+                <div className="flex flex-col gap-2 p-5 flex-1 justify-end">
+                  <h4 className="text-h8 font-display font-normal text-almostblack mb-1 text-left line-clamp-2">{article.title}</h4>
+                  <div className="text-m7 font-mono font-normal text-almostblack opacity-80 text-left">
+                    {formatDate(article.metadata.date || "")}
+                    {article.metadata.author && (
+                      <>
+                        {" • "}
+                        {typeof article.metadata.author === "string" ? article.metadata.author : (article.metadata.author as AuthorObject)?.title || "Unknown Author"}
+                      </>
                     )}
-                    <span className="text-sm text-foreground">
-                      {formatDate(article.metadata.date || "")} • {typeof article.metadata.author === "string" ? article.metadata.author : (article.metadata.author as AuthorObject)?.title || "Unknown Author"}
-                    </span>
-                    <h4 className="text-h8 font-display font-normal text-almostblack mb-3 line-clamp-2">{article.title}</h4>
                   </div>
-                  <p className="text-sm text-foreground line-clamp-3 mb-4">{article.metadata.excerpt?.replace(/Genre:[^.]+\.?\s*/i, "").trim()}</p>
+                  {article.metadata.categories && article.metadata.categories.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {article.metadata.categories.map((category, idx) => (
+                        <span key={idx} className="border border-black dark:border-white text-m8 font-mono px-2 py-1 rounded-none uppercase tracking-wide bg-transparent">
+                          {category.title}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {article.metadata.excerpt && <p className="text-sm text-foreground line-clamp-3 mt-2">{article.metadata.excerpt.replace(/Genre:[^.]+\.?\s*/i, "").trim()}</p>}
                   <div className="mt-auto text-foreground text-sm flex items-center">
                     Read More <ChevronRight className="h-4 w-4 ml-1" />
                   </div>

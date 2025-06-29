@@ -142,7 +142,7 @@ export default async function HostPage({ params }: { params: { slug: string } })
 
           {hostedShows.length > 0 && (
             <div className="mt-8">
-              <h3 className="text-lg font-semibold mb-4">Shows ({hostedShows.length})</h3>
+              <h3 className="text-m5 font-mono font-normal text-almostblack mb-4">Shows ({hostedShows.length})</h3>
               <p className="text-muted-foreground mb-4">Recent shows hosted by {host.title}</p>
             </div>
           )}
@@ -152,7 +152,7 @@ export default async function HostPage({ params }: { params: { slug: string } })
       {/* Hosted Shows */}
       {hostedShows.length > 0 && (
         <section className="space-y-6">
-          <h2 className="text-2xl font-bold">Recent Shows</h2>
+          <h2 className="text-h7 font-display uppercase font-normal text-almostblack">Recent Shows</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {hostedShows.slice(0, 9).map((show) => {
               const showImage = show.metadata?.image?.imgix_url || "/image-placeholder.svg";
@@ -165,7 +165,7 @@ export default async function HostPage({ params }: { params: { slug: string } })
                       <Image src={showImage} alt={show.title} fill className="object-cover" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end">
                         <div className="p-4 w-full">
-                          <h3 className="text-white font-medium line-clamp-2">{show.title}</h3>
+                          <h3 className="text-m7 font-mono font-normal text-almostblack line-clamp-2">{show.title}</h3>
                           {broadcastDate && <p className="text-white/70 text-sm mt-1">{broadcastDate}</p>}
                         </div>
                       </div>
@@ -180,7 +180,7 @@ export default async function HostPage({ params }: { params: { slug: string } })
 
       {hostedShows.length === 0 && (
         <div className="text-center py-12">
-          <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Shows Found</h3>
+          <h3 className="text-m5 font-mono font-normal text-almostblack text-muted-foreground mb-2">No Shows Found</h3>
           <p className="text-muted-foreground">This host doesn't have any shows yet.</p>
         </div>
       )}

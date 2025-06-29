@@ -34,7 +34,7 @@ export default function SignUpClient({ onSubmit }: { onSubmit: any }) {
         <div className="mx-auto max-w-md">
           <div className="bg-card p-8 shadow-sm text-center">
             <CheckCircle className="mx-auto size-16 text-green-500 mb-4" />
-            <h2 className="font-display text-2xl font-normal tracking-tight mb-4">Check your email</h2>
+            <h2 className="font-display uppercase text-2xl font-normal tracking-tight mb-4">Check your email</h2>
             <p className="text-muted-foreground mb-6">We've sent you a verification link. Please check your email to complete the signup process.</p>
             <Button asChild>
               <Link href="/login">Go to login</Link>

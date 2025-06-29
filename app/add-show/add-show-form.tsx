@@ -314,7 +314,7 @@ export function AddShowForm() {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Show Details</h2>
+          <h2 className="text-h7 font-display uppercase font-normal text-almostblack">Show Details</h2>
 
           <FormField
             control={form.control}
@@ -390,7 +390,7 @@ export function AddShowForm() {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Artist</h2>
+          <h2 className="text-h7 font-display uppercase font-normal text-almostblack">Artist</h2>
 
           <FormField
             control={form.control}
@@ -425,7 +425,7 @@ export function AddShowForm() {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Additional Information</h2>
+          <h2 className="text-h7 font-display uppercase font-normal text-almostblack">Additional Information</h2>
 
           <FormField
             control={form.control}
@@ -502,7 +502,7 @@ export function AddShowForm() {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Location</h2>
+          <h2 className="text-h7 font-display uppercase font-normal text-almostblack">Location</h2>
 
           <FormField
             control={form.control}
@@ -674,7 +674,7 @@ export function AddShowForm() {
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Media File</h2>
+          <h2 className="text-h7 font-display uppercase font-normal text-almostblack">Media File</h2>
           <FormItem>
             <FormLabel>Upload Audio File</FormLabel>
             <Dropzone

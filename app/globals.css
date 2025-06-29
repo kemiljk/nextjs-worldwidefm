@@ -83,7 +83,7 @@
   h4,
   h5,
   h6 {
-    @apply font-display leading-tight;
+    @apply font-display uppercase leading-tight;
   }
 
   .prose h1,
@@ -92,7 +92,7 @@
   .prose h4,
   .prose h5,
   .prose h6 {
-    @apply font-normal font-display;
+    @apply font-normal font-display uppercase;
   }
 
   code,

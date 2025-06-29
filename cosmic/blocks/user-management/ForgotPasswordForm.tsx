@@ -44,7 +44,7 @@ export default function ForgotPasswordForm({ onSubmit }: ForgotPasswordFormProps
         <div className="mx-auto max-w-md">
           <div className="bg-card p-8 shadow-sm text-center">
             <Mail className="mx-auto size-16 text-sky-500 mb-4" />
-            <h2 className="font-display text-2xl font-normal tracking-tight mb-4">Check Your Email</h2>
+            <h2 className="font-display uppercase text-2xl font-normal tracking-tight mb-4">Check Your Email</h2>
             <p className="text-muted-foreground mb-6">If an account exists with that email address, we've sent instructions to reset your password.</p>
             <Button asChild>
               <Link href="/login">Return to login</Link>
@@ -59,7 +59,7 @@ export default function ForgotPasswordForm({ onSubmit }: ForgotPasswordFormProps
     <div className="py-8">
       <div className="mx-auto max-w-md">
         <div className="bg-card p-8 shadow-sm">
-          <h1 className="font-display text-3xl font-normal tracking-tight text-center mb-4">Reset Password</h1>
+          <h1 className="font-display uppercase text-3xl font-normal tracking-tight text-center mb-4">Reset Password</h1>
           <p className="text-center text-muted-foreground mb-8">Enter your email address and we'll send you instructions to reset your password.</p>
 
           {error && <div className="mb-6 p-4 bg-crimson-50 border border-crimson-200 text-crimson-800 text-sm">{error}</div>}

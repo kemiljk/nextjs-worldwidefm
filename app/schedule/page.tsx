@@ -136,7 +136,7 @@ export default async function SchedulePage() {
 
                 return (
                   <div key={day} className="py-4">
-                    <h2 className="text-xl font-bold mb-4">{day}</h2>
+                    <h2 className="text-h7 font-display uppercase font-normal text-almostblack mb-4">{day}</h2>
                     <div className="space-y-4">
                       {dayShows.map((show) => (
                         <Link href={`/shows/${show.show_key}`} key={`${show.show_day}-${show.show_time}-${show.name}`} className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors group">
@@ -150,7 +150,7 @@ export default async function SchedulePage() {
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-sm font-medium text-foreground">{show.show_time}</span>
                             </div>
-                            <h3 className="text-lg leading-tight text-foreground group-hover:text-foreground transition-colors">{show.name}</h3>
+                            <h3 className="text-m5 font-mono font-normal text-almostblack group-hover:text-foreground transition-colors">{show.name}</h3>
                             {show.hosts.length > 0 && (
                               <p className="text-sm text-foreground mt-1 line-clamp-1">
                                 Hosted by:{" "}
@@ -179,7 +179,7 @@ export default async function SchedulePage() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-24 text-center px-4">
-              <h2 className="text-xl font-semibold text-foreground mb-2">{error ? "Schedule Temporarily Unavailable" : "No Current Schedule"}</h2>
+              <h2 className="text-h7 font-display uppercase font-normal text-almostblack mb-2">{error ? "Schedule Temporarily Unavailable" : "No Current Schedule"}</h2>
               <p className="text-muted-foreground mb-8 max-w-lg">{error ? "We're having trouble connecting to our schedule service. Please check back later while we resolve this issue." : "Our weekly schedule is currently being updated. In the meantime, you can browse our complete archive of shows."}</p>
               <div className="flex gap-4">
                 <Link href="/">
