@@ -53,7 +53,7 @@ export default function EditorialSection({ title, posts, className, isHomepage =
   return (
     <section className={cn("", className)}>
       <div className={`flex items-center justify-between mb-8 ${!isHomepage && "mt-12"}`}>
-        <h2 className="text-xl font-medium text-foreground">{title}</h2>
+        <h2 className="text-h7 font-display font-normal text-almostblack">{title}</h2>
       </div>
       {isHomepage ? (
         <Marquee className="-mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24" speed="slow" pauseOnHover>
@@ -66,7 +66,7 @@ export default function EditorialSection({ title, posts, className, isHomepage =
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent">
                       <div className="absolute bottom-4 left-4 right-4">
                         <p className="text-xs text-white/60 mb-2">{post.metadata?.date ? new Date(post.metadata.date).toLocaleDateString() : ""}</p>
-                        <h3 className="text-lg leading-tight text-white font-display line-clamp-2">{post.title}</h3>
+                        <h3 className="text-m5 font-mono font-normal text-white line-clamp-2">{post.title}</h3>
                       </div>
                     </div>
                   </div>
@@ -87,7 +87,7 @@ export default function EditorialSection({ title, posts, className, isHomepage =
                     </div>
                     <div className="p-4">
                       <p className="text-xs text-foreground-700 mb-2">{post.metadata?.date ? new Date(post.metadata.date).toLocaleDateString() : ""}</p>
-                      <h3 className="text-sm leading-tight text-foreground font-display line-clamp-2">{post.title}</h3>
+                      <h3 className="text-m7 font-mono font-normal text-almostblack line-clamp-2">{post.title}</h3>
                     </div>
                   </CardContent>
                 </Card>

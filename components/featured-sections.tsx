@@ -46,7 +46,7 @@ export default function FeaturedSections({ showToDisplay, hasLiveShow, transform
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent">
               <div className="absolute bottom-4 left-4 right-4">
                 {hasLiveShow && <div className="text-xs font-medium py-1 px-2 bg-black/80 text-white inline-block mb-2">ON NOW</div>}
-                <h3 className="text-2xl text-white font-display font-medium mt-1">{showToDisplay?.name || "No show available"}</h3>
+                <h3 className="text-m5 font-mono font-normal text-white mt-1">{showToDisplay?.name || "No show available"}</h3>
               </div>
             </div>
           </CardContent>
@@ -63,7 +63,7 @@ export default function FeaturedSections({ showToDisplay, hasLiveShow, transform
               </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent">
                 <div className="absolute bottom-4 left-4 right-4">
-                  <h3 className="text-2xl text-white font-display mt-1 font-medium">{transformedUpcomingShows[0]?.title || "No show available"}</h3>
+                  <h3 className="text-m5 font-mono font-normal text-white mt-1">{transformedUpcomingShows[0]?.title || "No show available"}</h3>
                 </div>
               </div>
             </CardContent>

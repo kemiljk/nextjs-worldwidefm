@@ -33,7 +33,7 @@ export function ShowsGrid({ shows, sentinelRef }: ShowsGridProps) {
               </div>
               <div className="p-4">
                 {show.date && <p className="text-xs text-foreground mb-1">{new Date(show.date).toLocaleDateString()}</p>}
-                <h3 className="font-medium line-clamp-2">{show.title}</h3>
+                <h3 className="text-m7 font-mono font-normal text-almostblack line-clamp-2">{show.title}</h3>
                 <div className="flex flex-wrap gap-2 mt-4">
                   {show.genres?.slice(0, 3).map((genre) => (
                     <span key={genre.slug} className="text-[9.5px] px-2 py-1 rounded-full border border-foreground uppercase">

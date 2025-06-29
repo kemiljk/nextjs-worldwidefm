@@ -3,7 +3,6 @@
     {
       "path": "/api/shows/sync",
       "schedule": "0 0 * * *",
-      "method": "POST",
       "headers": {
         "x-api-key": "@SYNC_API_KEY"
       },

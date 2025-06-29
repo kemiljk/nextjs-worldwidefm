@@ -24,7 +24,7 @@ const renderHeroItem = (item: CosmicItem, isPriority: boolean) => {
             {item.metadata.image?.url && <Image src={item.metadata.image.url} alt={item.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={isPriority} />}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent">
               <div className="absolute bottom-4 left-4 right-4">
-                <h3 className="text-xl md:text-2xl text-white font-display font-medium">{item.title}</h3>
+                <h3 className="text-h8 font-display font-normal text-white">{item.title}</h3>
                 {item.metadata.subtitle && <p className="text-sm text-gray-200 mt-2 line-clamp-2">{item.metadata.subtitle}</p>}
                 {item.metadata.description && <p className="text-xs md:text-sm text-white max-w-xl mt-2 line-clamp-3">{item.metadata.description}</p>}
               </div>
@@ -64,7 +64,7 @@ const HomepageHero: React.FC<HomepageHeroProps> = ({ heroLayout, heroItems }) =>
   console.warn(`HomepageHero: Encountered an unexpected or not-yet-implemented heroLayout: "${heroLayout}"`);
   return (
     <div className="p-4 md:p-8 lg:p-10 border-b border-black dark:border-white">
-      <h2 className="text-xl font-bold mb-2">Hero Section (Layout: {heroLayout})</h2>
+      <h2 className="text-h7 font-display font-normal text-almostblack mb-2">Hero Section (Layout: {heroLayout})</h2>
       <p className="text-red-500 font-semibold">Warning: Layout '{heroLayout}' is not recognized or fully implemented for the Hero section.</p>
     </div>
   );

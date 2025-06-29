@@ -17,7 +17,7 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
   if (!articles || articles.length === 0) {
     return (
       <div>
-        <h3 className="text-lg leading-tight text-foreground mb-4">{title}</h3>
+        <h3 className="text-m5 font-mono font-normal text-almostblack mb-4">{title}</h3>
         <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-none text-foreground text-center">No posts available at this time.</div>
       </div>
     );
@@ -25,7 +25,7 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
 
   return (
     <div>
-      {title && <h3 className="text-lg leading-tight text-foreground mb-4">{title}</h3>}
+      <h3 className="text-m5 font-mono font-normal text-almostblack mb-4">{title}</h3>
       <div className="grid grid-cols-1 gap-6">
         {articles.map((article, index) => (
           <Link key={index} href={`/articles/${article.slug}`}>
@@ -48,7 +48,7 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
                     <span className="text-sm text-foreground">
                       {formatDate(article.metadata.date || "")} • {typeof article.metadata.author === "string" ? article.metadata.author : (article.metadata.author as AuthorObject)?.title || "Unknown Author"}
                     </span>
-                    <h4 className="text-xl mb-3 text-foreground line-clamp-2">{article.title}</h4>
+                    <h4 className="text-h8 font-display font-normal text-almostblack mb-3 line-clamp-2">{article.title}</h4>
                   </div>
                   <p className="text-sm text-foreground line-clamp-3 mb-4">{article.metadata.excerpt?.replace(/Genre:[^.]+\.?\s*/i, "").trim()}</p>
                   <div className="mt-auto text-foreground text-sm flex items-center">

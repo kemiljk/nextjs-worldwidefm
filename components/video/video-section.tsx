@@ -43,7 +43,7 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
   return (
     <section className={cn("", className)}>
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-xl font-medium text-crimson-50">VIDEO</h2>
+        <h2 className="text-h7 font-display font-normal text-almostblack">VIDEO</h2>
         <Link href="/videos" className="text-sm text-crimson-50 flex items-center group">
           View All <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
         </Link>
@@ -63,7 +63,7 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent">
                       <div className="absolute bottom-4 left-4 right-4">
                         <p className="text-xs text-white/60 mb-2">{video.metadata?.date ? new Date(video.metadata.date).toLocaleDateString() : ""}</p>
-                        <h3 className="text-lg leading-tight text-white font-display line-clamp-2">{video.title}</h3>
+                        <h3 className="text-m5 font-mono font-normal text-white line-clamp-2">{video.title}</h3>
                       </div>
                     </div>
                   </div>

@@ -23,12 +23,15 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
   const selectedGenre = searchParams.get("genre");
 
   // Get unique genres and their counts
-  const genreCounts = shows.reduce((acc, show) => {
-    filterWorldwideFMTags(show.tags).forEach((tag) => {
-      acc[tag.name] = (acc[tag.name] || 0) + 1;
-    });
-    return acc;
-  }, {} as Record<string, number>);
+  const genreCounts = shows.reduce(
+    (acc, show) => {
+      filterWorldwideFMTags(show.tags).forEach((tag) => {
+        acc[tag.name] = (acc[tag.name] || 0) + 1;
+      });
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   // Sort genres by count and take top 4 for initial view
   const topGenres = Object.entries(genreCounts)
@@ -78,7 +81,7 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
   return (
     <section className="px-4 md:px-8 lg:px-24 py-8 border-t border-bronze-900 bg-bronze-500">
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-xl font-medium text-bronze-50">{title}</h2>
+        <h2 className="text-h7 font-display font-normal text-almostblack">{title}</h2>
         <GenreDropdown genres={allGenres} onSelect={handleGenreSelect} selectedGenre={selectedGenre} />
       </div>
       <Marquee className="-mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24" speed="slow" pauseOnHover>
@@ -104,7 +107,7 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
                           ))}
                         </div>
                         <div className="flex items-center gap-4 mt-2">
-                          <h3 className="text-lg leading-tight font-medium text-white line-clamp-2 mt-2">{show.name}</h3>
+                          <h3 className="text-m5 font-mono font-normal text-white line-clamp-2 mt-2">{show.name}</h3>
                           <PlayButton show={show} variant="secondary" size="icon" className="bg-bronze-500 hover:bg-bronze-600 text-white shrink-0" />
                         </div>
                       </div>

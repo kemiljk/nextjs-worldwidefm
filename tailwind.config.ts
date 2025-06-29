@@ -7,6 +7,8 @@ const config = {
   theme: {
     fontFamily: {
       sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+      display: ["var(--font-display)", "system-ui", "sans-serif"],
+      mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
     },
     container: {
       center: true,
@@ -129,10 +131,23 @@ const config = {
           900: "#323D2A",
           950: "#192013",
         },
+        almostblack: "#231F20",
+        black: "#000000",
+        white: "#ffffff",
+        sunset: {
+          DEFAULT: "#F8971D",
+        },
+        electric: {
+          DEFAULT: "#88CA4F",
+        },
+        hyperpop: {
+          DEFAULT: "#e661a4",
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         display: ["var(--font-display)", "system-ui", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
       },
       letterSpacing: {
         tight: "-0.02em",
@@ -159,6 +174,21 @@ const config = {
       },
       animation: {
         "marquee-move": "marquee-move-text var(--speed, 15s) linear infinite var(--direction, forwards)",
+      },
+      fontSize: {
+        // Figma tokens
+        h4: ["80px", { lineHeight: "0.9", fontWeight: "400" }],
+        h5: ["70px", { lineHeight: "0.9", fontWeight: "400" }],
+        h7: ["50px", { lineHeight: "0.9", fontWeight: "400" }],
+        h8: ["40px", { lineHeight: "0.9", fontWeight: "400" }],
+        m4: ["25px", { lineHeight: "1", fontWeight: "400" }],
+        m5: ["20px", { lineHeight: "1.1", fontWeight: "400" }],
+        m6: ["16px", { lineHeight: "1.1", fontWeight: "400" }],
+        m7: ["14px", { lineHeight: "1.1", fontWeight: "400" }],
+        m8: ["12px", { lineHeight: "1.1", fontWeight: "400" }],
+        b1: ["30px", { lineHeight: "1", fontWeight: "400" }],
+        b2: ["20px", { lineHeight: "1", fontWeight: "400" }],
+        b4: ["14px", { lineHeight: "1.1", fontWeight: "400" }],
       },
     },
   },

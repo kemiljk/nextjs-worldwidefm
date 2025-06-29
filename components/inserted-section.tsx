@@ -18,7 +18,7 @@ const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
             <Image src={imageUrl} alt={item.title} fill className="object-cover group-hover:scale-105 transition-transform duration-300 ease-in-out" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
           </div>
           <div className="p-4 bg-card">
-            <h3 className="text-lg font-semibold group-hover:underline">{item.title}</h3>
+            <h3 className="text-m5 font-mono font-normal text-almostblack group-hover:underline">{item.title}</h3>
             {item.metadata.subtitle && <p className="text-sm text-muted-foreground line-clamp-2">{item.metadata.subtitle}</p>}
             {/* Add more metadata display based on item.type if needed */}
           </div>
@@ -77,7 +77,7 @@ const CosmicSectionComponent: React.FC<CosmicSectionProps> = ({ section }) => {
 
   return (
     <section className="py-8 md:py-12 lg:py-16 px-4 md:px-8 lg:px-16">
-      <h2 className="text-2xl md:text-3xl font-bold font-display mb-6 md:mb-8">{section.title}</h2>
+      <h2 className="text-h7 font-display font-normal text-almostblack mb-6 md:mb-8">{section.title}</h2>
       {renderItems()}
     </section>
   );
