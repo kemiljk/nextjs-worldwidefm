@@ -144,7 +144,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="aspect-square relative">
-          <Image src={displayImage} alt={displayName} fill className="object-cover rounded-lg" />
+          <Image src={displayImage} alt={displayName} fill className="object-cover rounded-none" />
           {isLive && (
             <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full flex items-center gap-2">
               <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
@@ -154,7 +154,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
         </div>
 
         <div>
-          <div className="bg-white dark:bg-gray-900 p-6 rounded-lg">
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-none">
             <div className="space-y-6">
               <div>
                 <h3 className="text-m5 font-mono font-normal text-almostblack mb-2">Show Details</h3>
@@ -251,7 +251,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
       {((show as any).body_text || (show as any).tracklist) && (
         <div className="space-y-8">
           {(show as any).body_text && (
-            <section className="bg-white dark:bg-gray-900 p-6 rounded-lg">
+            <section className="bg-white dark:bg-gray-900 p-6 rounded-none">
               <h2 className="text-h7 font-display uppercase font-normal text-almostblack mb-4">About This Show</h2>
               <div className="prose dark:prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">{(show as any).body_text}</p>
@@ -260,7 +260,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
           )}
 
           {(show as any).tracklist && (
-            <section className="bg-white dark:bg-gray-900 p-6 rounded-lg">
+            <section className="bg-white dark:bg-gray-900 p-6 rounded-none">
               <h2 className="text-h7 font-display uppercase font-normal text-almostblack mb-4">Tracklist</h2>
               <div className="prose dark:prose-invert max-w-none">
                 <pre className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">{(show as any).tracklist}</pre>

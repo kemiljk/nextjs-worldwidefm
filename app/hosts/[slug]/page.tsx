@@ -134,7 +134,7 @@ export default async function HostPage({ params }: { params: { slug: string } })
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="aspect-square relative">
-          <Image src={hostImage} alt={host.title} fill className="object-cover rounded-lg" />
+          <Image src={hostImage} alt={host.title} fill className="object-cover rounded-none" />
         </div>
 
         <div>
