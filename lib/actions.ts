@@ -25,137 +25,74 @@ export async function getAllPosts(): Promise<PostObject[]> {
   }
 }
 
-export async function getAllShows(skip = 0, limit = 20, filters?: any) {
+export async function getAllShows(cosmicSkip = 0, mixcloudSkip = 0, limit = 20, filters?: any) {
   try {
-    console.log("Filters received:", JSON.stringify(filters, null, 2));
-
-    // Basic query params with smaller page size and field selection
-    const queryParams: any = {
-      skip,
+    // Fetch a page from each source
+    const cosmicPromise = getRadioShows({
+      skip: cosmicSkip,
       limit,
       sort: "-created_at",
       status: "published",
-      type: "radio-shows",
-      props: "id,title,slug,metadata.image,metadata.description,metadata.broadcast_date,metadata.genres,metadata.regular_hosts,metadata.takeovers,metadata.locations",
-      cache: true,
-      cache_ttl: 3600, // 1 hour cache
-    };
+      ...filters,
+    });
+    const mixcloudPromise = getAllShowsFromMixcloud(); // We'll slice for pagination below
+    const [cosmicRes, mixcloudRes] = await Promise.all([cosmicPromise, mixcloudPromise]);
+    const cosmicShows = cosmicRes.objects || [];
+    const mixcloudShows = mixcloudRes || [];
 
-    // Build query based on filter types
-    const query: any = {};
+    // Paginate Mixcloud manually (API doesn't support skip)
+    const pagedMixcloud = mixcloudShows.slice(mixcloudSkip, mixcloudSkip + limit);
 
-    // Handle isNew filter
-    if (filters?.isNew) {
-      console.log("Adding isNew filter condition");
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      query.created_at = { $gt: thirtyDaysAgo.toISOString() };
+    // Normalize
+    const normalizedMixcloud = pagedMixcloud.map((show) => ({
+      ...show,
+      slug: show.key.replace(/^\/+/, ""),
+      created_at: show.created_time,
+      source: "mixcloud",
+    }));
+    const normalizedCosmic = cosmicShows.map((show) => ({
+      ...show,
+      slug: show.slug,
+      created_at: show.metadata?.broadcast_date || show.created_at,
+      source: "cosmic",
+    }));
+
+    // Merge and de-duplicate by slug (Mixcloud prioritized)
+    const allShowsMap = new Map();
+    for (const show of normalizedMixcloud) {
+      allShowsMap.set(show.slug, show);
     }
-
-    // Set up a single $or array for all genre filters
-    const genreConditions: { [key: string]: any }[] = [];
-    // Handle genre filter(s)
-    if (filters?.genre) {
-      console.log("Adding genre filter condition", filters.genre);
-      // Support both single value and array
-      const genreSlugs = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
-      if (genreSlugs.length > 0) {
-        // Add each genre as its own condition - matching ANY will satisfy
-        genreSlugs.forEach((slug: string) => {
-          genreConditions.push({ "metadata.genres.slug": slug });
-        });
+    for (const show of normalizedCosmic) {
+      if (!allShowsMap.has(show.slug)) {
+        allShowsMap.set(show.slug, show);
       }
     }
+    const allShows = Array.from(allShowsMap.values());
 
-    // Set up a single $or array for all host filters
-    const hostConditions: { [key: string]: any }[] = [];
-    // Handle host filter(s)
-    if (filters?.host) {
-      console.log("Adding host filter condition", filters.host);
-      // Support both single value and array
-      const hostSlugs = Array.isArray(filters.host) ? filters.host : [filters.host];
-      if (hostSlugs.length > 0) {
-        // Add each host as its own condition - matching ANY will satisfy
-        hostSlugs.forEach((slug: string) => {
-          hostConditions.push({ "metadata.regular_hosts.slug": slug });
-        });
-      }
-    }
-
-    // Set up a single $or array for all takeover filters
-    const takeoverConditions: { [key: string]: any }[] = [];
-    // Handle takeover filter(s)
-    if (filters?.takeover) {
-      console.log("Adding takeover filter condition", filters.takeover);
-      // Support both single value and array
-      const takeoverSlugs = Array.isArray(filters.takeover) ? filters.takeover : [filters.takeover];
-      if (takeoverSlugs.length > 0) {
-        // Add each takeover as its own condition - matching ANY will satisfy
-        takeoverSlugs.forEach((slug: string) => {
-          takeoverConditions.push({ "metadata.takeovers.slug": slug });
-        });
-      }
-    }
-
-    // Apply search term if provided
-    if (filters?.searchTerm) {
-      console.log("Adding search filter condition", filters.searchTerm);
-      query.$or = [{ title: { $regex: filters.searchTerm, $options: "i" } }, { "metadata.description": { $regex: filters.searchTerm, $options: "i" } }, { "metadata.regular_hosts.title": { $regex: filters.searchTerm, $options: "i" } }];
-    }
-
-    // Build a master $and query from all our conditions
-    const masterConditions = [];
-
-    // Add the base query if we have conditions
-    if (Object.keys(query).length > 0) {
-      masterConditions.push(query);
-    }
-
-    // Add genre conditions as an OR group if we have any
-    if (genreConditions.length > 0) {
-      masterConditions.push({ $or: genreConditions });
-    }
-
-    // Add host conditions as an OR group if we have any
-    if (hostConditions.length > 0) {
-      masterConditions.push({ $or: hostConditions });
-    }
-
-    // Add takeover conditions as an OR group if we have any
-    if (takeoverConditions.length > 0) {
-      masterConditions.push({ $or: takeoverConditions });
-    }
-
-    // Apply the final query if we have any conditions
-    if (masterConditions.length > 0) {
-      queryParams.query = masterConditions.length === 1 ? masterConditions[0] : { $and: masterConditions };
-    }
-
-    console.log("Final query params:", JSON.stringify(queryParams, null, 2));
-
-    // Add a timeout to the API request
-    const timeoutPromise = new Promise<{ objects: RadioShowObject[]; total: number }>((_, reject) => {
-      setTimeout(() => reject(new Error("API request timed out")), 30000);
+    // Sort by date descending
+    allShows.sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime();
+      const dateB = new Date(b.created_at || 0).getTime();
+      return dateB - dateA;
     });
 
-    // Fetch content with timeout protection
-    const responsePromise = getRadioShows(queryParams).catch((error) => {
-      console.error("Error in getRadioShows API call:", error);
-      // Return a default empty structure instead of throwing
-      return { objects: [] as RadioShowObject[], total: 0 };
-    });
+    // Take up to limit blended results
+    const blended = allShows.slice(0, limit);
 
-    const response = await Promise.race([responsePromise, timeoutPromise]);
-
-    console.log(`Retrieved ${response.objects?.length || 0} shows out of ${response.total || 0} total`);
+    // Calculate new cursors
+    const newCosmicSkip = cosmicSkip + cosmicShows.length;
+    const newMixcloudSkip = mixcloudSkip + pagedMixcloud.length;
+    const hasMore = blended.length === limit && (cosmicShows.length === limit || pagedMixcloud.length === limit);
 
     return {
-      shows: response.objects || [],
-      total: response.total || 0,
+      shows: blended,
+      hasMore,
+      cosmicSkip: newCosmicSkip,
+      mixcloudSkip: newMixcloudSkip,
     };
   } catch (error) {
-    console.error("Error fetching shows:", error);
-    return { shows: [], total: 0 };
+    console.error("Error fetching blended shows:", error);
+    return { shows: [], hasMore: false, cosmicSkip, mixcloudSkip };
   }
 }
 
@@ -163,7 +100,7 @@ export async function getAllShows(skip = 0, limit = 20, filters?: any) {
  * Enhanced function that merges Mixcloud and Cosmic CMS data for richer show details
  */
 export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
-  // First get the base show data (from Mixcloud or RadioCult)
+  // First get the base show data (from Mixcloud, RadioCult, or Cosmic)
   const baseShow = await getShowBySlug(slug);
   if (!baseShow) {
     return null;
@@ -226,10 +163,10 @@ export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
   return enhancedShow;
 }
 
-export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioCultEvent | null> {
+export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioCultEvent | any | null> {
   // First try RadioCult only if this is a potential live show
   try {
-    // If this is a full Mixcloud path with multiple segments, don't try RadioCult
+    // If this is a full Mixcloud path with multiple segments, don't try RadioCult lookup
     if (slug.includes("/")) {
       // This is a Mixcloud path, skip RadioCult lookup
     } else {
@@ -306,7 +243,7 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioC
             audio_length: radioCultEvent.duration * 60, // convert minutes to seconds
             endTime: radioCultEvent.endTime, // Add endTime for RadioCult events
             description: radioCultEvent.description, // Add description for RadioCult events
-            __source: "radiocult", // Add a source marker to identify RadioCult events
+            __source: "radiocult",
           };
 
           console.log("Found RadioCult event:", adaptedEvent.name);
@@ -337,18 +274,94 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioC
       },
     });
 
-    if (!response.ok) {
-      console.error(`Mixcloud API error for show ${showKey}: ${response.statusText}`);
-      return null;
+    if (response.ok) {
+      const show = await response.json();
+      console.log("Found Mixcloud show:", show.name);
+      return show;
     }
-
-    const show = await response.json();
-    console.log("Found Mixcloud show:", show.name);
-    return show;
   } catch (error) {
-    console.error("Error in getShowBySlug:", error);
-    return null;
+    console.error("Error in getShowBySlug (Mixcloud):", error);
   }
+
+  // If not found in Mixcloud, try Cosmic radio-shows by slug
+  try {
+    const cosmicResponse = await getRadioShowBySlug(slug);
+    if (cosmicResponse?.object) {
+      const show = cosmicResponse.object;
+      // Normalize to MixcloudShow-like shape for compatibility
+      return {
+        key: show.slug,
+        name: show.title,
+        url: `/shows/${show.slug}`,
+        pictures: {
+          small: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          thumbnail: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          medium_mobile: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          medium: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          "320wx320h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          "640wx640h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          "768wx768h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          "1024wx1024h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        },
+        created_time: show.metadata?.broadcast_date || show.created_at,
+        updated_time: show.modified_at,
+        play_count: 0,
+        favorite_count: 0,
+        comment_count: 0,
+        listener_count: 0,
+        repost_count: 0,
+        tags: (show.metadata?.genres || []).map((genre: any) => ({
+          key: genre.slug || genre.id,
+          url: `/genres/${genre.slug || genre.id}`,
+          name: genre.title,
+        })),
+        slug: show.slug,
+        user: {
+          key: "cosmic",
+          url: "/",
+          name: "Cosmic",
+          username: "cosmic",
+          pictures: {
+            small: "/logo.svg",
+            thumbnail: "/logo.svg",
+            medium_mobile: "/logo.svg",
+            medium: "/logo.svg",
+            large: "/logo.svg",
+            "320wx320h": "/logo.svg",
+            extra_large: "/logo.svg",
+            "640wx640h": "/logo.svg",
+          },
+        },
+        hosts: (show.metadata?.regular_hosts || []).map((host: any) => ({
+          key: host.slug || host.id,
+          url: `/hosts/${host.slug || host.id}`,
+          name: host.title,
+          username: host.slug || host.id,
+          pictures: {
+            small: host.image?.imgix_url || "/image-placeholder.svg",
+            thumbnail: host.image?.imgix_url || "/image-placeholder.svg",
+            medium_mobile: host.image?.imgix_url || "/image-placeholder.svg",
+            medium: host.image?.imgix_url || "/image-placeholder.svg",
+            large: host.image?.imgix_url || "/image-placeholder.svg",
+            "320wx320h": host.image?.imgix_url || "/image-placeholder.svg",
+            extra_large: host.image?.imgix_url || "/image-placeholder.svg",
+            "640wx640h": host.image?.imgix_url || "/image-placeholder.svg",
+          },
+        })),
+        hidden_stats: false,
+        audio_length: 0,
+        endTime: null,
+        description: show.metadata?.description || "",
+        __source: "cosmic",
+      };
+    }
+  } catch (error) {
+    console.error("Error in getShowBySlug (Cosmic):", error);
+  }
+
+  return null;
 }
 
 export async function getScheduleData(): Promise<{
@@ -753,44 +766,22 @@ export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
 
 export async function getAllFilters() {
   try {
-    const { shows } = await getMixcloudShows();
+    // Fetch all filter collections in parallel from Cosmic
+    const [genresRes, hostsRes, takeoversRes, locationsRes] = await Promise.all([
+      cosmic.objects.find({ type: "genres", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+      cosmic.objects.find({ type: "regular-hosts", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+      cosmic.objects.find({ type: "takeovers", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+      cosmic.objects.find({ type: "locations", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+    ]);
 
-    // Extract unique tags from all shows, filtering out "Worldwide FM"
-    const tagMap = new Map<string, { name: string; count: number }>();
-    shows.forEach((show) => {
-      filterWorldwideFMTags(show.tags).forEach((tag) => {
-        const existing = tagMap.get(tag.name);
-        if (existing) {
-          existing.count++;
-        } else {
-          tagMap.set(tag.name, { name: tag.name, count: 1 });
-        }
-      });
-    });
+    const toFilterItems = (objects: any[] = [], type: string): FilterItem[] => objects.map((obj) => ({ id: obj.id, slug: obj.slug, title: obj.title, type }));
 
-    // Convert to sorted array
-    const tags = Array.from(tagMap.values())
-      .sort((a, b) => b.count - a.count)
-      .map((tag) => ({
-        id: tag.name.toLowerCase().replace(/\s+/g, "-"),
-        slug: tag.name.toLowerCase().replace(/\s+/g, "-"),
-        title: tag.name,
-        content: "",
-        bucket: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "",
-        created_at: new Date().toISOString(),
-        modified_at: new Date().toISOString(),
-        published_at: new Date().toISOString(),
-        status: "published",
-        type: "genres",
-        metadata: null,
-      }));
+    const genres = toFilterItems(genresRes.objects || [], "genres");
+    const hosts = toFilterItems(hostsRes.objects || [], "hosts");
+    const takeovers = toFilterItems(takeoversRes.objects || [], "takeovers");
+    const locations = toFilterItems(locationsRes.objects || [], "locations");
 
-    return {
-      genres: tags,
-      hosts: [], // We'll handle hosts separately if needed
-      takeovers: [], // We'll handle takeovers separately if needed
-      locations: [], // Not available from Mixcloud
-    };
+    return { genres, hosts, takeovers, locations };
   } catch (error) {
     console.error("Error getting filters:", error);
     return {
@@ -1000,166 +991,199 @@ const getMixcloudShowsOriginal = async (filters: MixcloudShowsFilters = {}): Pro
 
 export async function searchContent(query?: string, source?: string, limit: number = 100): Promise<SearchResult[]> {
   try {
-    // If source is mixcloud, search only in mixcloud
-    if (source === "mixcloud") {
-      const shows = await getAllShowsFromMixcloud();
-      let filteredShows = shows;
+    // Helper to safely extract a string field
+    const safeString = (val: any): string | undefined => (typeof val === "string" && val.trim() ? val : undefined);
+    // Helper to get best image url
+    const getImage = (meta: any): string | undefined => meta?.image?.imgix_url || meta?.image?.url || undefined;
+    // Helper to get genres from categories
+    const getGenres = (meta: any): FilterItem[] => (meta?.categories || []).filter(Boolean).map((cat: any) => ({ slug: cat.slug, title: cat.title, type: "genres" }));
+    // Helper to get date
+    const getDate = (meta: any, fallback: string): string | undefined => safeString(meta?.date) || fallback;
 
-      if (query) {
-        const searchTerm = query.toLowerCase();
-        filteredShows = shows.filter((show) => {
-          return show.name.toLowerCase().includes(searchTerm) || show.tags.some((tag) => tag.name.toLowerCase().includes(searchTerm)) || (show.hosts && show.hosts.some((host) => host.name.toLowerCase().includes(searchTerm)));
-        });
-      }
-
-      // Transform shows to SearchResult format
-      return filteredShows.slice(0, limit).map((show) => ({
-        id: show.key,
-        type: "radio-shows",
-        slug: show.key.split("/").pop() || "",
-        title: show.name,
-        description: show.name,
-        image: show.pictures.extra_large,
-        date: show.created_time,
-        genres: show.tags.map((tag) => ({ slug: tag.name.toLowerCase().replace(/\s+/g, "-"), title: tag.name, type: "genres" })),
-        hosts: show.hosts?.map((host) => ({ slug: host.username, title: host.name, type: "hosts" })) || [],
-        locations: [],
-        takeovers: [],
-      }));
-    }
-
-    // If source is cosmic, search only in cosmic
     if (source === "cosmic") {
-      // Search in posts, videos, and events
-      const [postsResponse, videosResponse] = await Promise.all([
-        cosmic.objects.find({
-          type: "posts",
-          ...(query && {
-            q: query,
-          }),
-          props: "id,title,slug,metadata,created_at",
-          limit,
-          status: "published",
-        }),
-        cosmic.objects.find({
-          type: "videos",
-          ...(query && {
-            q: query,
-          }),
-          props: "id,title,slug,metadata,created_at",
-          limit,
-          status: "published",
-        }),
+      const [postsResponse, eventsResponse, videosResponse, takeoversResponse] = await Promise.all([
+        cosmic.objects.find({ type: "posts", ...(query && { q: query }), props: "id,title,slug,metadata,created_at", limit, status: "published" }),
+        cosmic.objects.find({ type: "events", ...(query && { q: query }), props: "id,title,slug,metadata,created_at", limit, status: "published" }),
+        cosmic.objects.find({ type: "videos", ...(query && { q: query }), props: "id,title,slug,metadata,created_at", limit, status: "published" }),
+        cosmic.objects.find({ type: "takeovers", ...(query && { q: query }), props: "id,title,slug,metadata,created_at", limit, status: "published" }),
       ]);
-
       const posts = postsResponse.objects || [];
+      const events = eventsResponse.objects || [];
       const videos = videosResponse.objects || [];
-
-      // Transform and combine results
-      return [...posts, ...videos].map((item) => ({
-        id: item.id,
-        type: item.type === "posts" ? item.metadata.post_type || "posts" : "videos",
-        slug: item.slug,
-        title: item.title,
-        description: item.metadata.description || item.metadata.excerpt || "",
-        image: item.metadata.image?.imgix_url || item.metadata.image?.url || null,
-        date: item.metadata.date || item.created_at,
-        genres: (item.metadata.categories || []).map((cat: any) => ({
-          slug: cat.slug,
-          title: cat.title,
-          type: "genres",
-        })),
-        hosts: [],
-        locations: [],
-        takeovers: [],
-      }));
+      const takeovers = takeoversResponse.objects || [];
+      return [
+        ...posts
+          .map((item: any) => {
+            const meta = item.metadata || {};
+            return {
+              id: item.id,
+              type: "posts",
+              slug: item.slug,
+              title: safeString(item.title),
+              description: safeString(meta.description) || safeString(meta.excerpt),
+              image: getImage(meta),
+              date: getDate(meta, item.created_at),
+              genres: getGenres(meta),
+            };
+          })
+          .filter((item: any) => item.title),
+        ...events
+          .map((item: any) => {
+            const meta = item.metadata || {};
+            return {
+              id: item.id,
+              type: "events",
+              slug: item.slug,
+              title: safeString(item.title),
+              description: safeString(meta.description) || safeString(meta.excerpt),
+              image: getImage(meta),
+              date: getDate(meta, item.created_at),
+              genres: getGenres(meta),
+            };
+          })
+          .filter((item: any) => item.title),
+        ...videos
+          .map((item: any) => {
+            const meta = item.metadata || {};
+            return {
+              id: item.id,
+              type: "videos",
+              slug: item.slug,
+              title: safeString(item.title),
+              description: safeString(meta.description),
+              image: getImage(meta),
+              date: getDate(meta, item.created_at),
+              genres: getGenres(meta),
+            };
+          })
+          .filter((item: any) => item.title),
+        ...takeovers
+          .map((item: any) => {
+            const meta = item.metadata || {};
+            return {
+              id: item.id,
+              type: "takeovers",
+              slug: item.slug,
+              title: safeString(item.title),
+              description: safeString(meta.description) || safeString(meta.excerpt),
+              image: getImage(meta),
+              date: getDate(meta, item.created_at),
+              genres: getGenres(meta),
+            };
+          })
+          .filter((item: any) => item.title),
+      ];
     }
 
     // If no source specified, search in both and combine results
-    const [mixcloudShows, postsResponse, videosResponse] = await Promise.all([
+    const [mixcloudShows, postsResponse, eventsResponse, videosResponse, takeoversResponse] = await Promise.all([
       getAllShowsFromMixcloud(),
-      cosmic.objects.find({
-        type: "posts",
-        ...(query && {
-          q: query,
-        }),
-        props: "id,title,slug,metadata,created_at",
-        limit,
-        status: "published",
-      }),
-      cosmic.objects.find({
-        type: "videos",
-        ...(query && {
-          q: query,
-        }),
-        props: "id,title,slug,metadata,created_at",
-        limit,
-        status: "published",
-      }),
+      cosmic.objects.find({ type: "posts", ...(query && { q: query }), props: "id,title,slug,metadata,created_at", limit, status: "published" }),
+      cosmic.objects.find({ type: "events", ...(query && { q: query }), props: "id,title,slug,metadata,created_at", limit, status: "published" }),
+      cosmic.objects.find({ type: "videos", ...(query && { q: query }), props: "id,title,slug,metadata,created_at", limit, status: "published" }),
+      cosmic.objects.find({ type: "takeovers", ...(query && { q: query }), props: "id,title,slug,metadata,created_at", limit, status: "published" }),
     ]);
-
-    let filteredShows = mixcloudShows;
-    if (query) {
-      const searchTerm = query.toLowerCase();
-      filteredShows = mixcloudShows.filter((show) => {
-        return show.name.toLowerCase().includes(searchTerm) || show.tags.some((tag) => tag.name.toLowerCase().includes(searchTerm)) || (show.hosts && show.hosts.some((host) => host.name.toLowerCase().includes(searchTerm)));
-      });
-    }
-
     const posts = postsResponse.objects || [];
+    const events = eventsResponse.objects || [];
     const videos = videosResponse.objects || [];
-
-    // Transform and combine all results
+    const takeovers = takeoversResponse.objects || [];
     const results = [
-      ...filteredShows.slice(0, limit).map((show) => ({
-        id: show.key,
-        type: "radio-shows",
-        slug: show.key.split("/").pop() || "",
-        title: show.name,
-        description: show.name,
-        image: show.pictures.extra_large,
-        date: show.created_time,
-        genres: show.tags.map((tag) => ({ slug: tag.name.toLowerCase().replace(/\s+/g, "-"), title: tag.name, type: "genres" })),
-        hosts: show.hosts?.map((host) => ({ slug: host.username, title: host.name, type: "hosts" })) || [],
-        locations: [],
-        takeovers: [],
-      })),
-      ...posts.map((item: any) => ({
-        id: item.id,
-        type: item.metadata.post_type || "posts",
-        slug: item.slug,
-        title: item.title,
-        description: item.metadata.description || item.metadata.excerpt || "",
-        image: item.metadata.image?.imgix_url || item.metadata.image?.url || null,
-        date: item.metadata.date || item.created_at,
-        genres: (item.metadata.categories || []).map((cat: any) => ({
-          slug: cat.slug,
-          title: cat.title,
-          type: "genres",
-        })),
-        hosts: [],
-        locations: [],
-        takeovers: [],
-      })),
-      ...videos.map((item: any) => ({
-        id: item.id,
-        type: "videos",
-        slug: item.slug,
-        title: item.title,
-        description: item.metadata.description || "",
-        image: item.metadata.image?.imgix_url || item.metadata.image?.url || null,
-        date: item.metadata.date || item.created_at,
-        genres: (item.metadata.categories || []).map((cat: any) => ({
-          slug: cat.slug,
-          title: cat.title,
-          type: "genres",
-        })),
-        hosts: [],
-        locations: [],
-        takeovers: [],
-      })),
+      // Radio Shows (Mixcloud)
+      ...mixcloudShows
+        .slice(0, limit)
+        .map((show: any) => {
+          return {
+            id: show.key,
+            type: "radio-shows",
+            slug: show.key.split("/").pop() || "",
+            title: safeString(show.name),
+            description: safeString(show.description) || safeString(show.name),
+            image: show.pictures?.extra_large || undefined,
+            date: safeString(show.created_time),
+            genres: (show.tags || []).filter(Boolean).map((tag: any) => ({ slug: tag.name.toLowerCase().replace(/\s+/g, "-"), title: tag.name, type: "genres" })),
+            hosts: (show.hosts || []).filter(Boolean).map((host: any) => ({ slug: host.username, title: host.name, type: "hosts" })),
+            locations: [],
+            takeovers: [],
+          };
+        })
+        .filter((item: any) => item.title),
+      // Posts
+      ...posts
+        .map((item: any) => {
+          const meta = item.metadata || {};
+          return {
+            id: item.id,
+            type: "posts",
+            slug: item.slug,
+            title: safeString(item.title),
+            description: safeString(meta.description) || safeString(meta.excerpt),
+            image: getImage(meta),
+            date: getDate(meta, item.created_at),
+            genres: getGenres(meta),
+            hosts: [],
+            locations: [],
+            takeovers: [],
+          };
+        })
+        .filter((item: any) => item.title),
+      // Events
+      ...events
+        .map((item: any) => {
+          const meta = item.metadata || {};
+          return {
+            id: item.id,
+            type: "events",
+            slug: item.slug,
+            title: safeString(item.title),
+            description: safeString(meta.description) || safeString(meta.excerpt),
+            image: getImage(meta),
+            date: getDate(meta, item.created_at),
+            genres: getGenres(meta),
+            hosts: [],
+            locations: [],
+            takeovers: [],
+          };
+        })
+        .filter((item: any) => item.title),
+      // Videos
+      ...videos
+        .map((item: any) => {
+          const meta = item.metadata || {};
+          return {
+            id: item.id,
+            type: "videos",
+            slug: item.slug,
+            title: safeString(item.title),
+            description: safeString(meta.description),
+            image: getImage(meta),
+            date: getDate(meta, item.created_at),
+            genres: getGenres(meta),
+            hosts: [],
+            locations: [],
+            takeovers: [],
+          };
+        })
+        .filter((item: any) => item.title),
+      // Takeovers
+      ...takeovers
+        .map((item: any) => {
+          const meta = item.metadata || {};
+          return {
+            id: item.id,
+            type: "takeovers",
+            slug: item.slug,
+            title: safeString(item.title),
+            description: safeString(meta.description) || safeString(meta.excerpt),
+            image: getImage(meta),
+            date: getDate(meta, item.created_at),
+            genres: getGenres(meta),
+            hosts: [],
+            locations: [],
+            takeovers: [],
+          };
+        })
+        .filter((item: any) => item.title),
     ];
-
     return results.slice(0, limit);
   } catch (error) {
     console.error("Search error:", error);

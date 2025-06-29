@@ -44,16 +44,6 @@ export async function generateStaticParams() {
   }
 }
 
-// Type guard to check if the show is from RadioCult
-function isRadioCultShow(show: any): boolean {
-  return show && show.__source === "radiocult";
-}
-
-// Type guard to check if the show is a MixcloudShow
-function isMixcloudShow(show: any): show is MixcloudShow {
-  return show && show.key && show.pictures && show.tags && !show.__source;
-}
-
 // Component to render host links with intelligent slug matching
 async function HostLink({ host, className }: { host: any; className: string }) {
   let href = "#";

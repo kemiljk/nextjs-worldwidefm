@@ -44,6 +44,10 @@ export interface RadioShowObject {
     regular_hosts: HostObject[];
     takeovers: TakeoverObject[];
   };
+  created_at: string;
+  modified_at: string;
+  published_at: string;
+  status: string;
 }
 
 export interface GenreObject {

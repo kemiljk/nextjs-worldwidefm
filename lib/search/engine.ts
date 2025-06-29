@@ -443,22 +443,56 @@ export class WWFMSearchEngine implements SearchEngine {
 /**
  * Helper function to map shows to search items
  */
-function mapShowsToSearchItems(shows: any[]): SearchItem[] {
-  return shows.map((show) => ({
-    id: show.id,
-    title: show.title,
-    slug: show.slug,
-    description: show.metadata?.description || "",
-    excerpt: show.metadata?.subtitle || "",
-    date: show.metadata?.broadcast_date || show.created_at,
-    image: show.metadata?.image?.imgix_url || show.metadata?.image?.url || "",
-    contentType: "radio-shows",
-    genres: mapFilterItems(show.metadata?.genres || [], "genres"),
-    locations: mapFilterItems(show.metadata?.locations || [], "locations"),
-    hosts: mapFilterItems(show.metadata?.regular_hosts || [], "hosts"),
-    takeovers: mapFilterItems(show.metadata?.takeovers || [], "takeovers"),
-    metadata: show.metadata,
-  }));
+export function mapShowsToSearchItems(shows: any[]): SearchItem[] {
+  return shows.map((show) => {
+    // Detect Mixcloud shows by presence of 'key' and 'name' fields
+    const isMixcloud = typeof show.key === "string" && typeof show.name === "string";
+    if (isMixcloud) {
+      // Mixcloud show mapping
+      return {
+        id: show.key,
+        title: show.name,
+        slug: show.slug || (show.key ? show.key.split("/").pop() : ""),
+        description: show.description || "",
+        excerpt: show.name || "",
+        date: show.created_time || undefined,
+        image: show.pictures?.extra_large || show.pictures?.large || show.pictures?.medium || show.pictures?.thumbnail || "",
+        contentType: "radio-shows",
+        genres: (show.tags || []).filter(Boolean).map((tag: any) => ({
+          id: tag.key || tag.name,
+          slug: tag.name?.toLowerCase().replace(/\s+/g, "-") || tag.key || "",
+          title: tag.name || "",
+          type: "genres",
+        })),
+        locations: [],
+        hosts: (show.hosts || []).filter(Boolean).map((host: any) => ({
+          id: host.key || host.username,
+          slug: host.username || host.key || "",
+          title: host.name || host.username || "",
+          type: "hosts",
+        })),
+        takeovers: [],
+        metadata: show, // Store full Mixcloud show for detail pages
+      };
+    } else {
+      // Cosmic show mapping (as before)
+      return {
+        id: show.id,
+        title: show.title,
+        slug: show.slug,
+        description: show.metadata?.description || "",
+        excerpt: show.metadata?.subtitle || "",
+        date: show.metadata?.broadcast_date || show.created_at,
+        image: show.metadata?.image?.imgix_url || show.metadata?.image?.url || "",
+        contentType: "radio-shows",
+        genres: mapFilterItems(show.metadata?.genres || [], "genres"),
+        locations: mapFilterItems(show.metadata?.locations || [], "locations"),
+        hosts: mapFilterItems(show.metadata?.regular_hosts || [], "hosts"),
+        takeovers: mapFilterItems(show.metadata?.takeovers || [], "takeovers"),
+        metadata: show.metadata,
+      };
+    }
+  });
 }
 
 /**

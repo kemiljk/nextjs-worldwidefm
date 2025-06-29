@@ -1,99 +1,86 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { getMixcloudShows, getAllFilters } from "@/lib/actions";
 import { PageHeader } from "@/components/shared/page-header";
 import { ShowsFilter } from "../../components/shows-filter";
 import { ShowsGrid } from "../../components/shows-grid";
 import { Loader } from "lucide-react";
+import { WWFMSearchEngine, mapShowsToSearchItems } from "@/lib/search/engine";
+import type { SearchFilters, SearchItem, FilterItem, FilterCategory, SearchResponse } from "@/lib/search/types";
+import { useInView } from "react-intersection-observer";
+import { getAllShows } from "@/lib/actions";
+
+const searchEngine = new WWFMSearchEngine();
 
 export default function ShowsClient() {
   const searchParams = useSearchParams();
-  const [shows, setShows] = useState<any[]>([]);
-  const [filters, setFilters] = useState<any>({ genres: [], hosts: [], takeovers: [] });
-  const [skip, setSkip] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
+  const [results, setResults] = useState<SearchItem[]>([]);
+  const [filters, setFilters] = useState<Record<FilterCategory, FilterItem[]>>({ genres: [], hosts: [], takeovers: [], locations: [], types: [] });
+  const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const observerTarget = useRef<HTMLDivElement>(null);
+  const [cosmicSkip, setCosmicSkip] = useState(0);
+  const [mixcloudSkip, setMixcloudSkip] = useState(0);
+  const [page, setPage] = useState(1);
+  const { ref, inView } = useInView();
 
-  // Parse search params safely
+  // Parse search params into SearchFilters
   const genre = searchParams.get("genre") ?? undefined;
   const host = searchParams.get("host") ?? undefined;
   const takeover = searchParams.get("takeover") ?? undefined;
   const searchTerm = searchParams.get("searchTerm") ?? undefined;
   const isNew = searchParams.get("isNew") === "true";
+  const contentType = searchParams.get("type") ?? undefined;
 
-  // Load initial data
-  useEffect(() => {
-    const loadInitialData = async () => {
-      const [{ shows: initialShows }, initialFilters] = await Promise.all([
-        getMixcloudShows({
-          genre,
-          host,
-          takeover,
-          searchTerm,
-          isNew,
-          skip: 0,
-          limit: 20,
-        }),
-        getAllFilters(),
-      ]);
-      setShows(initialShows);
-      setFilters(initialFilters);
-      setHasMore(initialShows.length === 20);
-    };
-    loadInitialData();
-  }, [genre, host, takeover, searchTerm, isNew]);
-
-  // Load more results when scrolling to bottom
-  const loadMore = async () => {
-    if (isLoadingMore || !hasMore) return;
-
-    setIsLoadingMore(true);
-    try {
-      const nextSkip = skip + 20;
-      const { shows: newShows } = await getMixcloudShows({
-        genre,
-        host,
-        takeover,
-        searchTerm,
-        isNew,
-        skip: nextSkip,
-        limit: 20,
-      });
-
-      if (newShows.length > 0) {
-        setShows((prev) => [...prev, ...newShows]);
-        setHasMore(newShows.length === 20);
-        setSkip(nextSkip);
-      } else {
-        setHasMore(false);
-      }
-    } catch (error) {
-      console.error("Error loading more shows:", error);
-    } finally {
-      setIsLoadingMore(false);
-    }
+  // Build SearchFilters object
+  const searchFilters: SearchFilters = {
+    contentType: ["radio-shows"], // Always only radio shows
+    genres: genre ? [genre] : undefined,
+    hosts: host ? [host] : undefined,
+    takeovers: takeover ? [takeover] : undefined,
+    search: searchTerm,
+    // Optionally add isNew or other custom filters if supported
   };
 
-  // Set up intersection observer for infinite scroll
+  // Load initial data and whenever filters/search/page change
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
-          loadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
+    let isMounted = true;
+    setIsLoadingMore(true);
+    getAllShows(0, 0, 20, searchFilters).then((response) => {
+      if (!isMounted) return;
+      // Normalize all shows to SearchItem
+      setResults(mapShowsToSearchItems(response.shows));
+      setHasMore(response.hasMore);
+      setCosmicSkip(response.cosmicSkip);
+      setMixcloudSkip(response.mixcloudSkip);
+      setIsLoadingMore(false);
+    });
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genre, host, takeover, searchTerm, isNew]);
 
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
+  // Reset page to 1 when filters/search change
+  useEffect(() => {
+    setPage(1);
+  }, [genre, host, takeover, searchTerm, isNew, contentType]);
+
+  // Infinite scroll: load more when sentinel is in view
+  useEffect(() => {
+    if (inView && hasMore && !isLoadingMore) {
+      setIsLoadingMore(true);
+      getAllShows(cosmicSkip, mixcloudSkip, 20, searchFilters).then((response) => {
+        // Normalize all shows to SearchItem
+        setResults((prev) => [...prev, ...mapShowsToSearchItems(response.shows)]);
+        setHasMore(response.hasMore);
+        setCosmicSkip(response.cosmicSkip);
+        setMixcloudSkip(response.mixcloudSkip);
+        setIsLoadingMore(false);
+      });
     }
-
-    return () => observer.disconnect();
-  }, [hasMore, isLoadingMore]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inView, hasMore, isLoadingMore]);
 
   return (
     <div className="mx-auto lg:px-4 py-16">
@@ -101,13 +88,14 @@ export default function ShowsClient() {
         <PageHeader title="Shows" />
         <ShowsFilter genres={filters.genres} hosts={filters.hosts} takeovers={filters.takeovers} selectedGenre={genre} selectedHost={host} selectedTakeover={takeover} searchTerm={searchTerm} isNew={isNew} />
       </div>
-
       <div className="flex flex-col gap-8 mt-8">
         <main className="lg:col-span-3">
-          <ShowsGrid shows={shows} />
-          <div ref={observerTarget} className="h-4 flex items-center justify-center mt-8">
-            {isLoadingMore && <Loader className="h-4 w-4 animate-spin" />}
-          </div>
+          <ShowsGrid shows={results} sentinelRef={ref} />
+          {isLoadingMore && (
+            <div className="h-4 flex items-center justify-center mt-8">
+              <Loader className="h-4 w-4 animate-spin" />
+            </div>
+          )}
         </main>
       </div>
     </div>
