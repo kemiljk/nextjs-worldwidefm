@@ -145,7 +145,8 @@ export default async function Home() {
       {/* Main content */}
       <div className="mx-auto mt-4">
         {/* Hero Section: Conditionally render based on Cosmic data or fallback */}
-        <Suspense>{heroItems.length > 0 && heroLayout ? <HomepageHero heroLayout={heroLayout} heroItems={heroItems} /> : <FeaturedSections showToDisplay={showToDisplay} hasLiveShow={hasLiveShow} transformedUpcomingShows={transformedUpcomingShows} />}</Suspense>
+        <Suspense>{heroLayout && <HomepageHero heroLayout={heroLayout} heroItems={heroItems} />}</Suspense>
+        <Suspense>{heroItems.length > 0 && <FeaturedSections showToDisplay={showToDisplay} hasLiveShow={hasLiveShow} transformedUpcomingShows={transformedUpcomingShows} />}</Suspense>
 
         {processedDynamicSections.map((section) => (
           <InsertedSection key={section.title} section={section} />

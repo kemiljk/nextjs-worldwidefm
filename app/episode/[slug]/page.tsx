@@ -11,10 +11,8 @@ import { addHours, isWithinInterval } from "date-fns";
 import { filterWorldwideFMTags } from "@/lib/mixcloud-service";
 import { findHostSlug, displayNameToSlug } from "@/lib/host-matcher";
 
-// Add consistent revalidation time for Mixcloud content
 export const revalidate = 900; // 15 minutes
 
-// Generate static params for the most recent 100 shows only
 export async function generateStaticParams() {
   try {
     const { shows } = await getMixcloudShows({ limit: 100 });
@@ -26,7 +24,7 @@ export async function generateStaticParams() {
       .filter((show) => show && show.key)
       .map((show) => {
         const segments = show.key.split("/").filter(Boolean);
-        return { slug: segments };
+        return { slug: segments[segments.length - 1] };
       });
   } catch (error) {
     console.error("Error generating static params:", error);
@@ -34,35 +32,20 @@ export async function generateStaticParams() {
   }
 }
 
-// Enable dynamic fallback for all other slugs
 export const dynamicParams = true;
 export const dynamic = "force-dynamic";
 
-// Type guard to check if the show is from RadioCult
-function isRadioCultShow(show: any): boolean {
-  return show && show.__source === "radiocult";
-}
-
-// Type guard to check if the show is a MixcloudShow
-function isMixcloudShow(show: any): show is MixcloudShow {
-  return show && show.key && show.pictures && show.tags && !show.__source;
-}
-
-// Component to render host links with intelligent slug matching
 async function HostLink({ host, className }: { host: any; className: string }) {
   let href = "#";
   let displayName = host.title || host.name;
 
   if (host.slug) {
-    // Enhanced host with proper slug
     href = `/hosts/${host.slug}`;
   } else {
-    // Try to find matching slug from Cosmic CMS
     const matchedSlug = await findHostSlug(displayName);
     if (matchedSlug) {
       href = `/hosts/${matchedSlug}`;
     } else {
-      // Fallback to converted slug format
       const fallbackSlug = displayNameToSlug(displayName);
       href = `/hosts/${fallbackSlug}`;
     }
@@ -75,10 +58,8 @@ async function HostLink({ host, className }: { host: any; className: string }) {
   );
 }
 
-export default async function ShowPage({ params }: { params: { slug: string[] } }) {
-  const showKey = "/" + params.slug.join("/");
-  const showSlug = params.slug[params.slug.length - 1];
-  console.log("Looking for show with key:", showKey);
+export default async function EpisodePage({ params }: { params: { slug: string } }) {
+  const showSlug = params.slug;
   const rawShow = await getEnhancedShowBySlug(showSlug);
   if (!rawShow) {
     return (
@@ -92,8 +73,6 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
     );
   }
 
-  // The getShowBySlug function converts RadioCult events to a MixcloudShow-compatible format
-  // So we can safely cast it as MixcloudShow with additional properties
   const show = rawShow as MixcloudShow & {
     __source?: string;
     endTime?: string;
@@ -103,30 +82,17 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
     startTime?: string;
   };
 
-  // Check if this is a RadioCult show
   const isRadioCult = show.__source === "radiocult";
-
-  // Check if show is currently live
   const now = new Date();
   const startTime = new Date(show.created_time || show.startTime || "");
-  const endTime = isRadioCult && show.endTime ? new Date(show.endTime) : addHours(startTime, 2); // Assume 2 hours for Mixcloud shows
-
+  const endTime = isRadioCult && show.endTime ? new Date(show.endTime) : addHours(startTime, 2);
   const isLive = isWithinInterval(now, { start: startTime, end: endTime });
 
-  // Get related shows based on tags (only for Mixcloud shows)
   let relatedShows: MixcloudShow[] = [];
   if (!isRadioCult && show.tags) {
     const { shows: allShows } = await getMixcloudShows();
-
-    // Find related shows based on matching tags
     const showTags = filterWorldwideFMTags(show.tags).map((tag) => tag.name.toLowerCase());
-    relatedShows = allShows
-      .filter(
-        (s) =>
-          s.key !== show.key && // Not the current show
-          filterWorldwideFMTags(s.tags).some((tag) => showTags.includes(tag.name.toLowerCase())) // Has at least one matching tag
-      )
-      .slice(0, 3);
+    relatedShows = allShows.filter((s) => s.key !== show.key && filterWorldwideFMTags(s.tags).some((tag) => showTags.includes(tag.name.toLowerCase()))).slice(0, 3);
   }
 
   const displayName = show.name || show.showName || "Untitled Show";
@@ -139,9 +105,7 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
         <ChevronRight className="w-4 h-4 rotate-180" />
         Back to Shows
       </Link>
-
       <PageHeader title={displayName} description={displayDescription} />
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="aspect-square relative">
           <Image src={displayImage} alt={displayName} fill className="object-cover rounded-none" />
@@ -152,7 +116,6 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
             </div>
           )}
         </div>
-
         <div>
           <div className="bg-white dark:bg-gray-900 p-6 rounded-none">
             <div className="space-y-6">
@@ -173,22 +136,18 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
                 </div>
               )}
             </div>
-
             {/* Enhanced Hosts Section */}
             {((show as any).enhanced_hosts?.length > 0 || show.hosts?.length > 0 || (isRadioCult && (show as any).artists?.length > 0)) && (
               <div className="mt-8">
                 <h3 className="text-m5 font-mono font-normal text-almostblack mb-4">Hosts</h3>
                 <div className="flex flex-wrap gap-2">
-                  {/* Prioritize enhanced hosts with proper slugs */}
                   {(show as any).enhanced_hosts?.length > 0
                     ? (show as any).enhanced_hosts.map((host: any) => <HostLink key={host.id || host.key} host={host} className="bg-bronze-50 dark:bg-bronze-950 hover:bg-bronze-300 dark:hover:bg-bronze-900 text-bronze-900 dark:text-bronze-100 px-3 py-1 rounded-full text-sm transition-colors border border-bronze-300 dark:border-bronze-600" />)
                     : show.hosts?.map((host) => <HostLink key={host.key} host={host} className="bg-bronze-50 dark:bg-bronze-950 hover:bg-bronze-300 dark:hover:bg-bronze-900 text-bronze-900 dark:text-bronze-100 px-3 py-1 rounded-full text-sm transition-colors border border-bronze-300 dark:border-bronze-600" />)}
-                  {/* RadioCult artists */}
                   {isRadioCult && (show as any).artists?.map((artist: any) => <HostLink key={artist.id} host={artist} className="bg-bronze-50 dark:bg-bronze-950 hover:bg-bronze-300 dark:hover:bg-bronze-900 text-bronze-900 dark:text-bronze-100 px-3 py-1 rounded-full text-sm transition-colors border border-bronze-300 dark:border-bronze-600" />)}
                 </div>
               </div>
             )}
-
             {/* Enhanced Genres Section */}
             {((show as any).enhanced_genres?.length > 0 || show.tags?.length > 0) && (
               <div className="mt-8">
@@ -200,14 +159,12 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
                     </span>
                   )) ||
                     (isRadioCult
-                      ? // For RadioCult shows, tags might be strings
-                        show.tags.map((tag: any) => (
+                      ? show.tags.map((tag: any) => (
                           <span key={typeof tag === "string" ? tag : tag.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
                             {typeof tag === "string" ? tag : tag.name}
                           </span>
                         ))
-                      : // For Mixcloud shows, filter and use proper tag structure
-                        filterWorldwideFMTags(show.tags).map((tag) => (
+                      : filterWorldwideFMTags(show.tags).map((tag) => (
                           <span key={tag.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
                             {tag.name}
                           </span>
@@ -215,7 +172,6 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
                 </div>
               </div>
             )}
-
             {/* Locations Section */}
             {(show as any).locations?.length > 0 && (
               <div className="mt-8">
@@ -229,7 +185,6 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
                 </div>
               </div>
             )}
-
             {/* Takeovers Section */}
             {(show as any).takeovers?.length > 0 && (
               <div className="mt-8">
@@ -246,7 +201,6 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
           </div>
         </div>
       </div>
-
       {/* Additional Content Sections */}
       {((show as any).body_text || (show as any).tracklist) && (
         <div className="space-y-8">
@@ -258,7 +212,6 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
               </div>
             </section>
           )}
-
           {(show as any).tracklist && (
             <section className="bg-white dark:bg-gray-900 p-6 rounded-none">
               <h2 className="text-h7 font-display uppercase font-normal text-almostblack mb-4">Tracklist</h2>
@@ -269,15 +222,18 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
           )}
         </div>
       )}
-
       {relatedShows.length > 0 && (
         <section className="space-y-4">
           <h2 className="text-h7 font-display uppercase font-normal text-almostblack">Related Shows</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {relatedShows.map((relatedShow) => {
               const segments = relatedShow.key.split("/").filter(Boolean);
+              let showPath = segments.join("/");
+              if (showPath.startsWith("worldwidefm/")) {
+                showPath = showPath.replace(/^worldwidefm\//, "");
+              }
               return (
-                <Link key={relatedShow.key} href={`/shows/${segments.join("/")}`}>
+                <Link key={relatedShow.key} href={`/episode/${showPath}`}>
                   <Card className="overflow-hidden h-full hover:shadow-lg transition-all">
                     <div className="aspect-square relative">
                       <Image src={relatedShow.pictures.extra_large} alt={relatedShow.name} fill className="object-cover" />
@@ -298,8 +254,6 @@ export default async function ShowPage({ params }: { params: { slug: string[] } 
           </div>
         </section>
       )}
-
-      {/* The players are now in the layout, so we don't need to render them here */}
     </div>
   );
 }

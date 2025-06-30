@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 // Reusable Item Card (similar to the one in HomepageHero, could be centralized)
 const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
-  const href = item.type === "radio-shows" ? `/shows/${item.slug}` : item.type === "posts" ? `/editorial/${item.slug}` : "#";
+  const href = item.type === "radio-shows" ? `/episode/${item.slug}` : item.type === "posts" ? `/editorial/${item.slug}` : "#";
   const imageUrl = item.metadata.image?.url || item.metadata.featured_image?.imgix_url || "/image-placeholder.svg";
   const tags = item.metadata.tags || item.metadata.categories || [];
   const label = item.metadata.label || item.metadata.author || "";

@@ -2,7 +2,7 @@ import type React from "react";
 import type { Metadata } from "next";
 import Nimbus from "next/font/local";
 import AirCompressed from "next/font/local";
-import "./globals.css";
+import FoundersGrotesk from "next/font/local";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import SearchProvider from "@/components/providers/search-provider";
 import { AuthProvider } from "@/cosmic/blocks/user-management/AuthContext";
@@ -11,23 +11,30 @@ import NavWrapper from "@/components/nav-wrapper";
 import Footer from "@/components/footer";
 import LivePlayer from "@/components/live-player";
 import ArchivePlayer from "@/components/archive-player";
+import "./globals.css";
 
 const sans = Nimbus({
-  src: [
-    { path: "./fonts/nimbus-light.woff2", weight: "300", style: "normal" },
-    { path: "./fonts/nimbus-regular.woff2", weight: "400", style: "normal" },
-    { path: "./fonts/nimbus-bold.woff2", weight: "700", style: "normal" },
-  ],
+  src: "./fonts/Nimbus-Sans-D-OT_32758.woff2",
+  weight: "400",
+  style: "normal",
   display: "swap",
   variable: "--font-sans",
 });
 
 const display = AirCompressed({
-  src: "./fonts/aircompressed-black.woff2",
+  src: "./fonts/AirCompressed-Black.woff2",
   weight: "900",
   style: "normal",
   display: "swap",
   variable: "--font-display",
+});
+
+const mono = FoundersGrotesk({
+  src: "./fonts/Founders Grotesk Mono Regular Regular.woff2",
+  weight: "400",
+  style: "normal",
+  display: "swap",
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
@@ -45,7 +52,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${sans.variable} ${display.variable} min-h-screen bg-background font-sans`}>
+      <body className={`${sans.variable} ${display.variable} ${mono.variable} min-h-screen bg-background font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange storageKey="worldwidefm-theme">
           <AuthProvider>
             <SearchProvider>

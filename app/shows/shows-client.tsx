@@ -1,17 +1,15 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { ShowsFilter } from "../../components/shows-filter";
 import { ShowsGrid } from "../../components/shows-grid";
 import { Loader } from "lucide-react";
-import { WWFMSearchEngine, mapShowsToSearchItems } from "@/lib/search/engine";
-import type { SearchFilters, SearchItem, FilterItem, FilterCategory, SearchResponse } from "@/lib/search/types";
+import { mapShowsToSearchItems } from "@/lib/search/engine";
+import type { SearchFilters, SearchItem, FilterItem, FilterCategory } from "@/lib/search/types";
 import { useInView } from "react-intersection-observer";
 import { getAllShows } from "@/lib/actions";
-
-const searchEngine = new WWFMSearchEngine();
 
 export default function ShowsClient() {
   const searchParams = useSearchParams();

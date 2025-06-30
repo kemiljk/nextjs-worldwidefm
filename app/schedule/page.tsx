@@ -138,40 +138,46 @@ export default async function SchedulePage() {
                   <div key={day} className="py-4">
                     <h2 className="text-h7 font-display uppercase font-normal text-almostblack mb-4">{day}</h2>
                     <div className="space-y-4">
-                      {dayShows.map((show) => (
-                        <Link href={`/shows/${show.show_key}`} key={`${show.show_day}-${show.show_time}-${show.name}`} className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors group">
-                          {/* Show thumbnail */}
-                          <div className="w-16 h-16 flex-shrink-0 rounded-none overflow-hidden relative">
-                            <Image src={show.picture || "/image-placeholder.svg"} alt={show.name} fill className="object-cover" />
-                          </div>
-
-                          {/* Show info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm font-medium text-foreground">{show.show_time}</span>
+                      {dayShows.map((show) => {
+                        let showPath = show.show_key;
+                        if (showPath.startsWith("worldwidefm/")) {
+                          showPath = showPath.replace(/^worldwidefm\//, "");
+                        }
+                        return (
+                          <Link href={`/episode/${showPath}`} key={`${show.show_day}-${show.show_time}-${show.name}`} className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors group">
+                            {/* Show thumbnail */}
+                            <div className="w-16 h-16 flex-shrink-0 rounded-none overflow-hidden relative">
+                              <Image src={show.picture || "/image-placeholder.svg"} alt={show.name} fill className="object-cover" />
                             </div>
-                            <h3 className="text-m5 font-mono font-normal text-almostblack group-hover:text-foreground transition-colors">{show.name}</h3>
-                            {show.hosts.length > 0 && (
-                              <p className="text-sm text-foreground mt-1 line-clamp-1">
-                                Hosted by:{" "}
-                                {show.hosts.map((hostName, index) => (
-                                  <span key={hostName}>
-                                    <Link href={`/hosts/${hostName.toLowerCase().replace(/\s+/g, "-")}`} className="hover:underline transition-colors">
-                                      {hostName}
-                                    </Link>
-                                    {index < show.hosts.length - 1 && ", "}
-                                  </span>
-                                ))}
-                              </p>
-                            )}
-                          </div>
 
-                          {/* Action button */}
-                          <div className="flex-shrink-0">
-                            <ChevronRight className="h-5 w-5 text-foreground group-hover:text-foreground transition-colors" />
-                          </div>
-                        </Link>
-                      ))}
+                            {/* Show info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-medium text-foreground">{show.show_time}</span>
+                              </div>
+                              <h3 className="text-m5 font-mono font-normal text-almostblack group-hover:text-foreground transition-colors">{show.name}</h3>
+                              {show.hosts.length > 0 && (
+                                <p className="text-sm text-foreground mt-1 line-clamp-1">
+                                  Hosted by:{" "}
+                                  {show.hosts.map((hostName, index) => (
+                                    <span key={hostName}>
+                                      <Link href={`/hosts/${hostName.toLowerCase().replace(/\s+/g, "-")}`} className="hover:underline transition-colors">
+                                        {hostName}
+                                      </Link>
+                                      {index < show.hosts.length - 1 && ", "}
+                                    </span>
+                                  ))}
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Action button */}
+                            <div className="flex-shrink-0">
+                              <ChevronRight className="h-5 w-5 text-foreground group-hover:text-foreground transition-colors" />
+                            </div>
+                          </Link>
+                        );
+                      })}
                     </div>
                   </div>
                 );

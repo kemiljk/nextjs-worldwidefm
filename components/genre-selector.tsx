@@ -89,10 +89,13 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
           if (!show) return null;
 
           const segments = show.key.split("/").filter(Boolean);
-          const showPath = segments.join("/");
+          let showPath = segments.join("/");
+          if (showPath.startsWith("worldwidefm/")) {
+            showPath = showPath.replace(/^worldwidefm\//, "");
+          }
 
           return (
-            <Link key={`${show.key}-${index}`} href={`/shows/${showPath}`} className="flex-none w-[300px]">
+            <Link key={`${show.key}-${index}`} href={`/episode/${showPath}`} className="flex-none w-[300px]">
               <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
                 <CardContent className="p-0">
                   <div className="relative aspect-square">

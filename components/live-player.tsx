@@ -61,7 +61,7 @@ export default function LivePlayer() {
   const displayImage = currentLiveEvent?.imageUrl || "/image-placeholder.svg?w=40&h=40";
 
   return (
-    <div className="fixed top-0 bg-gray-950 text-white z-50 flex items-center transition-all duration-300 h-12 left-0 right-0 max-w-full px-4">
+    <div className="fixed top-0 bg-almostblack text-white z-50 flex items-center transition-all duration-300 h-12 left-0 right-0 max-w-full px-4">
       <div className="flex items-center mx-2 gap-3 overflow-hidden">
         <div className="w-10 h-10 rounded overflow-hidden z-10 flex-shrink-0 relative">
           <Image src={displayImage} alt={displayName} fill className="object-cover" />

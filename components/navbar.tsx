@@ -25,9 +25,9 @@ export default function Navbar({ navItems }: NavbarProps) {
   const overflowNavItems = navItems.slice(5);
 
   return (
-    <header className="fixed top-12 border-b border-t border-black dark:border-white left-0 right-0 z-50 transition-all duration-300 bg-background">
+    <header className="fixed top-12 left-0 right-0 z-50 transition-all duration-300 bg-background">
       <div className="mx-auto pl-4 flex justify-between items-center">
-        <div className="flex items-center gap-4 w-full">
+        <div className="flex items-center w-full">
           <Link href="/" className="flex items-center">
             <Logo className="w-auto h-8 text-foreground" />
           </Link>
@@ -36,8 +36,8 @@ export default function Navbar({ navItems }: NavbarProps) {
           <nav className="hidden md:block ml-auto">
             <ul className="flex items-center uppercase">
               {visibleNavItems.map((item) => (
-                <li key={item.name} className="md:border-l md:border-black dark:md:border-white">
-                  <Link href={item.link} className="text-sm flex items-center h-16 hover:bg-bronze-500 transition-colors px-4">
+                <li key={item.name}>
+                  <Link href={item.link} className="flex font-mono items-center h-16 hover:bg-almostblack text-almostblack hover:text-white dark:text-white transition-colors px-8 dark:hover:bg-white dark:hover:text-almostblack">
                     {item.name}
                   </Link>
                 </li>
@@ -46,7 +46,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                 <li>
                   <Sheet>
                     <SheetTrigger asChild>
-                      <Button variant="ghost" size="sm" className="md:border-l md:border-black dark:md:border-white text-foreground h-16 hover:bg-bronze-500 transition-colors px-4">
+                      <Button variant="ghost" size="sm" className="text-foreground h-16 hover:bg-almostblack text-almostblack hover:text-white dark:text-white transition-colors px-8 dark:hover:bg-white dark:hover:text-almostblack">
                         <MoreHorizontal className="size-4" />
                         <span className="sr-only">More menu items</span>
                       </Button>
@@ -82,7 +82,7 @@ export default function Navbar({ navItems }: NavbarProps) {
           {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-foreground size-16 border-l border-foreground md:hidden" onClick={() => setIsOpen(true)}>
+              <Button variant="ghost" size="icon" className="text-foreground size-16 md:hidden" onClick={() => setIsOpen(true)}>
                 <MoreHorizontal className="size-6" />
                 <span className="sr-only">Open menu</span>
               </Button>

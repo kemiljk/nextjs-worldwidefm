@@ -20,11 +20,14 @@ export function ShowsGrid({ shows, sentinelRef }: ShowsGridProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
       {shows.map((show) => {
-        const showPath = show.slug;
+        let showPath = show.slug;
+        if (show.contentType === "radio-shows" && showPath.startsWith("worldwidefm/")) {
+          showPath = showPath.replace(/^worldwidefm\//, "");
+        }
         const uniqueKey = `${show.id}-${show.slug}`;
         return (
           <article key={uniqueKey} className="bg-transparent rounded-none overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700">
-            <Link href={`/${show.contentType}/${showPath}`}>
+            <Link href={show.contentType === "radio-shows" ? `/episode/${showPath}` : `/${show.contentType}/${showPath}`}>
               <div className="aspect-square relative group">
                 <Image src={show.image || "/image-placeholder.svg"} alt={show.title} fill className="object-cover" />
                 {/* Optionally add PlayButton if audio is available */}

@@ -15,13 +15,13 @@ const renderHeroItem = (item: CosmicItem, isPriority: boolean) => {
   // For example, if item.type is 'radio-shows', we might want to show play buttons, genres, etc.
   // If item.type is 'posts', we might show an excerpt or author.
 
-  const href = item.type === "radio-shows" ? `/shows/${item.slug}` : item.type === "posts" ? `/editorial/${item.slug}` : "#";
+  const href = item.type === "radio-shows" ? `/episode/${item.slug}` : item.type === "posts" ? `/editorial/${item.slug}` : "#";
 
   return (
     <Card key={item.slug} className="overflow-hidden shadow-none border border-black dark:border-white rounded-none relative cursor-pointer h-full flex flex-col">
       <Link href={href} className="flex flex-col h-full">
         <CardContent className="p-0 flex-grow flex flex-col">
-          <div className="relative aspect-[21/9] w-full border-b border-black dark:border-white bg-gray-100 flex items-center justify-center">{item.metadata.image?.url && <Image src={item.metadata.image.url} alt={item.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={isPriority} />}</div>
+          <div className="relative w-full h-[calc(100dvh-114px)] flex items-center justify-center">{item.metadata.image?.url && <Image src={item.metadata.image.url} alt={item.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={isPriority} />}</div>
           <div className="absolute bottom-0 left-0 right-0 flex flex-col p-4 flex-1 justify-end">
             <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display font-normal p-1 text-left">{item.metadata.date && formatDateShort(item.metadata.date)}</div>
             <h3 className="bg-white border border-almostblack text-h8 leading-none font-display font-normal text-almostblack p-1 text-left w-fit">{item.title}</h3>
@@ -45,23 +45,23 @@ const HomepageHero: React.FC<HomepageHeroProps> = ({ heroLayout, heroItems }) =>
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 relative z-10">
-        <div className="flex flex-col h-full p-4 md:p-8 lg:p-10 border-b md:border-b-0 md:border-r border-black dark:border-white">{item1 && renderHeroItem(item1, true)}</div>
+        <div className="flex flex-col h-full">{item1 && renderHeroItem(item1, true)}</div>
         <div className="h-full">
-          <div className="flex flex-col h-full p-4 md:p-8 lg:p-10">{item2 && renderHeroItem(item2, false)}</div>
+          <div className="flex flex-col h-full">{item2 && renderHeroItem(item2, false)}</div>
         </div>
       </div>
     );
   } else if (heroLayout === "Full Width") {
     const item1 = heroItems[0];
     if (!item1) return null;
-    return <div className="relative z-10 p-4 md:p-8 lg:p-10 border-b border-black dark:border-white">{renderHeroItem(item1, true)}</div>;
+    return <div className="relative z-10">{renderHeroItem(item1, true)}</div>;
   }
   // TODO: Implement other layouts like 'Carousel'
   // For Carousel, you might use a library like Embla Carousel or similar.
 
   console.warn(`HomepageHero: Encountered an unexpected or not-yet-implemented heroLayout: "${heroLayout}"`);
   return (
-    <div className="p-4 md:p-8 lg:p-10 border-b border-black dark:border-white">
+    <div>
       <h2 className="text-h7 font-display uppercase font-normal text-almostblack mb-2">Hero Section (Layout: {heroLayout})</h2>
       <p className="text-red-500 font-semibold">Warning: Layout '{heroLayout}' is not recognized or fully implemented for the Hero section.</p>
     </div>

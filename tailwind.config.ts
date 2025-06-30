@@ -8,7 +8,7 @@ const config = {
     fontFamily: {
       sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       display: ["var(--font-display)", "system-ui", "sans-serif"],
-      mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
+      mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
     },
     container: {
       center: true,
@@ -143,11 +143,6 @@ const config = {
         hyperpop: {
           DEFAULT: "#e661a4",
         },
-      },
-      fontFamily: {
-        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        display: ["var(--font-display)", "system-ui", "sans-serif"],
-        mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
       },
       letterSpacing: {
         tight: "-0.02em",

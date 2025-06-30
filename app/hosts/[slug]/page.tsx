@@ -159,7 +159,7 @@ export default async function HostPage({ params }: { params: { slug: string } })
               const broadcastDate = show.metadata?.broadcast_date ? new Date(show.metadata.broadcast_date).toLocaleDateString() : "";
 
               return (
-                <Link key={show.id} href={`/shows/${show.slug}`}>
+                <Link key={show.id} href={`/episode/${show.slug}`}>
                   <Card className="overflow-hidden h-full hover:shadow-lg transition-all">
                     <div className="aspect-square relative">
                       <Image src={showImage} alt={show.title} fill className="object-cover" />
