@@ -25,7 +25,7 @@ export default function Navbar({ navItems }: NavbarProps) {
   const overflowNavItems = navItems.slice(5);
 
   return (
-    <header className="fixed top-12 left-0 right-0 z-50 transition-all duration-300 bg-background">
+    <header className="fixed top-12 left-0 right-0 z-50 transition-all border-b border-almostblack dark:border-white duration-300 bg-background">
       <div className="mx-auto pl-4 flex justify-between items-center">
         <div className="flex items-center w-full">
           <Link href="/" className="flex items-center">

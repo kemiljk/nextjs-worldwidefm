@@ -6,7 +6,7 @@ import { Play, Pause, X } from "lucide-react";
 import { useMediaPlayer } from "@/components/providers/media-player-provider";
 
 export default function ArchivePlayer() {
-  const { archivedShow, isArchivePlaying, archiveVolume, toggleArchivePlayPause, setIsArchivePlaying, setArchivedShow } = useMediaPlayer();
+  const { archivedShow, isArchivePlaying, archiveVolume, toggleArchivePlayPause, setIsArchivePlaying, setArchivedShow, setIsArchiveLoading } = useMediaPlayer();
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [mixcloudWidget, setMixcloudWidget] = useState<any>(null);
   const [isWidgetReady, setIsWidgetReady] = useState(false);
@@ -109,9 +109,11 @@ export default function ArchivePlayer() {
                       .then(() => {
                         console.log("Auto-play successful");
                         setIsArchivePlaying(true);
+                        setIsArchiveLoading(false);
                       })
                       .catch((err) => {
                         console.error("Auto-play failed:", err);
+                        setIsArchiveLoading(false);
                       });
                   }, 100);
                 })
@@ -127,9 +129,11 @@ export default function ArchivePlayer() {
                       .play()
                       .then(() => {
                         setIsArchivePlaying(true);
+                        setIsArchiveLoading(false);
                       })
                       .catch((playErr) => {
                         console.error("Auto-play failed after volume error:", playErr);
+                        setIsArchiveLoading(false);
                       });
                   }, 100);
                 });

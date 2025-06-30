@@ -1,6 +1,6 @@
 "use client";
 
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, X, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMediaPlayer } from "@/components/providers/media-player-provider";
 import { MixcloudShow } from "@/lib/mixcloud-service";
@@ -18,7 +18,7 @@ interface PlayButtonProps extends ButtonProps {
 }
 
 export function PlayButton({ show, variant = "outline", size = "icon", className, children, isLive = false, label, ...props }: PlayButtonProps) {
-  const { playShow, currentShow, archivedShow, isPlaying, pauseShow } = useMediaPlayer();
+  const { playShow, currentShow, archivedShow, isPlaying, pauseShow, isArchiveLoading } = useMediaPlayer();
 
   // Check if show is currently live
   const now = new Date();
@@ -28,6 +28,7 @@ export function PlayButton({ show, variant = "outline", size = "icon", className
 
   const isCurrentShow = showIsLive ? currentShow?.key === show.key : archivedShow?.key === show.key;
   const isCurrentlyPlaying = isCurrentShow && isPlaying;
+  const isLoading = isArchiveLoading && archivedShow?.key === show.key;
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -51,15 +52,15 @@ export function PlayButton({ show, variant = "outline", size = "icon", className
         }}
         {...props}
       >
-        {isCurrentlyPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
+        {isLoading ? <Loader className="size-5 animate-spin" /> : isCurrentlyPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
         {label && <span className="ml-2">{label}</span>}
       </button>
     );
   }
 
   return (
-    <Button variant={variant} size={size} onClick={handleClick} className={cn(size === "icon" && "size-8 rounded-full", className)} {...props}>
-      {children ? children : isCurrentlyPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
+    <Button variant={variant} size={size} onClick={handleClick} className={cn(size === "icon" && "size-8 rounded-full", className)} {...props} disabled={isLoading}>
+      {children ? children : isLoading ? <Loader className="size-5 animate-spin" /> : isCurrentlyPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
     </Button>
   );
 }

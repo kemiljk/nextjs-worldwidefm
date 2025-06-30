@@ -10,6 +10,7 @@ import FeaturedSections from "@/components/featured-sections";
 import { HomepageSectionItem, ProcessedHomepageSection } from "@/lib/cosmic-types";
 import HomepageHero from "@/components/homepage-hero";
 import InsertedSection from "@/components/inserted-section";
+import LatestEpisodes from "@/components/latest-episodes";
 
 // Add consistent revalidation time for Mixcloud content
 export const revalidate = 900; // 15 minutes
@@ -118,6 +119,11 @@ export default async function Home() {
         {/* Hero Section: Conditionally render based on Cosmic data or fallback */}
         <Suspense>{heroLayout && <HomepageHero heroLayout={heroLayout} heroItems={heroItems} />}</Suspense>
         <Suspense>{heroItems.length > 0 && <FeaturedSections showToDisplay={showToDisplay} hasLiveShow={hasLiveShow} transformedUpcomingShows={transformedUpcomingShows} />}</Suspense>
+
+        <Suspense>
+          <LatestEpisodes />
+        </Suspense>
+
         {processedDynamicSections.map((section) => (
           <InsertedSection key={section.title} section={section} />
         ))}

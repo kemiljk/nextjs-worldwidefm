@@ -26,6 +26,8 @@ interface MediaPlayerContextType {
   toggleArchivePlayPause: () => void;
   setIsArchivePlaying: (playing: boolean) => void;
   setArchivedShow: (show: MixcloudShow | null) => void;
+  isArchiveLoading: boolean;
+  setIsArchiveLoading: (loading: boolean) => void;
 
   // Legacy methods for backward compatibility
   playShow: (show: MixcloudShow) => void;
@@ -58,6 +60,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   // Archive player state (Mixcloud only)
   const [archivedShow, setArchivedShow] = useState<MixcloudShow | null>(null);
   const [isArchivePlaying, setIsArchivePlaying] = useState(false);
+  const [isArchiveLoading, setIsArchiveLoading] = useState(false);
 
   // Initialize volumes from localStorage or use defaults
   const [liveVolume, setLiveVolumeState] = useState<number>(() => {
@@ -248,6 +251,15 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     setArchivedShow(show);
   };
 
+  // When a new show is selected, set loading to true
+  useEffect(() => {
+    if (archivedShow) {
+      setIsArchiveLoading(true);
+    } else {
+      setIsArchiveLoading(false);
+    }
+  }, [archivedShow]);
+
   return (
     <MediaPlayerContext.Provider
       value={{
@@ -271,6 +283,8 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
         toggleArchivePlayPause,
         setIsArchivePlaying,
         setArchivedShow,
+        isArchiveLoading,
+        setIsArchiveLoading,
 
         // Legacy compatibility (routes to archive/Mixcloud)
         currentShow,
