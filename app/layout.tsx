@@ -22,7 +22,7 @@ const sans = Nimbus({
 });
 
 const display = AirCompressed({
-  src: "./fonts/AirCompressed-Black.woff2",
+  src: "./fonts/AirCompressed.woff2",
   weight: "900",
   style: "normal",
   display: "swap",
