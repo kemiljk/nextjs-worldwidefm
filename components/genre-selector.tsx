@@ -79,7 +79,7 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
     .filter((show): show is MixcloudShow => show !== undefined);
 
   return (
-    <section className="px-4 md:px-8 lg:px-24 py-8 border-t border-bronze-900 bg-bronze-500">
+    <section className="px-5 py-8">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-h7 font-display uppercase font-normal text-almostblack">{title}</h2>
         <GenreDropdown genres={allGenres} onSelect={handleGenreSelect} selectedGenre={selectedGenre} />

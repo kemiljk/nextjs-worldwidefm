@@ -10,6 +10,7 @@ import { MixcloudShow } from "./mixcloud-service";
 import { filterWorldwideFMTags } from "./mixcloud-service";
 import { getEventBySlug as getRadioCultEventBySlug, getEvents as getRadioCultEvents, RadioCultEvent, getScheduleData as getRadioCultScheduleData, getTags } from "./radiocult-service";
 import FormData from "form-data";
+import { CosmicHomepageData, HomepageSectionItem, CosmicAPIObject } from "./cosmic-types";
 
 export async function getAllPosts(): Promise<PostObject[]> {
   try {
@@ -1271,6 +1272,45 @@ export async function getHostProfileUrl(hostName: string): Promise<string | null
     return host ? `/hosts/${host.slug}` : null;
   } catch (error) {
     console.error("Error getting host profile URL:", error);
+    return null;
+  }
+}
+
+// Add: Fetch Cosmic homepage data
+export async function getCosmicHomepageData(): Promise<CosmicHomepageData | null> {
+  const COSMIC_BUCKET_SLUG = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "worldwide-fm-production";
+  const COSMIC_READ_KEY = process.env.NEXT_PUBLIC_COSMIC_READ_KEY || "Qo9hr8E9Vef66JrXQdyVrh29CVkd7Vz9GuGVdiQIClX6U7N9oh";
+  const COSMIC_HOMEPAGE_ID = process.env.NEXT_PUBLIC_COSMIC_HOMEPAGE_ID || "67f91dfd43f4b238152e7003";
+  const url = `https://api.cosmicjs.com/v3/buckets/${COSMIC_BUCKET_SLUG}/objects/${COSMIC_HOMEPAGE_ID}?pretty=true&read_key=${COSMIC_READ_KEY}&depth=2&props=slug,title,metadata,type`;
+  try {
+    const response = await fetch(url, { next: { revalidate: 10 } });
+    if (!response.ok) {
+      console.error("Failed to fetch Cosmic homepage data:", response.status, await response.text());
+      return null;
+    }
+    const data: CosmicAPIObject<CosmicHomepageData> = await response.json();
+    return data.object;
+  } catch (error) {
+    console.error("Error fetching Cosmic homepage data:", error);
+    return null;
+  }
+}
+
+// Add: Fetch a single Cosmic object by ID
+export async function fetchCosmicObjectById(id: string): Promise<HomepageSectionItem | null> {
+  const COSMIC_BUCKET_SLUG = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "worldwide-fm-production";
+  const COSMIC_READ_KEY = process.env.NEXT_PUBLIC_COSMIC_READ_KEY || "Qo9hr8E9Vef66JrXQdyVrh29CVkd7Vz9GuGVdiQIClX6U7N9oh";
+  const url = `https://api.cosmicjs.com/v3/buckets/${COSMIC_BUCKET_SLUG}/objects/${id}?read_key=${COSMIC_READ_KEY}&props=slug,title,metadata,type`;
+  try {
+    const response = await fetch(url, { next: { revalidate: 10 } });
+    if (!response.ok) {
+      console.error(`Failed to fetch Cosmic object ${id}:`, response.status, await response.text());
+      return null;
+    }
+    const data: CosmicAPIObject<HomepageSectionItem> = await response.json();
+    return data.object;
+  } catch (error) {
+    console.error(`Error fetching Cosmic object ${id}:`, error);
     return null;
   }
 }

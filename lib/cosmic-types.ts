@@ -1,11 +1,77 @@
 export interface CosmicObjectMeta {
-  [key: string]: any; // Allows for flexible metadata not strictly typed yet
-  image?: {
-    url: string;
+  [key: string]: any;
+  subtitle: null;
+  featured_on_homepage: boolean;
+  image: Image;
+  tags: any[];
+  genres: Genre[];
+  locations: Location[];
+  regular_hosts: RegularHost[];
+  takeovers: any[];
+  description: null;
+  page_link: null;
+  source: null;
+  broadcast_date: string;
+  broadcast_time: string;
+  duration: string;
+  player: null;
+  tracklist: null;
+  body_text: null;
+  radiocult_media_id: null;
+  media_file: null;
+}
+
+interface Genre {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  bucket: string;
+  created_at: string;
+  modified_at: string;
+  status: string;
+  published_at: string;
+  type: string;
+  metadata: null;
+}
+
+interface Image {
+  url: string;
+  imgix_url: string;
+}
+
+interface Location {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  bucket: string;
+  created_at: string;
+  modified_at: string;
+  status: string;
+  published_at: string;
+  type: string;
+  metadata: {
+    description: null;
+    image: null;
   };
-  // Add other known metadata properties if they become clear
-  // e.g., subtitle, description, featured_on_homepage, genres, locations, etc. for shows
-  // e.g., featured_image for posts
+}
+
+interface RegularHost {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  bucket: string;
+  created_at: string;
+  modified_at: string;
+  status: string;
+  published_at: string;
+  type: string;
+  metadata: {
+    description: string | null;
+    image: Image;
+  };
 }
 
 export interface CosmicItem {

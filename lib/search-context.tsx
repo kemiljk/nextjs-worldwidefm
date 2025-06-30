@@ -2,28 +2,27 @@
 
 import { createContext, useContext } from "react";
 
-export type SearchResultType = "radio-shows" | "posts" | "events" | "videos" | "takeovers";
-
 export interface FilterItem {
   title: string;
   slug: string;
   type: string;
 }
 
+export type SearchResultType = "posts" | "radio-shows" | "events" | "videos" | "takeovers";
+
 export interface SearchResult {
   id: string;
-  type: SearchResultType;
   title: string;
-  slug: string;
+  type: SearchResultType;
   description?: string;
   excerpt?: string;
   image?: string;
+  slug: string;
   date?: string;
   genres: FilterItem[];
   locations: FilterItem[];
   hosts: FilterItem[];
   takeovers: FilterItem[];
-  post_type?: "article" | "video" | "event";
   featured?: boolean;
   metadata?: any;
 }

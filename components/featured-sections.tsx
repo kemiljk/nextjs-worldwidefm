@@ -28,8 +28,8 @@ export default function FeaturedSections({ showToDisplay, hasLiveShow, transform
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 relative z-10">
       {/* Left featured section */}
-      <div className="flex flex-col h-full p-4 md:p-8 lg:p-10 border-b md:border-r border-black dark:border-white">
-        <Card className="overflow-hidden shadow-none border-none relative cursor-pointer" onClick={() => showToDisplay && handleShowClick(showToDisplay)}>
+      <div className="flex flex-col h-full p-5 pr-2.5">
+        <Card className="overflow-hidden shadow-none border-none relative cursor-pointer border border-almostblack dark:border-white" onClick={() => showToDisplay && handleShowClick(showToDisplay)}>
           <CardContent className="p-0">
             <div className="relative aspect-square">
               <Image src={showToDisplay?.pictures.extra_large || "/image-placeholder.svg"} alt={showToDisplay?.name || "Show"} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority />
@@ -55,8 +55,8 @@ export default function FeaturedSections({ showToDisplay, hasLiveShow, transform
 
       {/* Right featured section */}
       <div className="h-full">
-        <div className="flex flex-col h-full p-4 md:p-8 lg:p-10 border-b border-black dark:border-white">
-          <Card className="overflow-hidden border-none shadow-none flex-grow cursor-pointer" onClick={() => transformedUpcomingShows[0] && handleShowClick(transformedUpcomingShows[0])}>
+        <div className="flex flex-col h-full p-5 pl-2.5">
+          <Card className="overflow-hidden border-none shadow-none flex-grow cursor-pointer border border-almostblack dark:border-white" onClick={() => transformedUpcomingShows[0] && handleShowClick(transformedUpcomingShows[0])}>
             <CardContent className="p-0 relative h-full flex flex-col">
               <div className="aspect-square w-full relative">
                 <Image src={transformedUpcomingShows[0]?.image || "/image-placeholder.svg"} alt={transformedUpcomingShows[0]?.title || "Featured Show"} fill className="object-cover" />
