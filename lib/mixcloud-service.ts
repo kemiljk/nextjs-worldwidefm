@@ -77,6 +77,7 @@ interface MixcloudResponse {
   paging: {
     next?: string;
     previous?: string;
+    total?: number;
   };
   name: string;
 }
@@ -87,6 +88,7 @@ interface MixcloudShowsParams {
   isNew?: boolean;
   random?: boolean;
   limit?: number;
+  offset?: number;
 }
 
 // Cache for Mixcloud shows with strong memoization
@@ -121,7 +123,7 @@ async function getRandomShowsFromMixcloud(count: number = 4): Promise<MixcloudSh
 }
 
 // Update getMixcloudShows to use the archive for random shows
-export async function getMixcloudShows(params: MixcloudShowsParams = {}, forceRefresh = false): Promise<{ shows: MixcloudShow[]; total: number }> {
+export async function getMixcloudShows(params: MixcloudShowsParams = {}, forceRefresh = false): Promise<{ shows: MixcloudShow[]; total: number; hasNext: boolean }> {
   try {
     // If we're requesting random shows, use the archive
     if (params.random) {
@@ -129,43 +131,24 @@ export async function getMixcloudShows(params: MixcloudShowsParams = {}, forceRe
       return {
         shows: randomShows,
         total: randomShows.length,
+        hasNext: false,
       };
     }
 
-    const cacheKey = createCacheKey(params);
-    const cached = showsCache.get(cacheKey);
-
-    // Use cache if available and not expired
-    if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      return { shows: cached.shows, total: cached.shows.length };
-    }
-
-    // For non-random requests, fetch from Mixcloud API
     const limit = params.limit || 20;
-    const response = await fetch(`https://api.mixcloud.com/worldwidefm/cloudcasts/?limit=${limit}`, {
-      next: {
-        revalidate: 900,
-        tags: ["mixcloud"],
-      },
-    });
-
+    const offset = params.offset || 0;
+    const isServer = typeof window === "undefined";
+    const baseUrl = isServer ? process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000" : "";
+    const response = await fetch(`${baseUrl}/api/mixcloud?limit=${limit}&offset=${offset}`);
     if (!response.ok) {
-      throw new Error(`Mixcloud API error: ${response.statusText}`);
+      throw new Error(`Mixcloud API proxy error: ${response.statusText}`);
     }
-
     const data: MixcloudResponse = await response.json();
-    const shows = filterShows(data.data, params).shows;
-
-    // Update cache
-    showsCache.set(cacheKey, {
-      shows,
-      timestamp: Date.now(),
-    });
-
-    return { shows, total: shows.length };
+    const shows = data.data ? filterShows(data.data, params).shows : [];
+    return { shows, total: data.paging?.total || shows.length, hasNext: !!data.paging?.next };
   } catch (error) {
     console.error("Error fetching Mixcloud shows:", error);
-    return { shows: [], total: 0 };
+    return { shows: [], total: 0, hasNext: false };
   }
 }
 

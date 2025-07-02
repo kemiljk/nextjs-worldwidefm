@@ -71,7 +71,7 @@ export default function Footer() {
           <div>
             <h3 className="text-m4 font-display uppercase font-normal text-almostblack mb-4">Stay Updated</h3>
             <p className="text-sm opacity-80 mb-4">Subscribe to our newsletter for the latest updates and exclusive content.</p>
-            <Button variant="outline" className="w-full border-black dark:border-white text-foreground hover:bg-white/10" asChild>
+            <Button variant="outline" className="w-full border-black rounded-full dark:border-white text-foreground hover:bg-white/10" asChild>
               <Link href="/newsletter">Subscribe</Link>
             </Button>
           </div>
