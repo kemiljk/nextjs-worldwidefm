@@ -1,66 +1,51 @@
 "use client";
 
-import { Play, Pause, X, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Play, Pause } from "lucide-react";
 import { useMediaPlayer } from "@/components/providers/media-player-provider";
 import { MixcloudShow } from "@/lib/mixcloud-service";
-import { ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { addHours, isWithinInterval } from "date-fns";
 
-interface PlayButtonProps extends ButtonProps {
+interface PlayButtonProps {
   show: MixcloudShow;
-  variant?: "default" | "outline" | "ghost" | "link" | "destructive" | "secondary";
+  variant?: "default" | "secondary" | "outline" | "ghost" | "link" | "destructive";
   size?: "default" | "sm" | "lg" | "icon";
-  children?: React.ReactNode;
-  isLive?: boolean;
-  label?: string;
+  className?: string;
 }
 
-export function PlayButton({ show, variant = "outline", size = "icon", className, children, isLive = false, label, ...props }: PlayButtonProps) {
-  const { playShow, currentShow, archivedShow, isPlaying, pauseShow, isArchiveLoading } = useMediaPlayer();
+export function PlayButton({ show, variant = "default", size = "default", className }: PlayButtonProps) {
+  const { selectedMixcloudUrl, setSelectedMixcloudUrl, selectedShow, setSelectedShow } = useMediaPlayer();
 
-  // Check if show is currently live
-  const now = new Date();
-  const startTime = new Date(show.created_time);
-  const endTime = addHours(startTime, 2); // Assume 2-hour shows
-  const showIsLive = isWithinInterval(now, { start: startTime, end: endTime });
+  const isCurrentShow = selectedShow?.key === show.key;
+  const isCurrentlyPlaying = isCurrentShow && selectedMixcloudUrl;
 
-  const isCurrentShow = showIsLive ? currentShow?.key === show.key : archivedShow?.key === show.key;
-  const isCurrentlyPlaying = isCurrentShow && isPlaying;
-  const isLoading = isArchiveLoading && archivedShow?.key === show.key;
-
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
+  const handleClick = () => {
     if (isCurrentlyPlaying) {
-      pauseShow();
+      // Stop current playback
+      setSelectedMixcloudUrl(null);
+      setSelectedShow(null);
     } else {
-      playShow(show);
+      // Start playing this show
+      setSelectedMixcloudUrl(show.url);
+      setSelectedShow({
+        key: show.key,
+        name: show.name,
+        url: show.url,
+        slug: show.slug,
+        pictures: show.pictures,
+        user: {
+          name: show.user.name,
+          username: show.user.username,
+        },
+        created_time: show.created_time,
+      });
     }
   };
 
-  // For matching the custom play button in media player
-  if (variant === "default" && size === "lg") {
-    return (
-      <button
-        onClick={handleClick}
-        className={cn("text-white border-t border-white/20 px-4 py-2 rounded-xs uppercase text-sm flex justify-center items-center font-medium w-full", showIsLive ? "bg-red-500 hover:bg-red-600" : "bg-gradient-to-b from-gray-900 to-gray-700", className)}
-        style={{
-          boxShadow: "0px -2px 1px 0px rgba(255, 255, 255, 0.00) inset, 0px -1px 0px 0px #181B1B inset",
-        }}
-        {...props}
-      >
-        {isLoading ? <Loader className="size-5 animate-spin" /> : isCurrentlyPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
-        {label && <span className="ml-2">{label}</span>}
-      </button>
-    );
-  }
-
   return (
-    <Button variant={variant} size={size} onClick={handleClick} className={cn(size === "icon" && "size-8 rounded-full", className)} {...props} disabled={isLoading}>
-      {children ? children : isLoading ? <Loader className="size-5 animate-spin" /> : isCurrentlyPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
+    <Button variant={variant} size={size} onClick={handleClick} className={cn(className)} aria-label={isCurrentlyPlaying ? `Pause ${show.name}` : `Play ${show.name}`}>
+      {isCurrentlyPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+      {size !== "icon" && <span className="ml-2">{isCurrentlyPlaying ? "Pause" : "Play"}</span>}
     </Button>
   );
 }

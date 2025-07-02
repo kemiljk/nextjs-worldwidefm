@@ -86,9 +86,6 @@ export default async function Home() {
   const heroLayout = cosmicHomepageData?.metadata?.heroLayout;
   const heroItems = cosmicHomepageData?.metadata?.heroItems || [];
 
-  // Debug: log heroItems
-  console.log(heroItems);
-
   // Process dynamic sections to fetch full item data
   const rawDynamicSections = cosmicHomepageData?.metadata?.sections || [];
   const processedDynamicSections: ProcessedHomepageSection[] = await Promise.all(

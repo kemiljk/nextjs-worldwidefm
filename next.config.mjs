@@ -15,6 +15,7 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: ["thumbnailer.mixcloud.com", "i1.wp.com"],
   },
   experimental: {
     webpackBuildWorker: true,
@@ -23,6 +24,29 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "100mb",
     },
+  },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://widget.mixcloud.com https://player-widget.mixcloud.com https://static.cloudflareinsights.com https://connect.facebook.net https://www.googletagmanager.com https://cdn.socket.io",
+              "frame-src 'self' https://www.mixcloud.com https://widget.mixcloud.com https://player-widget.mixcloud.com",
+              "child-src 'self' https://www.mixcloud.com https://widget.mixcloud.com https://player-widget.mixcloud.com",
+              "connect-src 'self' https://api.mixcloud.com https://widget.mixcloud.com https://player-widget.mixcloud.com https://api.radiocult.fm https://stream.radiocult.fm wss://api.radiocult.fm https://static.cloudflareinsights.com https://api.cosmicjs.com",
+              "img-src 'self' data: https: blob:",
+              "media-src 'self' https: blob:",
+              "style-src 'self' 'unsafe-inline' https:",
+              "font-src 'self' https: data:",
+            ].join("; "),
+          },
+        ],
+      },
+    ];
   },
 };
 

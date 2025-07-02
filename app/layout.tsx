@@ -59,7 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <MediaPlayerProvider>
                 <LivePlayer />
                 <NavWrapper />
-                <main className="px-4 md:px-8 lg:px-16 mx-auto pt-24">{children}</main>
+                <main className="px-4 md:px-8 lg:px-16 mx-auto pt-24 overflow-x-hidden">{children}</main>
                 <ArchivePlayer />
                 <Footer />
               </MediaPlayerProvider>

@@ -4,7 +4,6 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { MixcloudShow } from "@/lib/mixcloud-service";
 import { useMediaPlayer } from "@/components/providers/media-player-provider";
-import { GenreObject } from "@/lib/cosmic-config";
 import { formatDateShort } from "@/lib/utils";
 
 interface FeaturedSectionsProps {
@@ -14,16 +13,28 @@ interface FeaturedSectionsProps {
 }
 
 export default function FeaturedSections({ showToDisplay, transformedUpcomingShows }: FeaturedSectionsProps) {
-  const { playShow, currentShow, isPlaying, pauseShow } = useMediaPlayer();
+  const { selectedMixcloudUrl, setSelectedMixcloudUrl, selectedShow, setSelectedShow } = useMediaPlayer();
 
   const handleShowClick = (show: MixcloudShow) => {
-    const isCurrentShow = currentShow?.key === show.key;
-    const isCurrentlyPlaying = isCurrentShow && isPlaying;
+    const isCurrentlyPlaying = selectedShow?.key === show.key;
 
     if (isCurrentlyPlaying) {
-      pauseShow();
+      setSelectedMixcloudUrl(null);
+      setSelectedShow(null);
     } else {
-      playShow(show);
+      setSelectedMixcloudUrl(show.url);
+      setSelectedShow({
+        key: show.key,
+        name: show.name,
+        url: show.url,
+        slug: show.slug,
+        pictures: show.pictures,
+        user: {
+          name: show.user.name,
+          username: show.user.username,
+        },
+        created_time: show.created_time,
+      });
     }
   };
 
@@ -31,7 +42,7 @@ export default function FeaturedSections({ showToDisplay, transformedUpcomingSho
     <div className="grid grid-cols-1 md:grid-cols-2 relative z-10">
       {/* Left featured section */}
       <div className="flex flex-col h-full p-5 pr-2.5">
-        <Card className="overflow-hidden shadow-none border-none relative cursor-pointer border border-almostblack dark:border-white" onClick={() => showToDisplay && handleShowClick(showToDisplay)}>
+        <Card className="overflow-hidden shadow-none relative cursor-pointer border border-almostblack dark:border-white" onClick={() => showToDisplay && handleShowClick(showToDisplay)}>
           <CardContent className="p-0">
             <div className="relative aspect-square">
               <Image src={showToDisplay?.pictures.extra_large || "/image-placeholder.svg"} alt={showToDisplay?.name || "Show"} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority />
@@ -63,7 +74,7 @@ export default function FeaturedSections({ showToDisplay, transformedUpcomingSho
       {/* Right featured section */}
       <div className="h-full">
         <div className="flex flex-col h-full p-5 pl-2.5">
-          <Card className="overflow-hidden border-none shadow-none flex-grow cursor-pointer border border-almostblack dark:border-white" onClick={() => transformedUpcomingShows[0] && handleShowClick(transformedUpcomingShows[0])}>
+          <Card className="overflow-hidden shadow-none flex-grow cursor-pointer border border-almostblack dark:border-white" onClick={() => transformedUpcomingShows[0] && handleShowClick(transformedUpcomingShows[0])}>
             <CardContent className="p-0 relative h-full flex flex-col">
               <div className="aspect-square w-full relative">
                 <Image src={transformedUpcomingShows[0]?.image || "/image-placeholder.svg"} alt={transformedUpcomingShows[0]?.title || "Featured Show"} fill className="object-cover" />

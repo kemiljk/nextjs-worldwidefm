@@ -57,7 +57,7 @@ const CosmicSectionComponent: React.FC<CosmicSectionProps> = ({ section }) => {
     if (section.layout === "Grid") {
       const gridColsClass = section.itemsPerRow === 4 ? "md:grid-cols-4" : section.itemsPerRow === 3 ? "md:grid-cols-3" : section.itemsPerRow === 2 ? "md:grid-cols-2" : "md:grid-cols-1";
       return (
-        <div className={`grid grid-cols-1 sm:grid-cols-2 ${gridColsClass} gap-4 md:gap-6 lg:gap-8`}>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${gridColsClass} gap-4`}>
           {section.items.map((item) => (
             <SectionItemCard key={item.slug} item={item} />
           ))}

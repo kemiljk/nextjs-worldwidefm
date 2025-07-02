@@ -1,93 +1,68 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import Image from "next/image";
-import { Card, CardContent } from "@/components/ui/card";
-import { useMediaPlayer } from "@/components/providers/media-player-provider";
-import type { MixcloudShow } from "@/lib/mixcloud-service";
-import { PlayButton } from "@/components/play-button";
+import { useState, useEffect } from "react";
+import { getAllShows } from "@/lib/actions";
+import { ShowCard } from "./ui/show-card";
 
-const fetchEpisodes = async (): Promise<MixcloudShow[]> => {
-  const res = await fetch(`https://api.mixcloud.com/worldwidefm/cloudcasts/?limit=6`);
-  if (!res.ok) throw new Error("Failed to fetch episodes");
-  const data = await res.json();
-  return data.data.map((item: any) => ({
-    key: item.key,
-    name: item.name,
-    url: item.url,
-    pictures: item.pictures,
-    created_time: item.created_time,
-    updated_time: item.updated_time,
-    play_count: item.play_count,
-    favorite_count: item.favorite_count,
-    comment_count: item.comment_count,
-    listener_count: item.listener_count,
-    repost_count: item.repost_count,
-    tags: item.tags || [],
-    slug: item.key.split("/").pop() || item.key,
-    user: item.user,
-    hosts: item.hosts || [],
-    hidden_stats: item.hidden_stats ?? false,
-    audio_length: item.audio_length ?? 0,
-    filteredTags: () => (item.tags || []).filter((tag: any) => tag.name.toLowerCase() !== "worldwide fm"),
-  }));
-};
-
-export default function LatestEpisodes() {
-  const [episodes, setEpisodes] = useState<MixcloudShow[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+const LatestEpisodes: React.FC = () => {
+  const [episodes, setEpisodes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { playShow, currentShow, isPlaying, pauseShow } = useMediaPlayer();
 
   useEffect(() => {
-    fetchEpisodes()
-      .then(setEpisodes)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    const fetchEpisodes = async () => {
+      try {
+        setLoading(true);
+        // Fetch latest shows using the same function as the shows page
+        const response = await getAllShows(0, 0, 4); // Get 8 shows for horizontal scroll
+        setEpisodes(response.shows || []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch shows");
+        console.error("Error fetching latest episodes:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEpisodes();
   }, []);
 
-  const handleShowClick = (episode: MixcloudShow) => {
-    const isCurrentShow = currentShow?.key === episode.key;
-    const isCurrentlyPlaying = isCurrentShow && isPlaying;
-    if (isCurrentlyPlaying) {
-      pauseShow();
-    } else {
-      playShow(episode);
-    }
-  };
+  if (loading) {
+    return (
+      <section className="py-8 px-5">
+        <h2 className="text-h7 font-bold mb-8 tracking-wide">LATEST SHOWS</h2>
+        <div className="flex gap-6 overflow-x-auto pb-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex-none w-full animate-pulse">
+              <div className="bg-gray-200 h-60 rounded-lg mb-4"></div>
+              <div className="h-6 bg-gray-200 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
 
-  if (loading) return <div>Loading latest episodes...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (error) {
+    return;
+  }
+
+  if (episodes.length === 0) {
+    return;
+  }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 px-5">
-      {episodes.slice(2, 6).map((episode) => (
-        <Card key={episode.key} className="overflow-hidden shadow-none relative cursor-pointer border border-almostblack dark:border-white h-full flex flex-col" onClick={() => handleShowClick(episode)}>
-          <CardContent className="p-0 flex flex-col h-full">
-            <div className="relative aspect-square w-full">
-              <Image src={episode.pictures.extra_large} alt={episode.name} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority />
-            </div>
-            <div className="flex flex-col flex-1 p-2 min-h-0">
-              <h3 className="text-m4 font-mono text-almostblack pt-2 p-1 mb-2 flex-grow">{episode.name}</h3>
-              {episode.tags && (
-                <div className="flex items-end justify-between mt-auto">
-                  <div className="flex flex-wrap gap-y-1 gap-x-2">
-                    {episode.tags
-                      .filter((tag) => tag.name.toLocaleLowerCase() !== "worldwide fm")
-                      .slice(0, 3)
-                      .map((tag: { key: string; name: string }) => (
-                        <p key={tag.key} className="text-m7 font-mono uppercase text-almostblack border border-almostblack rounded-full px-2 py-1 line-clamp-3">
-                          {tag.name}
-                        </p>
-                      ))}
-                  </div>
-                  <PlayButton show={episode} variant="secondary" size="icon" className="ml-2 bg-almostblack hover:bg-almostblack/80 text-white shrink-0" />
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    <section className="py-8 px-5">
+      <h2 className="text-h7 font-bold mb-8 tracking-wide">LATEST SHOWS</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full h-full">
+        {episodes.map((episode) => (
+          <ShowCard key={episode.key || episode.id || episode.slug} show={episode} className="h-full w-full" />
+        ))}
+      </div>
+    </section>
   );
-}
+};
+
+export default LatestEpisodes;

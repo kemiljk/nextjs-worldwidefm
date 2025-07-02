@@ -6,6 +6,7 @@
  */
 
 import Fuse from "fuse.js";
+import type { IFuseOptions } from "fuse.js";
 import { SearchEngine, SearchFilters, SearchItem, SearchOptions, SearchResponse, FilterCategory, FilterItem, ContentType } from "./types";
 import { getAllShows, getAllPosts, getVideos } from "../actions";
 
@@ -33,7 +34,7 @@ export class WWFMSearchEngine implements SearchEngine {
   private filtersLoaded = false;
 
   // Fuse.js configuration for improved searching
-  private readonly fuseOptions: Fuse.IFuseOptions<SearchItem> = {
+  private readonly fuseOptions: IFuseOptions<SearchItem> = {
     keys: [
       { name: "title", weight: 2 },
       { name: "description", weight: 1.5 },
@@ -53,7 +54,8 @@ export class WWFMSearchEngine implements SearchEngine {
    * Initialize with optional content preloading
    */
   constructor(preloadContent = false) {
-    if (preloadContent) {
+    // Only preload content if we're in the browser to avoid SSR issues
+    if (preloadContent && typeof window !== "undefined") {
       this.getInitialContent().catch((err) => console.error("Failed to preload content:", err));
       this.getAvailableFilters().catch((err) => console.error("Failed to preload filters:", err));
     }
@@ -228,6 +230,11 @@ export class WWFMSearchEngine implements SearchEngine {
    */
   clearCache(): void {
     try {
+      // Check if we're in the browser environment
+      if (typeof window === "undefined" || typeof localStorage === "undefined") {
+        return;
+      }
+
       localStorage.removeItem(CONTENT_CACHE_KEY);
       localStorage.removeItem(FILTERS_CACHE_KEY);
       console.log("Search cache cleared");
@@ -406,6 +413,11 @@ export class WWFMSearchEngine implements SearchEngine {
    */
   private loadFromCache<T>(key: string): T | null {
     try {
+      // Check if we're in the browser environment
+      if (typeof window === "undefined" || typeof localStorage === "undefined") {
+        return null;
+      }
+
       const cachedData = localStorage.getItem(key);
       if (!cachedData) return null;
 
@@ -429,6 +441,11 @@ export class WWFMSearchEngine implements SearchEngine {
    */
   private saveToCache(key: string, value: any): void {
     try {
+      // Check if we're in the browser environment
+      if (typeof window === "undefined" || typeof localStorage === "undefined") {
+        return;
+      }
+
       const data = {
         _timestamp: Date.now(),
         value,
@@ -553,5 +570,5 @@ function mapFilterItems(items: any[], type: FilterCategory): FilterItem[] {
     }));
 }
 
-// Create and export a singleton instance
-export const searchEngine = new WWFMSearchEngine(true);
+// Create and export a singleton instance without preloading to avoid SSR issues
+export const searchEngine = new WWFMSearchEngine(false);

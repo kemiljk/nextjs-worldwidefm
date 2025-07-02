@@ -1,24 +1,230 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import Image from "next/image";
-import { Play, Pause, Radio, Circle } from "lucide-react";
+import { Play, Pause, Radio, Circle, Loader2, AlertCircle } from "lucide-react";
 import { useMediaPlayer } from "@/components/providers/media-player-provider";
 
-export default function LivePlayer() {
-  const { currentLiveEvent, isLivePlaying, liveVolume, toggleLivePlayPause, setIsLivePlaying, isLive } = useMediaPlayer();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const titleRef = useRef<HTMLDivElement>(null);
+interface StreamState {
+  loading: boolean;
+  error: string | null;
+  connected: boolean;
+}
 
-  // Initialize audio element
+interface LiveMetadata {
+  status: "live" | "offline";
+  content?: {
+    title?: string;
+    artist?: string;
+    image?: string;
+  };
+  metadata?: {
+    bitrate?: number;
+    listeners?: number;
+  };
+}
+
+export default function LivePlayer() {
+  const { currentLiveEvent, isLivePlaying, playLive, pauseLive, liveVolume, setLiveVolume } = useMediaPlayer();
+
+  const [streamState, setStreamState] = useState<StreamState>({
+    loading: false,
+    error: null,
+    connected: false,
+  });
+
+  const [liveMetadata, setLiveMetadata] = useState<LiveMetadata>({
+    status: "offline",
+  });
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const socketRef = useRef<any>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const metadataTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Environment variables
+  const streamUrl = process.env.NEXT_PUBLIC_RADIOCULT_STREAM_URL;
+  const stationId = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
+  const apiKey = process.env.NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY;
+
+  // Initialize audio element ONLY when we have a live event
   useEffect(() => {
+    // Only initialize audio if we have a live event
+    if (!currentLiveEvent) {
+      // Clean up audio if no live event
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+        audioRef.current = null;
+      }
+      return;
+    }
+
     if (!audioRef.current) {
       const audio = new Audio();
       audio.preload = "none";
       audio.volume = liveVolume;
+      audio.crossOrigin = "anonymous";
       audioRef.current = audio;
+
+      // Set up audio event listeners
+      audio.addEventListener("loadstart", () => {
+        setStreamState((prev) => ({ ...prev, loading: true, error: null }));
+      });
+
+      audio.addEventListener("canplay", () => {
+        setStreamState((prev) => ({ ...prev, loading: false, connected: true }));
+      });
+
+      audio.addEventListener("error", (e) => {
+        const error = audio.error;
+        let errorMessage = "Stream connection failed";
+
+        if (error) {
+          switch (error.code) {
+            case error.MEDIA_ERR_NETWORK:
+              errorMessage = "Network error";
+              break;
+            case error.MEDIA_ERR_DECODE:
+              errorMessage = "Stream decode error";
+              break;
+            case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+              errorMessage = "Stream format not supported";
+              break;
+            default:
+              errorMessage = "Unknown stream error";
+          }
+        }
+
+        console.error("Audio error:", error);
+        setStreamState((prev) => ({
+          ...prev,
+          loading: false,
+          error: errorMessage,
+          connected: false,
+        }));
+      });
+
+      audio.addEventListener("ended", () => {
+        setStreamState((prev) => ({ ...prev, connected: false }));
+        pauseLive();
+      });
+
+      audio.addEventListener("pause", () => {
+        setStreamState((prev) => ({ ...prev, loading: false }));
+      });
+
+      audio.addEventListener("playing", () => {
+        setStreamState((prev) => ({ ...prev, loading: false, connected: true, error: null }));
+      });
     }
-  }, []);
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+      }
+    };
+  }, [currentLiveEvent, liveVolume, pauseLive]);
+
+  // WebSocket connection for real-time metadata
+  const connectWebSocket = useCallback(() => {
+    if (!stationId || !apiKey) {
+      console.warn("RadioCult WebSocket: Missing station ID or API key");
+      return;
+    }
+
+    // Don't connect if already connected
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      return;
+    }
+
+    try {
+      // Using Socket.IO as mentioned in RadioCult API docs
+      if (typeof window !== "undefined" && window.io) {
+        const socket = window.io("https://api.radiocult.fm", {
+          auth: {
+            "x-api-key": apiKey,
+          },
+          transports: ["websocket"],
+          query: {
+            stationId: stationId,
+          },
+        });
+
+        socket.on("connect", () => {
+          console.log("RadioCult WebSocket connected");
+          setStreamState((prev) => ({ ...prev, error: null }));
+        });
+
+        socket.on("player-metadata", (data: any) => {
+          console.log("Received metadata:", data);
+          setLiveMetadata({
+            status: data.status || "offline",
+            content: data.content,
+            metadata: data.metadata,
+          });
+
+          // Reset metadata timeout
+          if (metadataTimeoutRef.current) {
+            clearTimeout(metadataTimeoutRef.current);
+          }
+
+          // Set offline after 2 minutes of no updates
+          metadataTimeoutRef.current = setTimeout(() => {
+            setLiveMetadata((prev) => ({ ...prev, status: "offline" }));
+          }, 120000);
+        });
+
+        socket.on("disconnect", () => {
+          console.log("RadioCult WebSocket disconnected");
+          // Attempt reconnection after 5 seconds
+          reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
+        });
+
+        socket.on("error", (error: any) => {
+          console.error("RadioCult WebSocket error:", error);
+        });
+
+        socketRef.current = socket;
+      }
+    } catch (error) {
+      console.error("WebSocket connection error:", error);
+    }
+  }, [stationId, apiKey]);
+
+  // Initialize WebSocket connection only when needed
+  useEffect(() => {
+    // Only connect WebSocket if we have environment variables configured
+    // and either have a live event or need to detect one
+    if (!stationId || !apiKey) {
+      return;
+    }
+
+    // Load Socket.IO if not already loaded
+    if (typeof window !== "undefined" && !window.io) {
+      const script = document.createElement("script");
+      script.src = "https://cdn.socket.io/4.7.2/socket.io.min.js";
+      script.onload = () => {
+        connectWebSocket();
+      };
+      document.head.appendChild(script);
+    } else {
+      connectWebSocket();
+    }
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (metadataTimeoutRef.current) {
+        clearTimeout(metadataTimeoutRef.current);
+      }
+    };
+  }, [connectWebSocket, stationId, apiKey]);
 
   // Handle volume changes
   useEffect(() => {
@@ -31,68 +237,103 @@ export default function LivePlayer() {
   useEffect(() => {
     if (!audioRef.current) return;
 
-    if (isLivePlaying && isLive) {
-      // For RadioCult live shows, use the stream URL
-      const streamUrl = process.env.NEXT_PUBLIC_RADIOCULT_STREAM_URL;
-      if (streamUrl && audioRef.current.src !== streamUrl) {
+    if (isLivePlaying && currentLiveEvent) {
+      if (!streamUrl) {
+        setStreamState((prev) => ({
+          ...prev,
+          error: "Stream URL not configured",
+        }));
+        pauseLive();
+        return;
+      }
+
+      if (audioRef.current.src !== streamUrl) {
         audioRef.current.src = streamUrl;
       }
+
+      setStreamState((prev) => ({ ...prev, loading: true, error: null }));
+
       audioRef.current.play().catch((error) => {
         console.error("Error playing live stream:", error);
-        setIsLivePlaying(false);
+        setStreamState((prev) => ({
+          ...prev,
+          loading: false,
+          error: "Failed to start playback",
+          connected: false,
+        }));
+        pauseLive();
       });
     } else {
       audioRef.current.pause();
+      setStreamState((prev) => ({ ...prev, loading: false, connected: false }));
     }
-  }, [isLivePlaying, isLive, setIsLivePlaying]);
+  }, [isLivePlaying, currentLiveEvent, streamUrl, pauseLive]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = "";
+  const handlePlayPause = () => {
+    if (!currentLiveEvent) return;
+
+    if (streamState.error) {
+      // Retry on error
+      setStreamState((prev) => ({ ...prev, error: null }));
+      if (audioRef.current && streamUrl) {
+        audioRef.current.src = streamUrl;
       }
-    };
-  }, []);
+    }
 
-  // Show the player even when no live event (resting state)
-  const displayName = currentLiveEvent?.showName || "Worldwide FM";
-  const displayImage = currentLiveEvent?.imageUrl || "/image-placeholder.svg?w=40&h=40";
+    if (isLivePlaying) {
+      pauseLive();
+    } else {
+      playLive(currentLiveEvent);
+    }
+  };
+
+  const hasLive = Boolean(currentLiveEvent);
+  const isActuallyLive = liveMetadata.status === "live" || hasLive;
+
+  // Use metadata from WebSocket if available, fallback to event data
+  const displayName = liveMetadata.content?.title || currentLiveEvent?.showName || "Worldwide FM";
+  const displayImage = liveMetadata.content?.image || currentLiveEvent?.imageUrl || "/image-placeholder.svg?w=40&h=40";
 
   return (
     <div className="fixed top-0 bg-almostblack text-white z-50 flex items-center transition-all duration-300 h-12 left-0 right-0 max-w-full px-4">
       <div className="flex items-center mx-2 gap-3 overflow-hidden">
         <div className="w-10 h-10 rounded overflow-hidden z-10 flex-shrink-0 relative">
           <Image src={displayImage} alt={displayName} fill className="object-cover" />
-          {isLive && (
+          {isActuallyLive && (
             <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
               <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-crimson-500 animate-pulse" />
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                 <Radio className="h-4 w-4 text-white" />
               </div>
             </div>
           )}
         </div>
         <div>
-          <div ref={titleRef} className="text-sm whitespace-nowrap">
-            {displayName}
-          </div>
-          {isLive ? (
+          <div className="text-sm whitespace-nowrap">{displayName}</div>
+          {isActuallyLive ? (
             <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-crimson-500 animate-pulse" />
-              <span className="text-xs text-white/90 uppercase">On air</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-xs text-white/90 uppercase">{streamState.loading ? "Connecting..." : streamState.error ? "Error" : "Live"}</span>
             </div>
           ) : (
-            <div className="text-xs text-white/60">Nothing currently live</div>
+            <div className="text-xs text-white/60">{liveMetadata.status === "offline" ? "Nothing currently live" : "Checking..."}</div>
           )}
         </div>
       </div>
 
       <div className="border-l border-white/20 pl-4 ml-4 flex items-center flex-shrink-0 transition-opacity duration-200">
-        <button className={`rounded-full ${isLive ? "text-crimson-500" : "text-white/50"}`} onClick={toggleLivePlayPause} disabled={!isLive}>
-          {isLivePlaying ? <Pause className="h-5 w-5" /> : isLive ? <Circle className="h-5 w-5 animate-pulse text-crimson-500" /> : <Play className="h-5 w-5 text-white/50" />}
-        </button>
+        {streamState.loading ? (
+          <Loader2 className="h-5 w-5 animate-spin text-white/70" />
+        ) : streamState.error ? (
+          <button className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors text-xs" onClick={handlePlayPause} title={streamState.error}>
+            <AlertCircle className="h-4 w-4" />
+            Retry
+          </button>
+        ) : (
+          <button className="rounded-full transition-colors disabled:opacity-50" disabled={!isActuallyLive} onClick={handlePlayPause} style={{ color: isActuallyLive ? (isLivePlaying ? "#ef4444" : "#ef4444") : "#6b7280" }}>
+            {isLivePlaying ? <Pause className="h-5 w-5" /> : isActuallyLive ? <Circle className="h-5 w-5 animate-pulse" /> : <Play className="h-5 w-5" />}
+          </button>
+        )}
       </div>
     </div>
   );
