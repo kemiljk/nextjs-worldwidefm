@@ -14,31 +14,20 @@ interface PlayButtonProps {
 }
 
 export function PlayButton({ show, variant = "default", size = "default", className }: PlayButtonProps) {
-  const { selectedMixcloudUrl, setSelectedMixcloudUrl, selectedShow, setSelectedShow } = useMediaPlayer();
+  const { selectedMixcloudUrl, selectedShow, playShow, pauseShow, isArchivePlaying } = useMediaPlayer();
 
   const isCurrentShow = selectedShow?.key === show.key;
-  const isCurrentlyPlaying = isCurrentShow && selectedMixcloudUrl;
+  const isCurrentlyPlaying = isCurrentShow && isArchivePlaying;
 
   const handleClick = () => {
-    if (isCurrentlyPlaying) {
-      // Stop current playback
-      setSelectedMixcloudUrl(null);
-      setSelectedShow(null);
+    if (isCurrentShow) {
+      if (isCurrentlyPlaying) {
+        pauseShow();
+      } else {
+        playShow(show);
+      }
     } else {
-      // Start playing this show
-      setSelectedMixcloudUrl(show.url);
-      setSelectedShow({
-        key: show.key,
-        name: show.name,
-        url: show.url,
-        slug: show.slug,
-        pictures: show.pictures,
-        user: {
-          name: show.user.name,
-          username: show.user.username,
-        },
-        created_time: show.created_time,
-      });
+      playShow(show);
     }
   };
 

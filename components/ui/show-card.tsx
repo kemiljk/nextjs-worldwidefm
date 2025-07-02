@@ -12,31 +12,22 @@ interface ShowCardProps {
 }
 
 export const ShowCard: React.FC<ShowCardProps> = ({ show, className = "" }) => {
-  const { selectedMixcloudUrl, setSelectedMixcloudUrl, selectedShow, setSelectedShow } = useMediaPlayer();
+  const { playShow, pauseShow, selectedShow, isArchivePlaying } = useMediaPlayer();
 
-  const handlePlayShow = (episode: MixcloudShow | any) => {
-    const showUrl = episode.url || episode.page_link;
-    if (!showUrl) return;
-    if (selectedShow?.key === episode.key) {
-      setSelectedMixcloudUrl(null);
-      setSelectedShow(null);
-      return;
+  const isCurrentShow = selectedShow?.key === show.key;
+  const isCurrentlyPlaying = isCurrentShow && isArchivePlaying;
+  const handlePlayPause = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isCurrentShow) {
+      if (isCurrentlyPlaying) {
+        pauseShow();
+      } else {
+        playShow(show);
+      }
+    } else {
+      playShow(show);
     }
-    setSelectedMixcloudUrl(showUrl);
-    setSelectedShow({
-      key: episode.key,
-      name: episode.name || episode.title,
-      url: showUrl,
-      slug: episode.slug,
-      pictures: episode.pictures || {
-        large: episode.enhanced_image || episode.imageUrl || "/image-placeholder.svg",
-      },
-      user: episode.user || {
-        name: episode.host || "Unknown",
-        username: episode.host || "unknown",
-      },
-      created_time: episode.created_time || episode.created_at || episode.broadcast_date,
-    });
   };
 
   const getShowImage = (show: any) => {
@@ -75,7 +66,6 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, className = "" }) => {
     );
   };
 
-  const isCurrentlyPlaying = selectedShow?.key === show.key;
   const showImage = getShowImage(show);
   const showTags = getShowTags(show);
   const createdTime = show.created_time || show.created_at || show.broadcast_date || show.date;
@@ -120,17 +110,8 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, className = "" }) => {
               </span>
             ))}
           </div>
-          <button
-            className="bg-almostblack rounded-full w-10 h-10 flex items-center justify-center ml-2 transition-colors hover:bg-gray-800"
-            style={{ minWidth: 40, minHeight: 40 }}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handlePlayShow(show);
-            }}
-            aria-label={isCurrentlyPlaying ? "Pause show" : "Play show"}
-          >
-            {isCurrentlyPlaying ? <Pause className="w-5 h-5 text-white" /> : <Play className="w-5 h-5 text-white" />}
+          <button className="bg-almostblack rounded-full w-10 h-10 flex items-center justify-center ml-2 transition-colors hover:bg-gray-800" style={{ minWidth: 40, minHeight: 40 }} onClick={handlePlayPause} aria-label={isCurrentlyPlaying ? "Pause show" : "Play show"}>
+            {isCurrentlyPlaying ? <Pause fill="white" className="w-5 h-5 text-white" /> : <Play fill="white" className="w-5 h-5 text-white pl-0.5" />}
           </button>
         </div>
       </div>

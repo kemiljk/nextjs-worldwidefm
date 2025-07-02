@@ -32,6 +32,17 @@ interface MediaPlayerContextType {
 
   // Global controls
   stopAllPlayers: () => void;
+
+  // Playback controls
+  playShow: (show: Show) => void;
+  pauseShow: () => void;
+
+  // New: Archive player state
+  isArchivePlaying: boolean;
+
+  // Widget control
+  setWidgetRef: (widget: any) => void;
+  widgetRef: any;
 }
 
 const MediaPlayerContext = createContext<MediaPlayerContextType | undefined>(undefined);
@@ -40,11 +51,15 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   const [isLivePlaying, setIsLivePlaying] = useState(false);
   const [selectedMixcloudUrl, setSelectedMixcloudUrl] = useState<string | null>(null);
   const [selectedShow, setSelectedShow] = useState<Show | null>(null);
+  const [isArchivePlaying, setIsArchivePlaying] = useState(false);
+  const [widgetRef, setWidgetRef] = useState<any>(null);
 
   const stopAllPlayers = () => {
     setIsLivePlaying(false);
     setSelectedMixcloudUrl(null);
     setSelectedShow(null);
+    setIsArchivePlaying(false);
+    setWidgetRef(null);
   };
 
   const handleSetSelectedMixcloudUrl = (url: string | null) => {
@@ -58,8 +73,27 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     if (playing) {
       setSelectedMixcloudUrl(null); // Stop archive player when live starts
       setSelectedShow(null);
+      setIsArchivePlaying(false);
+      setWidgetRef(null);
     }
     setIsLivePlaying(playing);
+  };
+
+  // New: Play and pause controls for archive
+  const playShow = (show: Show) => {
+    setSelectedMixcloudUrl(show.url);
+    setSelectedShow(show);
+    setIsArchivePlaying(true);
+    if (widgetRef) {
+      widgetRef.play?.();
+    }
+  };
+
+  const pauseShow = () => {
+    setIsArchivePlaying(false);
+    if (widgetRef) {
+      widgetRef.pause?.();
+    }
   };
 
   return (
@@ -72,6 +106,11 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
         selectedShow,
         setSelectedShow,
         stopAllPlayers,
+        playShow,
+        pauseShow,
+        isArchivePlaying,
+        setWidgetRef,
+        widgetRef,
       }}
     >
       {children}

@@ -15,10 +15,10 @@ interface ShowPlayButtonProps extends ButtonProps {
 }
 
 export function ShowPlayButton({ show, variant = "outline", size = "icon", className, children, ...props }: ShowPlayButtonProps) {
-  const { playShow, currentShow, isPlaying, pauseShow } = useMediaPlayer();
+  const { playShow, selectedShow, isArchivePlaying, pauseShow } = useMediaPlayer();
 
-  const isCurrentShow = currentShow?.key === show.key;
-  const isCurrentlyPlaying = isCurrentShow && isPlaying;
+  const isCurrentShow = selectedShow?.key === show.key;
+  const isCurrentlyPlaying = isCurrentShow && isArchivePlaying;
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
