@@ -8,10 +8,12 @@ import { MixcloudShow } from "@/lib/mixcloud-service";
 
 interface ShowCardProps {
   show: MixcloudShow | any;
+  slug: string;
   className?: string;
+  playable?: boolean;
 }
 
-export const ShowCard: React.FC<ShowCardProps> = ({ show, className = "" }) => {
+export const ShowCard: React.FC<ShowCardProps> = ({ show, slug, className = "", playable = true }) => {
   const { playShow, pauseShow, selectedShow, isArchivePlaying } = useMediaPlayer();
 
   const isCurrentShow = selectedShow?.key === show.key;
@@ -77,7 +79,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, className = "" }) => {
   const subtitle = restTitle.length > 0 ? restTitle.join(":").trim() : showHost;
 
   return (
-    <div className={`border border-almostblack dark:border-white rounded-none overflow-hidden flex flex-col p-2 h-full w-full ${className}`}>
+    <Link href={slug} className={`border border-almostblack dark:border-white rounded-none overflow-hidden flex flex-col p-2 h-full w-full max-w-[440px] ${className}`}>
       {/* Image */}
       <div className="relative w-full h-full">
         <div className="relative w-full h-[440px]">
@@ -110,11 +112,13 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, className = "" }) => {
               </span>
             ))}
           </div>
-          <button className="bg-almostblack rounded-full w-10 h-10 flex items-center justify-center ml-2 transition-colors hover:bg-gray-800" style={{ minWidth: 40, minHeight: 40 }} onClick={handlePlayPause} aria-label={isCurrentlyPlaying ? "Pause show" : "Play show"}>
-            {isCurrentlyPlaying ? <Pause fill="white" className="w-5 h-5 text-white" /> : <Play fill="white" className="w-5 h-5 text-white pl-0.5" />}
-          </button>
+          {playable && (
+            <button className="bg-almostblack rounded-full w-10 h-10 flex items-center justify-center ml-2 transition-colors hover:bg-gray-800" style={{ minWidth: 40, minHeight: 40 }} onClick={handlePlayPause} aria-label={isCurrentlyPlaying ? "Pause show" : "Play show"}>
+              {isCurrentlyPlaying ? <Pause fill="white" className="w-5 h-5 text-white" /> : <Play fill="white" className="w-5 h-5 text-white pl-0.5" />}
+            </button>
+          )}
         </div>
       </div>
-    </div>
+    </Link>
   );
 };

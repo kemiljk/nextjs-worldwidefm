@@ -19,10 +19,23 @@ interface Show {
   created_time: string;
 }
 
+interface LiveEvent {
+  // Define a more specific type if available
+  showName?: string;
+  [key: string]: any;
+}
+
 interface MediaPlayerContextType {
   // Live player state
   isLivePlaying: boolean;
   setIsLivePlaying: (playing: boolean) => void;
+
+  // Live playback controls (RadioCult)
+  currentLiveEvent: LiveEvent | null;
+  playLive: (event: LiveEvent) => void;
+  pauseLive: () => void;
+  liveVolume: number;
+  setLiveVolume: (volume: number) => void;
 
   // Archive player state
   selectedMixcloudUrl: string | null;
@@ -49,6 +62,8 @@ const MediaPlayerContext = createContext<MediaPlayerContextType | undefined>(und
 
 export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   const [isLivePlaying, setIsLivePlaying] = useState(false);
+  const [currentLiveEvent, setCurrentLiveEvent] = useState<LiveEvent | null>(null);
+  const [liveVolume, setLiveVolume] = useState<number>(1);
   const [selectedMixcloudUrl, setSelectedMixcloudUrl] = useState<string | null>(null);
   const [selectedShow, setSelectedShow] = useState<Show | null>(null);
   const [isArchivePlaying, setIsArchivePlaying] = useState(false);
@@ -56,6 +71,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
 
   const stopAllPlayers = () => {
     setIsLivePlaying(false);
+    setCurrentLiveEvent(null);
     setSelectedMixcloudUrl(null);
     setSelectedShow(null);
     setIsArchivePlaying(false);
@@ -65,6 +81,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   const handleSetSelectedMixcloudUrl = (url: string | null) => {
     if (url) {
       setIsLivePlaying(false); // Stop live player when archive starts
+      setCurrentLiveEvent(null);
     }
     setSelectedMixcloudUrl(url);
   };
@@ -96,11 +113,29 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Live playback controls for RadioCult
+  const playLive = (event: LiveEvent) => {
+    setCurrentLiveEvent(event);
+    setIsLivePlaying(true);
+    setSelectedMixcloudUrl(null);
+    setSelectedShow(null);
+    setIsArchivePlaying(false);
+  };
+
+  const pauseLive = () => {
+    setIsLivePlaying(false);
+  };
+
   return (
     <MediaPlayerContext.Provider
       value={{
         isLivePlaying,
         setIsLivePlaying: handleSetIsLivePlaying,
+        currentLiveEvent,
+        playLive,
+        pauseLive,
+        liveVolume,
+        setLiveVolume,
         selectedMixcloudUrl,
         setSelectedMixcloudUrl: handleSetSelectedMixcloudUrl,
         selectedShow,

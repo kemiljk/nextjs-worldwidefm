@@ -1,15 +1,11 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
 import { MixcloudShow, filterWorldwideFMTags } from "@/lib/mixcloud-service";
-import { PlayButton } from "@/components/play-button";
 import { GenreDropdown } from "@/components/genre-dropdown";
 import Marquee from "@/components/ui/marquee";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
-import { cn } from "@/lib/utils";
+import { ShowCard } from "@/components/ui/show-card";
 
 interface GenreSelectorProps {
   shows: MixcloudShow[];
@@ -84,43 +80,12 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
         <h2 className="text-h7 font-display uppercase font-normal text-almostblack">{title}</h2>
         <GenreDropdown genres={allGenres} onSelect={handleGenreSelect} selectedGenre={selectedGenre} />
       </div>
-      <Marquee className="-mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24" speed="slow" pauseOnHover>
-        {uniqueShows.map((show: MixcloudShow, index: number) => {
-          if (!show) return null;
-
-          const segments = show.key.split("/").filter(Boolean);
-          let showPath = segments.join("/");
-          if (showPath.startsWith("worldwidefm/")) {
-            showPath = showPath.replace(/^worldwidefm\//, "");
-          }
-
-          return (
-            <Link key={`${show.key}-${index}`} href={`/episode/${showPath}`} className="flex-none w-[300px]">
-              <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
-                <CardContent className="p-0">
-                  <div className="relative aspect-square">
-                    <Image src={show.pictures.extra_large} alt={show.name} fill className="object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent">
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {filterWorldwideFMTags(show.tags).map((tag, tagIndex) => (
-                            <span key={`${show.key}-${tag.name}-${tagIndex}`} className={cn("px-2 py-1 border border-white/50 rounded-full text-[9.5px] transition-colors uppercase", selectedGenre === tag.name ? "bg-bronze-500 text-white" : "bg-black/40 text-white")}>
-                              {tag.name}
-                            </span>
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-4 mt-2">
-                          <h3 className="text-m5 font-mono font-normal text-white line-clamp-2 mt-2">{show.name}</h3>
-                          <PlayButton show={show} variant="secondary" size="icon" className="bg-bronze-500 hover:bg-bronze-600 text-white shrink-0" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
+      <Marquee className="-mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24 h-full" speed="slow" pauseOnHover>
+        <div className="grid grid-flow-col auto-cols-max h-full gap-4 grid-cols-[repeat(auto-fit,minmax(440px,1fr))]">
+          {uniqueShows.map((show: MixcloudShow, index: number) => (
+            <ShowCard key={`${show.key}-${index}`} show={show} slug={`/episode/${show.key}`} playable />
+          ))}
+        </div>
       </Marquee>
     </section>
   );

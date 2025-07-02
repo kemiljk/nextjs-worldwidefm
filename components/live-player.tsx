@@ -1,9 +1,14 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import Image from "next/image";
-import { Play, Pause, Radio, Circle, Loader2, AlertCircle } from "lucide-react";
+import { Play, Pause, Circle } from "lucide-react";
 import { useMediaPlayer } from "@/components/providers/media-player-provider";
+
+declare global {
+  interface Window {
+    io?: any;
+  }
+}
 
 interface StreamState {
   loading: boolean;
@@ -291,49 +296,25 @@ export default function LivePlayer() {
   const isActuallyLive = liveMetadata.status === "live" || hasLive;
 
   // Use metadata from WebSocket if available, fallback to event data
-  const displayName = liveMetadata.content?.title || currentLiveEvent?.showName || "Worldwide FM";
-  const displayImage = liveMetadata.content?.image || currentLiveEvent?.imageUrl || "/image-placeholder.svg?w=40&h=40";
+  const displayName = liveMetadata.content?.title || currentLiveEvent?.showName || "Nothing currently live";
 
   return (
-    <div className="fixed top-0 bg-almostblack text-white z-50 flex items-center transition-all duration-300 h-12 left-0 right-0 max-w-full px-4">
+    <div className="fixed top-0 bg-almostblack text-white z-50 flex items-center transition-all duration-300 h-12 left-0 right-0 max-w-full">
+      <div className="border-l border-white/20 pl-4 ml-4 flex items-center flex-shrink-0 transition-opacity duration-200">
+        <button className={`rounded-full transition-colors disabled:opacity-20 ${isLivePlaying ? "text-red-500" : "text-white"}`} disabled={!isActuallyLive} onClick={handlePlayPause}>
+          {isLivePlaying ? <Pause fill="white" className="h-5 w-5" /> : isActuallyLive ? <Circle fill="#ef4444" className="h-5 w-5 animate-pulse text-red-500" /> : <Play fill="white" className="h-5 w-5" />}
+        </button>
+      </div>
       <div className="flex items-center mx-2 gap-3 overflow-hidden">
-        <div className="w-10 h-10 rounded overflow-hidden z-10 flex-shrink-0 relative">
-          <Image src={displayImage} alt={displayName} fill className="object-cover" />
-          {isActuallyLive && (
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                <Radio className="h-4 w-4 text-white" />
-              </div>
-            </div>
-          )}
-        </div>
         <div>
-          <div className="text-sm whitespace-nowrap">{displayName}</div>
-          {isActuallyLive ? (
+          <div className="text-m7 font-mono uppercase whitespace-nowrap">{displayName}</div>
+          {isActuallyLive && (
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
               <span className="text-xs text-white/90 uppercase">{streamState.loading ? "Connecting..." : streamState.error ? "Error" : "Live"}</span>
             </div>
-          ) : (
-            <div className="text-xs text-white/60">{liveMetadata.status === "offline" ? "Nothing currently live" : "Checking..."}</div>
           )}
         </div>
-      </div>
-
-      <div className="border-l border-white/20 pl-4 ml-4 flex items-center flex-shrink-0 transition-opacity duration-200">
-        {streamState.loading ? (
-          <Loader2 className="h-5 w-5 animate-spin text-white/70" />
-        ) : streamState.error ? (
-          <button className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors text-xs" onClick={handlePlayPause} title={streamState.error}>
-            <AlertCircle className="h-4 w-4" />
-            Retry
-          </button>
-        ) : (
-          <button className="rounded-full transition-colors disabled:opacity-50" disabled={!isActuallyLive} onClick={handlePlayPause} style={{ color: isActuallyLive ? (isLivePlaying ? "#ef4444" : "#ef4444") : "#6b7280" }}>
-            {isLivePlaying ? <Pause className="h-5 w-5" /> : isActuallyLive ? <Circle className="h-5 w-5 animate-pulse" /> : <Play className="h-5 w-5" />}
-          </button>
-        )}
       </div>
     </div>
   );

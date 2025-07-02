@@ -1,47 +1,53 @@
 import React from "react";
-import { ProcessedHomepageSection, HomepageSectionItem, CosmicItem } from "@/lib/cosmic-types";
-import Image from "next/image";
-import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
+import { ProcessedHomepageSection, CosmicItem } from "@/lib/cosmic-types";
+import { ShowCard } from "@/components/ui/show-card";
 
 // Reusable Item Card (similar to the one in HomepageHero, could be centralized)
 const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
-  const href = item.type === "radio-shows" ? `/episode/${item.slug}` : item.type === "posts" ? `/editorial/${item.slug}` : "#";
-  const imageUrl = item.metadata.image?.url || item.metadata.featured_image?.imgix_url || "/image-placeholder.svg";
-  const tags = item.metadata.tags || item.metadata.categories || [];
-  const label = item.metadata.label || item.metadata.author || "";
-  const location = item.metadata.location || item.metadata.origin || "";
-
-  return (
-    <Card className="overflow-hidden bg-white dark:bg-black h-full flex flex-col border border-black dark:border-white rounded-none shadow-none">
-      <Link href={href} className="flex flex-col h-full group">
-        <CardContent className="p-0 flex-grow flex flex-col">
-          <div className="relative aspect-[1.1/1] w-full border-b border-black dark:border-white bg-gray-100 flex items-center justify-center">
-            <Image src={imageUrl} alt={item.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
-          </div>
-          <div className="flex flex-col gap-2 p-4 flex-1 justify-end">
-            <h3 className="text-m4 font-mono font-normal text-almostblack mb-1 text-left">{item.title}</h3>
-            {(label || location) && (
-              <div className="text-m7 font-mono font-normal text-almostblack opacity-80 text-left">
-                {label}
-                {label && location && " | "}
-                {location}
-              </div>
-            )}
-            {tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {tags.map((tag: any, idx: number) => (
-                  <span key={idx} className="border border-black dark:border-white text-m8 font-mono px-2 py-1 rounded-none uppercase tracking-wide bg-transparent">
-                    {typeof tag === "string" ? tag : tag.title || tag.name}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Link>
-    </Card>
-  );
+  if (item.type === "radio-shows") {
+    // Adapt CosmicItem to MixcloudShow shape for ShowCard
+    const show = {
+      key: item.slug,
+      name: item.title,
+      url: `/shows/${item.slug}`,
+      slug: item.slug,
+      pictures: {
+        large: item.metadata.image?.url || item.metadata.featured_image?.imgix_url || "/image-placeholder.svg",
+      },
+      user: {
+        name: item.metadata.label || item.metadata.author || "",
+        username: item.metadata.label || item.metadata.author || "",
+      },
+      created_time: item.metadata.created_time || item.metadata.date || "",
+      tags: item.metadata.tags || item.metadata.categories || [],
+      // Add any other fields ShowCard expects as needed
+    };
+    return <ShowCard show={show} slug={show.url} />;
+  }
+  // Use ShowCard (non-playable) for posts and other types
+  const show = {
+    key: item.slug,
+    name: item.title,
+    url: item.type === "posts" ? `/editorial/${item.slug}` : `/${item.type}/${item.slug}`,
+    slug: item.slug,
+    pictures: {
+      large: item.metadata.image?.url || item.metadata.featured_image?.imgix_url || "/image-placeholder.svg",
+    },
+    user: {
+      name: item.metadata.author?.title || item.metadata.author || "",
+      username: item.metadata.author?.title || item.metadata.author || "",
+    },
+    created_time: item.metadata.date || item.metadata.created_time || "",
+    tags: (item.metadata.categories || item.metadata.tags || [])
+      .map((cat: any) => {
+        if (typeof cat === "string") return cat;
+        if (cat && typeof cat === "object" && "title" in cat && typeof cat.title === "string") return cat.title;
+        return "";
+      })
+      .filter((tag: string) => !!tag),
+    excerpt: item.metadata.excerpt || "",
+  };
+  return <ShowCard show={show} slug={show.url} playable={false} />;
 };
 
 interface CosmicSectionProps {
