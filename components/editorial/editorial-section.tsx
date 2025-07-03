@@ -35,10 +35,10 @@ export default function EditorialSection({ title, posts, className, isHomepage =
   async function loadMorePosts() {
     try {
       setIsLoading(true);
-      const newPosts = await getAllPosts();
+      const newPosts = await getAllPosts({ limit: 100, offset: displayedPosts.length });
 
-      if (newPosts.length > 0) {
-        setDisplayedPosts((prev) => [...prev, ...newPosts]);
+      if (newPosts.posts.length > 0) {
+        setDisplayedPosts((prev) => [...prev, ...newPosts.posts]);
       } else {
         setHasMore(false);
       }
@@ -83,7 +83,7 @@ export default function EditorialSection({ title, posts, className, isHomepage =
         </Marquee>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {displayedPosts.map((post) => {
               const tags = (post.metadata?.categories || [])
                 .map((cat: any) => {

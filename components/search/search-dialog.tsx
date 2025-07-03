@@ -12,8 +12,10 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getMixcloudShows } from "@/lib/mixcloud-service";
+import { getAllPosts, getVideos, getEvents, getTakeovers } from "@/lib/actions";
 import type { FilterItem, ContentType } from "@/lib/search/types";
 import type { MixcloudShow } from "@/lib/mixcloud-service";
+import type { PostObject, VideoObject } from "@/lib/cosmic-config";
 
 interface SearchDialogProps {
   open: boolean;
@@ -31,52 +33,118 @@ const typeLabels: Record<ContentType, { label: string; icon: React.ElementType; 
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [results, setResults] = useState<MixcloudShow[]>([]);
+  const [results, setResults] = useState<any[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const observerTarget = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const PAGE_SIZE = 20;
 
-  // Fetch tags on dialog open
+  // On dialog open, check which types have at least one result
   useEffect(() => {
     if (!open) return;
-    getMixcloudShows({ limit: 100, offset: 0 }).then((response) => {
-      const tagSet = new Set<string>();
-      response.shows.forEach((show) => {
-        show.tags?.forEach((tag) => {
-          if (tag.name) tagSet.add(tag.name);
-        });
-      });
-      setTags(Array.from(tagSet).sort((a, b) => a.localeCompare(b)));
-    });
+    async function checkTypes() {
+      const types: string[] = [];
+      const [mixcloud, posts, videos, events, takeovers] = await Promise.all([getMixcloudShows({ limit: 1 }), getAllPosts({ limit: 1 }), getVideos({ limit: 1 }), getEvents({ limit: 1 }), getTakeovers({ limit: 1 })]);
+      if (mixcloud.shows.length > 0) types.push("radio-shows");
+      if (posts.posts.length > 0) types.push("posts");
+      if (videos.videos.length > 0) types.push("videos");
+      if (events.events.length > 0) types.push("events");
+      if (takeovers.takeovers.length > 0) types.push("takeovers");
+      setAvailableTypes(types);
+    }
+    checkTypes();
   }, [open]);
 
-  // Build params for getMixcloudShows
-  const selectedTag = activeFilters.find((f) => f !== "radio-shows");
-  const mixcloudParams: any = {
-    tag: selectedTag,
-    searchTerm,
-    limit: PAGE_SIZE,
-  };
+  // Determine selected content type
+  const selectedType = activeFilters.find((f) => Object.keys(typeLabels).includes(f)) || "radio-shows";
+  const selectedTag = activeFilters.find((f) => !Object.keys(typeLabels).includes(f));
 
-  // Initial load and whenever filters/search change
+  // Fetch tags for the selected type
+  useEffect(() => {
+    if (!open) return;
+    async function fetchTags() {
+      let tagSet = new Set<string>();
+      if (selectedType === "radio-shows") {
+        const response = await getMixcloudShows({ limit: 100, offset: 0 });
+        response.shows.forEach((show: MixcloudShow) => {
+          show.tags?.forEach((tag) => {
+            if (tag.name) tagSet.add(tag.name);
+          });
+        });
+      } else if (selectedType === "posts") {
+        const { posts } = await getAllPosts({ limit: 100, offset: 0 });
+        posts.forEach((post: PostObject) => {
+          post.metadata?.categories?.forEach((cat: any) => {
+            if (cat.title) tagSet.add(cat.title);
+          });
+        });
+      } else if (selectedType === "videos") {
+        const { videos } = await getVideos({ limit: 100, offset: 0 });
+        videos.forEach((video: VideoObject) => {
+          video.metadata?.categories?.forEach((cat: any) => {
+            if (cat.title) tagSet.add(cat.title);
+          });
+        });
+      } else if (selectedType === "events") {
+        const { events } = await getEvents({ limit: 100, offset: 0 });
+        events.forEach((event: any) => {
+          event.metadata?.categories?.forEach((cat: any) => {
+            if (cat.title) tagSet.add(cat.title);
+          });
+        });
+      } else if (selectedType === "takeovers") {
+        const { takeovers } = await getTakeovers({ limit: 100, offset: 0 });
+        takeovers.forEach((takeover: any) => {
+          takeover.metadata?.categories?.forEach((cat: any) => {
+            if (cat.title) tagSet.add(cat.title);
+          });
+        });
+      }
+      setTags(Array.from(tagSet).sort((a, b) => a.localeCompare(b)));
+    }
+    fetchTags();
+  }, [open, selectedType]);
+
+  // Fetch results for the selected type, tag, and search
   useEffect(() => {
     if (!open) return;
     setIsLoading(true);
     setPage(1);
     setHasNext(true);
-    getMixcloudShows({ ...mixcloudParams, offset: 0 }).then((response) => {
-      setResults(response.shows);
-      setHasNext(response.hasNext);
+    async function fetchResults() {
+      let res: any;
+      if (selectedType === "radio-shows") {
+        res = await getMixcloudShows({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: 0 });
+        setResults(res.shows);
+        setHasNext(res.hasNext);
+      } else if (selectedType === "posts") {
+        res = await getAllPosts({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: 0 });
+        setResults(res.posts);
+        setHasNext(res.hasNext);
+      } else if (selectedType === "videos") {
+        res = await getVideos({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: 0 });
+        setResults(res.videos);
+        setHasNext(res.hasNext);
+      } else if (selectedType === "events") {
+        res = await getEvents({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: 0 });
+        setResults(res.events);
+        setHasNext(res.hasNext);
+      } else if (selectedType === "takeovers") {
+        res = await getTakeovers({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: 0 });
+        setResults(res.takeovers);
+        setHasNext(res.hasNext);
+      }
       setIsLoading(false);
-    });
+    }
+    fetchResults();
     setTimeout(() => searchInputRef.current?.focus(), 100);
-  }, [open, activeFilters, searchTerm]);
+  }, [open, selectedType, selectedTag, searchTerm]);
 
   // Infinite scroll: load more when observerTarget is in view
   useEffect(() => {
@@ -86,12 +154,33 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
           setIsLoadingMore(true);
           const nextOffset = page * PAGE_SIZE;
-          getMixcloudShows({ ...mixcloudParams, offset: nextOffset }).then((response) => {
-            setResults((prev) => [...prev, ...response.shows]);
-            setHasNext(response.hasNext);
+          async function fetchMore() {
+            let res: any;
+            if (selectedType === "radio-shows") {
+              res = await getMixcloudShows({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: nextOffset });
+              setResults((prev) => [...prev, ...res.shows]);
+              setHasNext(res.hasNext);
+            } else if (selectedType === "posts") {
+              res = await getAllPosts({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: nextOffset });
+              setResults((prev) => [...prev, ...res.posts]);
+              setHasNext(res.hasNext);
+            } else if (selectedType === "videos") {
+              res = await getVideos({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: nextOffset });
+              setResults((prev) => [...prev, ...res.videos]);
+              setHasNext(res.hasNext);
+            } else if (selectedType === "events") {
+              res = await getEvents({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: nextOffset });
+              setResults((prev) => [...prev, ...res.events]);
+              setHasNext(res.hasNext);
+            } else if (selectedType === "takeovers") {
+              res = await getTakeovers({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: nextOffset });
+              setResults((prev) => [...prev, ...res.takeovers]);
+              setHasNext(res.hasNext);
+            }
             setIsLoadingMore(false);
             setPage((prev) => prev + 1);
-          });
+          }
+          fetchMore();
         }
       },
       {
@@ -103,7 +192,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       observer.observe(observerTarget.current);
     }
     return () => observer.disconnect();
-  }, [hasNext, isLoadingMore, open, page, results.length]);
+  }, [hasNext, isLoadingMore, open, page, results.length, selectedType, selectedTag, searchTerm]);
 
   // Filter toggle logic (content type and tags)
   const handleFilterToggle = (filter: { type: string; slug: string }) => {
@@ -112,7 +201,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         // Only one type filter at a time
         return prev.includes(filter.slug) ? prev.filter((f) => f !== filter.slug) : [filter.slug, ...prev.filter((f) => f !== filter.slug && !tags.includes(f))];
       } else {
-        // Only one tag at a time for Mixcloud
+        // Only one tag at a time for now
         return prev.includes(filter.slug) ? prev.filter((f) => f !== filter.slug) : [filter.slug, ...prev.filter((f) => !tags.includes(f))];
       }
     });
@@ -158,12 +247,15 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   {/* Content Type Section */}
                   <div className="border-b border-almostblack dark:border-white py-4">
                     <div className="space-y-1">
-                      {Object.entries(typeLabels).map(([type, { label, icon: Icon, color }]) => (
-                        <button key={type} onClick={() => handleFilterToggle({ type: "types", slug: type })} className={cn("flex items-center w-full px-2 py-1.5 text-sm", activeFilters.includes(type) ? "bg-accent" : "hover:bg-accent/5")}>
-                          <Icon className={cn("h-4 w-4 mr-2", color)} />
-                          {label}
-                        </button>
-                      ))}
+                      {availableTypes.map((type) => {
+                        const { label, icon: Icon, color } = typeLabels[type as ContentType];
+                        return (
+                          <button key={type} onClick={() => handleFilterToggle({ type: "types", slug: type })} className={cn("flex items-center w-full px-2 py-1.5 text-sm", activeFilters.includes(type) ? "bg-accent" : "hover:bg-accent/5")}>
+                            <Icon className={cn("h-4 w-4 mr-2", color)} />
+                            {label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                   {/* Tags Section */}
@@ -206,35 +298,133 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               <div className="p-4 space-y-4">
                 {results.length > 0 ? (
                   <>
-                    {results.map((result, idx) => (
-                      <Link key={`${result.key}-${result.slug}-${idx}`} href={`/${"radio-shows"}/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
-                        <div className="flex items-start gap-4">
-                          <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
-                            <Image src={result.pictures?.large || result.pictures?.extra_large || "/image-placeholder.svg"} alt={result.name} fill className="object-cover" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                              <Music2 className="w-4 h-4 text-foreground" />
-                              <span>Radio Shows</span>
-                              {result.created_time && (
-                                <>
-                                  <span>•</span>
-                                  <span>{format(new Date(result.created_time), "MMM d, yyyy")}</span>
-                                </>
-                              )}
-                            </div>
-                            <h3 className="font-medium mb-1">{result.name}</h3>
-                            {result.user?.name && (
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                <Badge variant="outline" className="text-xs uppercase">
-                                  {result.user.name}
-                                </Badge>
+                    {results.map((result, idx) => {
+                      if (selectedType === "radio-shows") {
+                        return (
+                          <Link key={`${result.key}-${result.slug}-${idx}`} href={`/radio-shows/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
+                            <div className="flex items-start gap-4">
+                              <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
+                                <Image src={result.pictures?.large || result.pictures?.extra_large || "/image-placeholder.svg"} alt={result.name || "Radio Show Cover"} fill className="object-cover" />
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                                  <Music2 className="w-4 h-4 text-foreground" />
+                                  <span>Radio Shows</span>
+                                  {result.created_time && (
+                                    <>
+                                      <span>•</span>
+                                      <span>{format(new Date(result.created_time), "MMM d, yyyy")}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <h3 className="font-medium mb-1">{result.name}</h3>
+                                {result.user?.name && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    <Badge variant="outline" className="text-xs uppercase">
+                                      {result.user.name}
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      } else if (selectedType === "posts") {
+                        return (
+                          <Link key={`${result.id}-${result.slug}-${idx}`} href={`/posts/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
+                            <div className="flex items-start gap-4">
+                              <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
+                                <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Post Cover"} fill className="object-cover" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                                  <Newspaper className="w-4 h-4 text-foreground" />
+                                  <span>Posts</span>
+                                  {result.metadata?.date && (
+                                    <>
+                                      <span>•</span>
+                                      <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <h3 className="font-medium mb-1">{result.title}</h3>
+                                {result.metadata?.excerpt && <p className="text-sm text-muted-foreground line-clamp-2">{result.metadata.excerpt}</p>}
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      } else if (selectedType === "videos") {
+                        return (
+                          <Link key={`${result.id}-${result.slug}-${idx}`} href={`/videos/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
+                            <div className="flex items-start gap-4">
+                              <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
+                                <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Video Cover"} fill className="object-cover" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                                  <Video className="w-4 h-4 text-foreground" />
+                                  <span>Videos</span>
+                                  {result.metadata?.date && (
+                                    <>
+                                      <span>•</span>
+                                      <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <h3 className="font-medium mb-1">{result.title}</h3>
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      } else if (selectedType === "events") {
+                        return (
+                          <Link key={`${result.id}-${result.slug}-${idx}`} href={`/events/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
+                            <div className="flex items-start gap-4">
+                              <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
+                                <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Event Cover"} fill className="object-cover" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                                  <Calendar className="w-4 h-4 text-foreground" />
+                                  <span>Events</span>
+                                  {result.metadata?.date && (
+                                    <>
+                                      <span>•</span>
+                                      <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <h3 className="font-medium mb-1">{result.title}</h3>
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      } else if (selectedType === "takeovers") {
+                        return (
+                          <Link key={`${result.id}-${result.slug}-${idx}`} href={`/takeovers/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
+                            <div className="flex items-start gap-4">
+                              <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
+                                <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Takeover Cover"} fill className="object-cover" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                                  <Calendar className="w-4 h-4 text-foreground" />
+                                  <span>Takeovers</span>
+                                  {result.metadata?.date && (
+                                    <>
+                                      <span>•</span>
+                                      <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
+                                    </>
+                                  )}
+                                </div>
+                                <h3 className="font-medium mb-1">{result.title}</h3>
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      }
+                      return null;
+                    })}
                     {/* Sentinel for Intersection Observer infinite scroll */}
                     <div ref={observerTarget} className="h-4 col-span-full flex items-center justify-center">
                       {isLoadingMore && <Loader className="h-4 w-4 animate-spin" />}

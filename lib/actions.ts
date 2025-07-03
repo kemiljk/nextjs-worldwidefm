@@ -12,17 +12,27 @@ import { getEventBySlug as getRadioCultEventBySlug, getEvents as getRadioCultEve
 import FormData from "form-data";
 import { CosmicHomepageData, HomepageSectionItem, CosmicAPIObject } from "./cosmic-types";
 
-export async function getAllPosts(): Promise<PostObject[]> {
+export async function getAllPosts({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{ posts: PostObject[]; hasNext: boolean }> {
   try {
-    const response = await getPosts({
-      limit: 50,
+    const filters: any = {
+      limit,
+      skip: offset,
       sort: "-metadata.date",
       status: "published",
-    });
-    return response.objects || [];
+    };
+    if (tag) {
+      filters["metadata.categories"] = tag;
+    }
+    if (searchTerm) {
+      filters["title"] = searchTerm;
+    }
+    const response = await getPosts(filters);
+    const posts = response.objects || [];
+    const hasNext = posts.length === limit;
+    return { posts, hasNext };
   } catch (error) {
     console.error("Error in getAllPosts:", error);
-    return [];
+    return { posts: [], hasNext: false };
   }
 }
 
@@ -639,53 +649,29 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
   }
 }
 
-export async function getVideos(limit: number = 4): Promise<VideoObject[]> {
+export async function getVideos({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{ videos: VideoObject[]; hasNext: boolean }> {
   try {
-    // First get videos
-    const response = await cosmic.objects.find({
+    const filters: any = {
       type: "videos",
       limit,
-      props: "id,slug,title,metadata,type",
-      depth: 1,
-    });
-
+      skip: offset,
+      sort: "-metadata.date",
+      status: "published",
+      props: "id,slug,title,metadata,created_at",
+    };
+    if (tag) {
+      filters["metadata.categories"] = tag;
+    }
+    if (searchTerm) {
+      filters["title"] = searchTerm;
+    }
+    const response = await cosmic.objects.find(filters);
     const videos = response.objects || [];
-
-    // Get all video categories
-    const categoriesResponse = await cosmic.objects.find({
-      type: "video-categories",
-      props: "id,slug,title,content,bucket,created_at,modified_at,status,published_at,modified_by,created_by,type,metadata",
-      depth: 1,
-    });
-
-    const allCategories = categoriesResponse.objects || [];
-
-    // Create a map of category ID to category object
-    const categoryMap = new Map<string, any>();
-    allCategories.forEach((category: any) => {
-      categoryMap.set(category.id, category);
-    });
-
-    // Expand category IDs to full category objects
-    const videosWithExpandedCategories = videos.map((video: any) => {
-      if (video.metadata?.categories) {
-        const expandedCategories = video.metadata.categories.map((categoryId: string) => categoryMap.get(categoryId)).filter(Boolean); // Remove any null/undefined entries
-
-        return {
-          ...video,
-          metadata: {
-            ...video.metadata,
-            categories: expandedCategories,
-          },
-        };
-      }
-      return video;
-    });
-
-    return videosWithExpandedCategories;
+    const hasNext = videos.length === limit;
+    return { videos, hasNext };
   } catch (error) {
     console.error("Error in getVideos:", error);
-    return [];
+    return { videos: [], hasNext: false };
   }
 }
 
@@ -1312,5 +1298,57 @@ export async function fetchCosmicObjectById(id: string): Promise<HomepageSection
   } catch (error) {
     console.error(`Error fetching Cosmic object ${id}:`, error);
     return null;
+  }
+}
+
+export async function getEvents({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{ events: any[]; hasNext: boolean }> {
+  try {
+    const filters: any = {
+      type: "events",
+      limit,
+      skip: offset,
+      sort: "-metadata.date",
+      status: "published",
+      props: "id,slug,title,metadata,created_at",
+    };
+    if (tag) {
+      filters["metadata.categories"] = tag;
+    }
+    if (searchTerm) {
+      filters["title"] = searchTerm;
+    }
+    const response = await cosmic.objects.find(filters);
+    const events = response.objects || [];
+    const hasNext = events.length === limit;
+    return { events, hasNext };
+  } catch (error) {
+    console.error("Error in getEvents:", error);
+    return { events: [], hasNext: false };
+  }
+}
+
+export async function getTakeovers({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{ takeovers: any[]; hasNext: boolean }> {
+  try {
+    const filters: any = {
+      type: "takeovers",
+      limit,
+      skip: offset,
+      sort: "-metadata.date",
+      status: "published",
+      props: "id,slug,title,metadata,created_at",
+    };
+    if (tag) {
+      filters["metadata.categories"] = tag;
+    }
+    if (searchTerm) {
+      filters["title"] = searchTerm;
+    }
+    const response = await cosmic.objects.find(filters);
+    const takeovers = response.objects || [];
+    const hasNext = takeovers.length === limit;
+    return { takeovers, hasNext };
+  } catch (error) {
+    console.error("Error in getTakeovers:", error);
+    return { takeovers: [], hasNext: false };
   }
 }

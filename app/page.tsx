@@ -78,10 +78,10 @@ export default async function Home() {
   }));
 
   // Get editorial content using server action
-  const posts = await getAllPosts();
+  const { posts } = await getAllPosts();
 
   // Get videos
-  const videos = await getVideos();
+  const { videos } = await getVideos();
 
   const heroLayout = cosmicHomepageData?.metadata?.heroLayout;
   const heroItems = cosmicHomepageData?.metadata?.heroItems || [];
