@@ -5,7 +5,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, X, Music2, Newspaper, Calendar, Video, Loader, AlertCircle, FileQuestion, FolderSearch } from "lucide-react";
+import { Search, X, Music2, Newspaper, Calendar, Video, Loader, AlertCircle, FileQuestion, FolderSearch, MicVocal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getMixcloudShows } from "@/lib/mixcloud-service";
 import { getAllPosts, getVideos, getEvents, getTakeovers } from "@/lib/actions";
-import type { FilterItem, ContentType } from "@/lib/search/types";
+import type { ContentType } from "@/lib/search/types";
 import type { MixcloudShow } from "@/lib/mixcloud-service";
 import type { PostObject, VideoObject } from "@/lib/cosmic-config";
 
@@ -27,7 +27,7 @@ const typeLabels: Record<ContentType, { label: string; icon: React.ElementType; 
   posts: { label: "Posts", icon: Newspaper, color: "text-foreground" },
   events: { label: "Events", icon: Calendar, color: "text-foreground" },
   videos: { label: "Videos", icon: Video, color: "text-foreground" },
-  takeovers: { label: "Takeovers", icon: Calendar, color: "text-foreground" },
+  takeovers: { label: "Takeovers", icon: MicVocal, color: "text-foreground" },
 };
 
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
@@ -53,8 +53,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       const [mixcloud, posts, videos, events, takeovers] = await Promise.all([getMixcloudShows({ limit: 1 }), getAllPosts({ limit: 1 }), getVideos({ limit: 1 }), getEvents({ limit: 1 }), getTakeovers({ limit: 1 })]);
       if (mixcloud.shows.length > 0) types.push("radio-shows");
       if (posts.posts.length > 0) types.push("posts");
-      if (videos.videos.length > 0) types.push("videos");
       if (events.events.length > 0) types.push("events");
+      if (videos.videos.length > 0) types.push("videos");
       if (takeovers.takeovers.length > 0) types.push("takeovers");
       setAvailableTypes(types);
     }
