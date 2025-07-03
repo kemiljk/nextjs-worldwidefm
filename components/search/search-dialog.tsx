@@ -32,17 +32,17 @@ const typeLabels: Record<ContentType, { label: string; icon: React.ElementType; 
 const searchEngine = new WWFMSearchEngine();
 
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
-  const [activeTab, setActiveTab] = useState<FilterCategoryUI>("all");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<SearchItem[]>([]);
   const [availableFilters, setAvailableFilters] = useState<Record<FilterCategory, FilterItem[]>>({ genres: [], hosts: [], takeovers: [], locations: [], types: [] });
   const [isLoading, setIsLoading] = useState(false);
-  const [skip, setSkip] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasNext, setHasNext] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const observerTarget = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const PAGE_SIZE = 20;
 
   // Build SearchFilters from activeFilters and searchTerm
   const buildSearchFilters = (): SearchFilters => {
@@ -66,12 +66,12 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   useEffect(() => {
     if (!open) return;
     setIsLoading(true);
-    setSkip(0);
-    setHasMore(true);
-    searchEngine.search(buildSearchFilters(), { page: 1, limit: 20 }).then((response) => {
+    setPage(1);
+    setHasNext(true);
+    searchEngine.search(buildSearchFilters(), { page: 1, limit: PAGE_SIZE }).then((response) => {
       setResults(response.items);
       setAvailableFilters(response.availableFilters);
-      setHasMore(response.hasMore);
+      setHasNext(response.hasMore);
       setIsLoading(false);
     });
     // Focus input on open
@@ -79,18 +79,19 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, activeFilters, searchTerm]);
 
-  // Infinite scroll
+  // Infinite scroll: load more when observerTarget is in view
   useEffect(() => {
     if (!open) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+        if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
           setIsLoadingMore(true);
-          const nextPage = Math.floor(results.length / 20) + 1;
-          searchEngine.search(buildSearchFilters(), { page: nextPage, limit: 20 }).then((response) => {
+          const nextPage = page + 1;
+          searchEngine.search(buildSearchFilters(), { page: nextPage, limit: PAGE_SIZE }).then((response) => {
             setResults((prev) => [...prev, ...response.items]);
-            setHasMore(response.hasMore);
+            setHasNext(response.hasMore);
             setIsLoadingMore(false);
+            setPage(nextPage);
           });
         }
       },
@@ -101,7 +102,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     }
     return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMore, isLoadingMore, open, results.length]);
+  }, [hasNext, isLoadingMore, open, page, results.length]);
 
   // Filter toggle logic
   const handleFilterToggle = (filter: FilterItem) => {
@@ -166,7 +167,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   </div>
                   {/* Genres Section */}
                   <div>
-                    <h4 className="text-sm font-medium mb-2">Genres</h4>
+                    <h4 className="text-sm font-medium mb-2">Tags</h4>
                     <div className="space-y-1">
                       {availableFilters.genres.map((genre: FilterItem) => (
                         <button key={genre.slug} onClick={() => handleFilterToggle({ ...genre, type: "genres" })} className={cn("flex items-center w-full px-2 py-1.5 text-xs uppercase", activeFilters.includes(genre.slug) ? "bg-accent" : "hover:bg-accent/5")}>
@@ -220,8 +221,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  setSkip(0);
-                  setHasMore(true);
+                  setPage(1);
+                  setHasNext(true);
                   setResults([]);
                 }}
                 className="flex gap-2"
@@ -237,27 +238,12 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             </div>
 
             {/* Results Section */}
-            <ScrollArea
-              className="flex-1"
-              onScrollCapture={(e) => {
-                const target = e.target as HTMLDivElement;
-                const isAtBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
-                if (isAtBottom && hasMore && !isLoadingMore) {
-                  setIsLoadingMore(true);
-                  const nextPage = Math.floor(results.length / 20) + 1;
-                  searchEngine.search(buildSearchFilters(), { page: nextPage, limit: 20 }).then((response) => {
-                    setResults((prev) => [...prev, ...response.items]);
-                    setHasMore(response.hasMore);
-                    setIsLoadingMore(false);
-                  });
-                }
-              }}
-            >
+            <ScrollArea className="flex-1">
               <div className="p-4 space-y-4">
                 {results.length > 0 ? (
                   <>
-                    {results.map((result) => (
-                      <Link key={`${result.contentType}-${result.id}-${result.slug}-${result.date}`} href={`/${result.contentType}/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
+                    {results.map((result, idx) => (
+                      <Link key={`${result.contentType}-${result.id}-${result.slug}-${result.date}-${idx}`} href={`/${result.contentType}/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                         <div className="flex items-start gap-4">
                           <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
                             <Image src={result.image || "/image-placeholder.svg"} alt={result.title} fill className="object-cover" />
@@ -291,7 +277,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         </div>
                       </Link>
                     ))}
-                    <div className="h-4 flex items-center justify-center">{isLoadingMore && <Loader className="h-4 w-4 animate-spin" />}</div>
+                    {/* Sentinel for Intersection Observer infinite scroll */}
+                    <div ref={observerTarget} className="h-4 col-span-full flex items-center justify-center">
+                      {isLoadingMore && <Loader className="h-4 w-4 animate-spin" />}
+                    </div>
                   </>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
