@@ -11,15 +11,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { WWFMSearchEngine } from "@/lib/search/engine";
-import type { SearchItem, FilterItem, FilterCategory, ContentType, SearchFilters } from "@/lib/search/types";
+import { getMixcloudShows } from "@/lib/mixcloud-service";
+import type { FilterItem, ContentType } from "@/lib/search/types";
+import type { MixcloudShow } from "@/lib/mixcloud-service";
 
 interface SearchDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-type FilterCategoryUI = "all" | "genres" | "locations" | "hosts" | "takeovers" | "type";
 
 const typeLabels: Record<ContentType, { label: string; icon: React.ElementType; color: string }> = {
   "radio-shows": { label: "Radio Shows", icon: Music2, color: "text-foreground" },
@@ -29,37 +28,40 @@ const typeLabels: Record<ContentType, { label: string; icon: React.ElementType; 
   takeovers: { label: "Takeovers", icon: Calendar, color: "text-foreground" },
 };
 
-const searchEngine = new WWFMSearchEngine();
-
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [results, setResults] = useState<SearchItem[]>([]);
-  const [availableFilters, setAvailableFilters] = useState<Record<FilterCategory, FilterItem[]>>({ genres: [], hosts: [], takeovers: [], locations: [], types: [] });
+  const [results, setResults] = useState<MixcloudShow[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const observerTarget = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const PAGE_SIZE = 20;
 
-  // Build SearchFilters from activeFilters and searchTerm
-  const buildSearchFilters = (): SearchFilters => {
-    const filters: SearchFilters = {};
-    if (searchTerm) filters.search = searchTerm;
-    // Map activeFilters to canonical filter keys
-    const typeFilters = activeFilters.filter((f) => Object.keys(typeLabels).includes(f));
-    if (typeFilters.length > 0) filters.contentType = typeFilters as ContentType[];
-    const genreFilters = availableFilters.genres.filter((g) => activeFilters.includes(g.slug)).map((g) => g.slug);
-    if (genreFilters.length > 0) filters.genres = genreFilters;
-    const hostFilters = availableFilters.hosts.filter((h) => activeFilters.includes(h.slug)).map((h) => h.slug);
-    if (hostFilters.length > 0) filters.hosts = hostFilters;
-    const takeoverFilters = availableFilters.takeovers.filter((t) => activeFilters.includes(t.slug)).map((t) => t.slug);
-    if (takeoverFilters.length > 0) filters.takeovers = takeoverFilters;
-    const locationFilters = availableFilters.locations.filter((l) => activeFilters.includes(l.slug)).map((l) => l.slug);
-    if (locationFilters.length > 0) filters.locations = locationFilters;
-    return filters;
+  // Fetch tags on dialog open
+  useEffect(() => {
+    if (!open) return;
+    getMixcloudShows({ limit: 100, offset: 0 }).then((response) => {
+      const tagSet = new Set<string>();
+      response.shows.forEach((show) => {
+        show.tags?.forEach((tag) => {
+          if (tag.name) tagSet.add(tag.name);
+        });
+      });
+      setTags(Array.from(tagSet).sort((a, b) => a.localeCompare(b)));
+    });
+  }, [open]);
+
+  // Build params for getMixcloudShows
+  const selectedTag = activeFilters.find((f) => f !== "radio-shows");
+  const mixcloudParams: any = {
+    tag: selectedTag,
+    searchTerm,
+    limit: PAGE_SIZE,
   };
 
   // Initial load and whenever filters/search change
@@ -68,15 +70,12 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     setIsLoading(true);
     setPage(1);
     setHasNext(true);
-    searchEngine.search(buildSearchFilters(), { page: 1, limit: PAGE_SIZE }).then((response) => {
-      setResults(response.items);
-      setAvailableFilters(response.availableFilters);
-      setHasNext(response.hasMore);
+    getMixcloudShows({ ...mixcloudParams, offset: 0 }).then((response) => {
+      setResults(response.shows);
+      setHasNext(response.hasNext);
       setIsLoading(false);
     });
-    // Focus input on open
     setTimeout(() => searchInputRef.current?.focus(), 100);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, activeFilters, searchTerm]);
 
   // Infinite scroll: load more when observerTarget is in view
@@ -86,32 +85,35 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       (entries) => {
         if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
           setIsLoadingMore(true);
-          const nextPage = page + 1;
-          searchEngine.search(buildSearchFilters(), { page: nextPage, limit: PAGE_SIZE }).then((response) => {
-            setResults((prev) => [...prev, ...response.items]);
-            setHasNext(response.hasMore);
+          const nextOffset = page * PAGE_SIZE;
+          getMixcloudShows({ ...mixcloudParams, offset: nextOffset }).then((response) => {
+            setResults((prev) => [...prev, ...response.shows]);
+            setHasNext(response.hasNext);
             setIsLoadingMore(false);
-            setPage(nextPage);
+            setPage((prev) => prev + 1);
           });
         }
       },
-      { threshold: 0.1 }
+      {
+        threshold: 0.1,
+        root: scrollAreaRef.current,
+      }
     );
     if (observerTarget.current) {
       observer.observe(observerTarget.current);
     }
     return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasNext, isLoadingMore, open, page, results.length]);
 
-  // Filter toggle logic
-  const handleFilterToggle = (filter: FilterItem) => {
+  // Filter toggle logic (content type and tags)
+  const handleFilterToggle = (filter: { type: string; slug: string }) => {
     setActiveFilters((prev) => {
       if (filter.type === "types") {
         // Only one type filter at a time
-        return prev.includes(filter.slug) ? prev.filter((f) => f !== filter.slug) : [filter.slug, ...prev.filter((f) => !Object.keys(typeLabels).includes(f))];
+        return prev.includes(filter.slug) ? prev.filter((f) => f !== filter.slug) : [filter.slug, ...prev.filter((f) => f !== filter.slug && !tags.includes(f))];
       } else {
-        return prev.includes(filter.slug) ? prev.filter((f) => f !== filter.slug) : [...prev, filter.slug];
+        // Only one tag at a time for Mixcloud
+        return prev.includes(filter.slug) ? prev.filter((f) => f !== filter.slug) : [filter.slug, ...prev.filter((f) => !tags.includes(f))];
       }
     });
   };
@@ -137,7 +139,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             <div className="flex flex-col h-full">
               <div className="p-4 border-b">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">Filters</h3>
+                  <h3 className="font-mono uppercase text-m6">Filters</h3>
                   <div className="flex items-center gap-2">
                     {activeFilters.length > 0 && (
                       <Button variant="ghost" size="sm" className="h-6" onClick={clearAllFilters}>
@@ -154,57 +156,22 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               <div className="overflow-y-auto h-full bg-background">
                 <div className="p-4 space-y-4">
                   {/* Content Type Section */}
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Content Type</h4>
+                  <div className="border-b border-almostblack dark:border-white py-4">
                     <div className="space-y-1">
                       {Object.entries(typeLabels).map(([type, { label, icon: Icon, color }]) => (
-                        <button key={type} onClick={() => handleFilterToggle({ id: type, slug: type, title: label, type: "types" })} className={cn("flex items-center w-full px-2 py-1.5 text-sm", activeFilters.includes(type) ? "bg-accent" : "hover:bg-accent/5")}>
+                        <button key={type} onClick={() => handleFilterToggle({ type: "types", slug: type })} className={cn("flex items-center w-full px-2 py-1.5 text-sm", activeFilters.includes(type) ? "bg-accent" : "hover:bg-accent/5")}>
                           <Icon className={cn("h-4 w-4 mr-2", color)} />
                           {label}
                         </button>
                       ))}
                     </div>
                   </div>
-                  {/* Genres Section */}
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Tags</h4>
+                  {/* Tags Section */}
+                  <div className="border-b border-almostblack dark:border-white py-4">
                     <div className="space-y-1">
-                      {availableFilters.genres.map((genre: FilterItem) => (
-                        <button key={genre.slug} onClick={() => handleFilterToggle({ ...genre, type: "genres" })} className={cn("flex items-center w-full px-2 py-1.5 text-xs uppercase", activeFilters.includes(genre.slug) ? "bg-accent" : "hover:bg-accent/5")}>
-                          {genre.title}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {/* Hosts Section */}
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Hosts</h4>
-                    <div className="space-y-1">
-                      {availableFilters.hosts.map((host: FilterItem) => (
-                        <button key={host.slug} onClick={() => handleFilterToggle({ ...host, type: "hosts" })} className={cn("flex items-center w-full px-2 py-1.5 text-xs uppercase", activeFilters.includes(host.slug) ? "bg-accent" : "hover:bg-accent/5")}>
-                          {host.title}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {/* Takeovers Section */}
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Takeovers</h4>
-                    <div className="space-y-1">
-                      {availableFilters.takeovers.map((takeover: FilterItem) => (
-                        <button key={takeover.slug} onClick={() => handleFilterToggle({ ...takeover, type: "takeovers" })} className={cn("flex items-center w-full px-2 py-1.5 text-xs uppercase", activeFilters.includes(takeover.slug) ? "bg-accent" : "hover:bg-accent/5")}>
-                          {takeover.title}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {/* Locations Section */}
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Locations</h4>
-                    <div className="space-y-1">
-                      {availableFilters.locations.map((location: FilterItem) => (
-                        <button key={location.slug} onClick={() => handleFilterToggle({ ...location, type: "locations" })} className={cn("flex items-center w-full px-2 py-1.5 text-xs uppercase", activeFilters.includes(location.slug) ? "bg-accent" : "hover:bg-accent/5")}>
-                          {location.title}
+                      {tags.map((tag) => (
+                        <button key={tag} onClick={() => handleFilterToggle({ type: "tags", slug: tag })} className={cn("flex items-center w-full px-2 py-1.5 text-xs uppercase", activeFilters.includes(tag) ? "bg-accent" : "hover:bg-accent/5")}>
+                          {tag}
                         </button>
                       ))}
                     </div>
@@ -215,9 +182,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           </div>
 
           {/* Main Content Section */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden pt-12">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Search Input */}
-            <div className="p-4 border-b flex-shrink-0">
+            <div className="py-1 border-b flex-shrink-0">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -229,48 +196,39 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               >
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input ref={searchInputRef} placeholder="Search all content..." className="pl-8" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                  <Input ref={searchInputRef} placeholder="Search" className="border-none pl-8 font-mono text-m6 uppercase" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
-                <Button type="submit" disabled={isLoading} className="bg-bronze-500 text-white hover:bg-bronze-600 disabled:bg-bronze-300">
-                  {isLoading ? <Loader className="h-4 w-4 animate-spin" /> : "Search"}
-                </Button>
               </form>
             </div>
 
             {/* Results Section */}
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1" ref={scrollAreaRef}>
               <div className="p-4 space-y-4">
                 {results.length > 0 ? (
                   <>
                     {results.map((result, idx) => (
-                      <Link key={`${result.contentType}-${result.id}-${result.slug}-${result.date}-${idx}`} href={`/${result.contentType}/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
+                      <Link key={`${result.key}-${result.slug}-${idx}`} href={`/${"radio-shows"}/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                         <div className="flex items-start gap-4">
                           <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
-                            <Image src={result.image || "/image-placeholder.svg"} alt={result.title} fill className="object-cover" />
+                            <Image src={result.pictures?.large || result.pictures?.extra_large || "/image-placeholder.svg"} alt={result.name} fill className="object-cover" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                              {(() => {
-                                const TypeIcon = typeLabels[result.contentType].icon;
-                                return <TypeIcon className={cn("w-4 h-4", typeLabels[result.contentType].color)} />;
-                              })()}
-                              <span>{typeLabels[result.contentType].label}</span>
-                              {result.date && (
+                              <Music2 className="w-4 h-4 text-foreground" />
+                              <span>Radio Shows</span>
+                              {result.created_time && (
                                 <>
                                   <span>•</span>
-                                  <span>{format(new Date(result.date), "MMM d, yyyy")}</span>
+                                  <span>{format(new Date(result.created_time), "MMM d, yyyy")}</span>
                                 </>
                               )}
                             </div>
-                            <h3 className="font-medium mb-1">{result.title}</h3>
-                            {result.description && <p className="text-sm text-muted-foreground line-clamp-2">{result.description}</p>}
-                            {result.genres?.length > 0 && (
+                            <h3 className="font-medium mb-1">{result.name}</h3>
+                            {result.user?.name && (
                               <div className="flex flex-wrap gap-1 mt-2">
-                                {result.genres.map((genre: FilterItem) => (
-                                  <Badge key={`${result.slug}-${genre.slug}`} variant="outline" className="text-xs uppercase">
-                                    {genre.title}
-                                  </Badge>
-                                ))}
+                                <Badge variant="outline" className="text-xs uppercase">
+                                  {result.user.name}
+                                </Badge>
                               </div>
                             )}
                           </div>

@@ -65,23 +65,22 @@ export class WWFMSearchEngine implements SearchEngine {
    * Get initial content batch - used for initial rendering and search
    */
   async getInitialContent(limit = DEFAULT_LIMIT): Promise<SearchResponse> {
-    // Try to load from cache first
-    const cachedContent = this.loadFromCache<SearchItem[]>(CONTENT_CACHE_KEY);
-
-    if (cachedContent && cachedContent.length > 0) {
-      console.log(`Loaded ${cachedContent.length} items from cache`);
-      this.allContent = cachedContent;
-      this.initFuse(cachedContent);
-      this.contentLoaded = true;
-
-      // Return first batch from cache
-      return {
-        items: cachedContent.slice(0, limit),
-        total: cachedContent.length,
-        hasMore: cachedContent.length > limit,
-        availableFilters: await this.getAvailableFilters(),
-      };
-    }
+    // Disable cache: always fetch fresh data
+    // const cachedContent = this.loadFromCache<SearchItem[]>(CONTENT_CACHE_KEY);
+    // if (cachedContent && cachedContent.length > 0) {
+    //   console.log(`Loaded ${cachedContent.length} items from cache`);
+    //   this.allContent = cachedContent;
+    //   this.initFuse(cachedContent);
+    //   this.contentLoaded = true;
+    //
+    //   // Return first batch from cache
+    //   return {
+    //     items: cachedContent.slice(0, limit),
+    //     total: cachedContent.length,
+    //     hasMore: cachedContent.length > limit,
+    //     availableFilters: await this.getAvailableFilters(),
+    //   };
+    // }
 
     // Nothing in cache, load from API
     try {
@@ -101,9 +100,6 @@ export class WWFMSearchEngine implements SearchEngine {
       this.allContent = items;
       this.initFuse(items);
       this.contentLoaded = true;
-
-      // Save to cache
-      this.saveToCache(CONTENT_CACHE_KEY, items);
 
       // Extract and update available filters
       this.updateFiltersFromContent(items);
@@ -125,15 +121,14 @@ export class WWFMSearchEngine implements SearchEngine {
    * Get all available filters for category filtering
    */
   async getAvailableFilters(): Promise<Record<FilterCategory, FilterItem[]>> {
-    // Try to load from cache first
-    const cachedFilters = this.loadFromCache<Record<FilterCategory, FilterItem[]>>(FILTERS_CACHE_KEY);
-
-    if (cachedFilters && cachedFilters.genres?.length && cachedFilters.hosts?.length) {
-      console.log(`Loaded filters from cache: ${cachedFilters.genres.length} genres, ${cachedFilters.hosts.length} hosts`);
-      this.allFilters = cachedFilters;
-      this.filtersLoaded = true;
-      return cachedFilters;
-    }
+    // Disable cache: always fetch fresh filters
+    // const cachedFilters = this.loadFromCache<Record<FilterCategory, FilterItem[]>>(FILTERS_CACHE_KEY);
+    // if (cachedFilters && cachedFilters.genres?.length && cachedFilters.hosts?.length) {
+    //   console.log(`Loaded filters from cache: ${cachedFilters.genres.length} genres, ${cachedFilters.hosts.length} hosts`);
+    //   this.allFilters = cachedFilters;
+    //   this.filtersLoaded = true;
+    //   return cachedFilters;
+    // }
 
     // Build content type filters
     const typeFilters: FilterItem[] = [
@@ -154,7 +149,7 @@ export class WWFMSearchEngine implements SearchEngine {
     this.filtersLoaded = true;
 
     // Save to cache
-    this.saveToCache(FILTERS_CACHE_KEY, this.allFilters);
+    // this.saveToCache(FILTERS_CACHE_KEY, this.allFilters);
 
     return this.allFilters;
   }
