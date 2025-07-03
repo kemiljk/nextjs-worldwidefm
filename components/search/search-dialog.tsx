@@ -61,9 +61,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     checkTypes();
   }, [open]);
 
-  // Determine selected content type
+  // Determine selected content type and selected tags
   const selectedType = activeFilters.find((f) => Object.keys(typeLabels).includes(f)) || "radio-shows";
-  const selectedTag = activeFilters.find((f) => !Object.keys(typeLabels).includes(f));
+  const selectedTags = activeFilters.filter((f) => !Object.keys(typeLabels).includes(f));
 
   // Fetch tags for the selected type
   useEffect(() => {
@@ -111,7 +111,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     fetchTags();
   }, [open, selectedType]);
 
-  // Fetch results for the selected type, tag, and search
+  // Fetch results for the selected type, tags, and search
   useEffect(() => {
     if (!open) return;
     setIsLoading(true);
@@ -119,32 +119,55 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     setHasNext(true);
     async function fetchResults() {
       let res: any;
+      let allResults: any[] = [];
       if (selectedType === "radio-shows") {
-        res = await getMixcloudShows({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: 0 });
-        setResults(res.shows);
-        setHasNext(res.hasNext);
+        // Fetch a large enough sample to filter client-side
+        res = await getMixcloudShows({ searchTerm, limit: 100, offset: 0 });
+        allResults = res.shows;
+        // Filter by all selected tags (AND logic)
+        if (selectedTags.length > 0) {
+          allResults = allResults.filter((show: any) => selectedTags.every((tag) => Array.isArray(show.tags) && show.tags.some((t: any) => t.name && t.name.toLowerCase() === tag.toLowerCase())));
+        }
+        setResults(allResults.slice(0, PAGE_SIZE));
+        setHasNext(allResults.length > PAGE_SIZE);
       } else if (selectedType === "posts") {
-        res = await getAllPosts({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: 0 });
-        setResults(res.posts);
-        setHasNext(res.hasNext);
+        res = await getAllPosts({ searchTerm, limit: 100, offset: 0 });
+        allResults = res.posts;
+        if (selectedTags.length > 0) {
+          allResults = allResults.filter((post: any) => selectedTags.every((tag) => Array.isArray(post.metadata?.categories) && post.metadata.categories.some((cat: any) => cat.title && cat.title.toLowerCase() === tag.toLowerCase())));
+        }
+        setResults(allResults.slice(0, PAGE_SIZE));
+        setHasNext(allResults.length > PAGE_SIZE);
       } else if (selectedType === "videos") {
-        res = await getVideos({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: 0 });
-        setResults(res.videos);
-        setHasNext(res.hasNext);
+        res = await getVideos({ searchTerm, limit: 100, offset: 0 });
+        allResults = res.videos;
+        if (selectedTags.length > 0) {
+          allResults = allResults.filter((video: any) => selectedTags.every((tag) => Array.isArray(video.metadata?.categories) && video.metadata.categories.some((cat: any) => cat.title && cat.title.toLowerCase() === tag.toLowerCase())));
+        }
+        setResults(allResults.slice(0, PAGE_SIZE));
+        setHasNext(allResults.length > PAGE_SIZE);
       } else if (selectedType === "events") {
-        res = await getEvents({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: 0 });
-        setResults(res.events);
-        setHasNext(res.hasNext);
+        res = await getEvents({ searchTerm, limit: 100, offset: 0 });
+        allResults = res.events;
+        if (selectedTags.length > 0) {
+          allResults = allResults.filter((event: any) => selectedTags.every((tag) => Array.isArray(event.metadata?.categories) && event.metadata.categories.some((cat: any) => cat.title && cat.title.toLowerCase() === tag.toLowerCase())));
+        }
+        setResults(allResults.slice(0, PAGE_SIZE));
+        setHasNext(allResults.length > PAGE_SIZE);
       } else if (selectedType === "takeovers") {
-        res = await getTakeovers({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: 0 });
-        setResults(res.takeovers);
-        setHasNext(res.hasNext);
+        res = await getTakeovers({ searchTerm, limit: 100, offset: 0 });
+        allResults = res.takeovers;
+        if (selectedTags.length > 0) {
+          allResults = allResults.filter((takeover: any) => selectedTags.every((tag) => Array.isArray(takeover.metadata?.categories) && takeover.metadata.categories.some((cat: any) => cat.title && cat.title.toLowerCase() === tag.toLowerCase())));
+        }
+        setResults(allResults.slice(0, PAGE_SIZE));
+        setHasNext(allResults.length > PAGE_SIZE);
       }
       setIsLoading(false);
     }
     fetchResults();
     setTimeout(() => searchInputRef.current?.focus(), 100);
-  }, [open, selectedType, selectedTag, searchTerm]);
+  }, [open, selectedType, selectedTags.join("|"), searchTerm]);
 
   // Infinite scroll: load more when observerTarget is in view
   useEffect(() => {
@@ -157,23 +180,23 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           async function fetchMore() {
             let res: any;
             if (selectedType === "radio-shows") {
-              res = await getMixcloudShows({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: nextOffset });
+              res = await getMixcloudShows({ tag: selectedTags.join("|"), searchTerm, limit: PAGE_SIZE, offset: nextOffset });
               setResults((prev) => [...prev, ...res.shows]);
               setHasNext(res.hasNext);
             } else if (selectedType === "posts") {
-              res = await getAllPosts({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: nextOffset });
+              res = await getAllPosts({ tag: selectedTags.join("|"), searchTerm, limit: PAGE_SIZE, offset: nextOffset });
               setResults((prev) => [...prev, ...res.posts]);
               setHasNext(res.hasNext);
             } else if (selectedType === "videos") {
-              res = await getVideos({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: nextOffset });
+              res = await getVideos({ tag: selectedTags.join("|"), searchTerm, limit: PAGE_SIZE, offset: nextOffset });
               setResults((prev) => [...prev, ...res.videos]);
               setHasNext(res.hasNext);
             } else if (selectedType === "events") {
-              res = await getEvents({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: nextOffset });
+              res = await getEvents({ tag: selectedTags.join("|"), searchTerm, limit: PAGE_SIZE, offset: nextOffset });
               setResults((prev) => [...prev, ...res.events]);
               setHasNext(res.hasNext);
             } else if (selectedType === "takeovers") {
-              res = await getTakeovers({ tag: selectedTag, searchTerm, limit: PAGE_SIZE, offset: nextOffset });
+              res = await getTakeovers({ tag: selectedTags.join("|"), searchTerm, limit: PAGE_SIZE, offset: nextOffset });
               setResults((prev) => [...prev, ...res.takeovers]);
               setHasNext(res.hasNext);
             }
@@ -192,7 +215,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       observer.observe(observerTarget.current);
     }
     return () => observer.disconnect();
-  }, [hasNext, isLoadingMore, open, page, results.length, selectedType, selectedTag, searchTerm]);
+  }, [hasNext, isLoadingMore, open, page, results.length, selectedType, selectedTags.join("|"), searchTerm]);
 
   // Filter toggle logic (content type and tags)
   const handleFilterToggle = (filter: { type: string; slug: string }) => {
@@ -201,8 +224,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         // Only one type filter at a time
         return prev.includes(filter.slug) ? prev.filter((f) => f !== filter.slug) : [filter.slug, ...prev.filter((f) => f !== filter.slug && !tags.includes(f))];
       } else {
-        // Only one tag at a time for now
-        return prev.includes(filter.slug) ? prev.filter((f) => f !== filter.slug) : [filter.slug, ...prev.filter((f) => !tags.includes(f))];
+        // Allow multiple tags to be selected
+        return prev.includes(filter.slug) ? prev.filter((f) => f !== filter.slug) : [...prev, filter.slug];
       }
     });
   };
@@ -248,10 +271,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   <div className="border-b border-almostblack dark:border-white py-4">
                     <div className="space-y-1">
                       {availableTypes.map((type) => {
-                        const { label, icon: Icon, color } = typeLabels[type as ContentType];
+                        const { label, icon: Icon } = typeLabels[type as ContentType];
                         return (
-                          <button key={type} onClick={() => handleFilterToggle({ type: "types", slug: type })} className={cn("flex items-center w-full px-2 py-1.5 text-sm", activeFilters.includes(type) ? "bg-accent" : "hover:bg-accent/5")}>
-                            <Icon className={cn("h-4 w-4 mr-2", color)} />
+                          <button key={type} onClick={() => handleFilterToggle({ type: "types", slug: type })} className={cn("uppercase font-mono text-m6 gap-2 rounded-full flex items-center w-fit px-3 py-2 text-sm", activeFilters.includes(type) ? "bg-accent text-accent-foreground" : "hover:bg-accent/5")}>
+                            <Icon className="h-4 w-4" />
                             {label}
                           </button>
                         );
@@ -262,8 +285,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   <div className="border-b border-almostblack dark:border-white py-4">
                     <div className="space-y-1">
                       {tags.map((tag) => (
-                        <button key={tag} onClick={() => handleFilterToggle({ type: "tags", slug: tag })} className={cn("flex items-center w-full px-2 py-1.5 text-xs uppercase", activeFilters.includes(tag) ? "bg-accent" : "hover:bg-accent/5")}>
+                        <button key={tag} onClick={() => handleFilterToggle({ type: "tags", slug: tag })} className={cn("uppercase font-mono text-m6 gap-2 rounded-full flex items-center w-fit px-3 py-2 text-sm", activeFilters.includes(tag) ? "bg-accent text-accent-foreground" : "hover:bg-accent/5")}>
                           {tag}
+                          {activeFilters.includes(tag) && <X className="h-4 w-4" />}
                         </button>
                       ))}
                     </div>
@@ -298,39 +322,40 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               <div className="p-4 space-y-4">
                 {results.length > 0 ? (
                   <>
-                    {results.map((result, idx) => {
-                      if (selectedType === "radio-shows") {
-                        return (
+                    {results.map((result, idx) => (
+                      <>
+                        {selectedType === "radio-shows" ? (
                           <Link key={`${result.key}-${result.slug}-${idx}`} href={`/radio-shows/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
-                              <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
+                              <div className="size-32 relative flex-shrink-0 overflow-hidden ">
                                 <Image src={result.pictures?.large || result.pictures?.extra_large || "/image-placeholder.svg"} alt={result.name || "Radio Show Cover"} fill className="object-cover" />
                               </div>
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 flex flex-col font-mono uppercase min-w-0 gap-2">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                                   <Music2 className="w-4 h-4 text-foreground" />
                                   <span>Radio Shows</span>
-                                  {result.created_time && (
-                                    <>
-                                      <span>•</span>
-                                      <span>{format(new Date(result.created_time), "MMM d, yyyy")}</span>
-                                    </>
-                                  )}
                                 </div>
-                                <h3 className="font-medium mb-1">{result.name}</h3>
-                                {result.user?.name && (
-                                  <div className="flex flex-wrap gap-1 mt-2">
-                                    <Badge variant="outline" className="text-xs uppercase">
-                                      {result.user.name}
-                                    </Badge>
+                                <h3 className="text-m4 font-mono truncate line-clamp-1">{result.name}</h3>
+                                {result.created_time && (
+                                  <>
+                                    <span>{format(new Date(result.created_time), "MMM d, yyyy")}</span>
+                                  </>
+                                )}
+                                {Array.isArray(result.tags) && result.tags.filter((tag: any) => tag.name && tag.name.toUpperCase() !== "WORLDWIDE FM").length > 0 && (
+                                  <div className="flex flex-wrap">
+                                    {result.tags
+                                      .filter((tag: any) => tag.name && tag.name.toUpperCase() !== "WORLDWIDE FM")
+                                      .map((tag: any) => (
+                                        <Badge key={tag.name} variant="outline" className="text-xs uppercase">
+                                          {tag.name}
+                                        </Badge>
+                                      ))}
                                   </div>
                                 )}
                               </div>
                             </div>
                           </Link>
-                        );
-                      } else if (selectedType === "posts") {
-                        return (
+                        ) : selectedType === "posts" ? (
                           <Link key={`${result.id}-${result.slug}-${idx}`} href={`/posts/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
                               <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
@@ -352,9 +377,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                               </div>
                             </div>
                           </Link>
-                        );
-                      } else if (selectedType === "videos") {
-                        return (
+                        ) : selectedType === "videos" ? (
                           <Link key={`${result.id}-${result.slug}-${idx}`} href={`/videos/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
                               <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
@@ -375,9 +398,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                               </div>
                             </div>
                           </Link>
-                        );
-                      } else if (selectedType === "events") {
-                        return (
+                        ) : selectedType === "events" ? (
                           <Link key={`${result.id}-${result.slug}-${idx}`} href={`/events/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
                               <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
@@ -398,9 +419,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                               </div>
                             </div>
                           </Link>
-                        );
-                      } else if (selectedType === "takeovers") {
-                        return (
+                        ) : selectedType === "takeovers" ? (
                           <Link key={`${result.id}-${result.slug}-${idx}`} href={`/takeovers/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
                               <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
@@ -421,10 +440,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                               </div>
                             </div>
                           </Link>
-                        );
-                      }
-                      return null;
-                    })}
+                        ) : null}
+                        {idx < results.length - 1 && <div className="border-b border-default my-2 w-full" />}
+                      </>
+                    ))}
                     {/* Sentinel for Intersection Observer infinite scroll */}
                     <div ref={observerTarget} className="h-4 col-span-full flex items-center justify-center">
                       {isLoadingMore && <Loader className="h-4 w-4 animate-spin" />}
