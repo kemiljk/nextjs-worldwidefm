@@ -226,12 +226,12 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           {/* Filters Section */}
           <div className={cn("w-64 border-r bg-background", "fixed inset-y-0 left-0 z-50 sm:relative sm:block", "transition-transform duration-200 ease-in-out")}>
             <div className="flex flex-col h-full">
-              <div className="p-4 border-b">
-                <div className="flex items-center justify-between">
+              <div className="px-4 border-b">
+                <div className="flex h-20 items-center justify-between">
                   <h3 className="font-mono uppercase text-m6">Filters</h3>
                   <div className="flex items-center gap-2">
                     {activeFilters.length > 0 && (
-                      <Button variant="ghost" size="sm" className="h-6" onClick={clearAllFilters}>
+                      <Button variant="ghost" size="sm" className="rounded-full" onClick={clearAllFilters}>
                         Clear all
                       </Button>
                     )}
@@ -276,7 +276,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           {/* Main Content Section */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Search Input */}
-            <div className="py-1 border-b flex-shrink-0">
+            <div className="border-b flex-shrink-0">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -286,9 +286,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 }}
                 className="flex gap-2"
               >
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input ref={searchInputRef} placeholder="Search" className="border-none pl-8 font-mono text-m6 uppercase" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <div className="px-4 h-20 items-center flex flex-1">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <Input ref={searchInputRef} placeholder="Search" className="border-none pl-4 font-mono text-m6 uppercase focus-visible:ring-0" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
               </form>
             </div>
