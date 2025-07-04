@@ -30,7 +30,7 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
         {articles.map((article, index) => (
           <Link key={index} href={`/articles/${article.slug}`}>
             <Card ref={index === articles.length - 1 ? lastArticleRef : undefined} className="overflow-hidden bg-white dark:bg-gray-900 h-full flex flex-col border border-black dark:border-white rounded-none shadow-none">
-              <CardContent className="p-0 flex-grow flex flex-col">
+              <CardContent className="p-0 grow flex flex-col">
                 <div className="relative aspect-[1.1/1] w-full border-b border-black dark:border-white bg-gray-100 flex items-center justify-center">
                   <Image src={article.metadata.image?.imgix_url || "/image-placeholder.svg"} alt={article.title} fill className="object-cover" />
                 </div>

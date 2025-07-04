@@ -17,7 +17,7 @@ export default function HomePostsGrid({ posts }: HomePostsGridProps) {
         return (
           <Link href={`/editorial/${post.slug}`} key={post.slug} className="group">
             <div className="relative">
-              <div className="relative aspect-[4/3] w-full overflow-hidden">
+              <div className="relative aspect-4/3 w-full overflow-hidden">
                 <Image src={post.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={post.title} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
               </div>
               <div className="mt-2">

@@ -163,7 +163,7 @@ export default async function HostPage({ params }: { params: { slug: string } })
                   <Card className="overflow-hidden h-full hover:shadow-lg transition-all">
                     <div className="aspect-square relative">
                       <Image src={showImage} alt={show.title} fill className="object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end">
+                      <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end">
                         <div className="p-4 w-full">
                           <h3 className="text-m7 font-mono font-normal text-almostblack dark:text-white line-clamp-2">{show.title}</h3>
                           {broadcastDate && <p className="text-white/70 text-sm mt-1">{broadcastDate}</p>}

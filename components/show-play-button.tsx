@@ -9,12 +9,12 @@ import { cn } from "@/lib/utils";
 
 interface ShowPlayButtonProps extends ButtonProps {
   show: MixcloudShow;
-  variant?: "default" | "outline" | "ghost" | "link" | "destructive" | "secondary";
+  variant?: "default" | "outline-solid" | "ghost" | "link" | "destructive" | "secondary";
   size?: "default" | "sm" | "lg" | "icon";
   children?: React.ReactNode;
 }
 
-export function ShowPlayButton({ show, variant = "outline", size = "icon", className, children, ...props }: ShowPlayButtonProps) {
+export function ShowPlayButton({ show, variant = "outline-solid", size = "icon", className, children, ...props }: ShowPlayButtonProps) {
   const { playShow, selectedShow, isArchivePlaying, pauseShow } = useMediaPlayer();
 
   const isCurrentShow = selectedShow?.key === show.key;

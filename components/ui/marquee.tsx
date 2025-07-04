@@ -36,7 +36,7 @@ const Marquee = forwardRef<HTMLDivElement, MarqueeProps>(({ className, speed = "
     <div
       ref={ref}
       className={cn("overflow-clip", className, {
-        "hover:[&>div]:[animation-play-state:paused]": pauseOnHover,
+        "[&>div]:hover:[animation-play-state:paused]": pauseOnHover,
         "mask-edges-sm": maskEdges,
       })}
       style={

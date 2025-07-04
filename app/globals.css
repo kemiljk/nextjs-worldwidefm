@@ -1,6 +1,228 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@source '../*.{js,ts,jsx,tsxmdx}';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-*: initial;
+  --font-sans: var(--font-sans), system-ui, sans-serif;
+  --font-display: var(--font-display), system-ui, sans-serif;
+  --font-mono:
+    var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-gray-50: #e4e7e7;
+  --color-gray-100: #cdd1d1;
+  --color-gray-200: #b5baba;
+  --color-gray-300: #9ea5a5;
+  --color-gray-400: #8690a0;
+  --color-gray-500: #6f7979;
+  --color-gray-600: #5a6161;
+  --color-gray-700: #444a4a;
+  --color-gray-800: #2e3232;
+  --color-gray-900: #181b1b;
+  --color-gray-950: #000000;
+
+  --color-crimson-50: #fef5ee;
+  --color-crimson-100: #fde7d7;
+  --color-crimson-200: #fbcbad;
+  --color-crimson-300: #f8a779;
+  --color-crimson-400: #f47843;
+  --color-crimson-500: #f0551f;
+  --color-crimson-600: #e83d15;
+  --color-crimson-700: #bb2a13;
+  --color-crimson-800: #952417;
+  --color-crimson-900: #782016;
+  --color-crimson-950: #410c09;
+
+  --color-bronze-50: #fefbe8;
+  --color-bronze-100: #fdf5c4;
+  --color-bronze-200: #fce78c;
+  --color-bronze-300: #fad44a;
+  --color-bronze-400: #f6bd19;
+  --color-bronze-500: #e6a40c;
+  --color-bronze-600: #c67e08;
+  --color-bronze-700: #9e590a;
+  --color-bronze-800: #834610;
+  --color-bronze-900: #6f3a14;
+  --color-bronze-950: #411d07;
+
+  --color-cornflower-50: #f0f6fd;
+  --color-cornflower-100: #e3effc;
+  --color-cornflower-200: #cce0f9;
+  --color-cornflower-300: #adcaf4;
+  --color-cornflower-400: #8caced;
+  --color-cornflower-500: #7793e5;
+  --color-cornflower-600: #556cd6;
+  --color-cornflower-700: #4659bc;
+  --color-cornflower-800: #3b4c98;
+  --color-cornflower-900: #364479;
+  --color-cornflower-950: #1f2547;
+
+  --color-sky-50: #e9f9ff;
+  --color-sky-100: #cef2ff;
+  --color-sky-200: #a7eaff;
+  --color-sky-300: #6be0ff;
+  --color-sky-400: #26caff;
+  --color-sky-500: #00a4ff;
+  --color-sky-600: #007aff;
+  --color-sky-700: #005fff;
+  --color-sky-800: #0051e6;
+  --color-sky-900: #004ab3;
+  --color-sky-950: #00367e;
+
+  --color-green-50: #f6f8f5;
+  --color-green-100: #ebf1e7;
+  --color-green-200: #d9e2d0;
+  --color-green-300: #acc09b;
+  --color-green-400: #92aa7e;
+  --color-green-500: #718c5b;
+  --color-green-600: #5b7148;
+  --color-green-700: #485a3b;
+  --color-green-800: #3c4932;
+  --color-green-900: #323d2a;
+  --color-green-950: #192013;
+
+  --color-almostblack: #231f20;
+  --color-black: #000000;
+  --color-white: #ffffff;
+
+  --color-sunset: #f8971d;
+
+  --color-electric: #88ca4f;
+
+  --color-hyperpop: #e661a4;
+
+  --tracking-tight: -0.02em;
+  --tracking-wide: 0.02em;
+
+  --radius-none: 0px;
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  --animate-marquee-move: marquee-move-text var(--speed, 15s) linear infinite
+    var(--direction, forwards);
+
+  --text-h4: 80px;
+  --text-h4--line-height: 0.9;
+  --text-h4--font-weight: 400;
+  --text-h5: 70px;
+  --text-h5--line-height: 0.9;
+  --text-h5--font-weight: 400;
+  --text-h7: 50px;
+  --text-h7--line-height: 0.9;
+  --text-h7--font-weight: 400;
+  --text-h8: 40px;
+  --text-h8--line-height: 0.9;
+  --text-h8--font-weight: 400;
+  --text-m4: 25px;
+  --text-m4--line-height: 1;
+  --text-m4--font-weight: 400;
+  --text-m5: 20px;
+  --text-m5--line-height: 1.1;
+  --text-m5--font-weight: 400;
+  --text-m6: 16px;
+  --text-m6--line-height: 1.1;
+  --text-m6--font-weight: 400;
+  --text-m7: 14px;
+  --text-m7--line-height: 1.1;
+  --text-m7--font-weight: 400;
+  --text-m8: 12px;
+  --text-m8--line-height: 1.1;
+  --text-m8--font-weight: 400;
+  --text-b1: 30px;
+  --text-b1--line-height: 1;
+  --text-b1--font-weight: 400;
+  --text-b2: 20px;
+  --text-b2--line-height: 1;
+  --text-b2--font-weight: 400;
+  --text-b4: 14px;
+  --text-b4--line-height: 1.1;
+  --text-b4--font-weight: 400;
+
+  @keyframes marquee-move-text {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+  @media (width >= --theme(--breakpoint-sm)) {
+    max-width: none;
+  }
+  @media (width >= 1400px) {
+    max-width: 1400px;
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/* Custom utilities */
+@utility text-balance {
+  text-wrap: balance;
+}
+@utility hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+}
 
 @layer base {
   :root {
@@ -97,23 +319,7 @@
 
   code,
   pre {
-    font-family: theme("fontFamily.mono");
-  }
-}
-
-/* Custom utilities */
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-
-  .hide-scrollbar {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
-  }
-
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none; /* Chrome, Safari and Opera */
+    font-family: var(--font-mono);
   }
 }
 

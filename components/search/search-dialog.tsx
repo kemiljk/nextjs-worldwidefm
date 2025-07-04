@@ -300,7 +300,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           {/* Main Content Section */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Search Input */}
-            <div className="border-b flex-shrink-0">
+            <div className="border-b shrink-0">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -327,7 +327,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         {selectedType === "radio-shows" ? (
                           <Link key={`${result.key}-${result.slug}-${idx}`} href={`/radio-shows/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
-                              <div className="size-32 relative flex-shrink-0 overflow-hidden ">
+                              <div className="size-32 relative shrink-0 overflow-hidden ">
                                 <Image src={result.pictures?.large || result.pictures?.extra_large || "/image-placeholder.svg"} alt={result.name || "Radio Show Cover"} fill className="object-cover" />
                               </div>
                               <div className="flex-1 flex flex-col font-mono uppercase min-w-0 gap-2">
@@ -358,7 +358,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         ) : selectedType === "posts" ? (
                           <Link key={`${result.id}-${result.slug}-${idx}`} href={`/posts/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
-                              <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
+                              <div className="w-16 h-16 relative shrink-0 overflow-hidden ">
                                 <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Post Cover"} fill className="object-cover" />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -380,7 +380,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         ) : selectedType === "videos" ? (
                           <Link key={`${result.id}-${result.slug}-${idx}`} href={`/videos/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
-                              <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
+                              <div className="w-16 h-16 relative shrink-0 overflow-hidden ">
                                 <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Video Cover"} fill className="object-cover" />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -401,7 +401,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         ) : selectedType === "events" ? (
                           <Link key={`${result.id}-${result.slug}-${idx}`} href={`/events/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
-                              <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
+                              <div className="w-16 h-16 relative shrink-0 overflow-hidden ">
                                 <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Event Cover"} fill className="object-cover" />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -422,7 +422,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         ) : selectedType === "takeovers" ? (
                           <Link key={`${result.id}-${result.slug}-${idx}`} href={`/takeovers/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
-                              <div className="w-16 h-16 relative flex-shrink-0 overflow-hidden ">
+                              <div className="w-16 h-16 relative shrink-0 overflow-hidden ">
                                 <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Takeover Cover"} fill className="object-cover" />
                               </div>
                               <div className="flex-1 min-w-0">

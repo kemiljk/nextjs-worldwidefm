@@ -138,7 +138,27 @@ export async function getMixcloudShows(params: MixcloudShowsParams = {}, forceRe
     const limit = params.limit || 20;
     const offset = params.offset || 0;
     const isServer = typeof window === "undefined";
-    const baseUrl = isServer ? process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000" : "";
+
+    // On the server, make direct API calls to Mixcloud
+    if (isServer) {
+      const response = await fetch(`https://api.mixcloud.com/worldwidefm/cloudcasts/?limit=${limit}&offset=${offset}`, {
+        next: {
+          revalidate: 900, // 15 minutes
+          tags: ["mixcloud"],
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Mixcloud API error: ${response.statusText}`);
+      }
+
+      const data: MixcloudResponse = await response.json();
+      const shows = data.data ? filterShows(data.data, params).shows : [];
+      return { shows, total: data.paging?.total || shows.length, hasNext: !!data.paging?.next };
+    }
+
+    // On the client, use the local API route
+    const baseUrl = "";
     const response = await fetch(`${baseUrl}/api/mixcloud?limit=${limit}&offset=${offset}`);
     if (!response.ok) {
       throw new Error(`Mixcloud API proxy error: ${response.statusText}`);

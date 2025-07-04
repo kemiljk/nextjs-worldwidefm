@@ -51,7 +51,7 @@ export default function AuthForm({ type, onSubmit }: AuthFormProps) {
 
   return (
     <div className="mx-auto max-w-md">
-      <div className="bg-card p-8 shadow-sm">
+      <div className="bg-card p-8 shadow-xs">
         <h1 className="font-display uppercase text-3xl font-normal tracking-tight text-center mb-8">{type === "login" ? "Login" : "Sign Up"}</h1>
 
         {error && <div className="mb-6 p-4 bg-crimson-50 border border-crimson-200 text-crimson-800 text-sm">{error}</div>}

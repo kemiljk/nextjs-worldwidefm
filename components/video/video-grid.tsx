@@ -39,7 +39,7 @@ export default function VideoGrid({ videos }: VideoGridProps) {
         return (
           <Link key={`video-grid-${video.id}-${video.slug}-${video.metadata?.date || ""}-${index}`} href={`/videos/${video.slug}`}>
             <div className="group space-y-3">
-              <div className="relative aspect-[16/9] w-full overflow-hidden rounded-none">
+              <div className="relative aspect-video w-full overflow-hidden rounded-none">
                 <Image src={thumbnailUrl} alt={video.title} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
                 <div className="absolute top-2 left-2">
                   <div className="bg-black/80 text-white text-xs px-3 py-1">VIDEO</div>

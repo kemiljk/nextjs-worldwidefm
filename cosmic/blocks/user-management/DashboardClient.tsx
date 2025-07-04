@@ -72,7 +72,7 @@ export default function DashboardClient() {
     return (
       <div className="py-8">
         <div className="mx-auto max-w-md">
-          <div className="bg-card p-8 shadow-sm text-center">
+          <div className="bg-card p-8 shadow-xs text-center">
             <div className="text-crimson-500 mb-4">Error: {error}</div>
           </div>
         </div>

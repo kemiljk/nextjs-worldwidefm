@@ -146,7 +146,7 @@ export default async function SchedulePage() {
                         return (
                           <Link href={`/episode/${showPath}`} key={`${show.show_day}-${show.show_time}-${show.name}`} className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors group">
                             {/* Show thumbnail */}
-                            <div className="w-16 h-16 flex-shrink-0 rounded-none overflow-hidden relative">
+                            <div className="w-16 h-16 shrink-0 rounded-none overflow-hidden relative">
                               <Image src={show.picture || "/image-placeholder.svg"} alt={show.name} fill className="object-cover" />
                             </div>
 
@@ -172,7 +172,7 @@ export default async function SchedulePage() {
                             </div>
 
                             {/* Action button */}
-                            <div className="flex-shrink-0">
+                            <div className="shrink-0">
                               <ChevronRight className="h-5 w-5 text-foreground group-hover:text-foreground transition-colors" />
                             </div>
                           </Link>

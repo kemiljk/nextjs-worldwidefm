@@ -99,7 +99,7 @@ export default function PostsGrid({ initialPosts, activeFilter = "", activeSubfi
           return (
             <Link href={`/editorial/${post.slug}`} key={post.slug} className="group border border-sky-900 dark:border-sky-50 p-4">
               <div className="relative">
-                <div className="relative aspect-[4/3] w-full overflow-hidden">
+                <div className="relative aspect-4/3 w-full overflow-hidden">
                   <Image src={post.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={post.title} fill className="object-cover" />
                 </div>
                 <div className="mt-2">

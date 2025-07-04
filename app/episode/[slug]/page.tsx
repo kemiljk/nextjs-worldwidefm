@@ -237,7 +237,7 @@ export default async function EpisodePage({ params }: { params: { slug: string }
                   <Card className="overflow-hidden h-full hover:shadow-lg transition-all">
                     <div className="aspect-square relative">
                       <Image src={relatedShow.pictures.extra_large} alt={relatedShow.name} fill className="object-cover" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end">
+                      <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end">
                         <div className="p-4 w-full">
                           <h3 className="text-white font-medium line-clamp-2">{relatedShow.name}</h3>
                           {relatedShow.tags && relatedShow.tags.length > 0 && <p className="text-white/70 text-sm mt-1">{relatedShow.tags[0].name}</p>}

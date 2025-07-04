@@ -30,7 +30,7 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
             <div className="relative">
               <div className={`relative aspect-square w-full overflow-hidden`}>
                 <Image src={post.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={post.title} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
                 <div className="text-[12px] leading-none uppercase tracking-wider mb-2 opacity-90">{formattedDate}</div>

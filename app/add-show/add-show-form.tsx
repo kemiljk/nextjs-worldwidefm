@@ -634,7 +634,7 @@ export function AddShowForm() {
                                 setCityOptions([]);
                                 field.onChange("");
                               }}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-hidden"
                               tabIndex={0}
                             >
                               <X className="w-4 h-4" />

@@ -60,7 +60,7 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
                 <CardContent className="p-0">
                   <div className="relative aspect-video">
                     <Image src={thumbnailUrl} alt={video.title} fill className="object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent">
+                    <div className="absolute inset-0 bg-linear-to-t from-black/90 via-transparent to-transparent">
                       <div className="absolute bottom-4 left-4 right-4">
                         <p className="text-xs text-white/60 mb-2">{video.metadata?.date ? new Date(video.metadata.date).toLocaleDateString() : ""}</p>
                         <h3 className="text-m5 font-mono font-normal text-white line-clamp-2">{video.title}</h3>

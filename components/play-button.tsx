@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 interface PlayButtonProps {
   show: MixcloudShow;
-  variant?: "default" | "secondary" | "outline" | "ghost" | "link" | "destructive";
+  variant?: "default" | "secondary" | "outline-solid" | "ghost" | "link" | "destructive";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
 }

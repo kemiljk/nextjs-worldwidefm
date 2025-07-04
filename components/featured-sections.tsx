@@ -38,6 +38,11 @@ export default function FeaturedSections({ showToDisplay, transformedUpcomingSho
     }
   };
 
+  // Don't render if no data is available
+  if (!showToDisplay && (!transformedUpcomingShows || transformedUpcomingShows.length === 0)) {
+    return null;
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 relative z-10">
       {/* Left featured section */}
@@ -46,7 +51,7 @@ export default function FeaturedSections({ showToDisplay, transformedUpcomingSho
           <CardContent className="p-0">
             <div className="relative aspect-square">
               <Image src={showToDisplay?.pictures.extra_large || "/image-placeholder.svg"} alt={showToDisplay?.name || "Show"} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority />
-              <div className="absolute bottom-0 left-0 right-0 flex bg-gradient-to-t from-almostblack to-transparent h-1/2 flex-col p-4 flex-1 justify-end">
+              <div className="absolute bottom-0 left-0 right-0 flex bg-linear-to-t from-almostblack to-transparent h-1/2 flex-col p-4 flex-1 justify-end">
                 {showToDisplay && (
                   <>
                     <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-2 p-1 text-left">{formatDateShort(showToDisplay.updated_time)}</div>
@@ -74,12 +79,12 @@ export default function FeaturedSections({ showToDisplay, transformedUpcomingSho
       {/* Right featured section */}
       <div className="h-full">
         <div className="flex flex-col h-full p-5 pl-2.5">
-          <Card className="overflow-hidden shadow-none flex-grow cursor-pointer border border-almostblack dark:border-white" onClick={() => transformedUpcomingShows[0] && handleShowClick(transformedUpcomingShows[0])}>
+          <Card className="overflow-hidden shadow-none grow cursor-pointer border border-almostblack dark:border-white" onClick={() => transformedUpcomingShows[0] && handleShowClick(transformedUpcomingShows[0])}>
             <CardContent className="p-0 relative h-full flex flex-col">
               <div className="aspect-square w-full relative">
                 <Image src={transformedUpcomingShows[0]?.image || "/image-placeholder.svg"} alt={transformedUpcomingShows[0]?.title || "Featured Show"} fill className="object-cover" />
               </div>
-              <div className="absolute bottom-0 left-0 right-0 flex bg-gradient-to-t from-almostblack to-transparent h-1/2 flex-col p-4 flex-1 justify-end">
+              <div className="absolute bottom-0 left-0 right-0 flex bg-linear-to-t from-almostblack to-transparent h-1/2 flex-col p-4 flex-1 justify-end">
                 {transformedUpcomingShows[0] && (
                   <>
                     <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-2 p-1 text-left">{formatDateShort(transformedUpcomingShows[0].updated_time)}</div>

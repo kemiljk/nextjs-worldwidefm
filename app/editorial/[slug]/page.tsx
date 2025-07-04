@@ -97,12 +97,12 @@ export default async function EditorialArticlePage({ params }: { params: { slug:
       <div
         className={cn("relative w-full", {
           "aspect-video": imageAspectRatio === "16_9",
-          "aspect-[4/3]": imageAspectRatio === "4_3",
+          "aspect-4/3": imageAspectRatio === "4_3",
           "aspect-square": imageAspectRatio === "1_1",
         })}
       >
         <Image src={imageUrl} alt={heroImageAlt} fill className="object-cover" priority />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/80 to-transparent" />
 
         {/* Content overlay */}
         <div className="absolute inset-0 flex items-end">

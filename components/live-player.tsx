@@ -300,7 +300,7 @@ export default function LivePlayer() {
 
   return (
     <div className="fixed top-0 bg-almostblack text-white z-50 flex items-center transition-all duration-300 h-12 left-0 right-0 max-w-full">
-      <div className="border-l border-white/20 pl-4 ml-4 flex items-center flex-shrink-0 transition-opacity duration-200">
+      <div className="border-l border-white/20 pl-4 ml-4 flex items-center shrink-0 transition-opacity duration-200">
         <button className={`rounded-full transition-colors disabled:opacity-20 ${isLivePlaying ? "text-red-500" : "text-white"}`} disabled={!isActuallyLive} onClick={handlePlayPause}>
           {isLivePlaying ? <Pause fill="white" className="h-5 w-5" /> : isActuallyLive ? <Circle fill="#ef4444" className="h-5 w-5 animate-pulse text-red-500" /> : <Play fill="white" className="h-5 w-5" />}
         </button>
