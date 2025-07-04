@@ -13,7 +13,7 @@ const LatestEpisodes: React.FC = () => {
     const fetchEpisodes = async () => {
       try {
         setLoading(true);
-        const response = await getAllShows(0, 0, 4);
+        const response = await getAllShows(2, 2, 4);
         setEpisodes(response.shows || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fetch shows");
