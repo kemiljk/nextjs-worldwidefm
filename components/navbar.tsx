@@ -37,7 +37,7 @@ export default function Navbar({ navItems }: NavbarProps) {
             <ul className="flex items-center uppercase">
               {visibleNavItems.map((item) => (
                 <li key={item.name}>
-                  <Link href={item.link} className="flex font-mono items-center h-16 hover:bg-almostblack text-almostblack hover:text-white dark:text-white transition-colors px-8 dark:hover:bg-white dark:hover:text-almostblack">
+                  <Link href={item.link} className="flex font-mono items-center h-16 hover:bg-almostblack text-almostblack dark:text-white hover:text-white dark:text-white transition-colors px-8 dark:hover:bg-white dark:hover:text-almostblack dark:text-white">
                     {item.name}
                   </Link>
                 </li>
@@ -46,7 +46,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                 <li>
                   <Sheet>
                     <SheetTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-foreground h-16 hover:bg-almostblack text-almostblack hover:text-white dark:text-white transition-colors px-8 dark:hover:bg-white dark:hover:text-almostblack">
+                      <Button variant="ghost" size="sm" className="text-foreground h-16 hover:bg-almostblack text-almostblack dark:text-white hover:text-white dark:text-white transition-colors px-8 dark:hover:bg-white dark:hover:text-almostblack dark:text-white">
                         <MoreHorizontal className="size-4" />
                         <span className="sr-only">More menu items</span>
                       </Button>

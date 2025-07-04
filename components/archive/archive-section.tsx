@@ -13,7 +13,7 @@ export default function ArchiveSection({ shows, className }: ArchiveSectionProps
   return (
     <section className={className}>
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-h7 font-display uppercase font-normal text-almostblack">FROM THE ARCHIVE</h2>
+        <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">FROM THE ARCHIVE</h2>
         <Link href="/shows" className="text-sm text-green-50 flex items-center group">
           View All <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
         </Link>

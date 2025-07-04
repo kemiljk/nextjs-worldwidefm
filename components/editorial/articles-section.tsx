@@ -17,7 +17,7 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
   if (!articles || articles.length === 0) {
     return (
       <div>
-        <h3 className="text-m5 font-mono font-normal text-almostblack mb-4">{title}</h3>
+        <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-4">{title}</h3>
         <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-none text-foreground text-center">No posts available at this time.</div>
       </div>
     );
@@ -25,7 +25,7 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
 
   return (
     <div>
-      <h3 className="text-m5 font-mono font-normal text-almostblack mb-4">{title}</h3>
+      <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-4">{title}</h3>
       <div className="grid grid-cols-1 gap-6">
         {articles.map((article, index) => (
           <Link key={index} href={`/articles/${article.slug}`}>
@@ -35,8 +35,8 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
                   <Image src={article.metadata.image?.imgix_url || "/image-placeholder.svg"} alt={article.title} fill className="object-cover" />
                 </div>
                 <div className="flex flex-col gap-2 p-5 flex-1 justify-end">
-                  <h4 className="text-h8 font-display font-normal text-almostblack mb-1 text-left line-clamp-2">{article.title}</h4>
-                  <div className="text-m7 font-mono font-normal text-almostblack opacity-80 text-left">
+                  <h4 className="text-h8 font-display font-normal text-almostblack dark:text-white mb-1 text-left line-clamp-2">{article.title}</h4>
+                  <div className="text-m7 font-mono font-normal text-almostblack dark:text-white opacity-80 text-left">
                     {formatDate(article.metadata.date || "")}
                     {article.metadata.author && (
                       <>

@@ -46,7 +46,7 @@ export default function VideoGrid({ videos }: VideoGridProps) {
                 </div>
               </div>
               <div className="space-y-2">
-                <h3 className="text-m7 font-mono font-normal text-almostblack line-clamp-2 group-hover:text-black dark:group-hover:text-white transition-colors">{video.title}</h3>
+                <h3 className="text-m7 font-mono font-normal text-almostblack dark:text-white line-clamp-2 group-hover:text-black dark:group-hover:text-white transition-colors">{video.title}</h3>
                 {video.metadata?.categories && video.metadata.categories.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {video.metadata.categories.map((category) => (

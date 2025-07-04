@@ -52,7 +52,7 @@ export default function EditorialSection({ title, posts, className, isHomepage =
   return (
     <section className={cn("", className)}>
       <div className={`flex items-center justify-between mb-8 ${!isHomepage && "mt-12"}`}>
-        <h2 className="text-h7 font-display uppercase font-normal text-almostblack">{title}</h2>
+        <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">{title}</h2>
       </div>
       {isHomepage ? (
         <Marquee className="-mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24 h-full" speed="slow" pauseOnHover>

@@ -50,7 +50,7 @@ export default function FeaturedSections({ showToDisplay, transformedUpcomingSho
                 {showToDisplay && (
                   <>
                     <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-2 p-1 text-left">{formatDateShort(showToDisplay.updated_time)}</div>
-                    <h3 className="bg-white border border-almostblack text-h8 max-w-2xl leading-none font-display text-almostblack pt-2 p-1 text-left w-fit">{showToDisplay.name}</h3>
+                    <h3 className="bg-white border border-almostblack text-h8 max-w-2xl leading-none font-display text-almostblack dark:text-white pt-2 p-1 text-left w-fit">{showToDisplay.name}</h3>
                     {/* {showToDisplay.updated_time && <p className="text-m5 font-mono text-white max-w-xl mt-2 line-clamp-3 text-left">{showToDisplay.updated_time}</p>} */}
                     {showToDisplay.tags && (
                       <div className="flex showToDisplays-center">
@@ -83,7 +83,7 @@ export default function FeaturedSections({ showToDisplay, transformedUpcomingSho
                 {transformedUpcomingShows[0] && (
                   <>
                     <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-2 p-1 text-left">{formatDateShort(transformedUpcomingShows[0].updated_time)}</div>
-                    <h3 className="bg-white border border-almostblack text-h8 max-w-2xl leading-none font-display text-almostblack pt-2 p-1 text-left w-fit">{transformedUpcomingShows[0].name}</h3>
+                    <h3 className="bg-white border border-almostblack text-h8 max-w-2xl leading-none font-display text-almostblack dark:text-white pt-2 p-1 text-left w-fit">{transformedUpcomingShows[0].name}</h3>
                     {/* {showToDisplay.updated_time && <p className="text-m5 font-mono text-white max-w-xl mt-2 line-clamp-3 text-left">{showToDisplay.updated_time}</p>} */}
                     {transformedUpcomingShows[0].tags && (
                       <div className="flex showToDisplays-center">

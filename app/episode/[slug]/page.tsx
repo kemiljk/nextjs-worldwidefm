@@ -64,7 +64,7 @@ export default async function EpisodePage({ params }: { params: { slug: string }
   if (!rawShow) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <h1 className="text-h4 font-display uppercase font-normal text-almostblack mb-4">Show Not Found</h1>
+        <h1 className="text-h4 font-display uppercase font-normal text-almostblack dark:text-white mb-4">Show Not Found</h1>
         <p className="text-lg text-muted-foreground mb-6">Sorry, we couldn't find a show for this link. It may have been removed or does not exist.</p>
         <Link href="/shows" className="text-blue-600 hover:underline">
           Back to Shows
@@ -120,7 +120,7 @@ export default async function EpisodePage({ params }: { params: { slug: string }
           <div className="bg-white dark:bg-gray-900 p-6 rounded-none">
             <div className="space-y-6">
               <div>
-                <h3 className="text-m5 font-mono font-normal text-almostblack mb-2">Show Details</h3>
+                <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-2">Show Details</h3>
                 <dd>{startTime.toLocaleDateString()}</dd>
                 {isRadioCult && show.endTime && (
                   <dd className="mt-1">
@@ -139,7 +139,7 @@ export default async function EpisodePage({ params }: { params: { slug: string }
             {/* Enhanced Hosts Section */}
             {((show as any).enhanced_hosts?.length > 0 || show.hosts?.length > 0 || (isRadioCult && (show as any).artists?.length > 0)) && (
               <div className="mt-8">
-                <h3 className="text-m5 font-mono font-normal text-almostblack mb-4">Hosts</h3>
+                <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-4">Hosts</h3>
                 <div className="flex flex-wrap gap-2">
                   {(show as any).enhanced_hosts?.length > 0
                     ? (show as any).enhanced_hosts.map((host: any) => <HostLink key={host.id || host.key} host={host} className="bg-bronze-50 dark:bg-bronze-950 hover:bg-bronze-300 dark:hover:bg-bronze-900 text-bronze-900 dark:text-bronze-100 px-3 py-1 rounded-full text-sm transition-colors border border-bronze-300 dark:border-bronze-600" />)
@@ -151,7 +151,7 @@ export default async function EpisodePage({ params }: { params: { slug: string }
             {/* Enhanced Genres Section */}
             {((show as any).enhanced_genres?.length > 0 || show.tags?.length > 0) && (
               <div className="mt-8">
-                <h3 className="text-m5 font-mono font-normal text-almostblack mb-4">Genres</h3>
+                <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-4">Genres</h3>
                 <div className="flex flex-wrap gap-2">
                   {(show as any).enhanced_genres?.map((genre: any) => (
                     <span key={genre.id || genre.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
@@ -175,7 +175,7 @@ export default async function EpisodePage({ params }: { params: { slug: string }
             {/* Locations Section */}
             {(show as any).locations?.length > 0 && (
               <div className="mt-8">
-                <h3 className="text-m5 font-mono font-normal text-almostblack mb-4">Locations</h3>
+                <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-4">Locations</h3>
                 <div className="flex flex-wrap gap-2">
                   {(show as any).locations.map((location: any) => (
                     <span key={location.id} className="bg-green-100 dark:bg-green-900 px-3 py-1 rounded-full text-sm">
@@ -188,7 +188,7 @@ export default async function EpisodePage({ params }: { params: { slug: string }
             {/* Takeovers Section */}
             {(show as any).takeovers?.length > 0 && (
               <div className="mt-8">
-                <h3 className="text-m5 font-mono font-normal text-almostblack mb-4">Takeovers</h3>
+                <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-4">Takeovers</h3>
                 <div className="flex flex-wrap gap-2">
                   {(show as any).takeovers.map((takeover: any) => (
                     <span key={takeover.id} className="bg-purple-100 dark:bg-purple-900 px-3 py-1 rounded-full text-sm">
@@ -206,7 +206,7 @@ export default async function EpisodePage({ params }: { params: { slug: string }
         <div className="space-y-8">
           {(show as any).body_text && (
             <section className="bg-white dark:bg-gray-900 p-6 rounded-none">
-              <h2 className="text-h7 font-display uppercase font-normal text-almostblack mb-4">About This Show</h2>
+              <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white mb-4">About This Show</h2>
               <div className="prose dark:prose-invert max-w-none">
                 <p className="text-muted-foreground leading-relaxed">{(show as any).body_text}</p>
               </div>
@@ -214,7 +214,7 @@ export default async function EpisodePage({ params }: { params: { slug: string }
           )}
           {(show as any).tracklist && (
             <section className="bg-white dark:bg-gray-900 p-6 rounded-none">
-              <h2 className="text-h7 font-display uppercase font-normal text-almostblack mb-4">Tracklist</h2>
+              <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white mb-4">Tracklist</h2>
               <div className="prose dark:prose-invert max-w-none">
                 <pre className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">{(show as any).tracklist}</pre>
               </div>
@@ -224,7 +224,7 @@ export default async function EpisodePage({ params }: { params: { slug: string }
       )}
       {relatedShows.length > 0 && (
         <section className="space-y-4">
-          <h2 className="text-h7 font-display uppercase font-normal text-almostblack">Related Shows</h2>
+          <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">Related Shows</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {relatedShows.map((relatedShow) => {
               const segments = relatedShow.key.split("/").filter(Boolean);

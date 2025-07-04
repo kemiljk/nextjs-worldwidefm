@@ -99,7 +99,7 @@ const CosmicSectionComponent: React.FC<CosmicSectionProps> = ({ section }) => {
 
   return (
     <section className="py-8 md:py-12 lg:py-16 px-5">
-      <h2 className="text-h7 font-display uppercase font-normal text-almostblack mb-6 md:mb-8">{section.title}</h2>
+      <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white mb-6 md:mb-8">{section.title}</h2>
       {renderItems()}
     </section>
   );

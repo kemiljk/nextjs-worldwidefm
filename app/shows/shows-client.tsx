@@ -1,17 +1,25 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
-import { ShowsFilter } from "../../components/shows-filter";
 import { ShowsGrid } from "../../components/shows-grid";
-import { Loader } from "lucide-react";
+import { Loader, X } from "lucide-react";
 import { useInView } from "react-intersection-observer";
 import { getMixcloudShows } from "@/lib/mixcloud-service";
 import type { MixcloudShow } from "@/lib/mixcloud-service";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import type { CanonicalGenre } from "@/lib/get-canonical-genres";
 
-export default function ShowsClient() {
+interface ShowsClientProps {
+  canonicalGenres: CanonicalGenre[];
+}
+
+export default function ShowsClient({ canonicalGenres }: ShowsClientProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [shows, setShows] = useState<MixcloudShow[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -19,16 +27,16 @@ export default function ShowsClient() {
   const { ref, inView } = useInView();
   const PAGE_SIZE = 20;
 
-  // Parse search params into MixcloudShowsParams
-  const genre = searchParams.get("genre") ?? undefined;
+  // Parse genre param as multi-select (pipe-separated)
+  const genreParam = searchParams.get("genre") ?? undefined;
+  const selectedGenres = genreParam ? genreParam.split("|").filter(Boolean) : [];
   const host = searchParams.get("host") ?? undefined;
   const searchTerm = searchParams.get("searchTerm") ?? undefined;
   const isNew = searchParams.get("isNew") === "true";
-  // type param is ignored for now, as we only fetch radio shows
 
   // Build params for getMixcloudShows
   const mixcloudParams: any = {
-    tag: genre,
+    tag: selectedGenres.length > 0 ? selectedGenres.join("|") : undefined,
     searchTerm,
     isNew,
     limit: PAGE_SIZE,
@@ -52,7 +60,7 @@ export default function ShowsClient() {
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genre, host, searchTerm, isNew]);
+  }, [genreParam, host, searchTerm, isNew]);
 
   // Infinite scroll: load more when sentinel is in view
   useEffect(() => {
@@ -73,17 +81,80 @@ export default function ShowsClient() {
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inView, hasNext, isLoadingMore, page, genre, host, searchTerm, isNew]);
+  }, [inView, hasNext, isLoadingMore, page, genreParam, host, searchTerm, isNew]);
+
+  // --- Genre chip logic ---
+  // Use canonicalGenres for chips
+  const allGenres = canonicalGenres;
+
+  // Map Mixcloud show tags to canonical genres (by slug or title, case-insensitive)
+  function mapShowToCanonicalGenres(show: MixcloudShow): string[] {
+    const tags = show.tags || [];
+    return canonicalGenres
+      .filter((genre) =>
+        tags.some((tag) => {
+          const tagName = tag.name.toLowerCase();
+          return genre.slug.toLowerCase() === tagName || genre.title.toLowerCase() === tagName;
+        })
+      )
+      .map((genre) => genre.slug);
+  }
+
+  // Multi-select chip handler
+  const handleGenreClick = (genre: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!genre) {
+      params.delete("genre");
+    } else {
+      const current = new Set(selectedGenres);
+      if (current.has(genre)) {
+        current.delete(genre);
+      } else {
+        current.add(genre);
+      }
+      if (current.size === 0) {
+        params.delete("genre");
+      } else {
+        params.set("genre", Array.from(current).join("|"));
+      }
+    }
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  // Filter shows by selected canonical genres (if any)
+  const filteredShows =
+    selectedGenres.length === 0
+      ? shows
+      : shows.filter((show) => {
+          const mapped = mapShowToCanonicalGenres(show);
+          return mapped.some((slug) => selectedGenres.includes(slug));
+        });
 
   return (
     <div className="mx-auto lg:px-4 py-16">
-      <div className="flex justify-between w-full gap-8">
-        <PageHeader title="Shows" />
-        <ShowsFilter genres={[]} hosts={[]} takeovers={[]} selectedGenre={genre} selectedHost={host} selectedTakeover={undefined} searchTerm={searchTerm} isNew={isNew} />
+      <div className="flex flex-col gap-4 w-full">
+        <div className="flex justify-between w-full gap-8 items-center">
+          <PageHeader title="Shows" />
+        </div>
+        {/* Genre chip picker */}
+        <div className="flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
+          <button type="button" onClick={() => handleGenreClick(null)}>
+            <Badge variant={selectedGenres.length === 0 ? "default" : "outline"} className={cn("uppercase font-mono text-m6 cursor-pointer whitespace-nowrap", selectedGenres.length === 0 ? "bg-accent text-accent-foreground" : "hover:bg-accent/5")}>
+              All
+            </Badge>
+          </button>
+          {allGenres.map((g) => (
+            <button key={g.slug} type="button" onClick={() => handleGenreClick(g.slug)}>
+              <Badge variant={selectedGenres.includes(g.slug) ? "default" : "outline"} className={cn("uppercase font-mono text-m6 cursor-pointer whitespace-nowrap", selectedGenres.includes(g.slug) ? "bg-accent text-accent-foreground" : "hover:bg-accent/5")}>
+                {g.title}
+              </Badge>
+            </button>
+          ))}
+        </div>
       </div>
       <div className="flex flex-col gap-8 mt-8">
         <main className="lg:col-span-3">
-          <ShowsGrid shows={shows} sentinelRef={ref} />
+          <ShowsGrid shows={filteredShows} sentinelRef={ref} />
           {isLoadingMore && (
             <div className="h-4 flex items-center justify-center mt-8">
               <Loader className="h-4 w-4 animate-spin" />

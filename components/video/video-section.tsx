@@ -43,7 +43,7 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
   return (
     <section className={cn("", className)}>
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-h7 font-display uppercase font-normal text-almostblack">VIDEO</h2>
+        <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">VIDEO</h2>
         <Link href="/videos" className="text-sm text-crimson-50 flex items-center group">
           View All <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
         </Link>

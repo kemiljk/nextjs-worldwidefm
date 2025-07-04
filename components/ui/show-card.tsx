@@ -90,11 +90,11 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, slug, className = "", 
       <div className="flex flex-col justify-between h-full pt-4 pb-1 relative grow">
         {/* Title */}
         <div className="h-full flex-1 flex flex-col">
-          <div className="font-mono text-2xl leading-none text-almostblack uppercase w-full break-none">{mainTitle}</div>
-          {subtitle && <div className="font-mono text-2xl leading-none text-almostblack uppercase w-full break-words">{subtitle}</div>}
+          <div className="font-mono text-2xl leading-none text-almostblack dark:text-white dark:text-white uppercase w-full break-none">{mainTitle}</div>
+          {subtitle && <div className="font-mono text-2xl leading-none text-almostblack dark:text-white dark:text-white uppercase w-full break-words">{subtitle}</div>}
         </div>
         {/* Show Info */}
-        <div className="flex flex-row items-center gap-2.5 font-mono text-xs text-almostblack uppercase pl-1 pt-1">
+        <div className="flex flex-row items-center gap-2.5 font-mono text-xs text-almostblack dark:text-white dark:text-white uppercase pl-1 pt-1">
           <span>{formatShowTime(createdTime)}</span>
           {show.location?.name && (
             <>
@@ -107,7 +107,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, slug, className = "", 
         <div className="flex flex-row items-end justify-between w-full mt-4">
           <div className="flex flex-row flex-wrap">
             {showTags.map((tag, idx) => (
-              <span key={tag + idx} className="border border-almostblack rounded-full px-2.5 py-1 text-[12px] font-mono uppercase text-almostblack bg-white">
+              <span key={tag + idx} className="border border-almostblack dark:border-white rounded-full px-2.5 py-1 text-[12px] font-mono uppercase text-almostblack dark:text-white dark:text-white">
                 {tag}
               </span>
             ))}
