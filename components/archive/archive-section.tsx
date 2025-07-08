@@ -21,7 +21,7 @@ export default function ArchiveSection({ shows, className }: ArchiveSectionProps
       <Marquee className="-mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24 h-full" speed="slow" pauseOnHover>
         <div className="grid grid-flow-col auto-cols-max h-full gap-4 grid-cols-[repeat(auto-fit,minmax(440px,1fr))]">
           {shows.map((show, index) => (
-            <ShowCard key={`archive-show-${show.key}-${show.created_time}-${index}`} show={show} slug={`/episode/${show.key}`} playable />
+            <ShowCard key={`archive-show-${show.key}-${show.created_time}-${index}`} show={show} slug={`/episode${show.key}`} playable />
           ))}
         </div>
       </Marquee>

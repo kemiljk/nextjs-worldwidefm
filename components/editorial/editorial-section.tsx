@@ -20,7 +20,7 @@ interface EditorialSectionProps {
   layout?: "grid" | "list";
 }
 
-export default function EditorialSection({ title, posts, className, isHomepage = false, layout = "grid" }: EditorialSectionProps) {
+export default function EditorialSection({ title, posts, className, isHomepage = false }: EditorialSectionProps) {
   const [displayedPosts, setDisplayedPosts] = useState<Post[]>(posts);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -35,7 +35,7 @@ export default function EditorialSection({ title, posts, className, isHomepage =
   async function loadMorePosts() {
     try {
       setIsLoading(true);
-      const newPosts = await getAllPosts({ limit: 100, offset: displayedPosts.length });
+      const newPosts = await getAllPosts({ limit: 20, offset: displayedPosts.length });
 
       if (newPosts.posts.length > 0) {
         setDisplayedPosts((prev) => [...prev, ...newPosts.posts]);

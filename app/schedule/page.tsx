@@ -144,7 +144,7 @@ export default async function SchedulePage() {
                           showPath = showPath.replace(/^worldwidefm\//, "");
                         }
                         return (
-                          <Link href={`/episode/${showPath}`} key={`${show.show_day}-${show.show_time}-${show.name}`} className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors group">
+                          <Link href={`/episode${showPath}`} key={`${show.show_day}-${show.show_time}-${show.name}`} className="flex items-center gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors group">
                             {/* Show thumbnail */}
                             <div className="w-16 h-16 shrink-0 rounded-none overflow-hidden relative">
                               <Image src={show.picture || "/image-placeholder.svg"} alt={show.name} fill className="object-cover" />

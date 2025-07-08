@@ -132,7 +132,7 @@ export default async function EpisodePage({ params }: { params: { slug: string }
               </div>
               {!isLive && !isRadioCult && (
                 <div>
-                  <PlayButton show={show} variant="default" size="lg" isLive={false} className="w-max" label="Play Show" />
+                  <PlayButton show={show} variant="default" size="lg" className="w-max" />
                 </div>
               )}
             </div>
@@ -233,7 +233,7 @@ export default async function EpisodePage({ params }: { params: { slug: string }
                 showPath = showPath.replace(/^worldwidefm\//, "");
               }
               return (
-                <Link key={relatedShow.key} href={`/episode/${showPath}`}>
+                <Link key={relatedShow.key} href={`/episode${showPath}`}>
                   <Card className="overflow-hidden h-full hover:shadow-lg transition-all">
                     <div className="aspect-square relative">
                       <Image src={relatedShow.pictures.extra_large} alt={relatedShow.name} fill className="object-cover" />

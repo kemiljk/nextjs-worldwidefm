@@ -10,50 +10,60 @@ interface MarqueeProps extends ComponentPropsWithoutRef<"div"> {
   maskEdges?: boolean;
 }
 
-const BASE_SPEED = 50; // pixels per second
-
 const Marquee = forwardRef<HTMLDivElement, MarqueeProps>(({ className, speed = "normal", direction = "left", gap = "md", pauseOnHover = false, maskEdges = false, children, ...props }, ref) => {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [duration, setDuration] = useState<string>("90s");
+  const [isPaused, setIsPaused] = useState(false);
 
-  useEffect(() => {
-    const calculateDuration = () => {
-      if (!contentRef.current) return;
-      const contentWidth = contentRef.current.scrollWidth / 2; // Divide by 2 because content is duplicated
-      const speedMultiplier = speed === "slow" ? 0.5 : speed === "normal" ? 1 : 2;
-      const durationInSeconds = contentWidth / (BASE_SPEED * speedMultiplier);
-      setDuration(`${durationInSeconds}s`);
-    };
+  // Fixed durations for consistent speeds
+  const getDuration = () => {
+    switch (speed) {
+      case "slow":
+        return "120s"; // 2 minutes for slow
+      case "fast":
+        return "30s"; // 30 seconds for fast
+      default:
+        return "60s"; // 1 minute for normal
+    }
+  };
 
-    calculateDuration();
-    window.addEventListener("resize", calculateDuration);
-    return () => window.removeEventListener("resize", calculateDuration);
-  }, [speed]);
+  const duration = getDuration();
 
   const directionVar = direction === "left" ? "forwards" : "reverse";
+
+  // Debug logging
+  console.log(`Marquee speed: ${speed}, duration: ${duration}`);
+
+  const handleMouseEnter = () => {
+    if (pauseOnHover) {
+      setIsPaused(true);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (pauseOnHover) {
+      setIsPaused(false);
+    }
+  };
 
   return (
     <div
       ref={ref}
       className={cn("overflow-clip", className, {
-        "[&>div]:hover:[animation-play-state:paused]": pauseOnHover,
         "mask-edges-sm": maskEdges,
       })}
-      style={
-        {
-          "--speed": duration,
-          "--direction": directionVar,
-        } as CSSProperties
-      }
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       {...props}
     >
       <div
-        ref={contentRef}
-        className={cn("flex w-max animate-marquee-move", {
+        className={cn("flex w-max", {
           "gap-2 pl-2": gap === "sm",
           "gap-4 pl-4": gap === "md",
           "gap-6 pl-6": gap === "lg",
         })}
+        style={{
+          animation: `marquee-move-text ${duration} linear infinite ${directionVar}`,
+          animationPlayState: isPaused ? "paused" : "running",
+        }}
       >
         {children}
         {children}
