@@ -659,6 +659,7 @@ export async function getVideos({ limit = 20, offset = 0, tag, searchTerm }: { l
       sort: "-metadata.date",
       status: "published",
       props: "id,slug,title,metadata,created_at",
+      depth: 2,
     };
     if (tag) {
       filters["metadata.categories"] = tag;

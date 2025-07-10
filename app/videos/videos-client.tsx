@@ -27,8 +27,6 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [videos, setVideos] = useState<VideoObject[]>(initialVideos);
-
   const [activeFilter, setActiveFilter] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<{ [key: string]: string[] }>({
     categories: [],
@@ -105,39 +103,35 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
       return;
     }
 
-    // Set active filter category
-    setActiveFilter(filter);
-
-    // Handle subfilter selection (add/remove from the corresponding array)
+    // Always set activeFilter to 'categories' if a subfilter is selected
     if (subfilter) {
+      setActiveFilter("categories");
       setSelectedFilters((prev) => {
-        const filterKey = filter === "categories" ? "categories" : "";
-
-        if (!filterKey) return prev;
-
-        const currentFilters = [...prev[filterKey]];
+        const currentFilters = [...prev.categories];
         const index = currentFilters.indexOf(subfilter);
-
         // Toggle the filter
         if (index > -1) {
           currentFilters.splice(index, 1);
         } else {
           currentFilters.push(subfilter);
         }
-
         return {
           ...prev,
-          [filterKey]: currentFilters,
+          categories: currentFilters,
         };
       });
+      return;
     }
+
+    // Set active filter category (for main filter buttons)
+    setActiveFilter(filter);
   };
 
   // Filter videos based on active filter
   const filteredVideos = useMemo(() => {
-    if (!videos.length) return [];
+    if (!initialVideos.length) return [];
 
-    let filtered = [...videos];
+    let filtered = [...initialVideos];
 
     // Apply "new" filter if active
     if (activeFilter === "new") {
@@ -153,7 +147,9 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
     if (selectedFilters.categories.length > 0) {
       filtered = filtered.filter((video) => {
         if (!video.metadata?.categories) return false;
-        return video.metadata.categories.some((category) => selectedFilters.categories.includes(category.slug));
+        // Map category IDs to full objects
+        const categoryObjects = Array.isArray(video.metadata.categories) ? video.metadata.categories.map((catId) => availableCategories.find((cat) => cat.id === (typeof catId === "string" ? catId : catId?.id))).filter(Boolean) : [];
+        return categoryObjects.some((cat) => cat && selectedFilters.categories.includes(cat.title));
       });
     }
 
@@ -164,7 +160,7 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
     }
 
     return filtered;
-  }, [videos, activeFilter, selectedFilters, searchTerm]);
+  }, [activeFilter, selectedFilters, searchTerm, initialVideos, availableCategories]);
 
   return (
     <>
@@ -173,7 +169,7 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
       </div>
 
       {filteredVideos.length > 0 ? (
-        <VideoGrid videos={filteredVideos} />
+        <VideoGrid videos={filteredVideos} availableCategories={availableCategories} />
       ) : (
         <div className="py-16 text-center">
           <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white">No videos found</h3>

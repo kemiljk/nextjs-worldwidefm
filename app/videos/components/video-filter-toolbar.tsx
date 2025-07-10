@@ -44,11 +44,12 @@ export function VideoFilterToolbar({ onFilterChange, onSearchChange, searchTerm 
   };
 
   const handleSubfilterClick = (filter: string, subfilter: string) => {
+    // Pass the category title instead of slug
     onFilterChange(filter, subfilter);
   };
 
-  const isSubfilterSelected = (filter: string, slug: string) => {
-    if (filter === "categories") return selectedFilters.categories?.includes(slug);
+  const isSubfilterSelected = (filter: string, title: string) => {
+    if (filter === "categories") return selectedFilters.categories?.includes(title);
     return false;
   };
 
@@ -81,7 +82,7 @@ export function VideoFilterToolbar({ onFilterChange, onSearchChange, searchTerm 
       {activeFilter === "categories" && (
         <div className="flex flex-wrap gap-2 pt-2 border-t border-almostblack/20 dark:border-white/20">
           {availableCategories?.map((category) => (
-            <Button key={`categories-${category.id}`} variant="outline" size="sm" className={cn("border-almostblack/50 dark:border-white/50", isSubfilterSelected("categories", category.slug) && "bg-almostblack/10 dark:bg-white/10 border-almostblack dark:border-white")} onClick={() => handleSubfilterClick("categories", category.slug)}>
+            <Button key={`categories-${category.id}`} variant="outline" size="sm" className={cn("border-almostblack/50 dark:border-white/50", isSubfilterSelected("categories", category.title) && "bg-almostblack/10 dark:bg-white/10 border-almostblack dark:border-white")} onClick={() => handleSubfilterClick("categories", category.title)}>
               {category.title}
             </Button>
           ))}

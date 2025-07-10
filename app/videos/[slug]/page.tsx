@@ -5,8 +5,8 @@ import { VideoPlayer } from "@/components/video/video-player";
 import { PageHeader } from "@/components/shared/page-header";
 
 export default async function VideoPage({ params }: { params: { slug: string } }) {
-  const videos = await getVideos(50);
-  const video = videos.find((v) => v.slug === params.slug);
+  const allVideos = await getVideos({ limit: 50 });
+  const video = allVideos.videos.find((v) => v.slug === params.slug);
 
   if (!video) {
     notFound();
@@ -28,8 +28,8 @@ export default async function VideoPage({ params }: { params: { slug: string } }
         {/* Video Categories */}
         {video.metadata?.categories && (
           <div className="flex flex-wrap gap-3 mb-8">
-            {video.metadata.categories.map((category) => (
-              <span key={category.slug} className="text-[10px] leading-none uppercase tracking-wider px-2 py-1 rounded-full border border-black dark:border-white">
+            {video.metadata.categories.map((category: { slug: string; title: string }) => (
+              <span key={category.slug + category.title} className="text-[10px] leading-none uppercase tracking-wider px-2 py-1 rounded-full border border-almostblack dark:border-white">
                 {category.title}
               </span>
             ))}
