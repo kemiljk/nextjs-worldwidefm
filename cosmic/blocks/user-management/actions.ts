@@ -485,3 +485,106 @@ export async function logoutUser() {
   (await cookies()).delete("user_id");
   return { success: true };
 }
+
+// --- FAVOURITES MANAGEMENT ---
+import type { GenreObject } from "@/lib/cosmic-config";
+import type { RadioShowObject } from "@/lib/cosmic-config";
+import type { HostObject } from "@/lib/cosmic-config";
+
+export async function addFavouriteGenre(userId: string, genre: GenreObject) {
+  try {
+    const { object: user } = await cosmic.objects.findOne({ id: userId }).props(["metadata"]).depth(0);
+    if (!user) throw new Error("User not found");
+    const current = user.metadata.favourite_genres || [];
+    // Avoid duplicates by id
+    const exists = current.some((g: GenreObject) => g.id === genre.id);
+    if (exists) return { success: true, data: user };
+    const updated = [...current, genre];
+    const { object: updatedUser } = await cosmic.objects.updateOne(userId, {
+      metadata: { ...user.metadata, favourite_genres: updated },
+    });
+    return { success: true, data: updatedUser };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+export async function removeFavouriteGenre(userId: string, genreId: string) {
+  try {
+    const { object: user } = await cosmic.objects.findOne({ id: userId }).props(["metadata"]).depth(0);
+    if (!user) throw new Error("User not found");
+    const current = user.metadata.favourite_genres || [];
+    const updated = current.filter((g: GenreObject) => g.id !== genreId);
+    const { object: updatedUser } = await cosmic.objects.updateOne(userId, {
+      metadata: { ...user.metadata, favourite_genres: updated },
+    });
+    return { success: true, data: updatedUser };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+export async function addFavouriteShow(userId: string, show: RadioShowObject) {
+  try {
+    const { object: user } = await cosmic.objects.findOne({ id: userId }).props(["metadata"]).depth(0);
+    if (!user) throw new Error("User not found");
+    const current = user.metadata.favourite_shows || [];
+    const exists = current.some((s: RadioShowObject) => s.id === show.id);
+    if (exists) return { success: true, data: user };
+    const updated = [...current, show];
+    const { object: updatedUser } = await cosmic.objects.updateOne(userId, {
+      metadata: { ...user.metadata, favourite_shows: updated },
+    });
+    return { success: true, data: updatedUser };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+export async function removeFavouriteShow(userId: string, showId: string) {
+  try {
+    const { object: user } = await cosmic.objects.findOne({ id: userId }).props(["metadata"]).depth(0);
+    if (!user) throw new Error("User not found");
+    const current = user.metadata.favourite_shows || [];
+    const updated = current.filter((s: RadioShowObject) => s.id !== showId);
+    const { object: updatedUser } = await cosmic.objects.updateOne(userId, {
+      metadata: { ...user.metadata, favourite_shows: updated },
+    });
+    return { success: true, data: updatedUser };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+// For hosts, use the same pattern. Type is any for now, but should be HostObject if defined.
+export async function addFavouriteHost(userId: string, host: HostObject) {
+  try {
+    const { object: user } = await cosmic.objects.findOne({ id: userId }).props(["metadata"]).depth(0);
+    if (!user) throw new Error("User not found");
+    const current = user.metadata.favourite_hosts || [];
+    const exists = current.some((h: HostObject) => h.id === host.id);
+    if (exists) return { success: true, data: user };
+    const updated = [...current, host];
+    const { object: updatedUser } = await cosmic.objects.updateOne(userId, {
+      metadata: { ...user.metadata, favourite_hosts: updated },
+    });
+    return { success: true, data: updatedUser };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}
+
+export async function removeFavouriteHost(userId: string, hostId: string) {
+  try {
+    const { object: user } = await cosmic.objects.findOne({ id: userId }).props(["metadata"]).depth(0);
+    if (!user) throw new Error("User not found");
+    const current = user.metadata.favourite_hosts || [];
+    const updated = current.filter((h: HostObject) => h.id !== hostId);
+    const { object: updatedUser } = await cosmic.objects.updateOne(userId, {
+      metadata: { ...user.metadata, favourite_hosts: updated },
+    });
+    return { success: true, data: updatedUser };
+  } catch (error) {
+    return { success: false, error: (error as Error).message };
+  }
+}
