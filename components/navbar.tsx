@@ -7,6 +7,7 @@ import { MoreHorizontal } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import Logo from "./logo";
 import { SearchButton } from "./search/search-button";
+import { useAuth } from "@/cosmic/blocks/user-management/AuthContext";
 
 type NavItem = {
   name: string;
@@ -19,10 +20,12 @@ interface NavbarProps {
 
 export default function Navbar({ navItems }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useAuth();
 
   // Split nav items into visible and overflow items
-  const visibleNavItems = navItems.slice(0, 5);
-  const overflowNavItems = navItems.slice(5);
+  const processedNavItems = navItems.map((item) => (item.name.toLowerCase() === "log in" ? { ...item, name: user ? "Profile" : "Log In" } : item));
+  const processedVisibleNavItems = processedNavItems.slice(0, 5);
+  const processedOverflowNavItems = processedNavItems.slice(5);
 
   return (
     <header className="fixed top-12 left-0 right-0 z-50 transition-all border-b border-almostblack dark:border-white duration-300 bg-background">
@@ -35,14 +38,14 @@ export default function Navbar({ navItems }: NavbarProps) {
           {/* Desktop Navigation */}
           <nav className="hidden md:block ml-auto">
             <ul className="flex items-center uppercase">
-              {visibleNavItems.map((item) => (
+              {processedVisibleNavItems.map((item) => (
                 <li key={item.name}>
                   <Link href={item.link} className="flex font-mono items-center h-16 hover:bg-almostblack text-almostblack hover:text-white dark:text-white transition-colors px-8 dark:hover:bg-white dark:hover:text-almostblack">
                     {item.name}
                   </Link>
                 </li>
               ))}
-              {overflowNavItems.length > 0 && (
+              {processedOverflowNavItems.length > 0 && (
                 <li>
                   <Sheet>
                     <SheetTrigger asChild>
@@ -57,7 +60,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                       </SheetHeader>
                       <nav className="mt-8">
                         <ul className="space-y-4">
-                          {overflowNavItems.map((item) => (
+                          {processedOverflowNavItems.map((item) => (
                             <li key={item.name}>
                               <Link href={item.link} className="block py-2 text-lg hover:bg-almostblack dark:hover:bg-white text-almostblack dark:text-white hover:text-white transition-colors px-4 font-mono uppercase">
                                 {item.name}
@@ -96,7 +99,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                   <SearchButton />
                 </div>
                 <ul className="space-y-4">
-                  {navItems.map((item) => (
+                  {processedNavItems.map((item) => (
                     <li key={item.name}>
                       <Link href={item.link} className="block py-2 text-lg text-almostblack dark:text-white hover:text-almostblack dark:hover:text-white transition-colors font-mono uppercase" onClick={() => setIsOpen(false)}>
                         {item.name}
