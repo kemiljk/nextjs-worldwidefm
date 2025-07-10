@@ -37,7 +37,7 @@ export default function Navbar({ navItems }: NavbarProps) {
             <ul className="flex items-center uppercase">
               {visibleNavItems.map((item) => (
                 <li key={item.name}>
-                  <Link href={item.link} className="flex font-mono items-center h-16 hover:bg-almostblack text-almostblack dark:text-white hover:text-white dark:text-white transition-colors px-8 dark:hover:bg-white dark:hover:text-almostblack dark:text-white">
+                  <Link href={item.link} className="flex font-mono items-center h-16 hover:bg-almostblack text-almostblack hover:text-white dark:text-white transition-colors px-8 dark:hover:bg-white dark:hover:text-almostblack">
                     {item.name}
                   </Link>
                 </li>
@@ -46,7 +46,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                 <li>
                   <Sheet>
                     <SheetTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-foreground h-16 hover:bg-almostblack text-almostblack dark:text-white hover:text-white dark:text-white transition-colors px-8 dark:hover:bg-white dark:hover:text-almostblack dark:text-white">
+                      <Button variant="ghost" size="sm" className="h-16 hover:bg-almostblack text-almostblack dark:text-white hover:text-white transition-colors px-8 dark:hover:bg-white dark:hover:text-almostblack">
                         <MoreHorizontal className="size-4" />
                         <span className="sr-only">More menu items</span>
                       </Button>
@@ -59,7 +59,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                         <ul className="space-y-4">
                           {overflowNavItems.map((item) => (
                             <li key={item.name}>
-                              <Link href={item.link} className="block py-2 text-lg hover:bg-almostblack dark:hover:bg-white transition-colors px-4">
+                              <Link href={item.link} className="block py-2 text-lg hover:bg-almostblack dark:hover:bg-white text-almostblack dark:text-white hover:text-white transition-colors px-4 font-mono uppercase">
                                 {item.name}
                               </Link>
                             </li>
@@ -98,7 +98,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                 <ul className="space-y-4">
                   {navItems.map((item) => (
                     <li key={item.name}>
-                      <Link href={item.link} className="block py-2 text-lg hover:text-bronze-500 transition-colors" onClick={() => setIsOpen(false)}>
+                      <Link href={item.link} className="block py-2 text-lg text-almostblack dark:text-white hover:text-almostblack dark:hover:text-white transition-colors font-mono uppercase" onClick={() => setIsOpen(false)}>
                         {item.name}
                       </Link>
                     </li>

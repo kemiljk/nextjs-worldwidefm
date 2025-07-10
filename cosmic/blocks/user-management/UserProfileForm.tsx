@@ -76,10 +76,10 @@ export function UserProfileForm({ user }: UserProfileFormProps) {
   };
 
   return (
-    <form action={handleSubmit} className="w-full max-w-md space-y-6">
+    <form action={handleSubmit} className="w-full max-w-md mx-auto space-y-6">
       <div className="flex flex-col items-center gap-4">
         <div className="relative h-32 w-32">
-          <img src={avatarPreview || "https://imgix.cosmicjs.com/fe57f880-b0a3-11ee-9844-f9a09795e2a3-Visual_dark.png?w=300&h=300&fit=crop"} alt="Profile avatar" className={`rounded-full object-cover w-full h-full ${isAvatarUploading ? "opacity-50" : ""}`} />
+          <img src={avatarPreview || "/image-placeholder.svg"} alt="Profile avatar" className={`rounded-full object-cover w-full h-full ${isAvatarUploading ? "opacity-50" : ""}`} />
           {isAvatarUploading && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-white"></div>
