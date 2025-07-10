@@ -1,15 +1,13 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { getMixcloudShows, getEnhancedShowBySlug } from "@/lib/actions";
-import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/shared/page-header";
 import { MixcloudShow } from "@/lib/mixcloud-service";
-import { PlayButton } from "@/components/play-button";
-import { Card } from "@/components/ui/card";
 import { addHours, isWithinInterval } from "date-fns";
 import { filterWorldwideFMTags } from "@/lib/mixcloud-service";
 import { findHostSlug, displayNameToSlug } from "@/lib/host-matcher";
+import { ShowCard } from "@/components/ui/show-card";
+import { EpisodeHero } from "@/components/homepage-hero";
+import { stripUrlsFromText } from "@/lib/utils";
 
 export const revalidate = 900; // 15 minutes
 
@@ -63,7 +61,7 @@ export default async function EpisodePage({ params }: { params: { slug: string }
   const rawShow = await getEnhancedShowBySlug(showSlug);
   if (!rawShow) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+      <div className="flex flex-col items-center justify-center min-h-dvh text-center">
         <h1 className="text-h4 font-display uppercase font-normal text-almostblack dark:text-white mb-4">Show Not Found</h1>
         <p className="text-lg text-muted-foreground mb-6">Sorry, we couldn't find a show for this link. It may have been removed or does not exist.</p>
         <Link href="/shows" className="text-blue-600 hover:underline">
@@ -97,163 +95,94 @@ export default async function EpisodePage({ params }: { params: { slug: string }
 
   const displayName = show.name || show.showName || "Untitled Show";
   const displayImage = (show as any).enhanced_image || show.pictures?.extra_large || show.imageUrl || "/image-placeholder.svg";
-  const displayDescription = show.description || (isRadioCult ? show.description : undefined);
+
+  // Format date for overlay (e.g., SAT 14/06)
+  const showDate = startTime
+    .toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+    })
+    .replace(/\./g, "")
+    .toUpperCase();
 
   return (
-    <div className="space-y-8">
-      <Link href="/shows" className="text-foreground flex items-center gap-1">
-        <ChevronRight className="w-4 h-4 rotate-180" />
-        Back to Shows
-      </Link>
-      <PageHeader title={displayName} description={displayDescription} />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="aspect-square relative">
-          <Image src={displayImage} alt={displayName} fill className="object-cover rounded-none" />
-          {isLive && (
-            <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full flex items-center gap-2">
-              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-              <span className="text-sm font-medium">LIVE</span>
-            </div>
-          )}
-        </div>
-        <div>
-          <div className="bg-white dark:bg-gray-900 p-6 rounded-none">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-2">Show Details</h3>
-                <dd>{startTime.toLocaleDateString()}</dd>
-                {isRadioCult && show.endTime && (
-                  <dd className="mt-1">
-                    {startTime.toLocaleTimeString()} - {new Date(show.endTime).toLocaleTimeString()}
-                  </dd>
-                )}
-                {(show as any).broadcast_time && <dd className="mt-1 text-sm text-muted-foreground">Broadcast: {(show as any).broadcast_time}</dd>}
-                {(show as any).duration && <dd className="mt-1 text-sm text-muted-foreground">Duration: {(show as any).duration}</dd>}
+    <div className="pb-8 -mx-4 md:-mx-8 lg:-mx-16">
+      <EpisodeHero displayName={displayName} displayImage={displayImage} showDate={showDate} playable={!isLive && !isRadioCult} show={show} />
+      {/* Main Content Container */}
+      <div className="mx-auto px-4 lg:px-8 mt-8">
+        <div className="flex gap-8">
+          <div className="max-w-3xl mx-auto">
+            {/* Show Description */}
+            {((show as any).body_text || show.description) && (
+              <div className="mb-4">
+                <div className="prose dark:prose-invert max-w-none">
+                  <p className="text-b2 text-muted-foreground leading-tight">{(show as any).body_text || stripUrlsFromText(show.description || "")}</p>
+                </div>
               </div>
-              {!isLive && !isRadioCult && (
+            )}
+
+            {/* Show Details */}
+            <div className="space-y-6">
+              {/* Genres Section */}
+              {((show as any).enhanced_genres?.length > 0 || show.tags?.length > 0) && (
                 <div>
-                  <PlayButton show={show} variant="default" size="lg" className="w-max" />
+                  <div className="flex flex-wrap select-none cursor-default">
+                    {(show as any).enhanced_genres?.map((genre: any) => (
+                      <span key={genre.id || genre.key} className="border border-almostblack dark:border-white px-3 py-1.5 rounded-full text-sm uppercase tracking-wide font-mono">
+                        {genre.title || genre.name}
+                      </span>
+                    )) ||
+                      (isRadioCult
+                        ? show.tags.map((tag: any) => (
+                            <span key={typeof tag === "string" ? tag : tag.key} className="border border-almostblack dark:border-white px-3 py-1.5 rounded-full text-sm uppercase tracking-wide font-mono">
+                              {typeof tag === "string" ? tag : tag.name}
+                            </span>
+                          ))
+                        : filterWorldwideFMTags(show.tags).map((tag) => (
+                            <span key={tag.key} className="border border-almostblack dark:border-white px-3 py-1.5 rounded-full text-sm uppercase tracking-wide font-mono">
+                              {tag.name}
+                            </span>
+                          )))}
+                  </div>
+                </div>
+              )}
+
+              {/* Tracklist Section */}
+              {(show as any).tracklist && (
+                <div className="mt-12">
+                  <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white mb-6">Tracklist</h2>
+                  <div className="prose dark:prose-invert max-w-none">
+                    <pre className="whitespace-pre-wrap text-b4 text-muted-foreground leading-relaxed">{(show as any).tracklist}</pre>
+                  </div>
                 </div>
               )}
             </div>
-            {/* Enhanced Hosts Section */}
-            {((show as any).enhanced_hosts?.length > 0 || show.hosts?.length > 0 || (isRadioCult && (show as any).artists?.length > 0)) && (
-              <div className="mt-8">
-                <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-4">Hosts</h3>
-                <div className="flex flex-wrap gap-2">
-                  {(show as any).enhanced_hosts?.length > 0
-                    ? (show as any).enhanced_hosts.map((host: any) => <HostLink key={host.id || host.key} host={host} className="bg-bronze-50 dark:bg-bronze-950 hover:bg-bronze-300 dark:hover:bg-bronze-900 text-bronze-900 dark:text-bronze-100 px-3 py-1 rounded-full text-sm transition-colors border border-bronze-300 dark:border-bronze-600" />)
-                    : show.hosts?.map((host) => <HostLink key={host.key} host={host} className="bg-bronze-50 dark:bg-bronze-950 hover:bg-bronze-300 dark:hover:bg-bronze-900 text-bronze-900 dark:text-bronze-100 px-3 py-1 rounded-full text-sm transition-colors border border-bronze-300 dark:border-bronze-600" />)}
-                  {isRadioCult && (show as any).artists?.map((artist: any) => <HostLink key={artist.id} host={artist} className="bg-bronze-50 dark:bg-bronze-950 hover:bg-bronze-300 dark:hover:bg-bronze-900 text-bronze-900 dark:text-bronze-100 px-3 py-1 rounded-full text-sm transition-colors border border-bronze-300 dark:border-bronze-600" />)}
-                </div>
-              </div>
-            )}
-            {/* Enhanced Genres Section */}
-            {((show as any).enhanced_genres?.length > 0 || show.tags?.length > 0) && (
-              <div className="mt-8">
-                <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-4">Genres</h3>
-                <div className="flex flex-wrap gap-2">
-                  {(show as any).enhanced_genres?.map((genre: any) => (
-                    <span key={genre.id || genre.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
-                      {genre.title || genre.name}
-                    </span>
-                  )) ||
-                    (isRadioCult
-                      ? show.tags.map((tag: any) => (
-                          <span key={typeof tag === "string" ? tag : tag.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
-                            {typeof tag === "string" ? tag : tag.name}
-                          </span>
-                        ))
-                      : filterWorldwideFMTags(show.tags).map((tag) => (
-                          <span key={tag.key} className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full text-sm uppercase">
-                            {tag.name}
-                          </span>
-                        )))}
-                </div>
-              </div>
-            )}
-            {/* Locations Section */}
-            {(show as any).locations?.length > 0 && (
-              <div className="mt-8">
-                <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-4">Locations</h3>
-                <div className="flex flex-wrap gap-2">
-                  {(show as any).locations.map((location: any) => (
-                    <span key={location.id} className="bg-green-100 dark:bg-green-900 px-3 py-1 rounded-full text-sm">
-                      {location.title}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {/* Takeovers Section */}
-            {(show as any).takeovers?.length > 0 && (
-              <div className="mt-8">
-                <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-4">Takeovers</h3>
-                <div className="flex flex-wrap gap-2">
-                  {(show as any).takeovers.map((takeover: any) => (
-                    <span key={takeover.id} className="bg-purple-100 dark:bg-purple-900 px-3 py-1 rounded-full text-sm">
-                      {takeover.title}
-                    </span>
-                  ))}
+          </div>
+
+          <div>
+            {/* Related Shows Section */}
+            {relatedShows.length > 0 && (
+              <div>
+                <h2 className="font-aircompressed text-[40px] uppercase tracking-tight leading-[0.9] text-black mb-6 w-full" style={{ fontFamily: "AirCompressed-Black, sans-serif" }}>
+                  RELATED SHOWS
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 overflow-x-auto pb-2">
+                  {relatedShows.map((relatedShow) => {
+                    const segments = relatedShow.key.split("/").filter(Boolean);
+                    let showPath = segments.join("/");
+                    if (showPath.startsWith("worldwidefm/")) {
+                      showPath = showPath.replace(/^worldwidefm\//, "");
+                    }
+                    const slug = `/episode/${showPath}`;
+                    return <ShowCard key={relatedShow.key} show={relatedShow} slug={slug} playable={true} />;
+                  })}
                 </div>
               </div>
             )}
           </div>
         </div>
       </div>
-      {/* Additional Content Sections */}
-      {((show as any).body_text || (show as any).tracklist) && (
-        <div className="space-y-8">
-          {(show as any).body_text && (
-            <section className="bg-white dark:bg-gray-900 p-6 rounded-none">
-              <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white mb-4">About This Show</h2>
-              <div className="prose dark:prose-invert max-w-none">
-                <p className="text-muted-foreground leading-relaxed">{(show as any).body_text}</p>
-              </div>
-            </section>
-          )}
-          {(show as any).tracklist && (
-            <section className="bg-white dark:bg-gray-900 p-6 rounded-none">
-              <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white mb-4">Tracklist</h2>
-              <div className="prose dark:prose-invert max-w-none">
-                <pre className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">{(show as any).tracklist}</pre>
-              </div>
-            </section>
-          )}
-        </div>
-      )}
-      {relatedShows.length > 0 && (
-        <section className="space-y-4">
-          <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">Related Shows</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {relatedShows.map((relatedShow) => {
-              const segments = relatedShow.key.split("/").filter(Boolean);
-              let showPath = segments.join("/");
-              if (showPath.startsWith("worldwidefm/")) {
-                showPath = showPath.replace(/^worldwidefm\//, "");
-              }
-              return (
-                <Link key={relatedShow.key} href={`/episode${showPath}`}>
-                  <Card className="overflow-hidden h-full hover:shadow-lg transition-all">
-                    <div className="aspect-square relative">
-                      <Image src={relatedShow.pictures.extra_large} alt={relatedShow.name} fill className="object-cover" />
-                      <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end">
-                        <div className="p-4 w-full">
-                          <h3 className="text-white font-medium line-clamp-2">{relatedShow.name}</h3>
-                          {relatedShow.tags && relatedShow.tags.length > 0 && <p className="text-white/70 text-sm mt-1">{relatedShow.tags[0].name}</p>}
-                        </div>
-                      </div>
-                      <div className="absolute top-2 right-2">
-                        <PlayButton show={relatedShow} size="icon" variant="secondary" className="opacity-80 hover:opacity-100" />
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

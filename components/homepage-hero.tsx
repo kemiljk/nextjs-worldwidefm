@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDateShort } from "@/lib/utils";
 import { GenreObject } from "@/lib/cosmic-config";
+import { PlayButton } from "@/components/play-button";
 
 interface HomepageHeroProps {
   heroLayout: string;
@@ -73,6 +74,29 @@ const HomepageHero: React.FC<HomepageHeroProps> = ({ heroLayout, heroItems }) =>
     <div>
       <h2 className="text-h7 font-display uppercase text-almostblack dark:text-white mb-2">Hero Section (Layout: {heroLayout})</h2>
       <p className="text-red-500 font-semibold">Warning: Layout '{heroLayout}' is not recognized or fully implemented for the Hero section.</p>
+    </div>
+  );
+};
+
+// New: EpisodeHero for episode pages
+export const EpisodeHero = ({ displayName, displayImage, showDate, playable, show }: { displayName: string; displayImage: string; showDate: string; playable?: boolean; show: any }) => {
+  if (!displayImage || !displayName) return null;
+  return (
+    <div className="relative w-full h-[calc(100dvh-112px)] aspect-[2/1]">
+      <Image src={displayImage} alt={displayName} fill priority className="object-cover object-center w-full h-full select-none pointer-events-none" sizes="100vw" />
+      {/* Overlay: Date, Title, Genres */}
+      <div className="absolute inset-0 flex flex-col justify-end">
+        <div className="flex flex-col p-4 sm:p-8 max-w-full">
+          {showDate && <span className="inline-block bg-almostblack text-white font-display text-h8 leading-none uppercase w-fit pt-2 p-1 text-left shadow-lg border border-almostblack">{showDate}</span>}
+          <span className="inline-block bg-white border border-almostblack text-h8 max-w-2xl leading-none font-display text-almostblack pt-2 p-1 text-left w-fit uppercase font-bold shadow-lg">{displayName}</span>
+        </div>
+      </div>
+      {/* Overlay: Play Button */}
+      {playable && show && (
+        <div className="absolute bottom-6 right-6">
+          <PlayButton show={show} variant="default" size="lg" className="rounded-full shadow-xl w-16 h-16 text-white bg-black/80 hover:bg-black/90" label={false} />
+        </div>
+      )}
     </div>
   );
 };

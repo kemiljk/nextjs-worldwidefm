@@ -11,6 +11,7 @@ import { filterWorldwideFMTags } from "./mixcloud-service";
 import { getEventBySlug as getRadioCultEventBySlug, getEvents as getRadioCultEvents, RadioCultEvent, getScheduleData as getRadioCultScheduleData, getTags } from "./radiocult-service";
 import FormData from "form-data";
 import { CosmicHomepageData, HomepageSectionItem, CosmicAPIObject } from "./cosmic-types";
+import { stripUrlsFromText } from "./utils";
 
 export async function getAllPosts({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{ posts: PostObject[]; hasNext: boolean }> {
   try {
@@ -253,7 +254,7 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioC
               hidden_stats: false,
               audio_length: radioCultEvent.duration * 60, // convert minutes to seconds
               endTime: radioCultEvent.endTime, // Add endTime for RadioCult events
-              description: radioCultEvent.description, // Add description for RadioCult events
+              description: typeof radioCultEvent.description === "string" ? stripUrlsFromText(radioCultEvent.description) : radioCultEvent.description, // Add description for RadioCult events
               __source: "radiocult",
             };
 
@@ -509,7 +510,7 @@ function convertRadioCultEventToMixcloudFormat(event: RadioCultEvent): any {
     hidden_stats: false,
     audio_length: event.duration * 60, // convert minutes to seconds
     endTime: event.endTime, // Add endTime for RadioCult events
-    description: event.description, // Add description for RadioCult events
+    description: typeof event.description === "string" ? stripUrlsFromText(event.description) : event.description, // Add description for RadioCult events
     __source: "radiocult", // Add a source marker to identify RadioCult events
   };
 }
@@ -585,7 +586,7 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
   try {
     // Use the limit parameter for shows if provided
     const showsLimit = limit ?? 1000;
-    const [posts, showsResponse] = await Promise.all([getAllPosts(), getAllShows(0, showsLimit)]);
+    const [postsResponse, showsResponse] = await Promise.all([getAllPosts(), getAllShows(0, showsLimit)]);
 
     // Helper to ensure filter items have correct structure
     const normalizeFilterItems = (items: any[] = []): FilterItem[] => {
@@ -597,7 +598,7 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
     };
 
     const allContent: SearchResult[] = [
-      ...posts.map((post) => {
+      ...postsResponse.posts.map((post: PostObject) => {
         // For posts, categories may be stored differently than in shows
         // We'll extract categories from post.metadata.categories if available
         const categories = post.metadata?.categories || [];

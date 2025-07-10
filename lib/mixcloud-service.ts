@@ -1,4 +1,5 @@
 import { RadioShowObject, CosmicImage, GenreObject } from "./cosmic-config";
+import { stripUrlsFromText } from "./utils";
 
 export interface MixcloudShow {
   key: string;
@@ -63,7 +64,7 @@ export interface MixcloudShow {
   }>;
   hidden_stats: boolean;
   audio_length: number;
-
+  description?: string;
   // Add a getter for filtered tags
   filteredTags(): Array<{
     key: string;
@@ -153,7 +154,8 @@ export async function getMixcloudShows(params: MixcloudShowsParams = {}, forceRe
       }
 
       const data: MixcloudResponse = await response.json();
-      const shows = data.data ? filterShows(data.data, params).shows : [];
+      let shows = data.data ? filterShows(data.data, params).shows : [];
+      shows = shows.map((show) => ({ ...show, description: show.description ? stripUrlsFromText(show.description) : show.description }));
       return { shows, total: data.paging?.total || shows.length, hasNext: !!data.paging?.next };
     }
 
@@ -164,7 +166,8 @@ export async function getMixcloudShows(params: MixcloudShowsParams = {}, forceRe
       throw new Error(`Mixcloud API proxy error: ${response.statusText}`);
     }
     const data: MixcloudResponse = await response.json();
-    const shows = data.data ? filterShows(data.data, params).shows : [];
+    let shows = data.data ? filterShows(data.data, params).shows : [];
+    shows = shows.map((show) => ({ ...show, description: show.description ? stripUrlsFromText(show.description) : show.description }));
     return { shows, total: data.paging?.total || shows.length, hasNext: !!data.paging?.next };
   } catch (error) {
     console.error("Error fetching Mixcloud shows:", error);
@@ -237,7 +240,7 @@ export function transformMixcloudShow(show: MixcloudShow): Partial<RadioShowObje
     type: "radio-shows",
     metadata: {
       subtitle: show.name,
-      description: show.name,
+      description: stripUrlsFromText(show.description || show.name),
       image: cosmicImage,
       broadcast_date: show.created_time,
       duration: `${Math.floor(show.audio_length / 60)}:${(show.audio_length % 60).toString().padStart(2, "0")}`,
@@ -310,6 +313,9 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | null> 
     }
 
     const show = await response.json();
+    if (show && typeof show === "object" && "description" in show) {
+      show.description = show.description ? stripUrlsFromText(show.description) : show.description;
+    }
     console.log("Found show:", show.name);
     return show;
   } catch (error) {
