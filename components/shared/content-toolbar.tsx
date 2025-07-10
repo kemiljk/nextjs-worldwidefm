@@ -43,14 +43,14 @@ export function ContentToolbar({ onFilterChange, availableFilters, filterConfig,
   };
 
   return (
-    <div className={`sticky top-16 z-10 ${bgColor} border-b border-bronze-700`}>
+    <div className={`sticky top-16 z-10 ${bgColor} border-b border-almostblack dark:border-white`}>
       <div className="flex h-14 items-center gap-4 overflow-x-auto pb-2">
-        <Button variant="ghost" className={cn("h-8 shrink-0 hover:bg-bronze-400/10 hover:text-black dark:hover:text-white", !activeFilter && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterClick("")}>
+        <Button variant="ghost" className={cn("h-8 shrink-0 hover:bg-almostblack/10 hover:text-almostblack dark:hover:bg-white/10 dark:hover:text-white", !activeFilter && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleFilterClick("")}>
           All
         </Button>
 
         {showNew && (
-          <Button variant="ghost" className={cn("h-8 shrink-0 hover:bg-bronze-400/10 hover:text-black dark:hover:text-white", activeFilter === "new" && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterClick("new")}>
+          <Button variant="ghost" className={cn("h-8 shrink-0 hover:bg-almostblack/10 hover:text-almostblack dark:hover:bg-white/10 dark:hover:text-white", activeFilter === "new" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleFilterClick("new")}>
             New
           </Button>
         )}
@@ -77,7 +77,7 @@ export function ContentToolbar({ onFilterChange, availableFilters, filterConfig,
           }
 
           return items.map((item) => (
-            <Button key={`${key}-${item.id}`} variant="ghost" className={cn("h-8 shrink-0 hover:bg-bronze-400/10 hover:text-black dark:hover:text-white", activeFilter === item.id && "bg-bronze-500 text-white hover:bg-bronze-500 hover:text-white")} onClick={() => handleFilterClick(item.id)}>
+            <Button key={`${key}-${item.id}`} variant="ghost" className={cn("h-8 shrink-0 hover:bg-almostblack/10 hover:text-almostblack dark:hover:bg-white/10 dark:hover:text-white", activeFilter === item.id && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleFilterClick(item.id)}>
               {item.title}
             </Button>
           ));

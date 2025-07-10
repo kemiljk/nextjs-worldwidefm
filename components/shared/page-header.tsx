@@ -36,8 +36,8 @@ export function PageHeader({ title, description, breadcrumbs, paddingTop = true 
       )}
 
       {/* Page title and description */}
-      <h1 className="text-h4 font-display uppercase font-normal text-almostblack dark:text-white mb-4">{title}</h1>
-      {description && <p className="text-xl text-muted-foreground">{description}</p>}
+      <h1 className="text-h4 font-display uppercase font-normal text-almostblack dark:text-white mb-4 text-center">{title}</h1>
+      {description && <p className="text-xl text-muted-foreground text-center">{description}</p>}
     </div>
   );
 }

@@ -194,7 +194,7 @@ export default async function SchedulePage() {
                   </Button>
                 </Link>
                 <Link href="/shows">
-                  <Button className="bg-bronze-500 hover:bg-bronze-600 text-white">Browse All Shows</Button>
+                  <Button className="bg-almostblack hover:bg-almostblack/80 text-white dark:bg-white dark:text-almostblack dark:hover:bg-white/80">Browse All Shows</Button>
                 </Link>
               </div>
             </div>

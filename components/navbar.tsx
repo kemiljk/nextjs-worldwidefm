@@ -59,7 +59,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                         <ul className="space-y-4">
                           {overflowNavItems.map((item) => (
                             <li key={item.name}>
-                              <Link href={item.link} className="block py-2 text-lg hover:bg-bronze-500 transition-colors px-4">
+                              <Link href={item.link} className="block py-2 text-lg hover:bg-almostblack dark:hover:bg-white transition-colors px-4">
                                 {item.name}
                               </Link>
                             </li>

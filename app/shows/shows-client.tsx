@@ -133,19 +133,19 @@ export default function ShowsClient({ canonicalGenres }: ShowsClientProps) {
   return (
     <div className="mx-auto lg:px-4 py-16">
       <div className="flex flex-col gap-4 w-full">
-        <div className="flex justify-between w-full gap-8 items-center">
+        <div>
           <PageHeader title="Shows" />
         </div>
         {/* Genre chip picker */}
         <div className="flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
           <button type="button" onClick={() => handleGenreClick(null)}>
-            <Badge variant={selectedGenres.length === 0 ? "default" : "outline-solid"} className={cn("uppercase font-mono text-m6 cursor-pointer whitespace-nowrap", selectedGenres.length === 0 ? "bg-accent text-accent-foreground" : "hover:bg-accent/5")}>
+            <Badge variant={selectedGenres.length === 0 ? "default" : "outline"} className={cn("uppercase font-mono text-m6 cursor-pointer whitespace-nowrap", selectedGenres.length === 0 ? "bg-accent text-accent-foreground" : "hover:bg-accent/5")}>
               All
             </Badge>
           </button>
           {allGenres.map((g) => (
             <button key={g.slug} type="button" onClick={() => handleGenreClick(g.slug)}>
-              <Badge variant={selectedGenres.includes(g.slug) ? "default" : "outline-solid"} className={cn("uppercase font-mono text-m6 cursor-pointer whitespace-nowrap", selectedGenres.includes(g.slug) ? "bg-accent text-accent-foreground" : "hover:bg-accent/5")}>
+              <Badge variant={selectedGenres.includes(g.slug) ? "default" : "outline"} className={cn("uppercase font-mono text-m6 cursor-pointer whitespace-nowrap", selectedGenres.includes(g.slug) ? "bg-accent text-accent-foreground" : "hover:bg-accent/5")}>
                 {g.title}
               </Badge>
             </button>

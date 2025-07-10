@@ -9,9 +9,9 @@ const buttonVariants = cva("inline-flex items-center justify-center rounded-none
     variant: {
       default: "bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black dark:hover:bg-white/90",
       destructive: "bg-crimson-500 text-white hover:bg-crimson-600",
-      outline: "border border-input bg-background hover:bg-bronze-500 hover:text-white",
+      outline: "border border-input bg-background hover:bg-almostblack dark:hover:bg-white hover:text-white dark:hover:text-almostblack",
       secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700",
-      ghost: "hover:bg-bronze-500 hover:text-white",
+      ghost: "hover:bg-almostblack dark:hover:bg-white hover:text-white dark:hover:text-almostblack",
       link: "underline-offset-4 hover:underline text-primary",
     },
     size: {

@@ -57,38 +57,38 @@ export function FilterToolbar({ onFilterChange, onSearchChange, searchTerm = "",
       {onSearchChange && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input placeholder="Search editorial..." className="pl-10 bg-background border-blue-900 dark:border-blue-50" value={searchTerm} onChange={(e) => onSearchChange(e.target.value)} />
+          <Input placeholder="Search editorial..." className="pl-10 bg-background border-almostblack dark:border-white" value={searchTerm} onChange={(e) => onSearchChange(e.target.value)} />
         </div>
       )}
 
       {/* Main Filter Categories */}
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" className={cn("border-blue-900 dark:border-blue-50", !activeFilter && "bg-blue-900 text-white dark:bg-blue-50 dark:text-blue-900")} onClick={() => onFilterChange("")}>
+        <Button variant="outline" className={cn("border-almostblack dark:border-white", !activeFilter && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => onFilterChange("")}>
           All
         </Button>
 
-        <Button variant="outline" className={cn("border-blue-900 dark:border-blue-50", activeFilter === "new" && "bg-blue-900 text-white dark:bg-blue-50 dark:text-blue-900")} onClick={handleNewClick}>
+        <Button variant="outline" className={cn("border-almostblack dark:border-white", activeFilter === "new" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={handleNewClick}>
           New
         </Button>
 
-        <Button variant="outline" className={cn("border-blue-900 dark:border-blue-50", activeFilter === "article" && "bg-blue-900 text-white dark:bg-blue-50 dark:text-blue-900")} onClick={() => handleCategoryClick("article")}>
+        <Button variant="outline" className={cn("border-almostblack dark:border-white", activeFilter === "article" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleCategoryClick("article")}>
           Articles {selectedFilters.article?.length > 0 && `(${selectedFilters.article.length})`}
         </Button>
 
-        <Button variant="outline" className={cn("border-blue-900 dark:border-blue-50", activeFilter === "video" && "bg-blue-900 text-white dark:bg-blue-50 dark:text-blue-900")} onClick={() => handleCategoryClick("video")}>
+        <Button variant="outline" className={cn("border-almostblack dark:border-white", activeFilter === "video" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleCategoryClick("video")}>
           Videos {selectedFilters.video?.length > 0 && `(${selectedFilters.video.length})`}
         </Button>
 
-        <Button variant="outline" className={cn("border-blue-900 dark:border-blue-50", activeFilter === "categories" && "bg-blue-900 text-white dark:bg-blue-50 dark:text-blue-900")} onClick={() => handleCategoryClick("categories")}>
+        <Button variant="outline" className={cn("border-almostblack dark:border-white", activeFilter === "categories" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleCategoryClick("categories")}>
           Categories {selectedFilters.categories?.length > 0 && `(${selectedFilters.categories.length})`}
         </Button>
       </div>
 
       {/* Subfilters (shown based on active filter) */}
       {activeFilter === "categories" && (
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-blue-900/20 dark:border-blue-50/20">
+        <div className="flex flex-wrap gap-2 pt-2 border-t border-almostblack/20 dark:border-white/20">
           {availableFilters.categories?.map((item) => (
-            <Button key={`categories-${item.id}`} variant="outline" size="sm" className={cn("border-blue-900/50 dark:border-blue-50/50", isSubfilterSelected("categories", item.slug) && "bg-blue-900/10 dark:bg-blue-50/10 border-blue-900 dark:border-blue-50")} onClick={() => handleSubfilterClick("categories", item.slug)}>
+            <Button key={`categories-${item.id}`} variant="outline" size="sm" className={cn("border-almostblack/50 dark:border-white/50", isSubfilterSelected("categories", item.slug) && "bg-almostblack/10 dark:bg-white/10 border-almostblack dark:border-white")} onClick={() => handleSubfilterClick("categories", item.slug)}>
               {item.title}
             </Button>
           ))}

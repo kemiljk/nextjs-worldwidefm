@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { ShowCard } from "@/components/ui/show-card";
 import { getAllPosts } from "@/lib/actions";
