@@ -34,7 +34,7 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
               </div>
               <div className="absolute bottom-0 left-0 right-0 flex bg-linear-to-t from-almostblack to-transparent h-1/2 flex-col p-4 flex-1 justify-end">
                 <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-2 p-1 text-left">{formattedDate}</div>
-                <h3 className="bg-white border border-almostblack text-h8 max-w-2xl leading-none font-display text-almostblack dark:text-white pt-2 p-1 text-left w-fit">{post.title}</h3>
+                <h3 className="bg-white border border-almostblack text-h8 max-w-2xl leading-none font-display text-almostblack pt-2 p-1 text-left w-fit">{post.title}</h3>
                 {isLarge && <p className="mt-2 text-sm line-clamp-2 text-white opacity-90">{post.metadata.excerpt}</p>}
                 <div className="flex flex-wrap gap-2 mt-3">
                   {post.metadata.categories?.map((category) => (
