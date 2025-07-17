@@ -44,7 +44,7 @@ export default function PostsGrid({ initialPosts, activeFilter = "", activeSubfi
       const newPosts = await getAllPosts();
 
       // Apply filters to new posts
-      const filteredNewPosts = filterPosts(newPosts);
+      const filteredNewPosts = filterPosts(newPosts.posts);
 
       if (filteredNewPosts.length > 0) {
         setPosts((prev) => [...prev, ...filteredNewPosts]);

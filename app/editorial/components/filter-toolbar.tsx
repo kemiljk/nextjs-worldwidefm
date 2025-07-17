@@ -4,8 +4,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { FilterItem } from "@/lib/filter-types";
+import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown";
+import { Badge } from "@/components/ui/badge";
 
 interface FilterToolbarProps {
   onFilterChange: (filter: string, subfilter?: string) => void;
@@ -19,16 +21,6 @@ interface FilterToolbarProps {
 }
 
 export function FilterToolbar({ onFilterChange, onSearchChange, searchTerm = "", activeFilter, selectedFilters, availableFilters }: FilterToolbarProps) {
-  // Handle filter category buttons (Article, Video)
-  const handleCategoryClick = (filter: string) => {
-    // If clicking the same filter, clear it
-    if (activeFilter === filter && !Object.values(selectedFilters).some((arr) => arr.length > 0)) {
-      onFilterChange("");
-    } else {
-      onFilterChange(filter);
-    }
-  };
-
   // Handle "New" filter button (acts as toggle)
   const handleNewClick = () => {
     if (activeFilter === "new") {
@@ -38,17 +30,83 @@ export function FilterToolbar({ onFilterChange, onSearchChange, searchTerm = "",
     }
   };
 
-  // Handle subfilter selection (individual category)
-  const handleSubfilterClick = (filter: string, subfilter: string) => {
-    onFilterChange(filter, subfilter);
+  // Handle dropdown selection changes
+  const handleSelectionChange = (filterType: string) => (values: string[]) => {
+    const currentSelected = selectedFilters[filterType] || [];
+
+    // Find what changed
+    const added = values.filter((v) => !currentSelected.includes(v));
+    const removed = currentSelected.filter((v) => !values.includes(v));
+
+    // Handle additions
+    added.forEach((value) => {
+      onFilterChange(filterType, value);
+    });
+
+    // Handle removals
+    removed.forEach((value) => {
+      onFilterChange(filterType, value);
+    });
+
+    // If no items selected, clear all filters
+    if (values.length === 0) {
+      onFilterChange("");
+    }
   };
 
-  // Determine if a subfilter is selected
-  const isSubfilterSelected = (filter: string, slug: string) => {
-    if (filter === "categories") return selectedFilters.categories?.includes(slug);
-    if (filter === "article") return selectedFilters.article?.includes(slug);
-    if (filter === "video") return selectedFilters.video?.includes(slug);
-    return false;
+  const handleClearFilter = (filterType: string, value?: string) => {
+    if (filterType === "new") {
+      onFilterChange("");
+    } else if (value) {
+      onFilterChange(filterType, value); // This will toggle the item
+    }
+  };
+
+  // Get all active filter chips
+  const getActiveChips = () => {
+    const chips: Array<{ type: string; value: string; label: string }> = [];
+
+    if (activeFilter === "new") {
+      chips.push({ type: "new", value: "new", label: "New" });
+    }
+
+    // Add article filters
+    if (selectedFilters.article?.length > 0) {
+      selectedFilters.article.forEach((slug) => {
+        const item = availableFilters.article?.find((f) => f.slug === slug);
+        chips.push({
+          type: "article",
+          value: slug,
+          label: item?.title || slug,
+        });
+      });
+    }
+
+    // Add video filters
+    if (selectedFilters.video?.length > 0) {
+      selectedFilters.video.forEach((slug) => {
+        const item = availableFilters.video?.find((f) => f.slug === slug);
+        chips.push({
+          type: "video",
+          value: slug,
+          label: item?.title || slug,
+        });
+      });
+    }
+
+    // Add category filters
+    if (selectedFilters.categories?.length > 0) {
+      selectedFilters.categories.forEach((slug) => {
+        const item = availableFilters.categories?.find((f) => f.slug === slug);
+        chips.push({
+          type: "categories",
+          value: slug,
+          label: item?.title || slug,
+        });
+      });
+    }
+
+    return chips;
   };
 
   return (
@@ -61,7 +119,7 @@ export function FilterToolbar({ onFilterChange, onSearchChange, searchTerm = "",
         </div>
       )}
 
-      {/* Main Filter Categories */}
+      {/* Main Filter Controls */}
       <div className="flex flex-wrap gap-2">
         <Button variant="outline" className={cn("border-almostblack dark:border-white", !activeFilter && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => onFilterChange("")}>
           All
@@ -71,26 +129,60 @@ export function FilterToolbar({ onFilterChange, onSearchChange, searchTerm = "",
           New
         </Button>
 
-        <Button variant="outline" className={cn("border-almostblack dark:border-white", activeFilter === "article" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleCategoryClick("article")}>
-          Articles {selectedFilters.article?.length > 0 && `(${selectedFilters.article.length})`}
-        </Button>
+        <MultiSelectDropdown
+          options={
+            availableFilters.article?.map((item) => ({
+              id: item.id,
+              title: item.title,
+              slug: item.slug,
+            })) || []
+          }
+          selectedValues={selectedFilters.article || []}
+          onSelectionChange={handleSelectionChange("article")}
+          placeholder="Articles"
+        />
 
-        <Button variant="outline" className={cn("border-almostblack dark:border-white", activeFilter === "video" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleCategoryClick("video")}>
-          Videos {selectedFilters.video?.length > 0 && `(${selectedFilters.video.length})`}
-        </Button>
+        <MultiSelectDropdown
+          options={
+            availableFilters.video?.map((item) => ({
+              id: item.id,
+              title: item.title,
+              slug: item.slug,
+            })) || []
+          }
+          selectedValues={selectedFilters.video || []}
+          onSelectionChange={handleSelectionChange("video")}
+          placeholder="Videos"
+        />
 
-        <Button variant="outline" className={cn("border-almostblack dark:border-white", activeFilter === "categories" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleCategoryClick("categories")}>
-          Categories {selectedFilters.categories?.length > 0 && `(${selectedFilters.categories.length})`}
-        </Button>
+        <MultiSelectDropdown
+          options={
+            availableFilters.categories?.map((item) => ({
+              id: item.id,
+              title: item.title,
+              slug: item.slug,
+            })) || []
+          }
+          selectedValues={selectedFilters.categories || []}
+          onSelectionChange={handleSelectionChange("categories")}
+          placeholder="Categories"
+        />
       </div>
 
-      {/* Subfilters (shown based on active filter) */}
-      {activeFilter === "categories" && (
-        <div className="flex flex-wrap gap-2 pt-2 border-t border-almostblack/20 dark:border-white/20">
-          {availableFilters.categories?.map((item) => (
-            <Button key={`categories-${item.id}`} variant="outline" size="sm" className={cn("border-almostblack/50 dark:border-white/50", isSubfilterSelected("categories", item.slug) && "bg-almostblack/10 dark:bg-white/10 border-almostblack dark:border-white")} onClick={() => handleSubfilterClick("categories", item.slug)}>
-              {item.title}
-            </Button>
+      {/* Active Filter Chips */}
+      {getActiveChips().length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
+          {getActiveChips().map((chip, index) => (
+            <Badge key={`${chip.type}-${chip.value}-${index}`} variant="default" className="uppercase font-mono text-m6 cursor-pointer whitespace-nowrap bg-accent text-accent-foreground flex items-center gap-1">
+              {chip.label}
+              <X
+                className="h-3 w-3"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClearFilter(chip.type, chip.value);
+                }}
+              />
+            </Badge>
           ))}
         </div>
       )}

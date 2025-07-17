@@ -752,11 +752,13 @@ export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
 export async function getAllFilters() {
   try {
     // Fetch all filter collections in parallel from Cosmic
-    const [genresRes, hostsRes, takeoversRes, locationsRes] = await Promise.all([
+    const [genresRes, hostsRes, takeoversRes, locationsRes, featuredShowsRes, seriesRes] = await Promise.all([
       cosmic.objects.find({ type: "genres", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
       cosmic.objects.find({ type: "regular-hosts", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
       cosmic.objects.find({ type: "takeovers", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
       cosmic.objects.find({ type: "locations", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+      cosmic.objects.find({ type: "featured-shows", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+      cosmic.objects.find({ type: "series", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
     ]);
 
     const toFilterItems = (objects: any[] = [], type: string): FilterItem[] => objects.map((obj) => ({ id: obj.id, slug: obj.slug, title: obj.title, type }));
@@ -765,8 +767,10 @@ export async function getAllFilters() {
     const hosts = toFilterItems(hostsRes.objects || [], "hosts");
     const takeovers = toFilterItems(takeoversRes.objects || [], "takeovers");
     const locations = toFilterItems(locationsRes.objects || [], "locations");
+    const featuredShows = toFilterItems(featuredShowsRes.objects || [], "featured-shows");
+    const series = toFilterItems(seriesRes.objects || [], "series");
 
-    return { genres, hosts, takeovers, locations };
+    return { genres, hosts, takeovers, locations, featuredShows, series };
   } catch (error) {
     console.error("Error getting filters:", error);
     return {
@@ -774,6 +778,56 @@ export async function getAllFilters() {
       hosts: [],
       takeovers: [],
       locations: [],
+      featuredShows: [],
+      series: [],
+    };
+  }
+}
+
+export async function getShowsFilters() {
+  try {
+    // Fetch all filter collections in parallel from Cosmic
+    const [genresRes, hostsRes, takeoversRes, locationsRes, featuredShowsRes, seriesRes] = await Promise.all([
+      cosmic.objects.find({ type: "genres", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+      cosmic.objects.find({ type: "regular-hosts", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+      cosmic.objects.find({ type: "takeovers", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+      cosmic.objects.find({ type: "locations", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+      cosmic.objects.find({ type: "featured-shows", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+      cosmic.objects.find({ type: "series", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
+    ]);
+
+    // Convert to FilterItem type with id property for shows page
+    const toShowsFilterItems = (objects: any[] = [], type: string) =>
+      objects.map((obj) => ({
+        id: obj.id,
+        slug: obj.slug,
+        title: obj.title,
+        type: type,
+        content: obj.content || "",
+        status: obj.status || "published",
+        metadata: obj.metadata || null,
+        created_at: obj.created_at,
+        modified_at: obj.modified_at,
+        published_at: obj.published_at,
+      }));
+
+    return {
+      genres: toShowsFilterItems(genresRes.objects || [], "genres"),
+      hosts: toShowsFilterItems(hostsRes.objects || [], "hosts"),
+      takeovers: toShowsFilterItems(takeoversRes.objects || [], "takeovers"),
+      locations: toShowsFilterItems(locationsRes.objects || [], "locations"),
+      featuredShows: toShowsFilterItems(featuredShowsRes.objects || [], "featured-shows"),
+      series: toShowsFilterItems(seriesRes.objects || [], "series"),
+    };
+  } catch (error) {
+    console.error("Error getting shows filters:", error);
+    return {
+      genres: [],
+      hosts: [],
+      takeovers: [],
+      locations: [],
+      featuredShows: [],
+      series: [],
     };
   }
 }
@@ -1352,5 +1406,57 @@ export async function getTakeovers({ limit = 20, offset = 0, tag, searchTerm }: 
   } catch (error) {
     console.error("Error in getTakeovers:", error);
     return { takeovers: [], hasNext: false };
+  }
+}
+
+export async function getFeaturedShows({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{ featuredShows: any[]; hasNext: boolean }> {
+  try {
+    const filters: any = {
+      type: "featured-shows",
+      limit,
+      skip: offset,
+      sort: "-metadata.date",
+      status: "published",
+      props: "id,slug,title,metadata,created_at",
+    };
+    if (tag) {
+      filters["metadata.categories"] = tag;
+    }
+    if (searchTerm) {
+      filters["title"] = searchTerm;
+    }
+    const response = await cosmic.objects.find(filters);
+    const featuredShows = response.objects || [];
+    const hasNext = featuredShows.length === limit;
+    return { featuredShows, hasNext };
+  } catch (error) {
+    console.error("Error in getFeaturedShows:", error);
+    return { featuredShows: [], hasNext: false };
+  }
+}
+
+export async function getSeries({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{ series: any[]; hasNext: boolean }> {
+  try {
+    const filters: any = {
+      type: "series",
+      limit,
+      skip: offset,
+      sort: "-metadata.date",
+      status: "published",
+      props: "id,slug,title,metadata,created_at",
+    };
+    if (tag) {
+      filters["metadata.categories"] = tag;
+    }
+    if (searchTerm) {
+      filters["title"] = searchTerm;
+    }
+    const response = await cosmic.objects.find(filters);
+    const series = response.objects || [];
+    const hasNext = series.length === limit;
+    return { series, hasNext };
+  } catch (error) {
+    console.error("Error in getSeries:", error);
+    return { series: [], hasNext: false };
   }
 }

@@ -16,6 +16,8 @@ export interface AvailableFilters {
   locations: FilterItem[];
   hosts: FilterItem[];
   takeovers: FilterItem[];
+  featuredShows: FilterItem[];
+  series: FilterItem[];
   [key: string]: FilterItem[];
 }
 
@@ -27,6 +29,8 @@ export function getFilterItemsFromShow(show: any): AvailableFilters {
     locations: show.metadata?.locations || [],
     hosts: show.metadata?.regular_hosts || [],
     takeovers: show.metadata?.takeovers || [],
+    featuredShows: show.metadata?.featured_shows || [],
+    series: show.metadata?.series || [],
   };
 }
 
