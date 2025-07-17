@@ -1,6 +1,12 @@
 import { RadioShowObject, CosmicImage, GenreObject } from "./cosmic-config";
 import { stripUrlsFromText } from "./utils";
 
+// Helper function to clean show titles by removing everything from "//" onwards
+function cleanShowTitle(title: string): string {
+  const doubleSlashIndex = title.indexOf("//");
+  return doubleSlashIndex !== -1 ? title.substring(0, doubleSlashIndex).trim() : title;
+}
+
 export interface MixcloudShow {
   key: string;
   name: string;
@@ -155,7 +161,11 @@ export async function getMixcloudShows(params: MixcloudShowsParams = {}, forceRe
 
       const data: MixcloudResponse = await response.json();
       let shows = data.data ? filterShows(data.data, params).shows : [];
-      shows = shows.map((show) => ({ ...show, description: show.description ? stripUrlsFromText(show.description) : show.description }));
+      shows = shows.map((show) => ({
+        ...show,
+        name: cleanShowTitle(show.name),
+        description: show.description ? stripUrlsFromText(show.description) : show.description,
+      }));
       return { shows, total: data.paging?.total || shows.length, hasNext: !!data.paging?.next };
     }
 
@@ -167,7 +177,11 @@ export async function getMixcloudShows(params: MixcloudShowsParams = {}, forceRe
     }
     const data: MixcloudResponse = await response.json();
     let shows = data.data ? filterShows(data.data, params).shows : [];
-    shows = shows.map((show) => ({ ...show, description: show.description ? stripUrlsFromText(show.description) : show.description }));
+    shows = shows.map((show) => ({
+      ...show,
+      name: cleanShowTitle(show.name),
+      description: show.description ? stripUrlsFromText(show.description) : show.description,
+    }));
     return { shows, total: data.paging?.total || shows.length, hasNext: !!data.paging?.next };
   } catch (error) {
     console.error("Error fetching Mixcloud shows:", error);
@@ -190,7 +204,7 @@ function filterShows(shows: MixcloudShow[], params: MixcloudShowsParams): { show
   // Filter by search term
   if (params.searchTerm) {
     const searchLower = params.searchTerm.toLowerCase();
-    filteredShows = filteredShows.filter((show) => show.name.toLowerCase().includes(searchLower) || filterWorldwideFMTags(show.tags).some((tag) => tag.name.toLowerCase().includes(searchLower)));
+    filteredShows = filteredShows.filter((show) => cleanShowTitle(show.name).toLowerCase().includes(searchLower) || filterWorldwideFMTags(show.tags).some((tag) => tag.name.toLowerCase().includes(searchLower)));
   }
 
   // Filter by isNew (shows from last 30 days)
@@ -233,14 +247,15 @@ export function transformMixcloudShow(show: MixcloudShow): Partial<RadioShowObje
     metadata: null,
   }));
 
+  const cleanedTitle = cleanShowTitle(show.name);
   return {
     id: show.key,
-    title: show.name,
+    title: cleanedTitle,
     slug: show.key,
     type: "radio-shows",
     metadata: {
-      subtitle: show.name,
-      description: stripUrlsFromText(show.description || show.name),
+      subtitle: cleanedTitle,
+      description: stripUrlsFromText(show.description || cleanedTitle),
       image: cosmicImage,
       broadcast_date: show.created_time,
       duration: `${Math.floor(show.audio_length / 60)}:${(show.audio_length % 60).toString().padStart(2, "0")}`,
@@ -313,8 +328,13 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | null> 
     }
 
     const show = await response.json();
-    if (show && typeof show === "object" && "description" in show) {
-      show.description = show.description ? stripUrlsFromText(show.description) : show.description;
+    if (show && typeof show === "object") {
+      if ("name" in show) {
+        show.name = cleanShowTitle(show.name);
+      }
+      if ("description" in show) {
+        show.description = show.description ? stripUrlsFromText(show.description) : show.description;
+      }
     }
     console.log("Found show:", show.name);
     return show;

@@ -45,7 +45,6 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   const selectedSeries = seriesParam ? seriesParam.split("|").filter(Boolean) : [];
 
   const searchTerm = searchParams.get("searchTerm") ?? undefined;
-  const isNew = searchParams.get("isNew") === "true";
 
   // Build params for getMixcloudShows
   // Convert host slugs to host titles for API filtering
@@ -58,7 +57,6 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     tag: selectedGenres.length > 0 ? selectedGenres.join("|") : undefined,
     host: hostTitles.length > 0 ? hostTitles.join("|") : undefined,
     searchTerm,
-    isNew,
     limit: PAGE_SIZE,
   };
 
@@ -80,7 +78,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genreParam, hostParam, takeoverParam, featuredShowParam, seriesParam, searchTerm, isNew]);
+  }, [genreParam, hostParam, takeoverParam, featuredShowParam, seriesParam, searchTerm]);
 
   // Infinite scroll: load more when sentinel is in view
   useEffect(() => {
@@ -101,7 +99,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inView, hasNext, isLoadingMore, page, genreParam, hostParam, takeoverParam, featuredShowParam, seriesParam, searchTerm, isNew]);
+  }, [inView, hasNext, isLoadingMore, page, genreParam, hostParam, takeoverParam, featuredShowParam, seriesParam, searchTerm]);
 
   // Map Mixcloud show tags to canonical genres (by slug or title, case-insensitive)
   function mapShowToCanonicalGenres(show: MixcloudShow): string[] {
@@ -134,10 +132,20 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
 
   // For shows with Cosmic data (__source: "cosmic"), check if they match selected filters
   function matchesCosmicFilters(show: any): boolean {
-    // If it's not from Cosmic, we can't check these filters
-    if (show.__source !== "cosmic") {
-      return true; // Don't filter out non-Cosmic shows based on Cosmic-only filters
+    // Check if any Cosmic-specific filters are active
+    const hasCosmicFilters = selectedTakeovers.length > 0 || selectedFeaturedShows.length > 0 || selectedSeries.length > 0;
+
+    // If Cosmic-specific filters are active but this isn't a Cosmic show, exclude it
+    if (hasCosmicFilters && show.__source !== "cosmic") {
+      return false;
     }
+
+    // If no Cosmic-specific filters are active, include all shows
+    if (!hasCosmicFilters) {
+      return true;
+    }
+
+    // For Cosmic shows, check if they match the selected filters
 
     // Check takeovers
     if (selectedTakeovers.length > 0) {
@@ -148,8 +156,6 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
 
     // Check featured shows
     if (selectedFeaturedShows.length > 0) {
-      // For featured shows, we might need to check if the show is in the featured shows list
-      // This might require additional logic depending on how featured shows are structured
       const showFeaturedShows = show.metadata?.featured_shows || [];
       const matchesFeaturedShow = showFeaturedShows.some((featuredShow: any) => selectedFeaturedShows.includes(featuredShow.slug || featuredShow.id));
       if (!matchesFeaturedShow) return false;
@@ -178,17 +184,6 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Handle "New" filter button
-  const handleNewClick = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (isNew) {
-      params.delete("isNew");
-    } else {
-      params.set("isNew", "true");
-    }
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  };
-
   // Handle clear all filters
   const handleClearAll = () => {
     router.replace(pathname, { scroll: false });
@@ -198,17 +193,13 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   const handleClearFilter = (filterType: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
 
-    if (filterType === "isNew") {
-      params.delete("isNew");
-    } else {
-      const currentValues = params.get(filterType)?.split("|").filter(Boolean) || [];
-      const newValues = currentValues.filter((v) => v !== value);
+    const currentValues = params.get(filterType)?.split("|").filter(Boolean) || [];
+    const newValues = currentValues.filter((v) => v !== value);
 
-      if (newValues.length === 0) {
-        params.delete(filterType);
-      } else {
-        params.set(filterType, newValues.join("|"));
-      }
+    if (newValues.length === 0) {
+      params.delete(filterType);
+    } else {
+      params.set(filterType, newValues.join("|"));
     }
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -217,10 +208,6 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   // Get all active filter chips
   const getActiveChips = () => {
     const chips: Array<{ type: string; value: string; label: string }> = [];
-
-    if (isNew) {
-      chips.push({ type: "isNew", value: "new", label: "New" });
-    }
 
     // Add genre chips
     selectedGenres.forEach((genreSlug) => {
@@ -312,10 +299,6 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className={cn("border-almostblack dark:border-white", !hasActiveFilters && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={handleClearAll}>
             All
-          </Button>
-
-          <Button variant="outline" className={cn("border-almostblack dark:border-white", isNew && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={handleNewClick}>
-            New
           </Button>
 
           <MultiSelectDropdown
