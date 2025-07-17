@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, User } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import Logo from "./logo";
 import { SearchButton } from "./search/search-button";
 import { useAuth } from "@/cosmic/blocks/user-management/AuthContext";
+import { getUserData } from "@/cosmic/blocks/user-management/actions";
 
 type NavItem = {
   name: string;
@@ -20,10 +22,30 @@ interface NavbarProps {
 
 export default function Navbar({ navItems }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [userData, setUserData] = useState<any>(null);
   const { user } = useAuth();
 
+  useEffect(() => {
+    if (user) {
+      getUserData(user.id)
+        .then((response) => {
+          if (response.data) {
+            setUserData(response.data);
+          }
+        })
+        .catch((error) => console.error("Error fetching user data:", error));
+    } else {
+      setUserData(null);
+    }
+  }, [user]);
+
   // Split nav items into visible and overflow items
-  const processedNavItems = navItems.map((item) => (item.name.toLowerCase() === "log in" ? { ...item, name: user ? "Profile" : "Log In" } : item));
+  const processedNavItems = navItems.map((item) => {
+    if (item.name.toLowerCase() === "log in") {
+      return { ...item, name: user ? "" : "Log In", showAsAvatar: !!user };
+    }
+    return item;
+  });
   const processedVisibleNavItems = processedNavItems.slice(0, 5);
   const processedOverflowNavItems = processedNavItems.slice(5);
 
@@ -41,7 +63,19 @@ export default function Navbar({ navItems }: NavbarProps) {
               {processedVisibleNavItems.map((item) => (
                 <li key={item.name}>
                   <Link href={item.link} className="flex font-mono items-center h-16 hover:bg-almostblack text-almostblack hover:text-white dark:text-white transition-colors px-8 dark:hover:bg-white dark:hover:text-almostblack">
-                    {item.name}
+                    {(item as any).showAsAvatar && user ? (
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8 border border-almostblack dark:border-white">
+                          <AvatarImage src={userData?.metadata?.avatar?.imgix_url || user.image} alt="Profile" />
+                          <AvatarFallback>
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="sr-only">Profile</span>
+                      </div>
+                    ) : (
+                      item.name
+                    )}
                   </Link>
                 </li>
               ))}
@@ -102,7 +136,19 @@ export default function Navbar({ navItems }: NavbarProps) {
                   {processedNavItems.map((item) => (
                     <li key={item.name}>
                       <Link href={item.link} className="block py-2 text-lg text-almostblack dark:text-white hover:text-almostblack dark:hover:text-white transition-colors font-mono uppercase" onClick={() => setIsOpen(false)}>
-                        {item.name}
+                        {(item as any).showAsAvatar && user ? (
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-6 w-6 border border-almostblack dark:border-white">
+                              <AvatarImage src={userData?.metadata?.avatar?.imgix_url || user.image} alt="Profile" />
+                              <AvatarFallback>
+                                <User className="h-3 w-3" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>Profile</span>
+                          </div>
+                        ) : (
+                          item.name
+                        )}
                       </Link>
                     </li>
                   ))}
