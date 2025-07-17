@@ -91,7 +91,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, slug, className = "", 
         {/* Title */}
         <div className="h-full flex-1 flex flex-col">
           <div className="font-mono text-2xl leading-none text-almostblack dark:text-white uppercase w-full break-none">{mainTitle}</div>
-          {subtitle && <div className="font-mono text-2xl leading-none text-almostblack dark:text-white uppercase w-full break-words">{subtitle}</div>}
+          {subtitle && <div className="font-mono text-xl leading-none text-almostblack/75 dark:text-white/75 uppercase w-full break-words">{subtitle}</div>}
         </div>
         {/* Show Info */}
         <div className="flex flex-row items-center gap-2.5 font-mono text-xs text-almostblack dark:text-white uppercase pl-1 pt-1">
