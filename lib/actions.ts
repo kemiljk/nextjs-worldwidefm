@@ -109,7 +109,7 @@ export async function getAllShows(cosmicSkip = 0, mixcloudSkip = 0, limit = 20, 
 }
 
 /**
- * Enhanced function that merges Mixcloud and Cosmic CMS data for richer show details
+ * Enhanced function that merges Mixcloud, Cosmic CMS, and Episode data for richer show details
  */
 export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
   // First get the base show data (from Mixcloud, RadioCult, or Cosmic)
@@ -120,6 +120,8 @@ export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
 
   // Try to find matching Cosmic CMS data
   let cosmicShow = null;
+  let episodeData = null;
+
   try {
     // Try to find by exact slug match first
     const cosmicResponse = await getRadioShowBySlug(slug);
@@ -133,6 +135,34 @@ export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
         cosmicShow = allShows.objects.find((show) => show.title.toLowerCase().includes(showName.toLowerCase()) || showName.toLowerCase().includes(show.title.toLowerCase())) || null;
       }
     }
+
+    // Try to find Episode data for this show
+    try {
+      const episodeResponse = await cosmic.objects
+        .findOne({
+          type: "episode",
+          slug: slug,
+        })
+        .props("id,slug,title,metadata")
+        .depth(1);
+
+      episodeData = episodeResponse?.object || null;
+
+      // If no Episode found by slug, try to find by RadioCult event ID if this is a RadioCult show
+      if (!episodeData && baseShow.__source === "radiocult" && baseShow.key) {
+        const episodeByEventResponse = await cosmic.objects
+          .findOne({
+            type: "episode",
+            "metadata.radiocult_event_id": baseShow.key,
+          })
+          .props("id,slug,title,metadata")
+          .depth(1);
+
+        episodeData = episodeByEventResponse?.object || null;
+      }
+    } catch (error) {
+      console.error("Error fetching Episode data:", error);
+    }
   } catch (error) {
     console.error("Error fetching Cosmic CMS data:", error);
   }
@@ -144,32 +174,62 @@ export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
   const getShowTags = (show: any) => show.tags || [];
   const getShowHosts = (show: any) => show.hosts || [];
 
-  // Merge the data, prioritizing Cosmic CMS data when available
+  // Merge the data, prioritizing Episode data, then Cosmic CMS data
   const enhancedShow = {
     ...baseShow,
-    // Merge Cosmic CMS metadata if available
-    ...(cosmicShow && {
-      cosmicData: cosmicShow,
-      subtitle: cosmicShow.metadata?.subtitle || getShowName(baseShow),
-      description: cosmicShow.metadata?.description || getShowDescription(baseShow),
-      body_text: cosmicShow.metadata?.body_text,
-      tracklist: cosmicShow.metadata?.tracklist,
-      duration: cosmicShow.metadata?.duration,
-      broadcast_date: cosmicShow.metadata?.broadcast_date,
-      broadcast_time: cosmicShow.metadata?.broadcast_time,
-      player: cosmicShow.metadata?.player,
-      page_link: cosmicShow.metadata?.page_link,
-      // Enhanced image - prefer Cosmic CMS if available
-      enhanced_image: cosmicShow.metadata?.image?.imgix_url || getShowImage(baseShow),
-      // Enhanced genres - merge Mixcloud tags with Cosmic genres
-      enhanced_genres: [...(getShowTags(baseShow).length > 0 ? filterWorldwideFMTags(getShowTags(baseShow)) : []), ...(cosmicShow.metadata?.genres || [])],
-      // Enhanced hosts - merge Mixcloud hosts with Cosmic regular_hosts
-      enhanced_hosts: [...getShowHosts(baseShow), ...(cosmicShow.metadata?.regular_hosts || [])],
-      // Additional Cosmic-only fields
-      locations: cosmicShow.metadata?.locations || [],
-      takeovers: cosmicShow.metadata?.takeovers || [],
-      featured_on_homepage: cosmicShow.metadata?.featured_on_homepage || false,
+    // Merge Episode data if available (highest priority)
+    ...(episodeData && {
+      episodeData: episodeData,
+      subtitle: episodeData.metadata?.subtitle || getShowName(baseShow),
+      description: episodeData.metadata?.description || getShowDescription(baseShow),
+      body_text: episodeData.metadata?.body_text,
+      tracklist: episodeData.metadata?.tracklist,
+      duration: episodeData.metadata?.duration,
+      broadcast_date: episodeData.metadata?.broadcast_date,
+      broadcast_time: episodeData.metadata?.broadcast_time,
+      player: episodeData.metadata?.player,
+      page_link: episodeData.metadata?.page_link,
+      // Enhanced image - prefer Episode data if available
+      enhanced_image: episodeData.metadata?.image?.imgix_url || getShowImage(baseShow),
+      // Enhanced genres - merge show tags with Episode genres
+      enhanced_genres: [...(getShowTags(baseShow).length > 0 ? filterWorldwideFMTags(getShowTags(baseShow)) : []), ...(episodeData.metadata?.genres || [])],
+      // Enhanced hosts - merge show hosts with Episode regular_hosts
+      enhanced_hosts: [...getShowHosts(baseShow), ...(episodeData.metadata?.regular_hosts || [])],
+      // Additional Episode-only fields
+      locations: episodeData.metadata?.locations || [],
+      takeovers: episodeData.metadata?.takeovers || [],
+      featured_on_homepage: episodeData.metadata?.featured_on_homepage || false,
+      // RadioCult specific fields
+      radiocult_event_id: episodeData.metadata?.radiocult_event_id,
+      radiocult_show_id: episodeData.metadata?.radiocult_show_id,
+      radiocult_artist_id: episodeData.metadata?.radiocult_artist_id,
+      radiocult_synced: episodeData.metadata?.radiocult_synced,
+      radiocult_synced_at: episodeData.metadata?.radiocult_synced_at,
     }),
+    // Merge Cosmic CMS metadata if available (fallback if no Episode data)
+    ...(!episodeData &&
+      cosmicShow && {
+        cosmicData: cosmicShow,
+        subtitle: cosmicShow.metadata?.subtitle || getShowName(baseShow),
+        description: cosmicShow.metadata?.description || getShowDescription(baseShow),
+        body_text: cosmicShow.metadata?.body_text,
+        tracklist: cosmicShow.metadata?.tracklist,
+        duration: cosmicShow.metadata?.duration,
+        broadcast_date: cosmicShow.metadata?.broadcast_date,
+        broadcast_time: cosmicShow.metadata?.broadcast_time,
+        player: cosmicShow.metadata?.player,
+        page_link: cosmicShow.metadata?.page_link,
+        // Enhanced image - prefer Cosmic CMS if available
+        enhanced_image: cosmicShow.metadata?.image?.imgix_url || getShowImage(baseShow),
+        // Enhanced genres - merge Mixcloud tags with Cosmic genres
+        enhanced_genres: [...(getShowTags(baseShow).length > 0 ? filterWorldwideFMTags(getShowTags(baseShow)) : []), ...(cosmicShow.metadata?.genres || [])],
+        // Enhanced hosts - merge Mixcloud hosts with Cosmic regular_hosts
+        enhanced_hosts: [...getShowHosts(baseShow), ...(cosmicShow.metadata?.regular_hosts || [])],
+        // Additional Cosmic-only fields
+        locations: cosmicShow.metadata?.locations || [],
+        takeovers: cosmicShow.metadata?.takeovers || [],
+        featured_on_homepage: cosmicShow.metadata?.featured_on_homepage || false,
+      }),
   };
 
   return enhancedShow;

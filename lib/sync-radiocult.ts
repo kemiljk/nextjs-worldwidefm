@@ -111,9 +111,64 @@ async function syncShowToRadioCult(show: RadioShowObject) {
     });
 
     console.log(`Successfully ${method === "POST" ? "created" : "updated"} RadioCult event ${eventId} for show ${show.id}`);
+
+    // Create or update Episode object for this RadioCult show
+    await createOrUpdateEpisodeObject(show, eventId, customMetadata);
+
     return { success: true, eventId };
   } catch (error) {
     console.error(`Error syncing show ${show.id} to RadioCult:`, error);
     return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
+}
+
+// Function to create or update an Episode object for a RadioCult show
+async function createOrUpdateEpisodeObject(show: RadioShowObject, eventId: string, customMetadata: any) {
+  try {
+    // Check if Episode object already exists for this RadioCult event
+    const existingEpisode = await cosmic.objects.findOne({
+      type: "episode",
+      "metadata.radiocult_event_id": eventId,
+    });
+
+    const episodeData = {
+      title: show.title,
+      slug: show.slug,
+      type: "episode",
+      status: "published",
+      metadata: {
+        radiocult_event_id: eventId,
+        radiocult_show_id: customMetadata.radiocult_show_id || null,
+        radiocult_artist_id: customMetadata.radiocult_artist_id || null,
+        radiocult_synced: true,
+        radiocult_synced_at: new Date().toISOString(),
+        broadcast_date: customMetadata.broadcast_date || null,
+        broadcast_time: customMetadata.broadcast_time || null,
+        duration: customMetadata.duration || null,
+        description: customMetadata.description || null,
+        image: customMetadata.image || null,
+        player: customMetadata.player || null,
+        tracklist: customMetadata.tracklist || null,
+        body_text: customMetadata.body_text || null,
+        genres: customMetadata.genres || [],
+        locations: customMetadata.locations || [],
+        regular_hosts: customMetadata.regular_hosts || [],
+        takeovers: customMetadata.takeovers || [],
+        featured_on_homepage: customMetadata.featured_on_homepage || false,
+        source: "radiocult",
+      },
+    };
+
+    if (existingEpisode?.object) {
+      // Update existing Episode object
+      await cosmic.objects.updateOne(existingEpisode.object.id, episodeData);
+      console.log(`Updated Episode object for RadioCult event ${eventId}`);
+    } else {
+      // Create new Episode object
+      await cosmic.objects.insertOne(episodeData);
+      console.log(`Created new Episode object for RadioCult event ${eventId}`);
+    }
+  } catch (error) {
+    console.error(`Error creating/updating Episode object for RadioCult event ${eventId}:`, error);
   }
 }

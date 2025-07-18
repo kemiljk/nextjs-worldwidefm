@@ -115,7 +115,9 @@ export default async function Home() {
       <div className="mx-auto mt-4 mb-8">
         {/* Hero Section: Conditionally render based on Cosmic data or fallback */}
         <Suspense>{heroLayout && <HomepageHero heroLayout={heroLayout} heroItems={heroItems} />}</Suspense>
-        <Suspense>{heroItems.length > 0 && <FeaturedSections showToDisplay={showToDisplay} hasLiveShow={hasLiveShow} transformedUpcomingShows={transformedUpcomingShows} />}</Suspense>
+        <Suspense>
+          <FeaturedSections showToDisplay={showToDisplay} hasLiveShow={hasLiveShow} transformedUpcomingShows={transformedUpcomingShows} />
+        </Suspense>
 
         <Suspense>
           <LatestEpisodes />

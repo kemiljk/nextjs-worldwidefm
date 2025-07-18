@@ -1,3 +1,5 @@
+import { CosmicImage, GenreObject, LocationObject, HostObject, TakeoverObject } from "./cosmic-config";
+
 export interface CosmicObjectMeta {
   [key: string]: any;
   subtitle: null;
@@ -248,3 +250,68 @@ export type RegularHostType = {
     };
   };
 };
+
+export interface AboutObject {
+  id: string;
+  slug: string;
+  title: string;
+  type: "about";
+  metadata: {
+    hero_image: CosmicImage;
+    hero_title: string;
+    hero_subtitle: string;
+    mission_title: string;
+    mission_content: string;
+    story_title: string;
+    story_image: CosmicImage;
+    timeline: {
+      year: string;
+      title: string;
+      content: string;
+    }[];
+    connect_title: string;
+    connect_content: string;
+    social_links: {
+      instagram?: string;
+      twitter?: string;
+      facebook?: string;
+    };
+    contact_info: {
+      email: string;
+      phone: string;
+      location: string;
+    };
+  };
+}
+
+export interface EpisodeObject {
+  id: string;
+  slug: string;
+  title: string;
+  type: "episode";
+  metadata: {
+    radiocult_event_id: string | null;
+    radiocult_show_id: string | null;
+    radiocult_artist_id: string | null;
+    radiocult_synced: boolean;
+    radiocult_synced_at: string | null;
+    broadcast_date: string | null;
+    broadcast_time: string | null;
+    duration: string | null;
+    description: string | null;
+    image: CosmicImage | null;
+    player: string | null;
+    tracklist: string | null;
+    body_text: string | null;
+    genres: GenreObject[];
+    locations: LocationObject[];
+    regular_hosts: HostObject[];
+    takeovers: TakeoverObject[];
+    featured_on_homepage: boolean;
+    source: string | null;
+  };
+  created_at: string;
+  modified_at: string;
+  published_at: string;
+  status: string;
+}
