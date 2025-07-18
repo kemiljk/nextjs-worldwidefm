@@ -6,6 +6,8 @@ import { cosmic } from "@/cosmic/client";
 import bcrypt from "bcryptjs";
 import { Resend } from "resend";
 import { getRadioShows } from "@/lib/cosmic-service";
+import { getMixcloudShows } from "@/lib/mixcloud-service";
+import { getCanonicalGenres } from "@/lib/get-canonical-genres";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -564,12 +566,44 @@ export async function getDashboardData(userId: string) {
       return { data: null, error: userError || "User not found" };
     }
 
-    // Fetch all required collections in parallel
-    const [genresRes, hostsRes, showsRes] = await Promise.all([cosmic.objects.find({ type: "genres", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }), cosmic.objects.find({ type: "regular-hosts", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }), cosmic.objects.find({ type: "radio-shows", props: "id,slug,title,type,metadata", depth: 1, limit: 1000, status: "published" })]);
+    // Fetch all required collections in parallel with error handling
+    let genresRes, hostsRes, showsRes, episodesRes, mixcloudRes;
+
+    try {
+      [genresRes, hostsRes, showsRes] = await Promise.all([cosmic.objects.find({ type: "genres", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }), cosmic.objects.find({ type: "regular-hosts", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }), cosmic.objects.find({ type: "radio-shows", props: "id,slug,title,type,metadata", depth: 1, limit: 1000, status: "published" })]);
+    } catch (error) {
+      console.error("Error fetching basic collections:", error);
+      throw error;
+    }
+
+    // Fetch canonical genres for genre matching
+    let canonicalGenres: { slug: string; title: string }[] = [];
+    try {
+      canonicalGenres = await getCanonicalGenres();
+    } catch (error) {
+      console.error("Error fetching canonical genres:", error);
+    }
+
+    // Try to fetch episodes and mixcloud data separately with fallbacks
+    try {
+      episodesRes = await cosmic.objects.find({ type: "episode", props: "id,slug,title,type,metadata", depth: 1, limit: 1000, status: "published" });
+    } catch (error) {
+      console.log("Episode collection not found, using empty array");
+      episodesRes = { objects: [] };
+    }
+
+    try {
+      mixcloudRes = await getMixcloudShows({ limit: 1000 });
+    } catch (error) {
+      console.log("Mixcloud API error, using empty array:", error);
+      mixcloudRes = { shows: [] };
+    }
 
     const allGenres = genresRes.objects || [];
     const allHosts = hostsRes.objects || [];
     const rawShows = showsRes.objects || [];
+    const allEpisodes = episodesRes.objects || [];
+    const mixcloudShows = mixcloudRes.shows || [];
 
     // Transform allShows to have complete MixcloudShow structure
     const allShows = rawShows.map((show: any) => ({
@@ -872,6 +906,9 @@ export async function getDashboardData(userId: string) {
         allGenres,
         allHosts,
         allShows,
+        allEpisodes: [], // Not using episodes for now
+        mixcloudShows,
+        canonicalGenres,
         genreShows,
         hostShows,
         favouriteGenres,
@@ -882,6 +919,7 @@ export async function getDashboardData(userId: string) {
     };
   } catch (error) {
     console.error("Error fetching dashboard data:", error);
-    return { data: null, error: "Failed to fetch dashboard data" };
+    console.error("Error details:", JSON.stringify(error, null, 2));
+    return { data: null, error: `Failed to fetch dashboard data: ${error instanceof Error ? error.message : "Unknown error"}` };
   }
 }

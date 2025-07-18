@@ -11,19 +11,79 @@ import { Button } from "@/components/ui/button";
 import { ShowCard } from "@/components/ui/show-card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+interface EpisodeObject {
+  id: string;
+  slug: string;
+  title: string;
+  type: "episode";
+  metadata: {
+    radiocult_event_id: string | null;
+    radiocult_show_id: string | null;
+    radiocult_artist_id: string | null;
+    radiocult_synced: boolean;
+    radiocult_synced_at: string | null;
+    broadcast_date: string | null;
+    broadcast_time: string | null;
+    duration: string | null;
+    description: string | null;
+    image: any | null;
+    player: string | null;
+    tracklist: string | null;
+    body_text: string | null;
+    genres: GenreObject[];
+    locations: any[];
+    regular_hosts: HostObject[];
+    takeovers: any[];
+    featured_on_homepage: boolean;
+    source: string | null;
+  };
+  created_at: string;
+  modified_at: string;
+  published_at: string;
+  status: string;
+}
+
+interface BlendedShow {
+  id: string;
+  key: string;
+  name: string;
+  title: string;
+  slug: string;
+  url: string;
+  description: string;
+  created_time: string;
+  broadcast_date: string;
+  pictures: any;
+  image: any;
+  enhanced_image: string;
+  genres: any[];
+  enhanced_genres: GenreObject[];
+  hosts: any[];
+  enhanced_hosts: HostObject[];
+  __source: "episode" | "mixcloud" | "blended" | "cosmic";
+  episodeData?: EpisodeObject;
+  mixcloudData?: any;
+  matchScore: number;
+}
+
 interface DashboardClientProps {
   userData: any;
   allGenres: GenreObject[];
   allHosts: HostObject[];
   allShows: RadioShowObject[];
-  genreShows: { [key: string]: any[] };
-  hostShows: { [key: string]: any[] };
+  allEpisodes?: EpisodeObject[];
+  mixcloudShows: any[];
+  canonicalGenres: { slug: string; title: string }[];
+  genreShows: { [key: string]: BlendedShow[] };
+  hostShows: { [key: string]: BlendedShow[] };
   favouriteGenres: GenreObject[];
   favouriteHosts: HostObject[];
   favouriteShows: RadioShowObject[];
 }
 
-export default function DashboardClient({ userData, allGenres, allHosts, allShows, genreShows, hostShows, favouriteGenres = [], favouriteHosts = [], favouriteShows = [] }: DashboardClientProps) {
+// Function to calculate similarity score between genres
+
+export default function DashboardClient({ userData, allGenres, allHosts, allShows, allEpisodes = [], mixcloudShows = [], canonicalGenres = [], genreShows, hostShows, favouriteGenres = [], favouriteHosts = [], favouriteShows = [] }: DashboardClientProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -34,16 +94,166 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
   const [selectedShow, setSelectedShow] = useState<string>("");
 
   const [optimisticGenres, addOptimisticGenre] = useOptimistic(favouriteGenres, (state, newGenre: GenreObject) => [...state, newGenre]);
-
   const [optimisticHosts, addOptimisticHost] = useOptimistic(favouriteHosts, (state, newHost: HostObject) => [...state, newHost]);
-
   const [optimisticShows, addOptimisticShow] = useOptimistic(favouriteShows, (state, newShow: RadioShowObject) => [...state, newShow]);
 
   const [optimisticGenresRemove, removeOptimisticGenre] = useOptimistic(optimisticGenres, (state, genreId: string) => state.filter((genre) => genre.id !== genreId));
-
   const [optimisticHostsRemove, removeOptimisticHost] = useOptimistic(optimisticHosts, (state, hostId: string) => state.filter((host) => host.id !== hostId));
-
   const [optimisticShowsRemove, removeOptimisticShow] = useOptimistic(optimisticShows, (state, showId: string) => state.filter((show) => show.id !== showId));
+
+  // Map Mixcloud show tags to canonical genres (same logic as shows-client.tsx)
+  function mapShowToCanonicalGenres(show: any): string[] {
+    const tags = show.tags || [];
+    return canonicalGenres
+      .filter((genre) =>
+        tags.some((tag: any) => {
+          const tagName = tag.name.toLowerCase();
+          return genre.slug.toLowerCase() === tagName || genre.title.toLowerCase() === tagName;
+        })
+      )
+      .map((genre) => genre.slug);
+  }
+
+  // Function to get blended shows for a genre (no Episode objects needed)
+  function getBlendedShowsForGenre(genreId: string): BlendedShow[] {
+    const genre = allGenres.find((g: any) => g.id === genreId);
+    if (!genre) return [];
+
+    // Find Mixcloud shows for this genre using the same logic as shows-client.tsx
+    const genreMixcloudShows = mixcloudShows.filter((show) => {
+      const showGenres = mapShowToCanonicalGenres(show);
+      return showGenres.includes(genre.slug);
+    });
+
+    // Convert Mixcloud shows to BlendedShow format
+    const blendedMixcloudShows = genreMixcloudShows.map((show) => ({
+      id: show.key,
+      key: show.key,
+      name: show.name,
+      title: show.name,
+      slug: show.key,
+      url: show.url,
+      description: show.description || "",
+      created_time: show.created_time,
+      broadcast_date: show.created_time,
+      pictures: show.pictures || {},
+      image: null,
+      enhanced_image: show.pictures?.large || "/image-placeholder.svg",
+      genres: show.tags || [],
+      enhanced_genres: [],
+      hosts: show.user ? [show.user.name] : [],
+      enhanced_hosts: [],
+      __source: "mixcloud" as const,
+      episodeData: undefined,
+      mixcloudData: show,
+      matchScore: 1,
+    }));
+
+    return blendedMixcloudShows.slice(0, 4);
+  }
+
+  // Function to get blended shows for a host (no Episode objects needed)
+  function getBlendedShowsForHost(hostId: string): BlendedShow[] {
+    const host = allHosts.find((h: any) => h.id === hostId);
+    if (!host) return [];
+
+    // Find Mixcloud shows for this host by matching host names
+    const hostMixcloudShows = mixcloudShows.filter((show) => {
+      const showHostName = show.user?.name?.toLowerCase() || "";
+      const hostTitle = host.title.toLowerCase();
+      return showHostName.includes(hostTitle) || hostTitle.includes(showHostName);
+    });
+
+    // Convert Mixcloud shows to BlendedShow format
+    const blendedMixcloudShows = hostMixcloudShows.map((show) => ({
+      id: show.key,
+      key: show.key,
+      name: show.name,
+      title: show.name,
+      slug: show.key,
+      url: show.url,
+      description: show.description || "",
+      created_time: show.created_time,
+      broadcast_date: show.created_time,
+      pictures: show.pictures || {},
+      image: null,
+      enhanced_image: show.pictures?.large || "/image-placeholder.svg",
+      genres: show.tags || [],
+      enhanced_genres: [],
+      hosts: show.user ? [show.user.name] : [],
+      enhanced_hosts: [],
+      __source: "mixcloud" as const,
+      episodeData: undefined,
+      mixcloudData: show,
+      matchScore: 1,
+    }));
+
+    return blendedMixcloudShows.slice(0, 4);
+  }
+
+  // Generate blended shows for genres and hosts (no Episode objects needed)
+  const blendedGenreShows = Object.fromEntries(favouriteGenres.map((genre) => [genre.id, getBlendedShowsForGenre(genre.id)]));
+
+  const blendedHostShows = Object.fromEntries(favouriteHosts.map((host) => [host.id, getBlendedShowsForHost(host.id)]));
+
+  // Blend favourite shows with Mixcloud data (no Episode objects needed)
+  const blendedFavouriteShows = favouriteShows.map((show) => {
+    // Try to find a matching Mixcloud show by title similarity
+    const matchingMixcloudShow = mixcloudShows.find((mixcloudShow) => {
+      const showTitle = show.title.toLowerCase();
+      const mixcloudTitle = mixcloudShow.name.toLowerCase();
+      return showTitle.includes(mixcloudTitle) || mixcloudTitle.includes(showTitle);
+    });
+
+    if (matchingMixcloudShow) {
+      return {
+        id: show.id,
+        key: show.slug,
+        name: show.title,
+        title: show.title,
+        slug: show.slug,
+        url: `/episode/${show.slug}`,
+        description: show.metadata?.description || matchingMixcloudShow.description || "",
+        created_time: show.metadata?.broadcast_date || show.created_at,
+        broadcast_date: show.metadata?.broadcast_date || show.created_at,
+        pictures: matchingMixcloudShow.pictures || {},
+        image: show.metadata?.image,
+        enhanced_image: show.metadata?.image?.imgix_url || matchingMixcloudShow.pictures?.large || "/image-placeholder.svg",
+        genres: matchingMixcloudShow.tags || [],
+        enhanced_genres: show.metadata?.genres || [],
+        hosts: matchingMixcloudShow.user?.name ? [matchingMixcloudShow.user.name] : [],
+        enhanced_hosts: show.metadata?.regular_hosts || [],
+        __source: "blended" as const,
+        episodeData: undefined,
+        mixcloudData: matchingMixcloudShow,
+        matchScore: 0.8,
+      };
+    }
+
+    // Create a BlendedShow from the RadioShowObject when no Mixcloud match is found
+    return {
+      id: show.id,
+      key: show.slug,
+      name: show.title,
+      title: show.title,
+      slug: show.slug,
+      url: `/episode/${show.slug}`,
+      description: show.metadata?.description || "",
+      created_time: show.metadata?.broadcast_date || show.created_at,
+      broadcast_date: show.metadata?.broadcast_date || show.created_at,
+      pictures: {},
+      image: show.metadata?.image,
+      enhanced_image: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+      genres: [],
+      enhanced_genres: show.metadata?.genres || [],
+      hosts: [],
+      enhanced_hosts: show.metadata?.regular_hosts || [],
+      __source: "cosmic" as const,
+      episodeData: undefined,
+      mixcloudData: undefined,
+      matchScore: 0,
+    };
+  });
 
   const handleServerAction = async (action: () => Promise<any>) => {
     if (!user) return;
@@ -149,7 +359,7 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
     </span>
   );
 
-  const renderShowsSection = (items: (GenreObject | HostObject)[], showsMap: { [key: string]: any[] }, type: "genre" | "host") => {
+  const renderShowsSection = (items: (GenreObject | HostObject)[], showsMap: { [key: string]: BlendedShow[] }, type: "genre" | "host") => {
     if (items.length === 0) {
       return <p className="text-gray-500 italic">No favorite {type}s yet. Add some to see their latest shows!</p>;
     }
@@ -170,8 +380,8 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
                 Latest {type === "genre" ? "in" : "from"} {item.title}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {shows.map((show: any) => (
-                  <ShowCard key={show.key} show={show} slug={show.url} playable={false} />
+                {shows.map((show: BlendedShow) => (
+                  <ShowCard key={show.key} show={show} slug={show.url} playable={show.__source !== "episode"} />
                 ))}
               </div>
             </div>
@@ -282,7 +492,7 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
               Add Genre
             </Button>
           </div>
-          {renderShowsSection(optimisticGenresRemove, genreShows, "genre")}
+          {renderShowsSection(optimisticGenresRemove, blendedGenreShows, "genre")}
         </section>
 
         {/* Favourite Shows */}
@@ -294,11 +504,11 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
             </Button>
           </div>
 
-          {optimisticShowsRemove.length > 0 ? (
+          {blendedFavouriteShows.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {optimisticShowsRemove.map((show: RadioShowObject) => (
+              {blendedFavouriteShows.map((show: BlendedShow) => (
                 <div key={show.id} className="relative">
-                  <ShowCard show={show} slug={`/episode/${show.slug}`} playable={false} />
+                  <ShowCard show={show} slug={show.url} playable={show.__source !== "episode"} />
                 </div>
               ))}
             </div>
@@ -315,7 +525,7 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
               Add Host
             </Button>
           </div>
-          {renderShowsSection(optimisticHostsRemove, hostShows, "host")}
+          {renderShowsSection(optimisticHostsRemove, blendedHostShows, "host")}
         </section>
 
         {/* Add Favorites Modal */}
