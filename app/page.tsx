@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getCosmicHomepageData, fetchCosmicObjectById, getVideos, getAllPosts } from "@/lib/actions";
+import { getCosmicHomepageData, fetchCosmicObjectById, getVideos, getAllPosts, createColouredSections } from "@/lib/actions";
 import { getMixcloudShows, MixcloudShow } from "@/lib/mixcloud-service";
 import EditorialSection from "@/components/editorial/editorial-section";
 import VideoSection from "@/components/video/video-section";
@@ -7,7 +7,7 @@ import ArchiveSection from "@/components/archive/archive-section";
 import { addHours, isWithinInterval } from "date-fns";
 import GenreSelector from "@/components/genre-selector";
 import FeaturedSections from "@/components/featured-sections";
-import { HomepageSectionItem, ProcessedHomepageSection } from "@/lib/cosmic-types";
+import { HomepageSectionItem, ProcessedHomepageSection, ColouredSection } from "@/lib/cosmic-types";
 import HomepageHero from "@/components/homepage-hero";
 import InsertedSection from "@/components/inserted-section";
 import LatestEpisodes from "@/components/latest-episodes";
@@ -16,8 +16,10 @@ import LatestEpisodes from "@/components/latest-episodes";
 export const revalidate = 900; // 15 minutes
 
 export default async function Home() {
-  // Fetch Cosmic JS Homepage Data
-  const cosmicHomepageData = await getCosmicHomepageData();
+  const [homepageData, videosData, postsData] = await Promise.all([getCosmicHomepageData(), getVideos(), getAllPosts(), getMixcloudShows({ limit: 20 })]);
+
+  // Create coloured sections from homepage data
+  const colouredSections = await createColouredSections(homepageData);
 
   // Get recent shows from Mixcloud
   const response = await getMixcloudShows();
@@ -77,17 +79,11 @@ export default async function Home() {
     slug: show.key,
   }));
 
-  // Get editorial content using server action
-  const { posts } = await getAllPosts();
-
-  // Get videos
-  const { videos } = await getVideos();
-
-  const heroLayout = cosmicHomepageData?.metadata?.heroLayout;
-  const heroItems = cosmicHomepageData?.metadata?.heroItems || [];
+  const heroLayout = homepageData?.metadata?.heroLayout;
+  const heroItems = homepageData?.metadata?.heroItems || [];
 
   // Process dynamic sections to fetch full item data
-  const rawDynamicSections = cosmicHomepageData?.metadata?.sections || [];
+  const rawDynamicSections = homepageData?.metadata?.sections || [];
   const processedDynamicSections: ProcessedHomepageSection[] = await Promise.all(
     rawDynamicSections
       .filter((section) => section.is_active && section.items && section.items.length > 0)
@@ -104,10 +100,43 @@ export default async function Home() {
         const fetchedItems = (await Promise.all(fetchedItemsPromises)).filter(Boolean) as HomepageSectionItem[];
         return {
           ...section,
+          layout: section.layout || "Grid", // Provide default layout if missing
           items: fetchedItems,
         };
       })
   );
+
+  // Create alternating sections: coloured, static, coloured, static, etc.
+  const allSections: Array<{ section: ProcessedHomepageSection; colouredSection?: ColouredSection; isColoured: boolean }> = [];
+
+  // Create a proper alternating pattern starting with coloured sections
+  const staticSections = [...processedDynamicSections];
+  const colouredSectionsArray = [...colouredSections];
+
+  let staticIndex = 0;
+  let colouredIndex = 0;
+
+  // Start with coloured section if available, then alternate
+  while (staticIndex < staticSections.length || colouredIndex < colouredSectionsArray.length) {
+    // Add coloured section if available
+    if (colouredIndex < colouredSectionsArray.length) {
+      allSections.push({
+        section: colouredSectionsArray[colouredIndex],
+        colouredSection: homepageData?.metadata?.coloured_sections?.[colouredIndex],
+        isColoured: true,
+      });
+      colouredIndex++;
+    }
+
+    // Add static section if available
+    if (staticIndex < staticSections.length) {
+      allSections.push({
+        section: staticSections[staticIndex],
+        isColoured: false,
+      });
+      staticIndex++;
+    }
+  }
 
   return (
     <div className="min-h-screen -mx-4 md:-mx-8 lg:-mx-16">
@@ -123,9 +152,13 @@ export default async function Home() {
           <LatestEpisodes />
         </Suspense>
 
-        {processedDynamicSections.map((section) => (
-          <InsertedSection key={section.title} section={section} />
+        {/* All Sections (static and coloured) rendered in order */}
+        {allSections.map(({ section, colouredSection, isColoured }, index) => (
+          <Suspense key={`${isColoured ? "coloured" : "static"}-${section.title}-${index}`} fallback={<div>Loading...</div>}>
+            <InsertedSection section={section} colouredSection={colouredSection} />
+          </Suspense>
         ))}
+
         {/* Genre Selector Section */}
         <Suspense>
           <GenreSelector shows={shows} />
@@ -133,9 +166,9 @@ export default async function Home() {
         {/* From The Archive Section */}
         <ArchiveSection shows={archiveShows} className="px-5 pt-8" />
         {/* Video Section */}
-        <VideoSection videos={videos} className="px-5 pt-8" />
+        <VideoSection videos={videosData.videos} className="px-5 pt-8" />
         {/* Editorial section */}
-        <EditorialSection title="POSTS" posts={posts} className="px-5 pt-8" isHomepage={true} />
+        <EditorialSection title="POSTS" posts={postsData.posts} className="px-5 pt-8" isHomepage={true} />
       </div>
     </div>
   );

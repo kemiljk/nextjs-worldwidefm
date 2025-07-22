@@ -87,21 +87,32 @@ export interface HomepageHeroItem extends CosmicItem {
   // Specific properties for hero items if any, otherwise defaults to CosmicItem
 }
 
+export interface HomepageSection {
+  is_active: boolean;
+  title: string;
+  type: string; // e.g., "Shows", "Editorial", "Custom", "regular-hosts", "new-voices", "friday-curates"
+  layout: "Grid" | "Unique"; // Only Grid and Unique layouts supported
+  itemsPerRow: number;
+  items: string[];
+  color?: string; // Optional color for the section background
+  subtitle?: string; // Optional subtitle for unique sections
+  description?: string; // Optional description for unique sections
+}
+
+export interface ColouredSection {
+  title: string;
+  time: string;
+  description: string;
+  show_type: string[]; // Array of show type IDs
+}
+
 export interface HomepageSectionItem extends CosmicItem {
   // Specific properties for section items if any, otherwise defaults to CosmicItem
 }
 
-export interface HomepageSection {
-  is_active: boolean;
-  title: string;
-  type: string; // e.g., "Shows", "Editorial", "Custom"
-  layout: "Grid" | "Carousel" | "List" | "FullWidth"; // Added "FullWidth"
-  itemsPerRow: number;
-  items: string[];
-}
-
-export interface ProcessedHomepageSection extends Omit<HomepageSection, "items"> {
+export interface ProcessedHomepageSection extends Omit<HomepageSection, "items" | "layout"> {
   items: HomepageSectionItem[];
+  layout: "Grid" | "Unique"; // Only Grid and Unique layouts supported
 }
 
 export interface CosmicHomepageData {
@@ -112,6 +123,7 @@ export interface CosmicHomepageData {
     heroLayout: "Split" | "FullWidth" | "Full Width" | "Carousel" | string; // Added "Full Width" with a space
     heroItems: HomepageHeroItem[];
     sections: HomepageSection[];
+    coloured_sections?: ColouredSection[]; // Optional coloured sections
   };
 }
 

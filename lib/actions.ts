@@ -10,7 +10,7 @@ import { MixcloudShow } from "./mixcloud-service";
 import { filterWorldwideFMTags } from "./mixcloud-service";
 import { getEventBySlug as getRadioCultEventBySlug, getEvents as getRadioCultEvents, RadioCultEvent, getScheduleData as getRadioCultScheduleData, getTags } from "./radiocult-service";
 import FormData from "form-data";
-import { CosmicHomepageData, HomepageSectionItem, CosmicAPIObject } from "./cosmic-types";
+import { CosmicHomepageData, HomepageSectionItem, CosmicAPIObject, ProcessedHomepageSection, ColouredSection } from "./cosmic-types";
 import { stripUrlsFromText } from "./utils";
 
 export async function getAllPosts({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{ posts: PostObject[]; hasNext: boolean }> {
@@ -1519,4 +1519,109 @@ export async function getSeries({ limit = 20, offset = 0, tag, searchTerm }: { l
     console.error("Error in getSeries:", error);
     return { series: [], hasNext: false };
   }
+}
+
+export async function getRegularHosts({ limit = 20, offset = 0 }: { limit?: number; offset?: number } = {}): Promise<{ hosts: any[]; hasNext: boolean }> {
+  try {
+    const response = await cosmic.objects
+      .find({
+        type: "regular-hosts",
+        status: "published",
+      })
+      .props("id,slug,title,metadata")
+      .limit(limit)
+      .skip(offset)
+      .sort("title")
+      .depth(1);
+
+    const hosts = response.objects || [];
+    const hasNext = hosts.length === limit;
+
+    return { hosts, hasNext };
+  } catch (error) {
+    console.error("Error in getRegularHosts:", error);
+    return { hosts: [], hasNext: false };
+  }
+}
+
+export async function createColouredSections(homepageData: any): Promise<ProcessedHomepageSection[]> {
+  const colouredSections: ProcessedHomepageSection[] = [];
+
+  if (!homepageData?.metadata?.coloured_sections) {
+    return colouredSections;
+  }
+
+  const colors = ["#F8971D", "#88CA4F", "#6A1DF8", "#1DA0F8"];
+
+  for (const colouredSection of homepageData.metadata.coloured_sections) {
+    try {
+      // Fetch shows based on the show_type IDs
+      const showTypeIds = colouredSection.show_type;
+      let shows: any[] = [];
+
+      try {
+        // For now, we'll fetch recent shows as a placeholder
+        // In a real implementation, you'd filter by the show_type IDs
+        const { shows: recentShows } = await getMixcloudShows({ limit: 8 });
+        shows = recentShows.slice(0, 8);
+      } catch (mixcloudError) {
+        console.warn(`Failed to fetch Mixcloud shows for coloured section "${colouredSection.title}":`, mixcloudError);
+        // Continue with empty shows array - the section will be skipped
+        continue;
+      }
+
+      if (shows.length === 0) {
+        continue;
+      }
+
+      // Convert shows to HomepageSectionItem format
+      const showItems: HomepageSectionItem[] = shows.map((show: any) => ({
+        slug: show.key,
+        title: show.name,
+        type: "radio-shows",
+        metadata: {
+          subtitle: null,
+          featured_on_homepage: false,
+          image: { url: show.pictures?.large || "/image-placeholder.svg", imgix_url: show.pictures?.large || "/image-placeholder.svg" },
+          tags: show.tags || [],
+          genres: [],
+          locations: [],
+          regular_hosts: [],
+          takeovers: [],
+          description: show.description || "",
+          page_link: null,
+          source: null,
+          broadcast_date: show.created_time || "",
+          broadcast_time: "",
+          duration: "",
+          player: null,
+          tracklist: null,
+          body_text: null,
+          radiocult_media_id: null,
+          media_file: null,
+        },
+      }));
+
+      // Assign a random color
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+      const section: ProcessedHomepageSection = {
+        is_active: true,
+        title: colouredSection.title,
+        type: "radio-shows",
+        layout: "Unique",
+        itemsPerRow: 4,
+        items: showItems,
+        color: randomColor,
+        subtitle: colouredSection.time,
+        description: colouredSection.description,
+      };
+
+      colouredSections.push(section);
+    } catch (error) {
+      console.error(`Error creating coloured section for ${colouredSection.title}:`, error);
+    }
+  }
+
+  return colouredSections;
 }
