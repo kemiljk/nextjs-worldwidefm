@@ -14,6 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { getAllPosts, getVideos, getEvents, getTakeovers } from "@/lib/actions";
 import type { ContentType } from "@/lib/search/types";
 import type { PostObject, VideoObject } from "@/lib/cosmic-config";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface SearchDialogProps {
   open: boolean;
@@ -31,6 +32,7 @@ const typeLabels: Record<ContentType, { label: string; icon: React.ElementType; 
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
   const [results, setResults] = useState<any[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,14 +49,19 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   useEffect(() => {
     if (!open) return;
     async function checkTypes() {
-      const types: string[] = [];
-      const [episodes, posts, videos, events, takeovers] = await Promise.all([import("@/lib/episode-service").then((m) => m.getEpisodesForShows({ limit: 1 })), getAllPosts({ limit: 1 }), getVideos({ limit: 1 }), getEvents({ limit: 1 }), getTakeovers({ limit: 1 })]);
-      if (episodes.shows.length > 0) types.push("radio-shows");
-      if (posts.posts.length > 0) types.push("posts");
-      if (events.events.length > 0) types.push("events");
-      if (videos.videos.length > 0) types.push("videos");
-      if (takeovers.takeovers.length > 0) types.push("takeovers");
-      setAvailableTypes(types);
+      try {
+        const types: string[] = [];
+        const [episodes, posts, videos, events, takeovers] = await Promise.all([import("@/lib/episode-service").then((m) => m.getEpisodesForShows({ limit: 1 })), getAllPosts({ limit: 1 }), getVideos({ limit: 1 }), getEvents({ limit: 1 }), getTakeovers({ limit: 1 })]);
+        if (episodes?.shows?.length > 0) types.push("radio-shows");
+        if (posts?.posts?.length > 0) types.push("posts");
+        if (events?.events?.length > 0) types.push("events");
+        if (videos?.videos?.length > 0) types.push("videos");
+        if (takeovers?.takeovers?.length > 0) types.push("takeovers");
+        setAvailableTypes(types);
+      } catch (error) {
+        console.warn("Error checking available types:", error);
+        setAvailableTypes([]);
+      }
     }
     checkTypes();
   }, [open]);
@@ -67,45 +74,50 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   useEffect(() => {
     if (!open) return;
     async function fetchTags() {
-      let tagSet = new Set<string>();
-      if (selectedType === "radio-shows") {
-        const response = await import("@/lib/episode-service").then((m) => m.getEpisodesForShows({ limit: 100, offset: 0 }));
-        response.shows.forEach((episode: any) => {
-          const genres = episode.genres || episode.enhanced_genres || [];
-          genres.forEach((genre: any) => {
-            if (genre.title || genre.name) tagSet.add(genre.title || genre.name);
+      try {
+        let tagSet = new Set<string>();
+        if (selectedType === "radio-shows") {
+          const response = await import("@/lib/episode-service").then((m) => m.getEpisodesForShows({ limit: 100, offset: 0 }));
+          response?.shows?.forEach((episode: any) => {
+            const genres = episode?.genres || episode?.enhanced_genres || [];
+            genres.forEach((genre: any) => {
+              if (genre?.title || genre?.name) tagSet.add(genre.title || genre.name);
+            });
           });
-        });
-      } else if (selectedType === "posts") {
-        const { posts } = await getAllPosts({ limit: 100, offset: 0 });
-        posts.forEach((post: PostObject) => {
-          post.metadata?.categories?.forEach((cat: any) => {
-            if (cat.title) tagSet.add(cat.title);
+        } else if (selectedType === "posts") {
+          const { posts } = await getAllPosts({ limit: 100, offset: 0 });
+          posts?.forEach((post: PostObject) => {
+            post?.metadata?.categories?.forEach((cat: any) => {
+              if (cat?.title) tagSet.add(cat.title);
+            });
           });
-        });
-      } else if (selectedType === "videos") {
-        const { videos } = await getVideos({ limit: 100, offset: 0 });
-        videos.forEach((video: VideoObject) => {
-          video.metadata?.categories?.forEach((cat: any) => {
-            if (cat.title) tagSet.add(cat.title);
+        } else if (selectedType === "videos") {
+          const { videos } = await getVideos({ limit: 100, offset: 0 });
+          videos?.forEach((video: VideoObject) => {
+            video?.metadata?.categories?.forEach((cat: any) => {
+              if (cat?.title) tagSet.add(cat.title);
+            });
           });
-        });
-      } else if (selectedType === "events") {
-        const { events } = await getEvents({ limit: 100, offset: 0 });
-        events.forEach((event: any) => {
-          event.metadata?.categories?.forEach((cat: any) => {
-            if (cat.title) tagSet.add(cat.title);
+        } else if (selectedType === "events") {
+          const { events } = await getEvents({ limit: 100, offset: 0 });
+          events?.forEach((event: any) => {
+            event?.metadata?.categories?.forEach((cat: any) => {
+              if (cat?.title) tagSet.add(cat.title);
+            });
           });
-        });
-      } else if (selectedType === "takeovers") {
-        const { takeovers } = await getTakeovers({ limit: 100, offset: 0 });
-        takeovers.forEach((takeover: any) => {
-          takeover.metadata?.categories?.forEach((cat: any) => {
-            if (cat.title) tagSet.add(cat.title);
+        } else if (selectedType === "takeovers") {
+          const { takeovers } = await getTakeovers({ limit: 100, offset: 0 });
+          takeovers?.forEach((takeover: any) => {
+            takeover?.metadata?.categories?.forEach((cat: any) => {
+              if (cat?.title) tagSet.add(cat.title);
+            });
           });
-        });
+        }
+        setTags(Array.from(tagSet).sort((a, b) => a.localeCompare(b)));
+      } catch (error) {
+        console.warn("Error fetching tags:", error);
+        setTags([]);
       }
-      setTags(Array.from(tagSet).sort((a, b) => a.localeCompare(b)));
     }
     fetchTags();
   }, [open, selectedType]);
@@ -113,66 +125,86 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   // Fetch results for the selected type, tags, and search
   useEffect(() => {
     if (!open) return;
+
+    let isMounted = true;
     setIsLoading(true);
     setPage(1);
     setHasNext(true);
+
     async function fetchResults() {
-      let res: any;
-      let allResults: any[] = [];
-      if (selectedType === "radio-shows") {
-        // Fetch episodes from Cosmic
-        const { getEpisodesForShows } = await import("@/lib/episode-service");
-        res = await getEpisodesForShows({ searchTerm, limit: 100, offset: 0 });
-        allResults = res.shows;
-        // Filter by all selected tags (AND logic)
-        if (selectedTags.length > 0) {
-          allResults = allResults.filter((episode: any) =>
-            selectedTags.every((tag) => {
-              const episodeGenres = episode.genres || episode.enhanced_genres || [];
-              return episodeGenres.some((genre: any) => genre.title?.toLowerCase() === tag.toLowerCase() || genre.name?.toLowerCase() === tag.toLowerCase());
-            })
-          );
+      try {
+        let res: any;
+        let allResults: any[] = [];
+
+        if (selectedType === "radio-shows") {
+          // Fetch episodes from Cosmic
+          const { getEpisodesForShows } = await import("@/lib/episode-service");
+          const searchParams = debouncedSearchTerm ? { searchTerm: debouncedSearchTerm, limit: 100, offset: 0 } : { limit: 100, offset: 0 };
+          res = await getEpisodesForShows(searchParams);
+          allResults = res?.shows || [];
+          // Filter by all selected tags (AND logic)
+          if (selectedTags.length > 0) {
+            allResults = allResults.filter((episode: any) =>
+              selectedTags.every((tag) => {
+                const episodeGenres = episode?.genres || episode?.enhanced_genres || [];
+                return episodeGenres.some((genre: any) => genre?.title?.toLowerCase() === tag.toLowerCase() || genre?.name?.toLowerCase() === tag.toLowerCase());
+              })
+            );
+          }
+        } else if (selectedType === "posts") {
+          const searchParams = debouncedSearchTerm ? { searchTerm: debouncedSearchTerm, limit: 100, offset: 0 } : { limit: 100, offset: 0 };
+          res = await getAllPosts(searchParams);
+          allResults = res?.posts || [];
+          if (selectedTags.length > 0) {
+            allResults = allResults.filter((post: any) => selectedTags.every((tag) => Array.isArray(post?.metadata?.categories) && post.metadata.categories.some((cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase())));
+          }
+        } else if (selectedType === "videos") {
+          const searchParams = debouncedSearchTerm ? { searchTerm: debouncedSearchTerm, limit: 100, offset: 0 } : { limit: 100, offset: 0 };
+          res = await getVideos(searchParams);
+          allResults = res?.videos || [];
+          if (selectedTags.length > 0) {
+            allResults = allResults.filter((video: any) => selectedTags.every((tag) => Array.isArray(video?.metadata?.categories) && video.metadata.categories.some((cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase())));
+          }
+        } else if (selectedType === "events") {
+          const searchParams = debouncedSearchTerm ? { searchTerm: debouncedSearchTerm, limit: 100, offset: 0 } : { limit: 100, offset: 0 };
+          res = await getEvents(searchParams);
+          allResults = res?.events || [];
+          if (selectedTags.length > 0) {
+            allResults = allResults.filter((event: any) => selectedTags.every((tag) => Array.isArray(event?.metadata?.categories) && event.metadata.categories.some((cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase())));
+          }
+        } else if (selectedType === "takeovers") {
+          const searchParams = debouncedSearchTerm ? { searchTerm: debouncedSearchTerm, limit: 100, offset: 0 } : { limit: 100, offset: 0 };
+          res = await getTakeovers(searchParams);
+          allResults = res?.takeovers || [];
+          if (selectedTags.length > 0) {
+            allResults = allResults.filter((takeover: any) => selectedTags.every((tag) => Array.isArray(takeover?.metadata?.categories) && takeover.metadata.categories.some((cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase())));
+          }
         }
-        setResults(allResults.slice(0, PAGE_SIZE));
-        setHasNext(allResults.length > PAGE_SIZE);
-      } else if (selectedType === "posts") {
-        res = await getAllPosts({ searchTerm, limit: 100, offset: 0 });
-        allResults = res.posts;
-        if (selectedTags.length > 0) {
-          allResults = allResults.filter((post: any) => selectedTags.every((tag) => Array.isArray(post.metadata?.categories) && post.metadata.categories.some((cat: any) => cat.title && cat.title.toLowerCase() === tag.toLowerCase())));
+
+        if (isMounted) {
+          setResults(allResults.slice(0, PAGE_SIZE));
+          setHasNext(allResults.length > PAGE_SIZE);
         }
-        setResults(allResults.slice(0, PAGE_SIZE));
-        setHasNext(allResults.length > PAGE_SIZE);
-      } else if (selectedType === "videos") {
-        res = await getVideos({ searchTerm, limit: 100, offset: 0 });
-        allResults = res.videos;
-        if (selectedTags.length > 0) {
-          allResults = allResults.filter((video: any) => selectedTags.every((tag) => Array.isArray(video.metadata?.categories) && video.metadata.categories.some((cat: any) => cat.title && cat.title.toLowerCase() === tag.toLowerCase())));
+      } catch (error) {
+        console.warn("Error fetching search results:", error);
+        if (isMounted) {
+          setResults([]);
+          setHasNext(false);
         }
-        setResults(allResults.slice(0, PAGE_SIZE));
-        setHasNext(allResults.length > PAGE_SIZE);
-      } else if (selectedType === "events") {
-        res = await getEvents({ searchTerm, limit: 100, offset: 0 });
-        allResults = res.events;
-        if (selectedTags.length > 0) {
-          allResults = allResults.filter((event: any) => selectedTags.every((tag) => Array.isArray(event.metadata?.categories) && event.metadata.categories.some((cat: any) => cat.title && cat.title.toLowerCase() === tag.toLowerCase())));
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
         }
-        setResults(allResults.slice(0, PAGE_SIZE));
-        setHasNext(allResults.length > PAGE_SIZE);
-      } else if (selectedType === "takeovers") {
-        res = await getTakeovers({ searchTerm, limit: 100, offset: 0 });
-        allResults = res.takeovers;
-        if (selectedTags.length > 0) {
-          allResults = allResults.filter((takeover: any) => selectedTags.every((tag) => Array.isArray(takeover.metadata?.categories) && takeover.metadata.categories.some((cat: any) => cat.title && cat.title.toLowerCase() === tag.toLowerCase())));
-        }
-        setResults(allResults.slice(0, PAGE_SIZE));
-        setHasNext(allResults.length > PAGE_SIZE);
       }
-      setIsLoading(false);
     }
+
     fetchResults();
     setTimeout(() => searchInputRef.current?.focus(), 100);
-  }, [open, selectedType, selectedTags.join("|"), searchTerm]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [open, selectedType, selectedTags.join("|"), debouncedSearchTerm]);
 
   // Infinite scroll: load more when observerTarget is in view
   useEffect(() => {
@@ -183,31 +215,42 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           setIsLoadingMore(true);
           const nextOffset = page * PAGE_SIZE;
           async function fetchMore() {
-            let res: any;
-            if (selectedType === "radio-shows") {
-              const episodeModule = await import("@/lib/episode-service");
-              res = await episodeModule.getEpisodesForShows({ searchTerm, limit: PAGE_SIZE, offset: nextOffset });
-              setResults((prev) => [...prev, ...res.shows]);
-              setHasNext(res.hasNext);
-            } else if (selectedType === "posts") {
-              res = await getAllPosts({ tag: selectedTags.join("|"), searchTerm, limit: PAGE_SIZE, offset: nextOffset });
-              setResults((prev) => [...prev, ...res.posts]);
-              setHasNext(res.hasNext);
-            } else if (selectedType === "videos") {
-              res = await getVideos({ tag: selectedTags.join("|"), searchTerm, limit: PAGE_SIZE, offset: nextOffset });
-              setResults((prev) => [...prev, ...res.videos]);
-              setHasNext(res.hasNext);
-            } else if (selectedType === "events") {
-              res = await getEvents({ tag: selectedTags.join("|"), searchTerm, limit: PAGE_SIZE, offset: nextOffset });
-              setResults((prev) => [...prev, ...res.events]);
-              setHasNext(res.hasNext);
-            } else if (selectedType === "takeovers") {
-              res = await getTakeovers({ tag: selectedTags.join("|"), searchTerm, limit: PAGE_SIZE, offset: nextOffset });
-              setResults((prev) => [...prev, ...res.takeovers]);
-              setHasNext(res.hasNext);
+            try {
+              let res: any;
+              if (selectedType === "radio-shows") {
+                const episodeModule = await import("@/lib/episode-service");
+                const searchParams = debouncedSearchTerm ? { searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { limit: PAGE_SIZE, offset: nextOffset };
+                res = await episodeModule.getEpisodesForShows(searchParams);
+                setResults((prev) => [...prev, ...(res?.shows || [])]);
+                setHasNext(res?.hasNext || false);
+              } else if (selectedType === "posts") {
+                const searchParams = debouncedSearchTerm ? { tag: selectedTags.join("|"), searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { tag: selectedTags.join("|"), limit: PAGE_SIZE, offset: nextOffset };
+                res = await getAllPosts(searchParams);
+                setResults((prev) => [...prev, ...(res?.posts || [])]);
+                setHasNext(res?.hasNext || false);
+              } else if (selectedType === "videos") {
+                const searchParams = debouncedSearchTerm ? { tag: selectedTags.join("|"), searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { tag: selectedTags.join("|"), limit: PAGE_SIZE, offset: nextOffset };
+                res = await getVideos(searchParams);
+                setResults((prev) => [...prev, ...(res?.videos || [])]);
+                setHasNext(res?.hasNext || false);
+              } else if (selectedType === "events") {
+                const searchParams = debouncedSearchTerm ? { tag: selectedTags.join("|"), searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { tag: selectedTags.join("|"), limit: PAGE_SIZE, offset: nextOffset };
+                res = await getEvents(searchParams);
+                setResults((prev) => [...prev, ...(res?.events || [])]);
+                setHasNext(res?.hasNext || false);
+              } else if (selectedType === "takeovers") {
+                const searchParams = debouncedSearchTerm ? { tag: selectedTags.join("|"), searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { tag: selectedTags.join("|"), limit: PAGE_SIZE, offset: nextOffset };
+                res = await getTakeovers(searchParams);
+                setResults((prev) => [...prev, ...(res?.takeovers || [])]);
+                setHasNext(res?.hasNext || false);
+              }
+              setPage((prev) => prev + 1);
+            } catch (error) {
+              console.warn("Error loading more results:", error);
+              setHasNext(false);
+            } finally {
+              setIsLoadingMore(false);
             }
-            setIsLoadingMore(false);
-            setPage((prev) => prev + 1);
           }
           fetchMore();
         }
@@ -221,7 +264,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       observer.observe(observerTarget.current);
     }
     return () => observer.disconnect();
-  }, [hasNext, isLoadingMore, open, page, results.length, selectedType, selectedTags.join("|"), searchTerm]);
+  }, [hasNext, isLoadingMore, open, page, results.length, selectedType, selectedTags.join("|"), debouncedSearchTerm]);
 
   // Filter toggle logic (content type and tags)
   const handleFilterToggle = (filter: { type: string; slug: string }) => {
@@ -341,7 +384,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                                   <Music2 className="w-4 h-4 text-foreground" />
                                   <span>Radio Shows</span>
                                 </div>
-                                <h3 className="text-m4 font-mono truncate line-clamp-1">{result.name}</h3>
+                                <h3 className="text-m5 font-mono truncate line-clamp-1">{result.name}</h3>
                                 {result.created_time && (
                                   <>
                                     <span>{format(new Date(result.created_time), "MMM d, yyyy")}</span>

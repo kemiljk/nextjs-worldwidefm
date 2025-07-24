@@ -10,6 +10,7 @@ import FeaturedContent from "../../components/editorial/featured-content";
 import EditorialSection from "../../components/editorial/editorial-section";
 import { FilterItem as BaseFilterItem } from "@/lib/filter-types";
 import { FilterToolbar } from "./components/filter-toolbar";
+import { useDebounce } from "@/hooks/use-debounce";
 
 type FilterItem = BaseFilterItem;
 
@@ -32,6 +33,7 @@ function EditorialContent() {
     categories: [],
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
   const [availableFilters, setAvailableFilters] = useState<AvailableFilters>({
     article: [],
     video: [],
@@ -91,18 +93,18 @@ function EditorialContent() {
     }
 
     // Add search term to URL
-    if (searchTerm) {
-      params.set("search", searchTerm);
+    if (debouncedSearchTerm) {
+      params.set("search", debouncedSearchTerm);
     }
 
     // Update URL without refreshing the page
     router.push(`?${params.toString()}`, { scroll: false });
-  }, [activeFilter, selectedFilters, searchTerm, router]);
+  }, [activeFilter, selectedFilters, debouncedSearchTerm, router]);
 
   // Update URL when filters change
   useEffect(() => {
     updateUrlParams();
-  }, [activeFilter, selectedFilters, searchTerm, updateUrlParams]);
+  }, [activeFilter, selectedFilters, debouncedSearchTerm, updateUrlParams]);
 
   // Fetch posts on mount
   useEffect(() => {
@@ -262,13 +264,13 @@ function EditorialContent() {
     }
 
     // Apply search term if any
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
+    if (debouncedSearchTerm) {
+      const search = debouncedSearchTerm.toLowerCase();
       filtered = filtered.filter((post) => post.title.toLowerCase().includes(search) || (post.metadata.excerpt && post.metadata.excerpt.toLowerCase().includes(search)));
     }
 
     return filtered;
-  }, [posts, activeFilter, selectedFilters, searchTerm]);
+  }, [posts, activeFilter, selectedFilters, debouncedSearchTerm]);
 
   return (
     <div className="mx-auto lg:px-4 py-16">

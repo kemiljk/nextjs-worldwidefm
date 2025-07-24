@@ -6,6 +6,7 @@ import VideoGrid from "@/components/video/video-grid";
 import { VideoObject } from "@/lib/cosmic-config";
 import { subDays } from "date-fns";
 import { VideoFilterToolbar } from "./components/video-filter-toolbar";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface VideoCategory {
   id: string;
@@ -32,6 +33,7 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
     categories: [],
   });
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
 
   // Load URL query parameters on initial render
   useEffect(() => {
@@ -71,18 +73,18 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
     }
 
     // Add search term to URL
-    if (searchTerm) {
-      params.set("search", searchTerm);
+    if (debouncedSearchTerm) {
+      params.set("search", debouncedSearchTerm);
     }
 
     // Update URL without refreshing the page
     router.push(`/videos${params.toString() ? `?${params.toString()}` : ""}`, { scroll: false });
-  }, [activeFilter, selectedFilters, searchTerm, router]);
+  }, [activeFilter, selectedFilters, debouncedSearchTerm, router]);
 
   // Update URL when filters change
   useEffect(() => {
     updateUrlParams();
-  }, [activeFilter, selectedFilters, searchTerm, updateUrlParams]);
+  }, [activeFilter, selectedFilters, debouncedSearchTerm, updateUrlParams]);
 
   const handleFilterChange = (filter: string, subfilter?: string) => {
     // Clear all filters
@@ -154,13 +156,13 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
     }
 
     // Apply search term if any
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
+    if (debouncedSearchTerm) {
+      const search = debouncedSearchTerm.toLowerCase();
       filtered = filtered.filter((video) => video.title.toLowerCase().includes(search) || (video.metadata.description && video.metadata.description.toLowerCase().includes(search)));
     }
 
     return filtered;
-  }, [activeFilter, selectedFilters, searchTerm, initialVideos, availableCategories]);
+  }, [activeFilter, selectedFilters, debouncedSearchTerm, initialVideos, availableCategories]);
 
   return (
     <>

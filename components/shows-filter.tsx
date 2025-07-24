@@ -4,6 +4,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { FilterItem } from "@/lib/search-context";
 import { useCallback, useState, useEffect } from "react";
 import { X, Filter } from "lucide-react";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface ShowsFilterProps {
   genres: FilterItem[];
@@ -22,6 +23,8 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm || "");
+  const debouncedSearchTerm = useDebounce(localSearchTerm, 1000);
 
   // Handle animation timing when opening/closing
   useEffect(() => {
@@ -105,6 +108,11 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
     [createQueryString, router, pathname]
   );
 
+  // Update URL when debounced search term changes
+  useEffect(() => {
+    updateSearch(debouncedSearchTerm);
+  }, [debouncedSearchTerm, updateSearch]);
+
   const toggleNew = useCallback(() => {
     router.replace(`${pathname}?${createQueryString("isNew", searchParams.get("isNew") === "true" ? null : "true")}`, { scroll: false });
   }, [createQueryString, router, pathname, searchParams]);
@@ -132,7 +140,7 @@ export function ShowsFilter({ genres, hosts, takeovers, selectedGenre, selectedH
             <label htmlFor="search" className="block text-sm text-foreground mb-1">
               Search
             </label>
-            <input type="search" id="search" className="w-full rounded-none border border-gray-300 px-3 py-2 text-sm" placeholder="Search shows..." defaultValue={searchTerm || ""} onChange={(e) => updateSearch(e.target.value)} />
+            <input type="search" id="search" className="w-full rounded-none border border-gray-300 px-3 py-2 text-sm" placeholder="Search shows..." value={localSearchTerm} onChange={(e) => setLocalSearchTerm(e.target.value)} />
           </div>
 
           {/* New Shows Toggle */}

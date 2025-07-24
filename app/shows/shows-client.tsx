@@ -84,7 +84,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
           setIsLoadingMore(false);
           // Don't clear existing shows on error, just show loading state
         });
-    }, 300); // 300ms delay
+    }, 1000); // 1000ms delay to match debounce
 
     return () => {
       isMounted = false;
@@ -134,7 +134,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
             setIsLoadingMore(false);
             // Don't increment page on error to allow retry
           });
-      }, 200); // 200ms delay for infinite scroll
+      }, 1000); // 1000ms delay to match debounce
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inView, hasNext, isLoadingMore, page, selectedGenres, selectedLocations, typeParam, searchTerm]);

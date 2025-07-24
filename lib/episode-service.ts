@@ -161,6 +161,25 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         console.log(`Client-side filtered ${allEpisodes.length} episodes by locations:`, locations);
       }
 
+      if (params.takeover) {
+        if (params.takeover === "*") {
+          // Filter for episodes with any takeovers
+          allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
+            const episodeTakeovers = episode.metadata?.takeovers || [];
+            return episodeTakeovers.length > 0;
+          });
+        } else {
+          const takeovers = Array.isArray(params.takeover) ? params.takeover : [params.takeover];
+          allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
+            const episodeTakeovers = episode.metadata?.takeovers || [];
+            return episodeTakeovers.some((takeover: any) => {
+              return takeovers.includes(takeover.id) || takeovers.includes(takeover.slug);
+            });
+          });
+        }
+        console.log(`Client-side filtered ${allEpisodes.length} episodes by takeovers:`, params.takeover);
+      }
+
       // Apply pagination
       const startIndex = offset;
       const endIndex = startIndex + limit;
