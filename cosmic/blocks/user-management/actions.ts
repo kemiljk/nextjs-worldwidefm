@@ -566,15 +566,12 @@ export async function getDashboardData(userId: string) {
       return { data: null, error: userError || "User not found" };
     }
 
-    // Fetch all required collections in parallel with error handling
-    let genresRes, hostsRes, showsRes, episodesRes, mixcloudRes;
+    // Fetch all required collections in parallel
+    const [genresRes, hostsRes, showsRes] = await Promise.all([cosmic.objects.find({ type: "genres", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }), cosmic.objects.find({ type: "regular-hosts", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }), cosmic.objects.find({ type: "episodes", props: "id,slug,title,type,metadata", depth: 1, limit: 1000, status: "published" })]);
 
-    try {
-      [genresRes, hostsRes, showsRes] = await Promise.all([cosmic.objects.find({ type: "genres", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }), cosmic.objects.find({ type: "regular-hosts", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }), cosmic.objects.find({ type: "radio-shows", props: "id,slug,title,type,metadata", depth: 1, limit: 1000, status: "published" })]);
-    } catch (error) {
-      console.error("Error fetching basic collections:", error);
-      throw error;
-    }
+    const allGenres = genresRes.objects || [];
+    const allHosts = hostsRes.objects || [];
+    const allShows = showsRes.objects || [];
 
     // Fetch canonical genres for genre matching
     let canonicalGenres: { slug: string; title: string }[] = [];
@@ -584,207 +581,91 @@ export async function getDashboardData(userId: string) {
       console.error("Error fetching canonical genres:", error);
     }
 
-    // Try to fetch episodes and mixcloud data separately with fallbacks
-    try {
-      episodesRes = await cosmic.objects.find({ type: "episode", props: "id,slug,title,type,metadata", depth: 1, limit: 1000, status: "published" });
-    } catch (error) {
-      console.log("Episode collection not found, using empty array");
-      episodesRes = { objects: [] };
-    }
-
-    const allGenres = genresRes.objects || [];
-    const allHosts = hostsRes.objects || [];
-    const rawShows = showsRes.objects || [];
-    const allEpisodes = episodesRes.objects || [];
-
-    // Transform allShows to have complete MixcloudShow structure
-    const allShows = rawShows.map((show: any) => ({
-      ...show,
-      key: show.slug,
-      name: show.title,
-      url: `/episode/${show.slug}`,
-      slug: show.slug,
-      pictures: {
-        small: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-        thumbnail: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-        medium_mobile: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-        medium: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-        large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-        "320wx320h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-        extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-        "640wx640h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-        "768wx768h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-        "1024wx1024h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-      },
-      created_time: show.metadata?.broadcast_date || show.created_at,
-      updated_time: show.modified_at || show.created_at,
-      play_count: 0,
-      favorite_count: 0,
-      comment_count: 0,
-      listener_count: 0,
-      repost_count: 0,
-      tags: (show.metadata?.genres || []).map((genre: any) => ({
-        key: genre.slug || genre.id,
-        url: `/genre/${genre.slug}`,
-        name: genre.title || genre.id,
-      })),
-      user: {
-        key: show.metadata?.regular_hosts?.[0]?.slug || "worldwide-fm",
-        url: `/hosts/${show.metadata?.regular_hosts?.[0]?.slug || "worldwide-fm"}`,
-        name: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
-        username: show.metadata?.regular_hosts?.[0]?.slug || "worldwide-fm",
-        pictures: {
-          small: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          thumbnail: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          medium_mobile: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          medium: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          large: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          "320wx320h": show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          extra_large: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          "640wx640h": show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-        },
-      },
-    }));
-
-    // Helper function to get latest shows by genre (same as in DashboardClient)
+    // Helper function to get latest shows by genre
     async function getShowsByGenre(genreId: string, limit = 4): Promise<any[]> {
       try {
-        const cosmicResponse = await getRadioShows({
-          filters: { genre: genreId },
+        // Filter by genre ID in the metadata.genres array
+        const cosmicResponse = await cosmic.objects.find({
+          type: "episodes",
+          "metadata.genres": genreId,
+          props: "id,slug,title,type,metadata,created_at,modified_at",
+          depth: 1,
           limit,
           sort: "-metadata.broadcast_date",
+          status: "published",
         });
 
-        if (cosmicResponse.objects && cosmicResponse.objects.length > 0) {
-          const genreMap = new Map(allGenres.map((g: any) => [g.id, g.title]));
-
-          return cosmicResponse.objects.map((show: any) => ({
-            ...show,
-            key: show.slug,
-            name: show.title,
-            url: `/episode/${show.slug}`,
-            slug: show.slug,
-            pictures: {
-              small: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              thumbnail: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              medium_mobile: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              medium: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              "320wx320h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              "640wx640h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              "768wx768h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              "1024wx1024h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            },
-            created_time: show.metadata?.broadcast_date || show.created_at,
-            updated_time: show.modified_at || show.created_at,
-            play_count: 0,
-            favorite_count: 0,
-            comment_count: 0,
-            listener_count: 0,
-            repost_count: 0,
-            tags: (show.metadata?.genres || []).map((genre: any) => ({
-              key: genre.slug || genre.id,
-              url: `/genre/${genre.slug}`,
-              name: String(genre.title || genreMap.get(genre.id) || genre.id),
-            })),
-            user: {
-              key: show.metadata?.regular_hosts?.[0]?.slug || "worldwide-fm",
-              url: `/hosts/${show.metadata?.regular_hosts?.[0]?.slug || "worldwide-fm"}`,
-              name: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
-              username: show.metadata?.regular_hosts?.[0]?.slug || "worldwide-fm",
-              pictures: {
-                small: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                thumbnail: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                medium_mobile: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                medium: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                large: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                "320wx320h": show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                extra_large: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                "640wx640h": show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              },
-            },
-          }));
-        }
-
-        return [];
+        // Transform Cosmic data to match ShowCard expectations
+        return (cosmicResponse.objects || []).map((show: any) => ({
+          ...show,
+          key: show.slug || show.id,
+          name: show.title || "Untitled Show",
+          url: `/episode/${show.slug || show.id}`,
+          pictures: {
+            large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+            extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          },
+          enhanced_image: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          created_time: show.metadata?.broadcast_date || show.created_at,
+          broadcast_date: show.metadata?.broadcast_date || show.created_at,
+          tags: (show.metadata?.genres || []).map((genre: any) => ({
+            name: genre.title || genre.name || "Unknown Genre",
+            title: genre.title || genre.name || "Unknown Genre",
+          })),
+          enhanced_genres: show.metadata?.genres || [],
+          user: {
+            name: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
+          },
+          host: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
+          location: show.metadata?.locations?.[0] || null,
+          __source: "episode" as const,
+        }));
       } catch (error: any) {
-        // 404 means no shows found for this genre, which is normal
-        if (error?.status === 404) {
-          return [];
-        }
         console.error("Error fetching shows by genre:", error);
         return [];
       }
     }
 
-    // Helper function to get latest shows by host (same as in DashboardClient)
+    // Helper function to get latest shows by host
     async function getShowsByHost(hostId: string, limit = 4): Promise<any[]> {
       try {
-        const cosmicResponse = await getRadioShows({
-          filters: { host: hostId },
+        // Filter by host ID in the metadata.regular_hosts array
+        const cosmicResponse = await cosmic.objects.find({
+          type: "episodes",
+          "metadata.regular_hosts": hostId,
+          props: "id,slug,title,type,metadata,created_at,modified_at",
+          depth: 1,
           limit,
           sort: "-metadata.broadcast_date",
+          status: "published",
         });
 
-        if (cosmicResponse.objects && cosmicResponse.objects.length > 0) {
-          const genreMap = new Map(allGenres.map((g: any) => [g.id, g.title]));
-
-          return cosmicResponse.objects.map((show: any) => ({
-            ...show,
-            key: show.slug,
-            name: show.title,
-            url: `/episode/${show.slug}`,
-            slug: show.slug,
-            pictures: {
-              small: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              thumbnail: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              medium_mobile: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              medium: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              "320wx320h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              "640wx640h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              "768wx768h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              "1024wx1024h": show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            },
-            created_time: show.metadata?.broadcast_date || show.created_at,
-            updated_time: show.modified_at || show.created_at,
-            play_count: 0,
-            favorite_count: 0,
-            comment_count: 0,
-            listener_count: 0,
-            repost_count: 0,
-            tags: (show.metadata?.genres || []).map((genre: any) => ({
-              key: genre.slug || genre.id,
-              url: `/genre/${genre.slug}`,
-              name: String(genre.title || genreMap.get(genre.id) || genre.id),
-            })),
-            user: {
-              key: show.metadata?.regular_hosts?.[0]?.slug || "worldwide-fm",
-              url: `/hosts/${show.metadata?.regular_hosts?.[0]?.slug || "worldwide-fm"}`,
-              name: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
-              username: show.metadata?.regular_hosts?.[0]?.slug || "worldwide-fm",
-              pictures: {
-                small: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                thumbnail: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                medium_mobile: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                medium: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                large: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                "320wx320h": show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                extra_large: show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-                "640wx640h": show.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              },
-            },
-          }));
-        }
-
-        return [];
+        // Transform Cosmic data to match ShowCard expectations
+        return (cosmicResponse.objects || []).map((show: any) => ({
+          ...show,
+          key: show.slug,
+          name: show.title,
+          url: `/episode/${show.slug}`,
+          pictures: {
+            large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+            extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          },
+          enhanced_image: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          created_time: show.metadata?.broadcast_date || show.created_at,
+          broadcast_date: show.metadata?.broadcast_date || show.created_at,
+          tags: (show.metadata?.genres || []).map((genre: any) => ({
+            name: genre.title || genre.name,
+            title: genre.title || genre.name,
+          })),
+          enhanced_genres: show.metadata?.genres || [],
+          user: {
+            name: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
+          },
+          host: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
+          location: show.metadata?.locations?.[0] || null,
+          __source: "episode" as const,
+        }));
       } catch (error: any) {
-        // 404 means no shows found for this host, which is normal
-        if (error?.status === 404) {
-          return [];
-        }
         console.error("Error fetching shows by host:", error);
         return [];
       }
@@ -812,85 +693,35 @@ export async function getDashboardData(userId: string) {
       }
     }
 
-    // Process favourite shows to have proper structure for ShowCard
-    const favouriteShows = await Promise.all(
-      (userData.metadata?.favourite_shows || []).map(async (show: any) => {
-        const genreMap = new Map(allGenres.map((g: any) => [g.id, g.title]));
-
-        // If the show doesn't have full genre objects, fetch the complete show data
-        let fullShow = show;
-        if (!show.metadata?.genres || show.metadata.genres.length === 0 || typeof show.metadata.genres[0] === "string") {
-          try {
-            const { object: fetchedShow } = await cosmic.objects
-              .findOne({
-                id: show.id,
-                type: "radio-shows",
-              })
-              .props("id,slug,title,metadata")
-              .depth(1);
-
-            if (fetchedShow) {
-              fullShow = fetchedShow;
-            }
-          } catch (error) {
-            console.error("Error fetching full show data:", error);
-          }
-        }
-
-        const processedShow = {
-          ...fullShow,
-          key: fullShow.slug,
-          name: fullShow.title,
-          url: `/episode/${fullShow.slug}`,
-          pictures: {
-            small: fullShow.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            thumbnail: fullShow.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            medium_mobile: fullShow.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            medium: fullShow.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            large: fullShow.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            "320wx320h": fullShow.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            extra_large: fullShow.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            "640wx640h": fullShow.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            "768wx768h": fullShow.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            "1024wx1024h": fullShow.metadata?.image?.imgix_url || "/image-placeholder.svg",
-          },
-          created_time: fullShow.metadata?.broadcast_date || fullShow.created_at,
-          updated_time: fullShow.modified_at || fullShow.created_at,
-          play_count: 0,
-          favorite_count: 0,
-          comment_count: 0,
-          listener_count: 0,
-          repost_count: 0,
-          tags: (fullShow.metadata?.genres || []).map((genre: any) => ({
-            key: genre.slug || genre.id,
-            url: `/genre/${genre.slug}`,
-            name: String(genre.title || genre.name || genreMap.get(genre.id) || genre.id),
-          })),
-          user: {
-            key: fullShow.metadata?.regular_hosts?.[0]?.slug || "worldwide-fm",
-            url: `/hosts/${fullShow.metadata?.regular_hosts?.[0]?.slug || "worldwide-fm"}`,
-            name: fullShow.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
-            username: fullShow.metadata?.regular_hosts?.[0]?.slug || "worldwide-fm",
-            pictures: {
-              small: fullShow.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              thumbnail: fullShow.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              medium_mobile: fullShow.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              medium: fullShow.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              large: fullShow.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              "320wx320h": fullShow.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              extra_large: fullShow.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-              "640wx640h": fullShow.metadata?.regular_hosts?.[0]?.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            },
-          },
-        };
-
-        return processedShow;
-      })
-    );
-
-    // Use favourite arrays directly from userData.metadata (already full objects)
+    // Use favourite arrays directly from userData.metadata
     const favouriteGenres = userData.metadata?.favourite_genres || [];
     const favouriteHosts = userData.metadata?.favourite_hosts || [];
+
+    // Transform favourite shows to match ShowCard expectations
+    const favouriteShows = (userData.metadata?.favourite_shows || []).map((show: any) => ({
+      ...show,
+      key: show.slug,
+      name: show.title,
+      url: `/episode/${show.slug}`,
+      pictures: {
+        large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+      },
+      enhanced_image: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+      created_time: show.metadata?.broadcast_date || show.created_at,
+      broadcast_date: show.metadata?.broadcast_date || show.created_at,
+      tags: (show.metadata?.genres || []).map((genre: any) => ({
+        name: genre.title || genre.name,
+        title: genre.title || genre.name,
+      })),
+      enhanced_genres: show.metadata?.genres || [],
+      user: {
+        name: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
+      },
+      host: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
+      location: show.metadata?.locations?.[0] || null,
+      __source: "episode" as const,
+    }));
 
     return {
       data: {
@@ -898,7 +729,6 @@ export async function getDashboardData(userId: string) {
         allGenres,
         allHosts,
         allShows,
-        allEpisodes,
         canonicalGenres,
         genreShows,
         hostShows,
@@ -910,7 +740,6 @@ export async function getDashboardData(userId: string) {
     };
   } catch (error) {
     console.error("Error fetching dashboard data:", error);
-    console.error("Error details:", JSON.stringify(error, null, 2));
     return { data: null, error: `Failed to fetch dashboard data: ${error instanceof Error ? error.message : "Unknown error"}` };
   }
 }

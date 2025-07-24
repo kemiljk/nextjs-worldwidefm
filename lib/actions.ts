@@ -119,7 +119,7 @@ export async function getShowBySlug(slug: string): Promise<any | null> {
     }
   }
 
-  // Finally, try legacy radio-shows from Cosmic (for backward compatibility)
+  // Finally, try legacy episodes from Cosmic (for backward compatibility)
   for (const variant of slugVariants) {
     try {
       const cosmicResponse = await getRadioShowBySlug(variant);
@@ -397,7 +397,7 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
       ...showsResponse.shows.map((show) => ({
         id: show.id,
         title: show.title,
-        type: "radio-shows" as const,
+        type: "episodes" as const,
         description: show.metadata?.description || "",
         excerpt: show.metadata?.subtitle || "",
         image: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
@@ -431,7 +431,7 @@ export async function getVideos({ limit = 20, offset = 0, tag, searchTerm }: { l
       sort: "-metadata.date",
       status: "published",
       props: "id,slug,title,metadata,created_at",
-      depth: 2,
+      depth: 3,
     };
     if (tag) {
       filters["metadata.categories"] = tag;
@@ -831,7 +831,7 @@ export async function searchContent(query?: string, source?: string, limit: numb
         .map((episode: any) => {
           return {
             id: episode.id || episode.slug,
-            type: "radio-shows",
+            type: "episodes",
             slug: episode.slug,
             title: safeString(episode.title || episode.name),
             description: safeString(episode.description) || safeString(episode.title || episode.name),
@@ -1224,7 +1224,7 @@ export async function createColouredSections(homepageData: any): Promise<Process
       const showItems: HomepageSectionItem[] = shows.map((show: any) => ({
         slug: show.key,
         title: show.name,
-        type: "radio-shows",
+        type: "episodes",
         metadata: {
           subtitle: null,
           featured_on_homepage: false,
@@ -1254,7 +1254,7 @@ export async function createColouredSections(homepageData: any): Promise<Process
       const section: ProcessedHomepageSection = {
         is_active: true,
         title: colouredSection.title,
-        type: "radio-shows",
+        type: "episodes",
         layout: "Unique",
         itemsPerRow: 4,
         items: showItems,

@@ -79,7 +79,7 @@ interface RegularHost {
 export interface CosmicItem {
   slug: string;
   title: string;
-  type: string; // e.g., "radio-shows", "posts"
+  type: string; // e.g., "episodes", "posts"
   metadata: CosmicObjectMeta;
 }
 

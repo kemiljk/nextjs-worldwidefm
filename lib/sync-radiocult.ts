@@ -11,7 +11,7 @@ export async function syncApprovedShowsToRadioCult() {
     // 2. Don't have radiocult_synced flag or it's set to false
     const response = await cosmic.objects
       .find({
-        type: "radio-shows",
+        type: "episodes",
         status: "published",
         $or: [{ "metadata.radiocult_synced": { $exists: false } }, { "metadata.radiocult_synced": false }],
       })

@@ -621,7 +621,7 @@ export function transformRadioCultEvent(event: RadioCultEvent): Partial<RadioSho
     id: event.id,
     title: event.showName,
     slug: event.slug,
-    type: "radio-shows",
+    type: "episodes",
     metadata: {
       subtitle: event.showName,
       description: event.description || null,

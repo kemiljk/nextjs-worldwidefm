@@ -46,7 +46,7 @@ export function UserProfileForm({ user }: UserProfileFormProps) {
     try {
       const result = await updateUserProfile(user.id, formData);
 
-      if (result.success) {
+      if (result && result.success) {
         login({
           id: result.data.id,
           name: result.data.title,
@@ -56,7 +56,7 @@ export function UserProfileForm({ user }: UserProfileFormProps) {
 
         setMessage("Profile updated successfully!");
       } else {
-        setMessage(result.error || "Error updating profile");
+        setMessage(result?.error || "Error updating profile");
       }
     } catch (error) {
       setMessage("Error updating profile");

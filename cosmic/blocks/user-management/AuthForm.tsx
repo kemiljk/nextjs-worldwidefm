@@ -31,12 +31,12 @@ export default function AuthForm({ type, onSubmit }: AuthFormProps) {
       if (onSubmit) {
         const result = await onSubmit(formData);
 
-        if (result.error) {
+        if (result && result.error) {
           setError(result.error);
           return;
         }
 
-        if (type === "login" && result.user) {
+        if (type === "login" && result && result.user) {
           authLogin(result.user);
           router.push("/dashboard");
           router.refresh();

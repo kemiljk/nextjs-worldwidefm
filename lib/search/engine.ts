@@ -132,7 +132,7 @@ export class WWFMSearchEngine implements SearchEngine {
 
     // Build content type filters
     const typeFilters: FilterItem[] = [
-      { id: "radio-shows", slug: "radio-shows", title: "Radio Shows", type: "types" },
+      { id: "episodes", slug: "episodes", title: "Episodes", type: "types" },
       { id: "posts", slug: "posts", title: "Posts", type: "types" },
       { id: "videos", slug: "videos", title: "Videos", type: "types" },
       { id: "events", slug: "events", title: "Events", type: "types" },
@@ -464,7 +464,7 @@ export function mapEpisodesToSearchItems(episodes: any[]): SearchItem[] {
     excerpt: episode.description || episode.title || "",
     date: episode.created_time || episode.broadcast_date || episode.created_at,
     image: episode.pictures?.extra_large || episode.enhanced_image || "",
-    contentType: "radio-shows",
+    contentType: "episodes",
     genres: (episode.genres || episode.enhanced_genres || []).filter(Boolean).map((genre: any) => ({
       id: genre.id || genre.slug,
       slug: genre.slug || genre.title?.toLowerCase().replace(/\s+/g, "-") || "",
@@ -510,7 +510,7 @@ export function mapShowsToSearchItems(shows: any[]): SearchItem[] {
         excerpt: show.name || "",
         date: show.created_time || undefined,
         image: show.pictures?.extra_large || show.pictures?.large || show.pictures?.medium || show.pictures?.thumbnail || "",
-        contentType: "radio-shows",
+        contentType: "episodes",
         genres: (show.tags || []).filter(Boolean).map((tag: any) => ({
           id: tag.key || tag.name,
           slug: tag.name?.toLowerCase().replace(/\s+/g, "-") || tag.key || "",
@@ -537,7 +537,7 @@ export function mapShowsToSearchItems(shows: any[]): SearchItem[] {
         excerpt: show.metadata?.subtitle || "",
         date: show.metadata?.broadcast_date || show.created_at,
         image: show.metadata?.image?.imgix_url || show.metadata?.image?.url || "",
-        contentType: "radio-shows",
+        contentType: "episodes",
         genres: mapFilterItems(show.metadata?.genres || [], "genres"),
         locations: mapFilterItems(show.metadata?.locations || [], "locations"),
         hosts: mapFilterItems(show.metadata?.regular_hosts || [], "hosts"),

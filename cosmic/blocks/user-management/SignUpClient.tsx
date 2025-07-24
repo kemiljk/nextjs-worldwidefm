@@ -49,12 +49,12 @@ export default function SignUpClient({ onSubmit }: { onSubmit: any }) {
     setError("");
     const result = await onSubmit(formData);
 
-    if (result.error) {
+    if (result && result.error) {
       setError(result.error);
       return result;
     }
 
-    if (result.success) {
+    if (result && result.success) {
       setIsSignupComplete(true);
     }
 

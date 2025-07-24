@@ -35,9 +35,9 @@ export default function LoginClient({ onSubmit, redirect }: { onSubmit: any; red
         type="login"
         onSubmit={async (formData) => {
           const result = await onSubmit(formData);
-          if (result.error) {
+          if (result && result.error) {
             router.push(`/login?error=${encodeURIComponent(result.error)}`);
-          } else if (result.user) {
+          } else if (result && result.user) {
             authLogin(result.user);
           }
         }}

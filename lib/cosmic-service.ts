@@ -93,7 +93,7 @@ export async function getRadioShows(
   try {
     // Start building the query
     let query: any = {
-      type: "radio-shows",
+      type: "episodes",
       status: params.status || "published",
     };
 
@@ -173,7 +173,7 @@ export async function getRadioShows(
  */
 export async function getRadioShowBySlug(slug: string): Promise<CosmicResponse<RadioShowObject>> {
   try {
-    const response = await cosmic.objects.findOne({ type: "radio-shows", slug }).props("id,slug,title,metadata,type,created_at,updated_at").depth(1);
+    const response = await cosmic.objects.findOne({ type: "episodes", slug }).props("id,slug,title,metadata,type,created_at,updated_at").depth(1);
     return response;
   } catch (error) {
     console.error(`Error fetching radio show by slug ${slug}:`, error);

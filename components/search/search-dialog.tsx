@@ -22,7 +22,7 @@ interface SearchDialogProps {
 }
 
 const typeLabels: Record<ContentType, { label: string; icon: React.ElementType; color: string }> = {
-  "radio-shows": { label: "Radio Shows", icon: Music2, color: "text-foreground" },
+  episodes: { label: "Episodes", icon: Music2, color: "text-foreground" },
   posts: { label: "Posts", icon: Newspaper, color: "text-foreground" },
   events: { label: "Events", icon: Calendar, color: "text-foreground" },
   videos: { label: "Videos", icon: Video, color: "text-foreground" },
@@ -40,24 +40,26 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const [hasNext, setHasNext] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
+  const [videoCategories, setVideoCategories] = useState<any[]>([]);
   const observerTarget = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const PAGE_SIZE = 20;
 
-  // On dialog open, check which types have at least one result
+  // On dialog open, check which types have at least one result and fetch video categories
   useEffect(() => {
     if (!open) return;
     async function checkTypes() {
       try {
         const types: string[] = [];
-        const [episodes, posts, videos, events, takeovers] = await Promise.all([import("@/lib/episode-service").then((m) => m.getEpisodesForShows({ limit: 1 })), getAllPosts({ limit: 1 }), getVideos({ limit: 1 }), getEvents({ limit: 1 }), getTakeovers({ limit: 1 })]);
-        if (episodes?.shows?.length > 0) types.push("radio-shows");
+        const [episodes, posts, videos, events, takeovers, videoCategories] = await Promise.all([import("@/lib/episode-service").then((m) => m.getEpisodesForShows({ limit: 1 })), getAllPosts({ limit: 1 }), getVideos({ limit: 1 }), getEvents({ limit: 1 }), getTakeovers({ limit: 1 }), import("@/lib/actions").then((m) => m.getVideoCategories())]);
+        if (episodes?.shows?.length > 0) types.push("episodes");
         if (posts?.posts?.length > 0) types.push("posts");
         if (events?.events?.length > 0) types.push("events");
         if (videos?.videos?.length > 0) types.push("videos");
         if (takeovers?.takeovers?.length > 0) types.push("takeovers");
         setAvailableTypes(types);
+        setVideoCategories(videoCategories);
       } catch (error) {
         console.warn("Error checking available types:", error);
         setAvailableTypes([]);
@@ -67,7 +69,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   }, [open]);
 
   // Determine selected content type and selected tags
-  const selectedType = activeFilters.find((f) => Object.keys(typeLabels).includes(f)) || "radio-shows";
+  const selectedType = activeFilters.find((f) => Object.keys(typeLabels).includes(f)) || "episodes";
   const selectedTags = activeFilters.filter((f) => !Object.keys(typeLabels).includes(f));
 
   // Fetch tags for the selected type
@@ -76,7 +78,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     async function fetchTags() {
       try {
         let tagSet = new Set<string>();
-        if (selectedType === "radio-shows") {
+        if (selectedType === "episodes") {
           const response = await import("@/lib/episode-service").then((m) => m.getEpisodesForShows({ limit: 100, offset: 0 }));
           response?.shows?.forEach((episode: any) => {
             const genres = episode?.genres || episode?.enhanced_genres || [];
@@ -136,7 +138,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         let res: any;
         let allResults: any[] = [];
 
-        if (selectedType === "radio-shows") {
+        if (selectedType === "episodes") {
           // Fetch episodes from Cosmic
           const { getEpisodesForShows } = await import("@/lib/episode-service");
           const searchParams = debouncedSearchTerm ? { searchTerm: debouncedSearchTerm, limit: 100, offset: 0 } : { limit: 100, offset: 0 };
@@ -217,7 +219,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           async function fetchMore() {
             try {
               let res: any;
-              if (selectedType === "radio-shows") {
+              if (selectedType === "episodes") {
                 const episodeModule = await import("@/lib/episode-service");
                 const searchParams = debouncedSearchTerm ? { searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { limit: PAGE_SIZE, offset: nextOffset };
                 res = await episodeModule.getEpisodesForShows(searchParams);
@@ -373,8 +375,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   <>
                     {results.map((result, idx) => (
                       <>
-                        {selectedType === "radio-shows" ? (
-                          <Link key={`${result.key}-${result.slug}-${idx}`} href={`/radio-shows/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
+                        {selectedType === "episodes" ? (
+                          <Link key={`${result.key}-${result.slug}-${idx}`} href={`/episodes/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
                               <div className="size-32 relative shrink-0 overflow-hidden ">
                                 <Image src={result.pictures?.large || result.pictures?.extra_large || "/image-placeholder.svg"} alt={result.name || "Radio Show Cover"} fill className="object-cover" />
@@ -407,85 +409,162 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         ) : selectedType === "posts" ? (
                           <Link key={`${result.id}-${result.slug}-${idx}`} href={`/posts/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
-                              <div className="w-16 h-16 relative shrink-0 overflow-hidden ">
+                              <div className="size-32 relative shrink-0 overflow-hidden ">
                                 <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Post Cover"} fill className="object-cover" />
                               </div>
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 flex flex-col font-mono uppercase min-w-0 gap-2">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                                   <Newspaper className="w-4 h-4 text-foreground" />
                                   <span>Posts</span>
-                                  {result.metadata?.date && (
-                                    <>
-                                      <span>•</span>
-                                      <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
-                                    </>
-                                  )}
                                 </div>
-                                <h3 className="font-medium mb-1">{result.title}</h3>
-                                {result.metadata?.excerpt && <p className="text-sm text-muted-foreground line-clamp-2">{result.metadata.excerpt}</p>}
+                                <h3 className="text-m5 font-mono truncate line-clamp-1">{result.title}</h3>
+                                {result.metadata?.date && (
+                                  <>
+                                    <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
+                                  </>
+                                )}
+                                {Array.isArray(result.metadata?.categories) && result.metadata.categories.length > 0 && (
+                                  <div className="flex flex-wrap">
+                                    {result.metadata.categories.map((cat: any) => (
+                                      <Badge key={cat.title} variant="outline" className="text-xs uppercase">
+                                        {cat.title}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </Link>
                         ) : selectedType === "videos" ? (
                           <Link key={`${result.id}-${result.slug}-${idx}`} href={`/videos/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
-                              <div className="w-16 h-16 relative shrink-0 overflow-hidden ">
-                                <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Video Cover"} fill className="object-cover" />
+                              <div className="size-32 relative shrink-0 overflow-hidden ">
+                                <Image
+                                  src={(() => {
+                                    // Get YouTube thumbnail if available
+                                    const getYouTubeThumbnail = (url: string): string => {
+                                      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                                      const match = url.match(regExp);
+                                      if (match && match[2].length === 11) {
+                                        return `https://img.youtube.com/vi/${match[2]}/maxresdefault.jpg`;
+                                      }
+                                      return "";
+                                    };
+
+                                    // Get Vimeo thumbnail if available
+                                    const getVimeoThumbnail = (url: string): string => {
+                                      const regExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
+                                      const match = url.match(regExp);
+                                      if (match && match[1]) {
+                                        return `https://vumbnail.com/${match[1]}.jpg`;
+                                      }
+                                      return "";
+                                    };
+
+                                    const youtubeId = result.metadata?.video_url ? getYouTubeThumbnail(result.metadata.video_url) : "";
+                                    const vimeoId = result.metadata?.video_url ? getVimeoThumbnail(result.metadata.video_url) : "";
+                                    return result.metadata?.image?.imgix_url || youtubeId || vimeoId || "/image-placeholder.svg";
+                                  })()}
+                                  alt={result.title || "Video Cover"}
+                                  fill
+                                  className="object-cover"
+                                />
                               </div>
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 flex flex-col font-mono uppercase min-w-0 gap-2">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                                   <Video className="w-4 h-4 text-foreground" />
                                   <span>Videos</span>
-                                  {result.metadata?.date && (
-                                    <>
-                                      <span>•</span>
-                                      <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
-                                    </>
-                                  )}
                                 </div>
-                                <h3 className="font-medium mb-1">{result.title}</h3>
+                                <h3 className="text-m5 font-mono truncate line-clamp-1">{result.title}</h3>
+                                {result.metadata?.date && (
+                                  <>
+                                    <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
+                                  </>
+                                )}
+                                {Array.isArray(result.metadata?.categories) && result.metadata.categories.length > 0 && (
+                                  <div className="flex flex-wrap">
+                                    {result.metadata.categories.map((cat: any) => {
+                                      // Handle both full objects (if depth is sufficient) and IDs (if we need to map them)
+                                      let categoryTitle = "";
+                                      let categoryId = "";
+
+                                      if (typeof cat === "string") {
+                                        // It's an ID string
+                                        const categoryObj = videoCategories.find((c) => c.id === cat);
+                                        categoryTitle = categoryObj?.title || "";
+                                        categoryId = cat;
+                                      } else if (cat && typeof cat === "object") {
+                                        // It's a full object
+                                        categoryTitle = cat.title || "";
+                                        categoryId = cat.id || "";
+                                      }
+
+                                      return categoryTitle ? (
+                                        <Badge key={categoryId} variant="outline" className="text-xs uppercase">
+                                          {categoryTitle}
+                                        </Badge>
+                                      ) : null;
+                                    })}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </Link>
                         ) : selectedType === "events" ? (
                           <Link key={`${result.id}-${result.slug}-${idx}`} href={`/events/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
-                              <div className="w-16 h-16 relative shrink-0 overflow-hidden ">
+                              <div className="size-32 relative shrink-0 overflow-hidden ">
                                 <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Event Cover"} fill className="object-cover" />
                               </div>
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 flex flex-col font-mono uppercase min-w-0 gap-2">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                                   <Calendar className="w-4 h-4 text-foreground" />
                                   <span>Events</span>
-                                  {result.metadata?.date && (
-                                    <>
-                                      <span>•</span>
-                                      <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
-                                    </>
-                                  )}
                                 </div>
-                                <h3 className="font-medium mb-1">{result.title}</h3>
+                                <h3 className="text-m5 font-mono truncate line-clamp-1">{result.title}</h3>
+                                {result.metadata?.date && (
+                                  <>
+                                    <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
+                                  </>
+                                )}
+                                {Array.isArray(result.metadata?.categories) && result.metadata.categories.length > 0 && (
+                                  <div className="flex flex-wrap">
+                                    {result.metadata.categories.map((cat: any) => (
+                                      <Badge key={cat.title} variant="outline" className="text-xs uppercase">
+                                        {cat.title}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </Link>
                         ) : selectedType === "takeovers" ? (
                           <Link key={`${result.id}-${result.slug}-${idx}`} href={`/takeovers/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
                             <div className="flex items-start gap-4">
-                              <div className="w-16 h-16 relative shrink-0 overflow-hidden ">
+                              <div className="size-32 relative shrink-0 overflow-hidden ">
                                 <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Takeover Cover"} fill className="object-cover" />
                               </div>
-                              <div className="flex-1 min-w-0">
+                              <div className="flex-1 flex flex-col font-mono uppercase min-w-0 gap-2">
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                                  <Calendar className="w-4 h-4 text-foreground" />
+                                  <MicVocal className="w-4 h-4 text-foreground" />
                                   <span>Takeovers</span>
-                                  {result.metadata?.date && (
-                                    <>
-                                      <span>•</span>
-                                      <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
-                                    </>
-                                  )}
                                 </div>
-                                <h3 className="font-medium mb-1">{result.title}</h3>
+                                <h3 className="text-m5 font-mono truncate line-clamp-1">{result.title}</h3>
+                                {result.metadata?.date && (
+                                  <>
+                                    <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
+                                  </>
+                                )}
+                                {Array.isArray(result.metadata?.categories) && result.metadata.categories.length > 0 && (
+                                  <div className="flex flex-wrap">
+                                    {result.metadata.categories.map((cat: any) => (
+                                      <Badge key={cat.title} variant="outline" className="text-xs uppercase">
+                                        {cat.title}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </Link>

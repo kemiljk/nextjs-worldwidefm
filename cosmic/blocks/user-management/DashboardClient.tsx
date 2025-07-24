@@ -4,78 +4,21 @@ import { useState, useTransition, useOptimistic } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/cosmic/blocks/user-management/AuthContext";
 import { UserProfileForm } from "@/cosmic/blocks/user-management/UserProfileForm";
-import { XIcon, Settings } from "lucide-react";
+import { XIcon, Settings, LogOut } from "lucide-react";
 import { addFavouriteGenre, removeFavouriteGenre, addFavouriteShow, removeFavouriteShow, addFavouriteHost, removeFavouriteHost } from "./actions";
 import type { GenreObject, RadioShowObject, HostObject } from "@/lib/cosmic-config";
 import { Button } from "@/components/ui/button";
 import { ShowCard } from "@/components/ui/show-card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-interface EpisodeObject {
-  id: string;
-  slug: string;
-  title: string;
-  type: "episode";
-  metadata: {
-    radiocult_event_id: string | null;
-    radiocult_show_id: string | null;
-    radiocult_artist_id: string | null;
-    radiocult_synced: boolean;
-    radiocult_synced_at: string | null;
-    broadcast_date: string | null;
-    broadcast_time: string | null;
-    duration: string | null;
-    description: string | null;
-    image: any | null;
-    player: string | null;
-    tracklist: string | null;
-    body_text: string | null;
-    genres: GenreObject[];
-    locations: any[];
-    regular_hosts: HostObject[];
-    takeovers: any[];
-    featured_on_homepage: boolean;
-    source: string | null;
-  };
-  created_at: string;
-  modified_at: string;
-  published_at: string;
-  status: string;
-}
-
-interface BlendedShow {
-  id: string;
-  key: string;
-  name: string;
-  title: string;
-  slug: string;
-  url: string;
-  description: string;
-  created_time: string;
-  broadcast_date: string;
-  pictures: any;
-  image: any;
-  enhanced_image: string;
-  genres: any[];
-  enhanced_genres: GenreObject[];
-  hosts: any[];
-  enhanced_hosts: HostObject[];
-  __source: "episode" | "mixcloud" | "blended" | "cosmic";
-  episodeData?: EpisodeObject;
-  mixcloudData?: any;
-  matchScore: number;
-}
-
 interface DashboardClientProps {
   userData: any;
   allGenres: GenreObject[];
   allHosts: HostObject[];
   allShows: RadioShowObject[];
-  allEpisodes?: EpisodeObject[];
-
   canonicalGenres: { slug: string; title: string }[];
-  genreShows: { [key: string]: BlendedShow[] };
-  hostShows: { [key: string]: BlendedShow[] };
+  genreShows: { [key: string]: any[] };
+  hostShows: { [key: string]: any[] };
   favouriteGenres: GenreObject[];
   favouriteHosts: HostObject[];
   favouriteShows: RadioShowObject[];
@@ -83,8 +26,8 @@ interface DashboardClientProps {
 
 // Function to calculate similarity score between genres
 
-export default function DashboardClient({ userData, allGenres, allHosts, allShows, allEpisodes = [], canonicalGenres = [], genreShows, hostShows, favouriteGenres = [], favouriteHosts = [], favouriteShows = [] }: DashboardClientProps) {
-  const { user } = useAuth();
+export default function DashboardClient({ userData, allGenres, allHosts, allShows, canonicalGenres = [], genreShows, hostShows, favouriteGenres = [], favouriteHosts = [], favouriteShows = [] }: DashboardClientProps) {
+  const { user, logout } = useAuth();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isAdding, setIsAdding] = useState<null | "genre" | "show" | "host">(null);
@@ -101,123 +44,10 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
   const [optimisticHostsRemove, removeOptimisticHost] = useOptimistic(optimisticHosts, (state, hostId: string) => state.filter((host) => host.id !== hostId));
   const [optimisticShowsRemove, removeOptimisticShow] = useOptimistic(optimisticShows, (state, showId: string) => state.filter((show) => show.id !== showId));
 
-  // Map Mixcloud show tags to canonical genres (same logic as shows-client.tsx)
-  function mapShowToCanonicalGenres(show: any): string[] {
-    const tags = show.tags || [];
-    return canonicalGenres
-      .filter((genre) =>
-        tags.some((tag: any) => {
-          const tagName = tag.name.toLowerCase();
-          return genre.slug.toLowerCase() === tagName || genre.title.toLowerCase() === tagName;
-        })
-      )
-      .map((genre) => genre.slug);
-  }
-
-  // Function to get shows for a genre (simplified - using only Cosmic episodes)
-  function getBlendedShowsForGenre(genreId: string): BlendedShow[] {
-    const genre = allGenres.find((g: any) => g.id === genreId);
-    if (!genre) return [];
-
-    // Use episodes from Cosmic only
-    const genreEpisodes = allEpisodes.filter((episode: any) => {
-      const episodeGenres = episode.metadata?.genres || [];
-      return episodeGenres.some((episodeGenre: any) => episodeGenre.id === genreId);
-    });
-
-    // Convert episodes to BlendedShow format
-    const blendedEpisodes = genreEpisodes.slice(0, 4).map((episode: any) => ({
-      id: episode.id,
-      key: episode.slug,
-      name: episode.title,
-      title: episode.title,
-      slug: episode.slug,
-      url: `/episode/${episode.slug}`,
-      description: episode.metadata?.description || "",
-      created_time: episode.metadata?.broadcast_date || episode.created_at,
-      broadcast_date: episode.metadata?.broadcast_date || episode.created_at,
-      pictures: {},
-      image: episode.metadata?.image,
-      enhanced_image: episode.metadata?.image?.imgix_url || "/image-placeholder.svg",
-      genres: [],
-      enhanced_genres: episode.metadata?.genres || [],
-      hosts: [],
-      enhanced_hosts: episode.metadata?.regular_hosts || [],
-      __source: "episode" as const,
-      episodeData: episode,
-      mixcloudData: undefined,
-      matchScore: 1,
-    }));
-
-    return blendedEpisodes;
-  }
-
-  // Function to get shows for a host (simplified - using only Cosmic episodes)
-  function getBlendedShowsForHost(hostId: string): BlendedShow[] {
-    const host = allHosts.find((h: any) => h.id === hostId);
-    if (!host) return [];
-
-    // Use episodes from Cosmic only
-    const hostEpisodes = allEpisodes.filter((episode: any) => {
-      const episodeHosts = episode.metadata?.regular_hosts || [];
-      return episodeHosts.some((episodeHost: any) => episodeHost.id === hostId);
-    });
-
-    // Convert episodes to BlendedShow format
-    const blendedEpisodes = hostEpisodes.slice(0, 4).map((episode: any) => ({
-      id: episode.id,
-      key: episode.slug,
-      name: episode.title,
-      title: episode.title,
-      slug: episode.slug,
-      url: `/episode/${episode.slug}`,
-      description: episode.metadata?.description || "",
-      created_time: episode.metadata?.broadcast_date || episode.created_at,
-      broadcast_date: episode.metadata?.broadcast_date || episode.created_at,
-      pictures: {},
-      image: episode.metadata?.image,
-      enhanced_image: episode.metadata?.image?.imgix_url || "/image-placeholder.svg",
-      genres: [],
-      enhanced_genres: episode.metadata?.genres || [],
-      hosts: [],
-      enhanced_hosts: episode.metadata?.regular_hosts || [],
-      __source: "episode" as const,
-      episodeData: episode,
-      mixcloudData: undefined,
-      matchScore: 1,
-    }));
-
-    return blendedEpisodes;
-  }
-
-  // Generate blended shows for genres and hosts (no Episode objects needed)
-  const blendedGenreShows = Object.fromEntries(favouriteGenres.map((genre) => [genre.id, getBlendedShowsForGenre(genre.id)]));
-
-  const blendedHostShows = Object.fromEntries(favouriteHosts.map((host) => [host.id, getBlendedShowsForHost(host.id)]));
-
-  // Transform favourite shows to consistent format (simplified)
-  const blendedFavouriteShows = favouriteShows.map((show) => ({
-    id: show.id,
-    key: show.slug,
-    name: show.title,
-    title: show.title,
-    slug: show.slug,
-    url: `/episode/${show.slug}`,
-    description: show.metadata?.description || "",
-    created_time: show.metadata?.broadcast_date || show.created_at,
-    broadcast_date: show.metadata?.broadcast_date || show.created_at,
-    pictures: {},
-    image: show.metadata?.image,
-    enhanced_image: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-    genres: [],
-    enhanced_genres: show.metadata?.genres || [],
-    hosts: [],
-    enhanced_hosts: show.metadata?.regular_hosts || [],
-    __source: "cosmic" as const,
-    episodeData: undefined,
-    mixcloudData: undefined,
-    matchScore: 1.0,
-  }));
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
 
   const handleServerAction = async (action: () => Promise<any>) => {
     if (!user) return;
@@ -323,7 +153,7 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
     </span>
   );
 
-  const renderShowsSection = (items: (GenreObject | HostObject)[], showsMap: { [key: string]: BlendedShow[] }, type: "genre" | "host") => {
+  const renderShowsSection = (items: (GenreObject | HostObject)[], showsMap: { [key: string]: any[] }, type: "genre" | "host") => {
     if (items.length === 0) {
       return <p className="text-gray-500 italic">No favorite {type}s yet. Add some to see their latest shows!</p>;
     }
@@ -331,7 +161,11 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
     return (
       <div className="space-y-8">
         {/* Badges */}
-        <div className="flex flex-wrap gap-2">{items.map((item) => renderFavouriteBadge(item, () => (type === "genre" ? handleRemoveGenre(item.id) : handleRemoveHost(item.id)), type))}</div>
+        <div className="flex flex-wrap gap-2">
+          {items.map((item) => (
+            <div key={item.id}>{renderFavouriteBadge(item, () => (type === "genre" ? handleRemoveGenre(item.id) : handleRemoveHost(item.id)), type)}</div>
+          ))}
+        </div>
 
         {/* Latest shows */}
         {items.map((item) => {
@@ -344,8 +178,8 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
                 Latest {type === "genre" ? "in" : "from"} {item.title}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {shows.map((show: BlendedShow) => (
-                  <ShowCard key={show.key} show={show} slug={show.url} playable />
+                {shows.map((show: any) => (
+                  <ShowCard key={show.key || show.id || show.slug} show={show} slug={show.url || `/episode/${show.slug}`} playable />
                 ))}
               </div>
             </div>
@@ -433,12 +267,18 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
     <div className="py-8">
       <div className="mx-auto px-4 flex flex-col gap-8">
         {/* Header */}
-        <div className="text-center">
-          <h1 className="font-display uppercase text-4xl font-normal tracking-tight mb-4">Welcome, {userData.metadata.first_name}!</h1>
-          <Button variant="outline" onClick={() => setShowEditProfile(!showEditProfile)} className="mb-8">
-            <Settings className="size-4 mr-2" />
-            {showEditProfile ? "Hide" : "Edit"} Profile
-          </Button>
+        <div className="flex items-center justify-between">
+          <h1 className="font-display uppercase text-4xl font-normal tracking-tight">Welcome, {userData.metadata.first_name}!</h1>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowEditProfile(!showEditProfile)}>
+              <Settings className="size-4 mr-2" />
+              {showEditProfile ? "Hide" : "Edit"} Profile
+            </Button>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="size-4 mr-2" />
+              Log Out
+            </Button>
+          </div>
         </div>
 
         {/* Edit Profile Form */}
@@ -456,7 +296,7 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
               Add Genre
             </Button>
           </div>
-          {renderShowsSection(optimisticGenresRemove, blendedGenreShows, "genre")}
+          {renderShowsSection(optimisticGenresRemove, genreShows, "genre")}
         </section>
 
         {/* Favourite Shows */}
@@ -468,11 +308,11 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
             </Button>
           </div>
 
-          {blendedFavouriteShows.length > 0 ? (
+          {favouriteShows.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {blendedFavouriteShows.map((show: BlendedShow) => (
-                <div key={show.id} className="relative">
-                  <ShowCard show={show} slug={show.url} playable />
+              {favouriteShows.map((show: any) => (
+                <div key={show.id || show.slug} className="relative">
+                  <ShowCard show={show} slug={`/episode/${show.slug}`} playable />
                 </div>
               ))}
             </div>
@@ -489,7 +329,7 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
               Add Host
             </Button>
           </div>
-          {renderShowsSection(optimisticHostsRemove, blendedHostShows, "host")}
+          {renderShowsSection(optimisticHostsRemove, hostShows, "host")}
         </section>
 
         {/* Add Favorites Modal */}

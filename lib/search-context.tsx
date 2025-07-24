@@ -8,7 +8,7 @@ export interface FilterItem {
   type: string;
 }
 
-export type SearchResultType = "posts" | "radio-shows" | "events" | "videos" | "takeovers";
+export type SearchResultType = "posts" | "episodes" | "events" | "videos" | "takeovers";
 
 export interface SearchResult {
   id: string;

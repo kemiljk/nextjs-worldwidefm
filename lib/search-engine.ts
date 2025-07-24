@@ -86,7 +86,7 @@ const mapTakeoverToFilterItem = (takeover: TakeoverObject): FilterItem => ({
 // Fetch and normalize all content types from Cosmic
 export async function fetchAllCosmicContent(): Promise<SearchResult[]> {
   const [showsRes, eventsRes, postsRes, videosRes, takeoversRes] = await Promise.all([
-    cosmic.objects.find({ type: "radio-shows", props: "id,slug,title,metadata,created_at", status: "published", limit: 1000 }),
+    cosmic.objects.find({ type: "episodes", props: "id,slug,title,metadata,created_at", status: "published", limit: 1000 }),
     cosmic.objects.find({ type: "events", props: "id,slug,title,metadata,created_at", status: "published", limit: 1000 }),
     cosmic.objects.find({ type: "posts", props: "id,slug,title,metadata,created_at", status: "published", limit: 1000 }),
     cosmic.objects.find({ type: "videos", props: "id,slug,title,metadata,created_at", status: "published", limit: 1000 }),
@@ -97,7 +97,7 @@ export async function fetchAllCosmicContent(): Promise<SearchResult[]> {
       const meta = item.metadata || {};
       return {
         id: item.id,
-        type: "radio-shows" as SearchResultType,
+        type: "episodes" as SearchResultType,
         slug: item.slug,
         title: safeString(item.title) || "",
         description: stripHtmlTags(meta.description || meta.subtitle || ""),
@@ -193,7 +193,7 @@ export async function fetchEpisodesForSearch(): Promise<SearchResult[]> {
   return episodes
     .map((episode: EpisodeObject) => ({
       id: episode.id,
-      type: "radio-shows" as SearchResultType,
+      type: "episodes" as SearchResultType,
       slug: episode.slug,
       title: episode.title,
       description: stripHtmlTags(episode.metadata.description || episode.title),
@@ -225,8 +225,8 @@ export async function fetchAllFilters(): Promise<{
 export async function getAllSearchResultsAndFilters() {
   const [cosmicContent, episodes, filters] = await Promise.all([fetchAllCosmicContent(), fetchEpisodesForSearch(), fetchAllFilters()]);
 
-  // Filter out legacy radio-shows from cosmic content and replace with episodes
-  const otherContent = cosmicContent.filter((item) => item.type !== "radio-shows");
+  // Filter out legacy episodes from cosmic content and replace with episodes
+  const otherContent = cosmicContent.filter((item) => item.type !== "episodes");
 
   return {
     results: [...episodes, ...otherContent],

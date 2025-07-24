@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
 
     try {
       const cosmicResponse = await cosmic.objects.insertOne({
-        type: "radio-shows",
+        type: "episodes",
         title: validatedData.title,
         slug: `${validatedData.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(16)}`,
         status: validatedData.status,
@@ -320,7 +320,7 @@ export async function POST(request: NextRequest) {
 
         try {
           const retryResponse = await cosmic.objects.insertOne({
-            type: "radio-shows",
+            type: "episodes",
             title: validatedData.title,
             slug: `${validatedData.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(16)}`,
             status: validatedData.status,
@@ -337,7 +337,7 @@ export async function POST(request: NextRequest) {
 
           // Last resort: create with no metadata
           const basicResponse = await cosmic.objects.insertOne({
-            type: "radio-shows",
+            type: "episodes",
             title: validatedData.title,
             slug: `${validatedData.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(16)}`,
             status: validatedData.status,
@@ -347,7 +347,7 @@ export async function POST(request: NextRequest) {
             success: true,
             object: basicResponse.object,
             warning: "Show created with title only - Cosmic object type needs metafield configuration",
-            note: "To store full show data, please configure the 'radio-shows' object type in Cosmic with required metafields like: broadcast_date, broadcast_time, broadcast_day, duration, radiocult_artist_id, etc.",
+            note: "To store full show data, please configure the 'episodes' object type in Cosmic with required metafields like: broadcast_date, broadcast_time, broadcast_day, duration, radiocult_artist_id, etc.",
           });
         }
       }

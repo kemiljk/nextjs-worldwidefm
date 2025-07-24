@@ -51,11 +51,11 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({ section, 
       };
     }
 
-    // Handle other item types (radio-shows, posts, etc.)
+    // Handle other item types (episodes, posts, etc.)
     return {
       key: item.slug,
       name: item.title,
-      url: item.type === "posts" ? `/editorial/${item.slug}` : item.type === "radio-shows" ? `/episode/${item.slug}` : `/${item.type}/${item.slug}`,
+      url: item.type === "posts" ? `/editorial/${item.slug}` : item.type === "episodes" ? `/episode/${item.slug}` : `/${item.type}/${item.slug}`,
       slug: item.slug,
       pictures: {
         large: item.metadata.image?.url || item.metadata.featured_image?.imgix_url || "/image-placeholder.svg",

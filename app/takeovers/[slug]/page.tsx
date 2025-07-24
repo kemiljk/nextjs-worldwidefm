@@ -180,7 +180,7 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
 
       {takeoverEpisodes.length === 0 && (
         <div className="text-center py-12">
-          <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white text-muted-foreground mb-2">No Episodes Found</h3>
+          <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-2">No Episodes Found</h3>
           <p className="text-muted-foreground">This takeover doesn't have any episodes yet.</p>
         </div>
       )}

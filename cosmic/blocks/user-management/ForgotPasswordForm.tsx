@@ -25,7 +25,7 @@ export default function ForgotPasswordForm({ onSubmit }: ForgotPasswordFormProps
       const formData = new FormData(e.currentTarget);
       const result = await onSubmit(formData);
 
-      if (result.error) {
+      if (result && result.error) {
         setError(result.error);
         return;
       }

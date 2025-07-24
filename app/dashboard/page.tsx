@@ -30,7 +30,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <DashboardClient userData={data.userData} allGenres={data.allGenres} allHosts={data.allHosts} allShows={data.allShows} allEpisodes={data.allEpisodes} mixcloudShows={data.mixcloudShows} canonicalGenres={data.canonicalGenres} genreShows={data.genreShows} hostShows={data.hostShows} favouriteGenres={data.favouriteGenres} favouriteHosts={data.favouriteHosts} favouriteShows={data.favouriteShows} />
+      <DashboardClient userData={data.userData} allGenres={data.allGenres} allHosts={data.allHosts} allShows={data.allShows} canonicalGenres={data.canonicalGenres} genreShows={data.genreShows} hostShows={data.hostShows} favouriteGenres={data.favouriteGenres} favouriteHosts={data.favouriteHosts} favouriteShows={data.favouriteShows} />
     </div>
   );
 }

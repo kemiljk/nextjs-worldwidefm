@@ -63,7 +63,7 @@ export default function SearchProvider({ children }: SearchProviderProps) {
           hosts: filters.hosts,
           takeovers: [],
           types: [
-            { slug: "radio-shows", title: "Radio Shows", type: "types" },
+            { slug: "episodes", title: "Episodes", type: "types" },
             { slug: "posts", title: "Posts", type: "types" },
             { slug: "events", title: "Events", type: "types" },
             { slug: "videos", title: "Videos", type: "types" },

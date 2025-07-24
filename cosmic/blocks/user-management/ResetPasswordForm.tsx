@@ -34,7 +34,7 @@ export default function ResetPasswordForm({ token, onSubmit }: ResetPasswordForm
 
       const result = await onSubmit(token, formData);
 
-      if (result.error) {
+      if (result && result.error) {
         setError(result.error);
         return;
       }

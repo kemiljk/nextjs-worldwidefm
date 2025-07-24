@@ -14,10 +14,10 @@ interface HomepageHeroProps {
 
 const renderHeroItem = (item: CosmicItem, isPriority: boolean) => {
   // Basic card structure - can be expanded based on item.type and metadata
-  // For example, if item.type is 'radio-shows', we might want to show play buttons, genres, etc.
+  // For example, if item.type is 'episodes', we might want to show play buttons, genres, etc.
   // If item.type is 'posts', we might show an excerpt or author.
 
-  const href = item.type === "radio-shows" ? `/episode${item.slug}` : item.type === "posts" ? `/editorial/${item.slug}` : "#";
+  const href = item.type === "episodes" ? `/episode${item.slug}` : item.type === "posts" ? `/editorial/${item.slug}` : "#";
 
   return (
     <Card key={item.slug} className="overflow-hidden shadow-none rounded-none relative cursor-pointer h-full flex flex-col">
