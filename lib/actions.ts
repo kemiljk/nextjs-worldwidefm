@@ -10,6 +10,7 @@ import { getEventBySlug as getRadioCultEventBySlug, getEvents as getRadioCultEve
 import FormData from "form-data";
 import { CosmicHomepageData, HomepageSectionItem, CosmicAPIObject, ProcessedHomepageSection, ColouredSection } from "./cosmic-types";
 import { stripUrlsFromText } from "./utils";
+import { deduplicateFilters } from "./filter-types";
 
 export async function getAllPosts({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{ posts: PostObject[]; hasNext: boolean }> {
   try {
@@ -571,8 +572,8 @@ export async function getShowsFilters() {
     const [genresRes, hostsRes, takeoversRes, locationsRes] = await Promise.all([safeFind("genres"), safeFind("regular-hosts"), safeFind("takeovers"), safeFind("locations")]);
 
     // Convert to FilterItem type with id property for shows page
-    const toShowsFilterItems = (objects: any[] = [], type: string) =>
-      objects.map((obj) => ({
+    const toShowsFilterItems = (objects: any[] = [], type: string) => {
+      const items = objects.map((obj) => ({
         id: obj.id,
         slug: obj.slug,
         title: obj.title,
@@ -584,6 +585,14 @@ export async function getShowsFilters() {
         modified_at: obj.modified_at,
         published_at: obj.published_at,
       }));
+
+      const deduplicated = deduplicateFilters(items);
+      if (items.length !== deduplicated.length) {
+        console.log(`${type}: Removed ${items.length - deduplicated.length} duplicates (${items.length} → ${deduplicated.length})`);
+      }
+
+      return deduplicated;
+    };
 
     return {
       genres: toShowsFilterItems(genresRes.objects || [], "genres"),

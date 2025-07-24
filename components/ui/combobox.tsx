@@ -56,7 +56,7 @@ export function Combobox({ options, value = [], onValueChange, placeholder = "Se
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {sortedOptions.map((option) => (
-                <CommandItem key={option.value} value={option.value} onSelect={() => handleSelect(option.value)}>
+                <CommandItem key={option.value} value={option.label} onSelect={() => handleSelect(option.value)}>
                   <Check className={cn("mr-2 h-4 w-4", value.includes(option.value) ? "opacity-100" : "opacity-0")} />
                   {option.label}
                 </CommandItem>

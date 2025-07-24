@@ -39,7 +39,12 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     // Filter by genre
     if (params.genre) {
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
-      query["metadata.genres.slug"] = { $in: genres };
+      console.log("Filtering by genres:", genres);
+
+      // Filter by genre ID (more reliable than slug matching)
+      query["metadata.genres.id"] = { $in: genres };
+
+      console.log("Genre query:", JSON.stringify(query, null, 2));
     }
 
     // Filter by host - match against nested array of objects
@@ -70,7 +75,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     // Filter by location
     if (params.location) {
       const locations = Array.isArray(params.location) ? params.location : [params.location];
-      query["metadata.locations.slug"] = { $in: locations };
+      query["metadata.locations.id"] = { $in: locations };
     }
 
     // Filter by search term
@@ -108,13 +113,65 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     }
 
     // Regular query with pagination
-    const response = await cosmic.objects
-      .find(query)
-      .props("slug,title,metadata,type,created_at,published_at")
-      .limit(limit)
-      .skip(offset)
-      .sort("-metadata.broadcast_date,-created_at") // Sort by broadcast date, then creation date
-      .depth(1);
+    let response;
+    try {
+      response = await cosmic.objects
+        .find(query)
+        .props("slug,title,metadata,type,created_at,published_at")
+        .limit(limit)
+        .skip(offset)
+        .sort("-metadata.broadcast_date,-created_at") // Sort by broadcast date, then creation date
+        .depth(1);
+    } catch (error) {
+      console.log("Server-side filtering failed, using client-side filtering...");
+
+      // Fallback: Get all episodes and filter client-side
+      const allResponse = await cosmic.objects
+        .find({
+          type: "episode",
+          status: "published",
+        })
+        .props("slug,title,metadata,type,created_at,published_at")
+        .limit(1000) // Get more episodes for client-side filtering
+        .sort("-metadata.broadcast_date,-created_at")
+        .depth(1);
+
+      let allEpisodes = allResponse.objects || [];
+
+      // Apply filters client-side
+      if (params.genre) {
+        const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
+        allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
+          const episodeGenres = episode.metadata?.genres || [];
+          return episodeGenres.some((genre: any) => {
+            return genres.includes(genre.id);
+          });
+        });
+        console.log(`Client-side filtered ${allEpisodes.length} episodes by genres:`, genres);
+      }
+
+      if (params.location) {
+        const locations = Array.isArray(params.location) ? params.location : [params.location];
+        allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
+          const episodeLocations = episode.metadata?.locations || [];
+          return episodeLocations.some((location: any) => {
+            return locations.includes(location.id);
+          });
+        });
+        console.log(`Client-side filtered ${allEpisodes.length} episodes by locations:`, locations);
+      }
+
+      // Apply pagination
+      const startIndex = offset;
+      const endIndex = startIndex + limit;
+      const paginatedEpisodes = allEpisodes.slice(startIndex, endIndex);
+
+      return {
+        episodes: paginatedEpisodes,
+        total: allEpisodes.length,
+        hasNext: endIndex < allEpisodes.length,
+      };
+    }
 
     const episodes = response.objects || [];
     const total = response.total || episodes.length;
@@ -127,11 +184,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     };
   } catch (error) {
     console.error("Error fetching episodes:", error);
-    console.error("Query that failed:", JSON.stringify(query, null, 2));
-    console.error("Full error details:", error);
-    console.error("Error type:", typeof error);
-    console.error("Error message:", (error as any)?.message);
-    console.error("Error stack:", (error as any)?.stack);
     return { episodes: [], total: 0, hasNext: false };
   }
 }
@@ -405,7 +457,6 @@ export async function getRelatedEpisodes(currentEpisode: EpisodeObject, limit: n
         type: "episode",
         status: "published",
         id: { $ne: currentEpisode.id },
-        "metadata.player": { $regex: ".", $options: "i" },
       };
 
       const response = await cosmic.objects.find(query).props("slug,title,metadata,type,created_at,published_at").limit(poolSize).sort("-metadata.broadcast_date,-created_at").depth(1);
@@ -418,7 +469,6 @@ export async function getRelatedEpisodes(currentEpisode: EpisodeObject, limit: n
       type: "episode",
       status: "published",
       id: { $ne: currentEpisode.id },
-      "metadata.player": { $regex: ".", $options: "i" },
       $or: orConditions,
     };
 

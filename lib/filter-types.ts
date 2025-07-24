@@ -43,12 +43,27 @@ export function filterShowsByCategory(shows: any[], category: FilterCategory, su
 }
 
 export function deduplicateFilters(filters: FilterItem[]): FilterItem[] {
-  const seen = new Set();
+  const seenIds = new Set();
+  const seenTitles = new Set();
+
   return filters.filter((filter) => {
-    if (seen.has(filter.id)) {
+    // Check for duplicate IDs
+    if (seenIds.has(filter.id)) {
       return false;
     }
-    seen.add(filter.id);
+
+    // Check for duplicate titles (case-insensitive)
+    const normalizedTitle = filter.title?.toLowerCase().trim();
+    if (normalizedTitle && seenTitles.has(normalizedTitle)) {
+      return false;
+    }
+
+    // Add to seen sets
+    seenIds.add(filter.id);
+    if (normalizedTitle) {
+      seenTitles.add(normalizedTitle);
+    }
+
     return true;
   });
 }
