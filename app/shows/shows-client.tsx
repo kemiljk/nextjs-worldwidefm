@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { ShowsGrid } from "../../components/shows-grid";
@@ -10,7 +10,7 @@ import { getEpisodesForShows } from "@/lib/episode-service";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { CanonicalGenre } from "@/lib/get-canonical-genres";
-import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown";
+import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { AvailableFilters as AvailableFiltersType } from "@/lib/filter-types";
 
@@ -36,55 +36,46 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   const typeParam = searchParams.get("type") ?? undefined; // New type parameter for host/takeover filtering
   const searchTerm = searchParams.get("searchTerm") ?? undefined;
 
-  const selectedGenres = genreParam ? genreParam.split("|").filter(Boolean) : [];
-  const selectedLocations = locationParam ? locationParam.split("|").filter(Boolean) : [];
+  const selectedGenres = useMemo(() => (genreParam ? genreParam.split("|").filter(Boolean) : []), [genreParam]);
+  const selectedLocations = useMemo(() => (locationParam ? locationParam.split("|").filter(Boolean) : []), [locationParam]);
 
   // Determine which filter type is active based on the type parameter
   const activeType = typeParam || "all";
-
-  // Build params for getEpisodesForShows
-  const episodeParams: any = {
-    searchTerm,
-    limit: PAGE_SIZE,
-  };
-
-  // Only add filters if they're selected
-  if (selectedGenres.length > 0) {
-    episodeParams.genre = selectedGenres;
-  }
-
-  if (selectedLocations.length > 0) {
-    episodeParams.location = selectedLocations;
-  }
-
-  // Handle type-specific filtering at the backend level
-  if (activeType === "hosts-series") {
-    // This will be filtered client-side since we need to match against available hosts
-    // The backend doesn't know about our canonical host mapping
-  } else if (activeType === "takeovers") {
-    // Filter for episodes that have takeovers
-    episodeParams.takeover = "*"; // Use a wildcard to indicate we want episodes with any takeovers
-  }
 
   // Load initial data and whenever filters/search change
   useEffect(() => {
     let isMounted = true;
     setIsLoadingMore(true);
-    console.log("=== SHOWS FETCH ===");
-    console.log("Active type:", activeType);
-    console.log("Episode params:", episodeParams);
-    console.log("Selected genres:", selectedGenres);
-    console.log("Selected locations:", selectedLocations);
 
-    getEpisodesForShows({ ...episodeParams, offset: 0 })
+    // Build params inside useEffect to get current filter values
+    const episodeParams: any = {
+      searchTerm,
+      limit: PAGE_SIZE,
+      offset: 0,
+    };
+
+    // Only add filters if they're selected
+    if (selectedGenres.length > 0) {
+      episodeParams.genre = selectedGenres;
+    }
+
+    if (selectedLocations.length > 0) {
+      episodeParams.location = selectedLocations;
+    }
+
+    // Handle type-specific filtering at the backend level
+    if (activeType === "takeovers") {
+      // Filter for episodes that have takeovers
+      episodeParams.takeover = "*"; // Use a wildcard to indicate we want episodes with any takeovers
+    }
+
+    getEpisodesForShows(episodeParams)
       .then((response) => {
         if (!isMounted) return;
-        console.log("Initial fetch response:", response);
         setShows(response.shows);
         setHasNext(response.hasNext);
         setIsLoadingMore(false);
         setPage(1);
-        console.log("Episodes after initial fetch:", response.shows.length);
       })
       .catch((error) => {
         console.error("Error fetching episodes:", error);
@@ -95,28 +86,44 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genreParam, locationParam, typeParam, searchTerm]);
+  }, [selectedGenres, selectedLocations, typeParam, searchTerm]);
 
   // Infinite scroll: load more when sentinel is in view
   useEffect(() => {
     if (inView && hasNext && !isLoadingMore) {
       setIsLoadingMore(true);
       const nextOffset = page * PAGE_SIZE;
-      console.log("Fetching more episodes with offset", nextOffset);
-      getEpisodesForShows({ ...episodeParams, offset: nextOffset }).then((response) => {
-        console.log("Fetch more response:", response);
-        setShows((prev) => {
-          const combined = [...prev, ...response.shows];
-          console.log("Episodes after append:", combined.length);
-          return combined;
-        });
+
+      // Build params for infinite scroll (same logic as initial fetch)
+      const episodeParams: any = {
+        searchTerm,
+        limit: PAGE_SIZE,
+        offset: nextOffset,
+      };
+
+      // Only add filters if they're selected
+      if (selectedGenres.length > 0) {
+        episodeParams.genre = selectedGenres;
+      }
+
+      if (selectedLocations.length > 0) {
+        episodeParams.location = selectedLocations;
+      }
+
+      // Handle type-specific filtering at the backend level
+      if (activeType === "takeovers") {
+        episodeParams.takeover = "*";
+      }
+
+      getEpisodesForShows(episodeParams).then((response) => {
+        setShows((prev) => [...prev, ...response.shows]);
         setHasNext(response.hasNext);
         setIsLoadingMore(false);
         setPage((prev) => prev + 1);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inView, hasNext, isLoadingMore, page, genreParam, locationParam, typeParam, searchTerm]);
+  }, [inView, hasNext, isLoadingMore, page, selectedGenres, selectedLocations, typeParam, searchTerm]);
 
   // Map episode genres to canonical genres (by slug or title, case-insensitive)
   function mapShowToCanonicalGenres(show: any): string[] {
@@ -250,37 +257,13 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Filter shows by selected filters
+  // Filter shows by type only (server handles genre/location filtering)
   const filteredShows = shows.filter((show) => {
-    // Check type filter
-    if (!matchesTypeFilter(show)) {
-      return false;
-    }
-
-    // Check genres
-    if (selectedGenres.length > 0) {
-      const mappedGenres = mapShowToCanonicalGenres(show);
-      const matchesGenre = mappedGenres.some((slug) => selectedGenres.includes(slug));
-      if (!matchesGenre) return false;
-    }
-
-    // Check locations
-    if (selectedLocations.length > 0) {
-      const mappedLocations = mapShowToAvailableLocations(show);
-      const matchesLocation = mappedLocations.some((slug) => selectedLocations.includes(slug));
-      if (!matchesLocation) return false;
-    }
-
-    return true;
+    // Only check type filter - genres and locations are filtered server-side
+    return matchesTypeFilter(show);
   });
 
   const hasActiveFilters = selectedGenres.length > 0 || selectedLocations.length > 0;
-
-  console.log("=== FILTERING DEBUG ===");
-  console.log("Total shows from server:", shows.length);
-  console.log("Filtered shows:", filteredShows.length);
-  console.log("Active type:", activeType);
-  console.log("Has active filters:", hasActiveFilters);
 
   return (
     <div className="mx-auto lg:px-4 py-16">
@@ -305,27 +288,31 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
           </Button>
 
           {/* Genres Dropdown */}
-          <MultiSelectDropdown
+          <Combobox
             options={canonicalGenres.map((genre) => ({
-              id: genre.slug,
-              title: genre.title.toUpperCase(),
-              slug: genre.slug,
+              value: genre.slug,
+              label: genre.title.toUpperCase(),
             }))}
-            selectedValues={selectedGenres}
-            onSelectionChange={handleGenreSelectionChange}
+            value={selectedGenres}
+            onValueChange={handleGenreSelectionChange}
             placeholder="Genres"
+            searchPlaceholder="Search genres..."
+            emptyMessage="No genres found."
+            className="w-fit"
           />
 
           {/* Locations Dropdown */}
-          <MultiSelectDropdown
+          <Combobox
             options={availableFilters.locations.map((location) => ({
-              id: location.slug,
-              title: location.title.toUpperCase(),
-              slug: location.slug,
+              value: location.slug,
+              label: location.title.toUpperCase(),
             }))}
-            selectedValues={selectedLocations}
-            onSelectionChange={handleLocationSelectionChange}
+            value={selectedLocations}
+            onValueChange={handleLocationSelectionChange}
             placeholder="Locations"
+            searchPlaceholder="Search locations..."
+            emptyMessage="No locations found."
+            className="w-fit"
           />
         </div>
 

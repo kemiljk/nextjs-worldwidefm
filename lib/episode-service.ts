@@ -24,37 +24,46 @@ export interface EpisodeResponse {
  * Get episodes from Cosmic CMS with filtering and pagination
  */
 export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeResponse> {
+  const limit = params.limit || 20;
+  const offset = params.offset || 0;
+
+  // Build query object - include all published episodes
+  let query: any = {
+    type: "episode",
+    status: "published",
+    // Temporarily removed player requirement to debug - we were getting 0 episodes
+  };
+
   try {
-    const limit = params.limit || 20;
-    const offset = params.offset || 0;
-
-    // Build query object - include all published episodes
-    let query: any = {
-      type: "episode",
-      status: "published",
-      // Temporarily removed player requirement to debug - we were getting 0 episodes
-    };
-
+    // Filter by genre - try $elemMatch approach for nested arrays
     // Filter by genre
     if (params.genre) {
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
       query["metadata.genres.slug"] = { $in: genres };
     }
 
-    // Filter by host
+    // Filter by host - match against nested array of objects
     if (params.host) {
       const hosts = Array.isArray(params.host) ? params.host : [params.host];
-      query["metadata.regular_hosts.slug"] = { $in: hosts };
+      query["metadata.regular_hosts"] = {
+        $elemMatch: {
+          slug: { $in: hosts },
+        },
+      };
     }
 
-    // Filter by takeover
+    // Filter by takeover - match against nested array of objects
     if (params.takeover) {
       if (params.takeover === "*") {
         // Special case: find episodes with ANY takeovers
         query["metadata.takeovers"] = { $exists: true, $ne: [] };
       } else {
         const takeovers = Array.isArray(params.takeover) ? params.takeover : [params.takeover];
-        query["metadata.takeovers.id"] = { $in: takeovers };
+        query["metadata.takeovers"] = {
+          $elemMatch: {
+            $or: [{ id: { $in: takeovers } }, { slug: { $in: takeovers } }],
+          },
+        };
       }
     }
 
@@ -99,10 +108,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     }
 
     // Regular query with pagination
-    console.log("=== EPISODE SERVICE DEBUG ===");
-    console.log("Final query:", JSON.stringify(query, null, 2));
-    console.log("Limit:", limit, "Offset:", offset);
-
     const response = await cosmic.objects
       .find(query)
       .props("slug,title,metadata,type,created_at,published_at")
@@ -115,12 +120,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     const total = response.total || episodes.length;
     const hasNext = episodes.length === limit && offset + limit < total;
 
-    console.log("Episodes found:", episodes.length, "Total:", total);
-    if (episodes.length > 0) {
-      console.log("First episode:", episodes[0].title, episodes[0].metadata?.broadcast_date);
-      console.log("Last episode:", episodes[episodes.length - 1].title, episodes[episodes.length - 1].metadata?.broadcast_date);
-    }
-
     return {
       episodes,
       total,
@@ -128,6 +127,11 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     };
   } catch (error) {
     console.error("Error fetching episodes:", error);
+    console.error("Query that failed:", JSON.stringify(query, null, 2));
+    console.error("Full error details:", error);
+    console.error("Error type:", typeof error);
+    console.error("Error message:", (error as any)?.message);
+    console.error("Error stack:", (error as any)?.stack);
     return { episodes: [], total: 0, hasNext: false };
   }
 }
@@ -142,7 +146,7 @@ export async function getEpisodeBySlug(slug: string): Promise<EpisodeObject | nu
         type: "episode",
         slug: slug,
         status: "published",
-        "metadata.player": { $regex: ".", $options: "i" }, // Must have non-empty player field
+        // Removed player requirement to match the main getEpisodes function
       })
       .props("slug,title,metadata,type,created_at,published_at")
       .depth(1);
@@ -163,7 +167,7 @@ export async function getAllEpisodes(): Promise<EpisodeObject[]> {
       .find({
         type: "episode",
         status: "published",
-        "metadata.player": { $regex: ".", $options: "i" },
+        // Removed player requirement for consistency
       })
       .props("slug,title,metadata,type,created_at,published_at")
       .limit(1000)
