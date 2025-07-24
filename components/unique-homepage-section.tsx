@@ -125,7 +125,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({ section, 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {shows.map((show, index) => (
             <div key={show.key || index} className="flex">
-              <ShowCard show={show} slug={show.url} playable={section.type === "radio-shows"} className="w-full" />
+              <ShowCard show={show} slug={show.url} playable className="w-full" />
             </div>
           ))}
         </div>

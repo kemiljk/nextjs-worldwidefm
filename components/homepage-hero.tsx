@@ -79,8 +79,14 @@ const HomepageHero: React.FC<HomepageHeroProps> = ({ heroLayout, heroItems }) =>
 };
 
 // New: EpisodeHero for episode pages
-export const EpisodeHero = ({ displayName, displayImage, showDate, playable, show }: { displayName: string; displayImage: string; showDate: string; playable?: boolean; show: any }) => {
+export const EpisodeHero = ({ displayName, displayImage, showDate, show }: { displayName: string; displayImage: string; showDate: string; show: any }) => {
   if (!displayImage || !displayName) return null;
+
+  // Since we now filter episodes at fetch level, all episodes have audio content
+  // For other content, check if there's actual audio content
+  const isEpisode = show?.__source === "episode" || show?.episodeData || show?.type === "episode";
+  const hasAudioContent = show?.url || show?.player || show?.metadata?.player;
+
   return (
     <div className="relative w-full h-[calc(100dvh-112px)] aspect-[2/1]">
       <Image src={displayImage} alt={displayName} fill priority className="object-cover object-center w-full h-full select-none pointer-events-none" sizes="100vw" />
@@ -91,10 +97,10 @@ export const EpisodeHero = ({ displayName, displayImage, showDate, playable, sho
           <span className="inline-block bg-white border border-almostblack text-h8 max-w-2xl leading-none font-display text-almostblack pt-2 p-1 text-left w-fit uppercase font-bold shadow-lg">{displayName}</span>
         </div>
       </div>
-      {/* Overlay: Play Button */}
-      {playable && show && (
-        <div className="absolute bottom-6 right-6">
-          <PlayButton show={show} variant="default" size="lg" className="rounded-full shadow-xl w-16 h-16 text-white bg-black/80 hover:bg-black/90" label={false} />
+      {/* Overlay: Play Button - Always show for episodes or if audio content exists */}
+      {(isEpisode || hasAudioContent) && show && (
+        <div className="absolute bottom-8 right-8">
+          <PlayButton show={show} variant="default" size="lg" className="rounded-full shadow-xl w-16 h-16 flex items-center justify-center text-white bg-almostblack/90 hover:bg-almostblack" label={false} />
         </div>
       )}
     </div>

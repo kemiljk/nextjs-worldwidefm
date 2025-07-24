@@ -6,8 +6,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { ShowsGrid } from "../../components/shows-grid";
 import { Loader, X } from "lucide-react";
 import { useInView } from "react-intersection-observer";
-import { getMixcloudShows } from "@/lib/mixcloud-service";
-import type { MixcloudShow } from "@/lib/mixcloud-service";
+import { getEpisodesForShows } from "@/lib/episode-service";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { CanonicalGenre } from "@/lib/get-canonical-genres";
@@ -24,38 +23,26 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const [shows, setShows] = useState<MixcloudShow[]>([]);
+  const [shows, setShows] = useState<any[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const { ref, inView } = useInView();
   const PAGE_SIZE = 20;
 
-  // Parse filter params as multi-select (pipe-separated)
+  // Parse filter params
   const genreParam = searchParams.get("genre") ?? undefined;
-  const hostParam = searchParams.get("host") ?? undefined;
-  const takeoverParam = searchParams.get("takeover") ?? undefined;
-  const featuredShowParam = searchParams.get("featuredShow") ?? undefined;
-  const seriesParam = searchParams.get("series") ?? undefined;
-
-  const selectedGenres = genreParam ? genreParam.split("|").filter(Boolean) : [];
-  const selectedHosts = hostParam ? hostParam.split("|").filter(Boolean) : [];
-  const selectedTakeovers = takeoverParam ? takeoverParam.split("|").filter(Boolean) : [];
-  const selectedFeaturedShows = featuredShowParam ? featuredShowParam.split("|").filter(Boolean) : [];
-  const selectedSeries = seriesParam ? seriesParam.split("|").filter(Boolean) : [];
-
+  const typeParam = searchParams.get("type") ?? undefined; // New type parameter for navigation
   const searchTerm = searchParams.get("searchTerm") ?? undefined;
 
-  // Build params for getMixcloudShows
-  // Convert host slugs to host titles for API filtering
-  const hostTitles = selectedHosts.map((hostSlug) => {
-    const host = availableFilters.hosts.find((h) => h.slug === hostSlug);
-    return host ? host.title.toLowerCase() : hostSlug;
-  });
+  const selectedGenres = genreParam ? genreParam.split("|").filter(Boolean) : [];
 
-  const mixcloudParams: any = {
-    tag: selectedGenres.length > 0 ? selectedGenres.join("|") : undefined,
-    host: hostTitles.length > 0 ? hostTitles.join("|") : undefined,
+  // Determine which filter type is active based on the type parameter
+  const activeType = typeParam || "all";
+
+  // Build params for getEpisodesForShows
+  const episodeParams: any = {
+    genre: selectedGenres.length > 0 ? selectedGenres : undefined,
     searchTerm,
     limit: PAGE_SIZE,
   };
@@ -64,33 +51,33 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   useEffect(() => {
     let isMounted = true;
     setIsLoadingMore(true);
-    console.log("Fetching initial shows with offset 0");
-    getMixcloudShows({ ...mixcloudParams, offset: 0 }).then((response) => {
+    console.log("Fetching initial episodes with offset 0");
+    getEpisodesForShows({ ...episodeParams, offset: 0 }).then((response) => {
       if (!isMounted) return;
       console.log("Initial fetch response:", response);
       setShows(response.shows);
       setHasNext(response.hasNext);
       setIsLoadingMore(false);
       setPage(1);
-      console.log("Shows after initial fetch:", response.shows.length);
+      console.log("Episodes after initial fetch:", response.shows.length);
     });
     return () => {
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genreParam, hostParam, takeoverParam, featuredShowParam, seriesParam, searchTerm]);
+  }, [genreParam, typeParam, searchTerm]);
 
   // Infinite scroll: load more when sentinel is in view
   useEffect(() => {
     if (inView && hasNext && !isLoadingMore) {
       setIsLoadingMore(true);
       const nextOffset = page * PAGE_SIZE;
-      console.log("Fetching more shows with offset", nextOffset);
-      getMixcloudShows({ ...mixcloudParams, offset: nextOffset }).then((response) => {
+      console.log("Fetching more episodes with offset", nextOffset);
+      getEpisodesForShows({ ...episodeParams, offset: nextOffset }).then((response) => {
         console.log("Fetch more response:", response);
         setShows((prev) => {
           const combined = [...prev, ...response.shows];
-          console.log("Shows after append:", combined.length);
+          console.log("Episodes after append:", combined.length);
           return combined;
         });
         setHasNext(response.hasNext);
@@ -99,171 +86,107 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inView, hasNext, isLoadingMore, page, genreParam, hostParam, takeoverParam, featuredShowParam, seriesParam, searchTerm]);
+  }, [inView, hasNext, isLoadingMore, page, genreParam, typeParam, searchTerm]);
 
-  // Map Mixcloud show tags to canonical genres (by slug or title, case-insensitive)
-  function mapShowToCanonicalGenres(show: MixcloudShow): string[] {
-    const tags = show.tags || [];
+  // Map episode genres to canonical genres (by slug or title, case-insensitive)
+  function mapShowToCanonicalGenres(show: any): string[] {
+    const genres = show.genres || show.enhanced_genres || [];
     return canonicalGenres
       .filter((genre) =>
-        tags.some((tag) => {
-          const tagName = tag.name.toLowerCase();
-          return genre.slug.toLowerCase() === tagName || genre.title.toLowerCase() === tagName;
+        genres.some((showGenre: any) => {
+          const genreName = showGenre.title?.toLowerCase() || showGenre.slug?.toLowerCase() || showGenre.name?.toLowerCase() || "";
+          return genre.slug.toLowerCase() === genreName || genre.title.toLowerCase() === genreName;
         })
       )
       .map((genre) => genre.slug);
   }
 
-  // Map Mixcloud show hosts to available hosts (by name or username, case-insensitive)
-  function mapShowToAvailableHosts(show: MixcloudShow): string[] {
-    const hosts = show.hosts || [];
+  // Map episode hosts to available hosts (by name or slug, case-insensitive)
+  function mapShowToAvailableHosts(show: any): string[] {
+    const hosts = show.hosts || show.enhanced_hosts || show.regular_hosts || [];
     return availableFilters.hosts
       .filter((availableHost) =>
-        hosts.some((showHost) => {
-          const showHostName = showHost.name.toLowerCase();
-          const showHostUsername = showHost.username.toLowerCase();
+        hosts.some((showHost: any) => {
+          const showHostName = showHost.name?.toLowerCase() || showHost.title?.toLowerCase() || "";
+          const showHostSlug = showHost.username?.toLowerCase() || showHost.slug?.toLowerCase() || "";
           const availableHostTitle = availableHost.title.toLowerCase();
           const availableHostSlug = availableHost.slug.toLowerCase();
-          return showHostName === availableHostTitle || showHostUsername === availableHostSlug || showHostName.includes(availableHostTitle) || availableHostTitle.includes(showHostName);
+          return showHostName === availableHostTitle || showHostSlug === availableHostSlug || showHostName.includes(availableHostTitle) || availableHostTitle.includes(showHostName);
         })
       )
       .map((host) => host.slug);
   }
 
-  // For shows with Cosmic data (__source: "cosmic"), check if they match selected filters
-  function matchesCosmicFilters(show: any): boolean {
-    // Check if any Cosmic-specific filters are active
-    const hasCosmicFilters = selectedTakeovers.length > 0 || selectedFeaturedShows.length > 0 || selectedSeries.length > 0;
+  // Check if show matches the selected type filter
+  function matchesTypeFilter(show: any): boolean {
+    switch (activeType) {
+      case "regular-hosts":
+        // For regular hosts, check if the show has any hosts that match our available hosts
+        const mappedHosts = mapShowToAvailableHosts(show);
+        return mappedHosts.length > 0;
 
-    // If Cosmic-specific filters are active but this isn't a Cosmic show, exclude it
-    if (hasCosmicFilters && show.__source !== "cosmic") {
-      return false;
+      case "takeovers":
+        // For takeovers, check if this is an episode with takeover metadata
+        const showTakeovers = show.takeovers || show.enhanced_takeovers || [];
+        return showTakeovers.length > 0;
+
+      case "featured-shows":
+        // For featured shows, check if this is an episode with featured show metadata
+        return show.featured_on_homepage === true;
+
+      case "all":
+      default:
+        return true;
     }
-
-    // If no Cosmic-specific filters are active, include all shows
-    if (!hasCosmicFilters) {
-      return true;
-    }
-
-    // For Cosmic shows, check if they match the selected filters
-
-    // Check takeovers
-    if (selectedTakeovers.length > 0) {
-      const showTakeovers = show.metadata?.takeovers || [];
-      const matchesTakeover = showTakeovers.some((takeover: any) => selectedTakeovers.includes(takeover.slug || takeover.id));
-      if (!matchesTakeover) return false;
-    }
-
-    // Check featured shows
-    if (selectedFeaturedShows.length > 0) {
-      const showFeaturedShows = show.metadata?.featured_shows || [];
-      const matchesFeaturedShow = showFeaturedShows.some((featuredShow: any) => selectedFeaturedShows.includes(featuredShow.slug || featuredShow.id));
-      if (!matchesFeaturedShow) return false;
-    }
-
-    // Check series
-    if (selectedSeries.length > 0) {
-      const showSeries = show.metadata?.series || [];
-      const matchesSeries = showSeries.some((series: any) => selectedSeries.includes(series.slug || series.id));
-      if (!matchesSeries) return false;
-    }
-
-    return true;
   }
 
-  // Handle dropdown selection changes
-  const handleSelectionChange = (filterType: string) => (values: string[]) => {
+  // Handle navigation to different filter types
+  const handleTypeNavigation = (type: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (type === "all") {
+      params.delete("type");
+    } else {
+      params.set("type", type);
+    }
+
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  // Handle genre dropdown selection changes
+  const handleGenreSelectionChange = (values: string[]) => {
     const params = new URLSearchParams(searchParams.toString());
 
     if (values.length === 0) {
-      params.delete(filterType);
+      params.delete("genre");
     } else {
-      params.set(filterType, values.join("|"));
+      params.set("genre", values.join("|"));
     }
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Handle clear all filters
-  const handleClearAll = () => {
-    router.replace(pathname, { scroll: false });
-  };
-
-  // Handle clear individual filter chip
-  const handleClearFilter = (filterType: string, value: string) => {
+  // Handle clear individual genre chip
+  const handleClearGenre = (genreSlug: string) => {
+    const newGenres = selectedGenres.filter((g) => g !== genreSlug);
     const params = new URLSearchParams(searchParams.toString());
 
-    const currentValues = params.get(filterType)?.split("|").filter(Boolean) || [];
-    const newValues = currentValues.filter((v) => v !== value);
-
-    if (newValues.length === 0) {
-      params.delete(filterType);
+    if (newGenres.length === 0) {
+      params.delete("genre");
     } else {
-      params.set(filterType, newValues.join("|"));
+      params.set("genre", newGenres.join("|"));
     }
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Get all active filter chips
-  const getActiveChips = () => {
-    const chips: Array<{ type: string; value: string; label: string }> = [];
-
-    // Add genre chips
-    selectedGenres.forEach((genreSlug) => {
-      const genre = canonicalGenres.find((g) => g.slug === genreSlug);
-      chips.push({
-        type: "genre",
-        value: genreSlug,
-        label: genre?.title || genreSlug,
-      });
-    });
-
-    // Add host chips
-    selectedHosts.forEach((hostSlug) => {
-      const host = availableFilters.hosts.find((h) => h.slug === hostSlug);
-      chips.push({
-        type: "host",
-        value: hostSlug,
-        label: host?.title || hostSlug,
-      });
-    });
-
-    // Add takeover chips
-    selectedTakeovers.forEach((takeoverSlug) => {
-      const takeover = availableFilters.takeovers.find((t) => t.slug === takeoverSlug);
-      chips.push({
-        type: "takeover",
-        value: takeoverSlug,
-        label: takeover?.title || takeoverSlug,
-      });
-    });
-
-    // Add featured show chips
-    selectedFeaturedShows.forEach((featuredShowSlug) => {
-      const featuredShow = availableFilters.featuredShows.find((f) => f.slug === featuredShowSlug);
-      chips.push({
-        type: "featuredShow",
-        value: featuredShowSlug,
-        label: featuredShow?.title || featuredShowSlug,
-      });
-    });
-
-    // Add series chips
-    selectedSeries.forEach((seriesSlug) => {
-      const series = availableFilters.series.find((s) => s.slug === seriesSlug);
-      chips.push({
-        type: "series",
-        value: seriesSlug,
-        label: series?.title || seriesSlug,
-      });
-    });
-
-    return chips;
-  };
-
-  // Filter shows by all selected filter types
+  // Filter shows by selected filters
   const filteredShows = shows.filter((show) => {
+    // Check type filter
+    if (!matchesTypeFilter(show)) {
+      return false;
+    }
+
     // Check genres
     if (selectedGenres.length > 0) {
       const mappedGenres = mapShowToCanonicalGenres(show);
@@ -271,22 +194,10 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       if (!matchesGenre) return false;
     }
 
-    // Check hosts
-    if (selectedHosts.length > 0) {
-      const mappedHosts = mapShowToAvailableHosts(show);
-      const matchesHost = mappedHosts.some((slug) => selectedHosts.includes(slug));
-      if (!matchesHost) return false;
-    }
-
-    // Check Cosmic-specific filters (takeovers, featured shows, series)
-    if (!matchesCosmicFilters(show)) {
-      return false;
-    }
-
     return true;
   });
 
-  const hasActiveFilters = getActiveChips().length > 0;
+  const hasActiveFilters = selectedGenres.length > 0;
 
   return (
     <div className="mx-auto lg:px-4 py-16">
@@ -297,10 +208,12 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
 
         {/* Filter Controls */}
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className={cn("border-almostblack dark:border-white", !hasActiveFilters && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={handleClearAll}>
+          {/* Type Navigation Buttons */}
+          <Button variant="outline" className={cn("border-almostblack dark:border-white", activeType === "all" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleTypeNavigation("all")}>
             All
           </Button>
 
+          {/* Genres Dropdown */}
           <MultiSelectDropdown
             options={canonicalGenres.map((genre) => ({
               id: genre.slug,
@@ -308,70 +221,41 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
               slug: genre.slug,
             }))}
             selectedValues={selectedGenres}
-            onSelectionChange={handleSelectionChange("genre")}
+            onSelectionChange={handleGenreSelectionChange}
             placeholder="Genres"
           />
 
-          <MultiSelectDropdown
-            options={availableFilters.hosts.map((host) => ({
-              id: host.id,
-              title: host.title,
-              slug: host.slug,
-            }))}
-            selectedValues={selectedHosts}
-            onSelectionChange={handleSelectionChange("host")}
-            placeholder="Regular Hosts"
-          />
+          <Button variant="outline" className={cn("border-almostblack dark:border-white", activeType === "regular-hosts" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleTypeNavigation("regular-hosts")}>
+            Regular Hosts
+          </Button>
 
-          <MultiSelectDropdown
-            options={availableFilters.takeovers.map((takeover) => ({
-              id: takeover.id,
-              title: takeover.title,
-              slug: takeover.slug,
-            }))}
-            selectedValues={selectedTakeovers}
-            onSelectionChange={handleSelectionChange("takeover")}
-            placeholder="Takeovers"
-          />
+          <Button variant="outline" className={cn("border-almostblack dark:border-white", activeType === "takeovers" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleTypeNavigation("takeovers")}>
+            Takeovers
+          </Button>
 
-          <MultiSelectDropdown
-            options={availableFilters.featuredShows.map((featuredShow) => ({
-              id: featuredShow.id,
-              title: featuredShow.title,
-              slug: featuredShow.slug,
-            }))}
-            selectedValues={selectedFeaturedShows}
-            onSelectionChange={handleSelectionChange("featuredShow")}
-            placeholder="Featured Shows"
-          />
-
-          <MultiSelectDropdown
-            options={availableFilters.series.map((series) => ({
-              id: series.id,
-              title: series.title,
-              slug: series.slug,
-            }))}
-            selectedValues={selectedSeries}
-            onSelectionChange={handleSelectionChange("series")}
-            placeholder="Series"
-          />
+          <Button variant="outline" className={cn("border-almostblack dark:border-white", activeType === "featured-shows" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleTypeNavigation("featured-shows")}>
+            Featured Shows
+          </Button>
         </div>
 
-        {/* Active Filter Chips */}
+        {/* Active Genre Filter Chips */}
         {hasActiveFilters && (
           <div className="flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
-            {getActiveChips().map((chip, index) => (
-              <Badge key={`${chip.type}-${chip.value}-${index}`} variant="default" className="uppercase font-mono text-m6 cursor-pointer whitespace-nowrap bg-accent text-accent-foreground flex items-center gap-1">
-                {chip.label}
-                <X
-                  className="h-3 w-3"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleClearFilter(chip.type, chip.value);
-                  }}
-                />
-              </Badge>
-            ))}
+            {selectedGenres.map((genreSlug, index) => {
+              const genre = canonicalGenres.find((g) => g.slug === genreSlug);
+              return (
+                <Badge key={`genre-${genreSlug}-${index}`} variant="default" className="uppercase font-mono text-m6 cursor-pointer whitespace-nowrap bg-accent text-accent-foreground flex items-center gap-1">
+                  {genre?.title || genreSlug}
+                  <X
+                    className="h-3 w-3"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClearGenre(genreSlug);
+                    }}
+                  />
+                </Badge>
+              );
+            })}
           </div>
         )}
       </div>

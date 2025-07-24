@@ -1,6 +1,5 @@
 "use client";
 
-import { MixcloudShow, filterWorldwideFMTags } from "@/lib/mixcloud-service";
 import { GenreDropdown } from "@/components/genre-dropdown";
 import Marquee from "@/components/ui/marquee";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -8,8 +7,17 @@ import { useCallback } from "react";
 import { ShowCard } from "@/components/ui/show-card";
 
 interface GenreSelectorProps {
-  shows: MixcloudShow[];
+  shows: any[]; // Episodes from Cosmic
   title?: string;
+}
+
+// Helper function to extract genres from episodes
+function getEpisodeGenres(episode: any): string[] {
+  const genres = episode.genres || episode.enhanced_genres || episode.metadata?.genres || [];
+  return genres
+    .map((genre: any) => genre.title || genre.name)
+    .filter(Boolean)
+    .filter((name: string) => name.toLowerCase() !== "worldwide fm");
 }
 
 export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: GenreSelectorProps) {
@@ -20,9 +28,9 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
 
   // Get unique genres and their counts
   const genreCounts = shows.reduce(
-    (acc, show) => {
-      filterWorldwideFMTags(show.tags).forEach((tag) => {
-        acc[tag.name] = (acc[tag.name] || 0) + 1;
+    (acc, episode) => {
+      getEpisodeGenres(episode).forEach((genreName) => {
+        acc[genreName] = (acc[genreName] || 0) + 1;
       });
       return acc;
     },
@@ -31,7 +39,7 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
 
   // Sort genres by count and take top 4 for initial view
   const topGenres = Object.entries(genreCounts)
-    .sort(([, a], [, b]) => b - a)
+    .sort(([, a], [, b]) => (b as number) - (a as number))
     .map(([name]) => name);
 
   // Get all unique genres for the dropdown
@@ -57,22 +65,22 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
   };
 
   // Get shows based on selection or default to random shows for top genres
-  const displayedShows: MixcloudShow[] = selectedGenre
-    ? Array.from(new Set(shows.filter((show) => filterWorldwideFMTags(show.tags).some((tag) => tag.name === selectedGenre)).map((show) => show.key)))
-        .map((key) => shows.find((show) => show.key === key))
-        .filter((show): show is MixcloudShow => show !== undefined)
+  const displayedShows = selectedGenre
+    ? Array.from(new Set(shows.filter((episode) => getEpisodeGenres(episode).includes(selectedGenre)).map((episode) => episode.id || episode.slug)))
+        .map((id) => shows.find((episode) => (episode.id || episode.slug) === id))
+        .filter(Boolean)
         .sort(() => Math.random() - 0.5)
     : topGenres
         .map((genre) => {
-          const genreShows = shows.filter((show) => filterWorldwideFMTags(show.tags).some((tag) => tag.name === genre));
+          const genreShows = shows.filter((episode) => getEpisodeGenres(episode).includes(genre));
           return genreShows[Math.floor(Math.random() * genreShows.length)];
         })
-        .filter((show): show is MixcloudShow => show !== undefined);
+        .filter(Boolean);
 
   // Remove any duplicate shows that might occur across genres
-  const uniqueShows = Array.from(new Set(displayedShows.map((show) => show.key)))
-    .map((key) => displayedShows.find((show) => show.key === key))
-    .filter((show): show is MixcloudShow => show !== undefined);
+  const uniqueShows = Array.from(new Set(displayedShows.map((episode) => episode.id || episode.slug)))
+    .map((id) => displayedShows.find((episode) => (episode.id || episode.slug) === id))
+    .filter(Boolean);
 
   return (
     <section className="px-5 py-8">
@@ -82,8 +90,8 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
       </div>
       <Marquee className="-mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24 h-full" speed="slow" pauseOnHover>
         <div className="grid grid-flow-col auto-cols-max h-full gap-4 grid-cols-[repeat(auto-fit,minmax(440px,1fr))]">
-          {uniqueShows.map((show: MixcloudShow, index: number) => (
-            <ShowCard key={`${show.key}-${index}`} show={show} slug={`/episode${show.key}`} playable />
+          {uniqueShows.map((episode: any, index: number) => (
+            <ShowCard key={`${episode.id || episode.slug}-${index}`} show={episode} slug={`/episode/${episode.slug}`} playable />
           ))}
         </div>
       </Marquee>

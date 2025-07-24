@@ -1,8 +1,8 @@
-import type { MixcloudShow } from "@/lib/mixcloud-service";
+// Removed MixcloudShow import - using any type for show format compatibility
 import { ShowCard } from "./ui/show-card";
 
 interface ShowsGridProps {
-  shows: MixcloudShow[];
+  shows: any[]; // Using any for show format compatibility
   sentinelRef?: React.Ref<HTMLDivElement>;
 }
 
@@ -17,7 +17,7 @@ export function ShowsGrid({ shows, sentinelRef }: ShowsGridProps) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {shows.filter(Boolean).map((show: MixcloudShow) => {
+      {shows.filter(Boolean).map((show: any) => {
         const uniqueKey = `${show.key}-${show.slug}`;
         return <ShowCard key={uniqueKey} show={show} slug={`/episode/${show.slug}`} />;
       })}

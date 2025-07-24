@@ -84,10 +84,10 @@ export class WWFMSearchEngine implements SearchEngine {
 
     // Nothing in cache, load from API
     try {
-      const [shows, posts, videos] = await Promise.all([getAllShows(0, 50), getAllPosts(), getVideos(20)]);
+      const [episodes, postsRes, videosRes] = await Promise.all([import("@/lib/episode-service").then((m) => m.getEpisodesForShows({ limit: 100 })), getAllPosts(), getVideos({ limit: 20 })]);
 
       // Map to unified format
-      const items: SearchItem[] = [...mapShowsToSearchItems(shows.shows || []), ...mapPostsToSearchItems(posts || []), ...mapVideosToSearchItems(videos || [])];
+      const items: SearchItem[] = [...mapEpisodesToSearchItems(episodes.shows || []), ...mapPostsToSearchItems(postsRes.posts || []), ...mapVideosToSearchItems(videosRes.videos || [])];
 
       // Sort by date (newest first)
       items.sort((a, b) => {
@@ -453,7 +453,48 @@ export class WWFMSearchEngine implements SearchEngine {
 }
 
 /**
- * Helper function to map shows to search items
+ * Helper function to map episodes to search items
+ */
+export function mapEpisodesToSearchItems(episodes: any[]): SearchItem[] {
+  return episodes.map((episode) => ({
+    id: episode.id || episode.slug,
+    title: episode.title || episode.name,
+    slug: episode.slug,
+    description: episode.description || "",
+    excerpt: episode.description || episode.title || "",
+    date: episode.created_time || episode.broadcast_date || episode.created_at,
+    image: episode.pictures?.extra_large || episode.enhanced_image || "",
+    contentType: "radio-shows",
+    genres: (episode.genres || episode.enhanced_genres || []).filter(Boolean).map((genre: any) => ({
+      id: genre.id || genre.slug,
+      slug: genre.slug || genre.title?.toLowerCase().replace(/\s+/g, "-") || "",
+      title: genre.title || genre.name || "",
+      type: "genres",
+    })),
+    locations: (episode.locations || []).filter(Boolean).map((location: any) => ({
+      id: location.id || location.slug,
+      slug: location.slug || location.title?.toLowerCase().replace(/\s+/g, "-") || "",
+      title: location.title || location.name || "",
+      type: "locations",
+    })),
+    hosts: (episode.hosts || episode.enhanced_hosts || episode.regular_hosts || []).filter(Boolean).map((host: any) => ({
+      id: host.id || host.slug || host.username,
+      slug: host.slug || host.username || "",
+      title: host.title || host.name || "",
+      type: "hosts",
+    })),
+    takeovers: (episode.takeovers || []).filter(Boolean).map((takeover: any) => ({
+      id: takeover.id || takeover.slug,
+      slug: takeover.slug || "",
+      title: takeover.title || takeover.name || "",
+      type: "takeovers",
+    })),
+    metadata: episode, // Store full episode for detail pages
+  }));
+}
+
+/**
+ * Helper function to map shows to search items (legacy function for backward compatibility)
  */
 export function mapShowsToSearchItems(shows: any[]): SearchItem[] {
   return shows.map((show) => {

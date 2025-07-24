@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { MixcloudShow } from "@/lib/mixcloud-service";
+// Removed MixcloudShow import - using any type for show format compatibility
 import Marquee from "@/components/ui/marquee";
 import { ShowCard } from "@/components/ui/show-card";
 
 interface ArchiveSectionProps {
-  shows: MixcloudShow[];
+  shows: any[]; // Using any for show format compatibility
   className?: string;
 }
 

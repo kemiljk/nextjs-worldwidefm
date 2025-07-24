@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
-    "fetch-archive": "bun run scripts/fetch-archive.ts"
+    "fetch-archive": "bun run scripts/fetch-archive.ts",
+    "populate-takeovers": "bun run scripts/populate-takeovers.ts"
   },
   "dependencies": {
     "@cosmicjs/sdk": "1.2.0",

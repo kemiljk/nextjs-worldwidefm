@@ -102,19 +102,20 @@ async function getShowsByHost(hostId: string) {
   }
 }
 
-export default async function HostPage({ params }: { params: { slug: string } }) {
-  console.log(`🔍 HostPage: Starting render for slug: ${params.slug}`);
+export default async function HostPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  console.log(`🔍 HostPage: Starting render for slug: ${slug}`);
 
-  const host = await getHostBySlug(params.slug);
+  const host = await getHostBySlug(slug);
 
-  console.log(`🔍 HostPage: Host fetch result for ${params.slug}:`, {
+  console.log(`🔍 HostPage: Host fetch result for ${slug}:`, {
     hostFound: !!host,
     hostId: host?.id,
     hostTitle: host?.title,
   });
 
   if (!host) {
-    console.log(`❌ HostPage: No host found for slug ${params.slug}, calling notFound()`);
+    console.log(`❌ HostPage: No host found for slug ${slug}, calling notFound()`);
     notFound();
   }
 

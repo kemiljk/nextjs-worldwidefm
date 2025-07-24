@@ -4,9 +4,10 @@ import { format } from "date-fns";
 import { VideoPlayer } from "@/components/video/video-player";
 import { PageHeader } from "@/components/shared/page-header";
 
-export default async function VideoPage({ params }: { params: { slug: string } }) {
+export default async function VideoPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   const allVideos = await getVideos({ limit: 50 });
-  const video = allVideos.videos.find((v) => v.slug === params.slug);
+  const video = allVideos.videos.find((v) => v.slug === slug);
 
   if (!video) {
     notFound();

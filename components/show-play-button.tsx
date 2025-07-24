@@ -3,18 +3,17 @@
 import { Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMediaPlayer } from "@/components/providers/media-player-provider";
-import { MixcloudShow } from "@/lib/mixcloud-service";
 import { ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ShowPlayButtonProps extends ButtonProps {
-  show: MixcloudShow;
-  variant?: "default" | "outline-solid" | "ghost" | "link" | "destructive" | "secondary";
+  show: any; // Using any to work with both episode and legacy show formats
+  variant?: "default" | "outline" | "ghost" | "link" | "destructive" | "secondary";
   size?: "default" | "sm" | "lg" | "icon";
   children?: React.ReactNode;
 }
 
-export function ShowPlayButton({ show, variant = "outline-solid", size = "icon", className, children, ...props }: ShowPlayButtonProps) {
+export function ShowPlayButton({ show, variant = "outline", size = "icon", className, children, ...props }: ShowPlayButtonProps) {
   const { playShow, selectedShow, isArchivePlaying, pauseShow } = useMediaPlayer();
 
   const isCurrentShow = selectedShow?.key === show.key;

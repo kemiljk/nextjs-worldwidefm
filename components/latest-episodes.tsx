@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAllShows } from "@/lib/actions";
+import { getEpisodesForShows } from "@/lib/episode-service";
 import { ShowCard } from "./ui/show-card";
 
 const LatestEpisodes: React.FC = () => {
@@ -13,10 +13,10 @@ const LatestEpisodes: React.FC = () => {
     const fetchEpisodes = async () => {
       try {
         setLoading(true);
-        const response = await getAllShows(2, 2, 4);
+        const response = await getEpisodesForShows({ limit: 4 });
         setEpisodes(response.shows || []);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch shows");
+        setError(err instanceof Error ? err.message : "Failed to fetch episodes");
         console.error("Error fetching latest episodes:", err);
       } finally {
         setLoading(false);
@@ -40,7 +40,7 @@ const LatestEpisodes: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full h-full">
         {episodes.map((episode) => (
-          <ShowCard key={episode.key || episode.id || episode.slug} show={episode} slug={`/episode${episode.key.replace("worldwidefm/", "")}`} playable />
+          <ShowCard key={episode.key || episode.id || episode.slug} show={episode} slug={`/episode/${episode.slug}`} playable />
         ))}
       </div>
     </section>

@@ -5,9 +5,7 @@ import { SearchResult, FilterItem } from "./search-context";
 import { PostObject, RadioShowObject, VideoObject } from "./cosmic-config";
 import { cosmic } from "./cosmic-config";
 import { addHours, isWithinInterval, isAfter } from "date-fns";
-import { getAllShowsFromMixcloud } from "./mixcloud-service";
-import { MixcloudShow } from "./mixcloud-service";
-import { filterWorldwideFMTags } from "./mixcloud-service";
+// Mixcloud imports removed - now using only Cosmic episodes and RadioCult for live shows
 import { getEventBySlug as getRadioCultEventBySlug, getEvents as getRadioCultEvents, RadioCultEvent, getScheduleData as getRadioCultScheduleData, getTags } from "./radiocult-service";
 import FormData from "form-data";
 import { CosmicHomepageData, HomepageSectionItem, CosmicAPIObject, ProcessedHomepageSection, ColouredSection } from "./cosmic-types";
@@ -37,290 +35,82 @@ export async function getAllPosts({ limit = 20, offset = 0, tag, searchTerm }: {
   }
 }
 
-export async function getAllShows(cosmicSkip = 0, mixcloudSkip = 0, limit = 20, filters?: any) {
+export async function getAllShows(skip = 0, limit = 20, filters?: any) {
   try {
-    // Fetch a page from each source
-    const cosmicPromise = getRadioShows({
-      skip: cosmicSkip,
+    // Get episodes from Cosmic using the episode service
+    const { getEpisodesForShows } = await import("./episode-service");
+    const response = await getEpisodesForShows({
+      offset: skip,
       limit,
-      sort: "-created_at",
-      status: "published",
       ...filters,
     });
-    const mixcloudPromise = getAllShowsFromMixcloud(); // We'll slice for pagination below
-    const [cosmicRes, mixcloudRes] = await Promise.all([cosmicPromise, mixcloudPromise]);
-    const cosmicShows = cosmicRes.objects || [];
-    const mixcloudShows = mixcloudRes || [];
-
-    // Paginate Mixcloud manually (API doesn't support skip)
-    const pagedMixcloud = mixcloudShows.slice(mixcloudSkip, mixcloudSkip + limit);
-
-    // Normalize
-    const normalizedMixcloud = pagedMixcloud.map((show) => ({
-      ...show,
-      slug: show.key.replace(/^\/+/, ""),
-      created_at: show.created_time,
-      source: "mixcloud",
-    }));
-    const normalizedCosmic = cosmicShows.map((show) => ({
-      ...show,
-      slug: show.slug,
-      created_at: show.metadata?.broadcast_date || show.created_at,
-      source: "cosmic",
-    }));
-
-    // Merge and de-duplicate by slug (Mixcloud prioritized)
-    const allShowsMap = new Map();
-    for (const show of normalizedMixcloud) {
-      allShowsMap.set(show.slug, show);
-    }
-    for (const show of normalizedCosmic) {
-      if (!allShowsMap.has(show.slug)) {
-        allShowsMap.set(show.slug, show);
-      }
-    }
-    const allShows = Array.from(allShowsMap.values());
-
-    // Sort by date descending
-    allShows.sort((a, b) => {
-      const dateA = new Date(a.created_at || 0).getTime();
-      const dateB = new Date(b.created_at || 0).getTime();
-      return dateB - dateA;
-    });
-
-    // Take up to limit blended results
-    const blended = allShows.slice(0, limit);
-
-    // Calculate new cursors
-    const newCosmicSkip = cosmicSkip + cosmicShows.length;
-    const newMixcloudSkip = mixcloudSkip + pagedMixcloud.length;
-    const hasMore = blended.length === limit && (cosmicShows.length === limit || pagedMixcloud.length === limit);
 
     return {
-      shows: blended,
-      hasMore,
-      cosmicSkip: newCosmicSkip,
-      mixcloudSkip: newMixcloudSkip,
+      shows: response.shows,
+      hasMore: response.hasNext,
+      cosmicSkip: skip + response.shows.length,
+      mixcloudSkip: 0, // Deprecated but kept for compatibility
     };
   } catch (error) {
-    console.error("Error fetching blended shows:", error);
-    return { shows: [], hasMore: false, cosmicSkip, mixcloudSkip };
+    console.error("Error fetching episodes:", error);
+    return { shows: [], hasMore: false, cosmicSkip: skip, mixcloudSkip: 0 };
   }
 }
 
 /**
- * Enhanced function that merges Mixcloud, Cosmic CMS, and Episode data for richer show details
+ * Enhanced function that gets episode data from Cosmic, with fallback to RadioCult for live shows
  */
 export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
-  // First get the base show data (from Mixcloud, RadioCult, or Cosmic)
-  const baseShow = await getShowBySlug(slug);
-  if (!baseShow) {
-    return null;
-  }
-
-  // Try to find matching Cosmic CMS data
-  let cosmicShow = null;
-  let episodeData = null;
-
+  // First try to get episode from Cosmic
   try {
-    // Try to find by exact slug match first
-    const cosmicResponse = await getRadioShowBySlug(slug);
-    cosmicShow = cosmicResponse?.object || null;
+    const { getEpisodeBySlug, transformEpisodeToShowFormat } = await import("./episode-service");
+    const episode = await getEpisodeBySlug(slug);
 
-    // If no exact match, try to find by title match
-    if (!cosmicShow) {
-      const showName = "name" in baseShow ? baseShow.name : "showName" in baseShow ? baseShow.showName : "";
-      if (showName) {
-        const allShows = await getRadioShows({ limit: 1000 });
-        cosmicShow = allShows.objects.find((show) => show.title.toLowerCase().includes(showName.toLowerCase()) || showName.toLowerCase().includes(show.title.toLowerCase())) || null;
-      }
-    }
-
-    // Try to find Episode data for this show
-    try {
-      const episodeResponse = await cosmic.objects
-        .findOne({
-          type: "episode",
-          slug: slug,
-        })
-        .props("id,slug,title,metadata")
-        .depth(1);
-
-      episodeData = episodeResponse?.object || null;
-
-      // If no Episode found by slug, try to find by RadioCult event ID if this is a RadioCult show
-      if (!episodeData && baseShow.__source === "radiocult" && baseShow.key) {
-        const episodeByEventResponse = await cosmic.objects
-          .findOne({
-            type: "episode",
-            "metadata.radiocult_event_id": baseShow.key,
-          })
-          .props("id,slug,title,metadata")
-          .depth(1);
-
-        episodeData = episodeByEventResponse?.object || null;
-      }
-    } catch (error) {
-      console.error("Error fetching Episode data:", error);
+    if (episode) {
+      return transformEpisodeToShowFormat(episode);
     }
   } catch (error) {
-    console.error("Error fetching Cosmic CMS data:", error);
+    console.error("Error fetching episode from Cosmic:", error);
   }
 
-  // Helper function to safely get properties
-  const getShowName = (show: any) => show.name || show.showName || "";
-  const getShowDescription = (show: any) => show.description || "";
-  const getShowImage = (show: any) => show.pictures?.extra_large || show.imageUrl || "";
-  const getShowTags = (show: any) => show.tags || [];
-  const getShowHosts = (show: any) => show.hosts || [];
+  // If no episode found in Cosmic, try RadioCult for live shows
+  try {
+    const radioCultEvent = await getRadioCultEventBySlug(slug);
+    if (radioCultEvent) {
+      return convertRadioCultEventToMixcloudFormat(radioCultEvent);
+    }
+  } catch (error) {
+    console.error("Error fetching RadioCult event:", error);
+  }
 
-  // Merge the data, prioritizing Episode data, then Cosmic CMS data
-  const enhancedShow = {
-    ...baseShow,
-    // Merge Episode data if available (highest priority)
-    ...(episodeData && {
-      episodeData: episodeData,
-      subtitle: episodeData.metadata?.subtitle || getShowName(baseShow),
-      description: episodeData.metadata?.description || getShowDescription(baseShow),
-      body_text: episodeData.metadata?.body_text,
-      tracklist: episodeData.metadata?.tracklist,
-      duration: episodeData.metadata?.duration,
-      broadcast_date: episodeData.metadata?.broadcast_date,
-      broadcast_time: episodeData.metadata?.broadcast_time,
-      player: episodeData.metadata?.player,
-      page_link: episodeData.metadata?.page_link,
-      // Enhanced image - prefer Episode data if available
-      enhanced_image: episodeData.metadata?.image?.imgix_url || getShowImage(baseShow),
-      // Enhanced genres - merge show tags with Episode genres
-      enhanced_genres: [...(getShowTags(baseShow).length > 0 ? filterWorldwideFMTags(getShowTags(baseShow)) : []), ...(episodeData.metadata?.genres || [])],
-      // Enhanced hosts - merge show hosts with Episode regular_hosts
-      enhanced_hosts: [...getShowHosts(baseShow), ...(episodeData.metadata?.regular_hosts || [])],
-      // Additional Episode-only fields
-      locations: episodeData.metadata?.locations || [],
-      takeovers: episodeData.metadata?.takeovers || [],
-      featured_on_homepage: episodeData.metadata?.featured_on_homepage || false,
-      // RadioCult specific fields
-      radiocult_event_id: episodeData.metadata?.radiocult_event_id,
-      radiocult_show_id: episodeData.metadata?.radiocult_show_id,
-      radiocult_artist_id: episodeData.metadata?.radiocult_artist_id,
-      radiocult_synced: episodeData.metadata?.radiocult_synced,
-      radiocult_synced_at: episodeData.metadata?.radiocult_synced_at,
-    }),
-    // Merge Cosmic CMS metadata if available (fallback if no Episode data)
-    ...(!episodeData &&
-      cosmicShow && {
-        cosmicData: cosmicShow,
-        subtitle: cosmicShow.metadata?.subtitle || getShowName(baseShow),
-        description: cosmicShow.metadata?.description || getShowDescription(baseShow),
-        body_text: cosmicShow.metadata?.body_text,
-        tracklist: cosmicShow.metadata?.tracklist,
-        duration: cosmicShow.metadata?.duration,
-        broadcast_date: cosmicShow.metadata?.broadcast_date,
-        broadcast_time: cosmicShow.metadata?.broadcast_time,
-        player: cosmicShow.metadata?.player,
-        page_link: cosmicShow.metadata?.page_link,
-        // Enhanced image - prefer Cosmic CMS if available
-        enhanced_image: cosmicShow.metadata?.image?.imgix_url || getShowImage(baseShow),
-        // Enhanced genres - merge Mixcloud tags with Cosmic genres
-        enhanced_genres: [...(getShowTags(baseShow).length > 0 ? filterWorldwideFMTags(getShowTags(baseShow)) : []), ...(cosmicShow.metadata?.genres || [])],
-        // Enhanced hosts - merge Mixcloud hosts with Cosmic regular_hosts
-        enhanced_hosts: [...getShowHosts(baseShow), ...(cosmicShow.metadata?.regular_hosts || [])],
-        // Additional Cosmic-only fields
-        locations: cosmicShow.metadata?.locations || [],
-        takeovers: cosmicShow.metadata?.takeovers || [],
-        featured_on_homepage: cosmicShow.metadata?.featured_on_homepage || false,
-      }),
-  };
-
-  return enhancedShow;
+  return null;
 }
 
-export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioCultEvent | any | null> {
-  // Normalize slug/key in all reasonable ways
-  const slugVariants = [slug, slug.startsWith("/") ? slug.slice(1) : "/" + slug, slug.startsWith("/worldwidefm/") ? slug : "/worldwidefm/" + (slug.startsWith("/") ? slug.slice(1) : slug), slug.replace(/^\/worldwidefm\//, "")];
+export async function getShowBySlug(slug: string): Promise<any | null> {
+  // Normalize slug variants
+  const slugVariants = [slug, slug.startsWith("/") ? slug.slice(1) : "/" + slug, slug.replace(/^\/+/, ""), slug.replace(/^\/worldwidefm\//, "")];
 
-  // Try RadioCult (if likely a live show)
+  // First, try to get episode from Cosmic
   for (const variant of slugVariants) {
     try {
-      // Only try RadioCult if not a Mixcloud path
-      if (!variant.includes("/")) {
-        const today = new Date();
-        const isPotentialLiveShow = variant.toLowerCase().includes(today.toISOString().split("T")[0].replace(/-/g, ""));
-        if (isPotentialLiveShow) {
-          const radioCultEvent = await getRadioCultEventBySlug(variant);
-          if (radioCultEvent) {
-            // Convert RadioCult event to a format similar to MixcloudShow for compatibility
-            const adaptedEvent: any = {
-              key: radioCultEvent.slug,
-              name: radioCultEvent.showName,
-              url: `/shows/${radioCultEvent.slug}`,
-              pictures: {
-                small: radioCultEvent.imageUrl || "/image-placeholder.svg",
-                thumbnail: radioCultEvent.imageUrl || "/image-placeholder.svg",
-                medium_mobile: radioCultEvent.imageUrl || "/image-placeholder.svg",
-                medium: radioCultEvent.imageUrl || "/image-placeholder.svg",
-                large: radioCultEvent.imageUrl || "/image-placeholder.svg",
-                "320wx320h": radioCultEvent.imageUrl || "/image-placeholder.svg",
-                extra_large: radioCultEvent.imageUrl || "/image-placeholder.svg",
-                "640wx640h": radioCultEvent.imageUrl || "/image-placeholder.svg",
-                "768wx768h": radioCultEvent.imageUrl || "/image-placeholder.svg",
-                "1024wx1024h": radioCultEvent.imageUrl || "/image-placeholder.svg",
-              },
-              created_time: radioCultEvent.startTime,
-              updated_time: radioCultEvent.updatedAt,
-              play_count: 0,
-              favorite_count: 0,
-              comment_count: 0,
-              listener_count: 0,
-              repost_count: 0,
-              tags: radioCultEvent.tags.map((tag) => ({
-                key: tag.toLowerCase().replace(/\s+/g, "-"),
-                url: `/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`,
-                name: tag,
-              })),
-              slug: radioCultEvent.slug,
-              user: {
-                key: "radiocult",
-                url: "/",
-                name: "RadioCult",
-                username: "radiocult",
-                pictures: {
-                  small: "/logo.svg",
-                  thumbnail: "/logo.svg",
-                  medium_mobile: "/logo.svg",
-                  medium: "/logo.svg",
-                  large: "/logo.svg",
-                  "320wx320h": "/logo.svg",
-                  extra_large: "/logo.svg",
-                  "640wx640h": "/logo.svg",
-                },
-              },
-              hosts: radioCultEvent.artists.map((artist) => ({
-                key: artist.id,
-                url: `/artists/${artist.slug}`,
-                name: artist.name,
-                username: artist.slug,
-                pictures: {
-                  small: artist.imageUrl || "/image-placeholder.svg",
-                  thumbnail: artist.imageUrl || "/image-placeholder.svg",
-                  medium_mobile: artist.imageUrl || "/image-placeholder.svg",
-                  medium: artist.imageUrl || "/image-placeholder.svg",
-                  large: artist.imageUrl || "/image-placeholder.svg",
-                  "320wx320h": artist.imageUrl || "/image-placeholder.svg",
-                  extra_large: artist.imageUrl || "/image-placeholder.svg",
-                  "640wx640h": artist.imageUrl || "/image-placeholder.svg",
-                },
-              })),
-              hidden_stats: false,
-              audio_length: radioCultEvent.duration * 60, // convert minutes to seconds
-              endTime: radioCultEvent.endTime, // Add endTime for RadioCult events
-              description: typeof radioCultEvent.description === "string" ? stripUrlsFromText(radioCultEvent.description) : radioCultEvent.description, // Add description for RadioCult events
-              __source: "radiocult",
-            };
+      const { getEpisodeBySlug, transformEpisodeToShowFormat } = await import("./episode-service");
+      const episode = await getEpisodeBySlug(variant);
+      if (episode) {
+        return transformEpisodeToShowFormat(episode);
+      }
+    } catch (error) {
+      console.error(`Error fetching episode from Cosmic for variant '${variant}':`, error);
+    }
+  }
 
-            console.log("Found RadioCult event:", adaptedEvent.name);
-            return adaptedEvent;
-          }
+  // If no episode found in Cosmic, try RadioCult for live shows
+  for (const variant of slugVariants) {
+    try {
+      // Only try RadioCult if it looks like a live show slug
+      if (!variant.includes("/")) {
+        const radioCultEvent = await getRadioCultEventBySlug(variant);
+        if (radioCultEvent) {
+          return convertRadioCultEventToMixcloudFormat(radioCultEvent);
         }
       }
     } catch (error) {
@@ -328,37 +118,17 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioC
     }
   }
 
-  // Try Mixcloud by key
-  for (const variant of slugVariants) {
-    try {
-      let showKey = variant.startsWith("/") ? variant : "/" + variant;
-      if (!showKey.startsWith("/worldwidefm/")) {
-        showKey = `/worldwidefm${showKey}`;
-      }
-      const response = await fetch(`https://api.mixcloud.com${showKey}`, {
-        next: { revalidate: 900, tags: ["shows"] },
-      });
-      if (response.ok) {
-        const show = await response.json();
-        console.log("Found Mixcloud show for variant:", showKey);
-        return show;
-      }
-    } catch (error) {
-      console.error(`Error in getShowBySlug (Mixcloud) for variant '${variant}':`, error);
-    }
-  }
-
-  // Try Cosmic by slug
+  // Finally, try legacy radio-shows from Cosmic (for backward compatibility)
   for (const variant of slugVariants) {
     try {
       const cosmicResponse = await getRadioShowBySlug(variant);
       if (cosmicResponse?.object) {
         const show = cosmicResponse.object;
-        // Normalize to MixcloudShow-like shape for compatibility
+        // Transform legacy radio-show to compatible format
         return {
           key: show.slug,
           name: show.title,
-          url: `/shows/${show.slug}`,
+          url: `/episode/${show.slug}`,
           pictures: {
             small: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
             thumbnail: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
@@ -384,22 +154,6 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioC
             name: genre.title,
           })),
           slug: show.slug,
-          user: {
-            key: "cosmic",
-            url: "/",
-            name: "Cosmic",
-            username: "cosmic",
-            pictures: {
-              small: "/logo.svg",
-              thumbnail: "/logo.svg",
-              medium_mobile: "/logo.svg",
-              medium: "/logo.svg",
-              large: "/logo.svg",
-              "320wx320h": "/logo.svg",
-              extra_large: "/logo.svg",
-              "640wx640h": "/logo.svg",
-            },
-          },
           hosts: (show.metadata?.regular_hosts || []).map((host: any) => ({
             key: host.slug || host.id,
             url: `/hosts/${host.slug || host.id}`,
@@ -418,13 +172,13 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioC
           })),
           hidden_stats: false,
           audio_length: 0,
-          endTime: null,
           description: show.metadata?.description || "",
+          player: show.metadata?.player,
           __source: "cosmic",
         };
       }
     } catch (error) {
-      console.error(`Error in getShowBySlug (Cosmic) for variant '${variant}':`, error);
+      console.error(`Error fetching legacy radio-show from Cosmic for variant '${variant}':`, error);
     }
   }
 
@@ -433,69 +187,26 @@ export async function getShowBySlug(slug: string): Promise<MixcloudShow | RadioC
 }
 
 export async function getScheduleData(): Promise<{
-  currentShow: MixcloudShow | any | null;
-  upcomingShow: MixcloudShow | any | null;
-  upcomingShows: (MixcloudShow | any)[];
+  currentShow: any | null;
+  upcomingShow: any | null;
+  upcomingShows: any[];
 }> {
   try {
-    // First try to get data from RadioCult
-    try {
-      const { currentEvent, upcomingEvent, upcomingEvents } = await getRadioCultScheduleData();
+    // Get schedule data from RadioCult
+    const { currentEvent, upcomingEvent, upcomingEvents } = await getRadioCultScheduleData();
 
-      // Convert RadioCult events to MixcloudShow format
-      const adaptCurrentEvent = currentEvent ? convertRadioCultEventToMixcloudFormat(currentEvent) : null;
-      const adaptUpcomingEvent = upcomingEvent ? convertRadioCultEventToMixcloudFormat(upcomingEvent) : null;
-      const adaptUpcomingEvents = upcomingEvents.map(convertRadioCultEventToMixcloudFormat);
-
-      return {
-        currentShow: adaptCurrentEvent,
-        upcomingShow: adaptUpcomingEvent,
-        upcomingShows: adaptUpcomingEvents,
-      };
-    } catch (error) {
-      console.error("Error getting RadioCult schedule data, falling back to Mixcloud:", error);
-      // Fall back to Mixcloud data
-    }
-
-    // Get all shows from Mixcloud as fallback
-    const mixcloudShows = await getAllShowsFromMixcloud();
-
-    const now = new Date();
-
-    // Sort shows by created_time
-    const sortedShows = [...mixcloudShows].sort((a, b) => {
-      const dateA = new Date(a.created_time);
-      const dateB = new Date(b.created_time);
-      return dateB.getTime() - dateA.getTime();
-    });
-
-    // Find current show (within last 2 hours)
-    const currentShow =
-      sortedShows.find((show) => {
-        const startTime = new Date(show.created_time);
-        const endTime = addHours(startTime, 2);
-        return isWithinInterval(now, { start: startTime, end: endTime });
-      }) || null;
-
-    // Get upcoming shows (future shows)
-    const futureShows = sortedShows
-      .filter((show) => {
-        const startTime = new Date(show.created_time);
-        return isAfter(startTime, now) && (!currentShow || show.key !== currentShow.key);
-      })
-      .sort((a, b) => {
-        const dateA = new Date(a.created_time);
-        const dateB = new Date(b.created_time);
-        return dateA.getTime() - dateB.getTime();
-      });
+    // Convert RadioCult events to show format
+    const adaptCurrentEvent = currentEvent ? convertRadioCultEventToMixcloudFormat(currentEvent) : null;
+    const adaptUpcomingEvent = upcomingEvent ? convertRadioCultEventToMixcloudFormat(upcomingEvent) : null;
+    const adaptUpcomingEvents = upcomingEvents.map(convertRadioCultEventToMixcloudFormat);
 
     return {
-      currentShow,
-      upcomingShow: futureShows[0] || null,
-      upcomingShows: futureShows.slice(1, 6),
+      currentShow: adaptCurrentEvent,
+      upcomingShow: adaptUpcomingEvent,
+      upcomingShows: adaptUpcomingEvents,
     };
   } catch (error) {
-    console.error("Error in getScheduleData:", error);
+    console.error("Error getting RadioCult schedule data:", error);
     return {
       currentShow: null,
       upcomingShow: null,
@@ -892,7 +603,7 @@ export async function getShowsFilters() {
   }
 }
 
-interface MixcloudShowsFilters {
+interface EpisodeShowsFilters {
   genre?: string | string[];
   host?: string | string[];
   takeover?: string | string[];
@@ -900,182 +611,96 @@ interface MixcloudShowsFilters {
   isNew?: boolean;
   skip?: number;
   limit?: number;
+  random?: boolean;
 }
 
-export async function getMixcloudShows(filters: MixcloudShowsFilters = {}): Promise<{ shows: (MixcloudShow | any)[]; total: number }> {
+export async function getMixcloudShows(filters: EpisodeShowsFilters = {}): Promise<{ shows: any[]; total: number }> {
   try {
-    // Get Mixcloud shows
-    const { shows: mixcloudShows } = await getMixcloudShowsOriginal(filters);
+    // Get episodes from Cosmic
+    const { getEpisodesForShows } = await import("./episode-service");
+    const episodeResponse = await getEpisodesForShows({
+      offset: filters.skip || 0,
+      limit: filters.limit || 20,
+      genre: filters.genre,
+      host: filters.host,
+      searchTerm: filters.searchTerm,
+      isNew: filters.isNew,
+      random: filters.random,
+    });
 
-    // Get RadioCult events
-    const { events: radioCultEvents } = await getRadioCultEvents({ limit: 100 });
+    let allShows = episodeResponse.shows;
 
-    // Convert RadioCult events to MixcloudShow format
-    const adaptedEvents = radioCultEvents.map((event) => ({
-      key: event.slug,
-      name: event.showName,
-      url: `/shows/${event.slug}`,
-      pictures: {
-        small: event.imageUrl || "/image-placeholder.svg",
-        thumbnail: event.imageUrl || "/image-placeholder.svg",
-        medium_mobile: event.imageUrl || "/image-placeholder.svg",
-        medium: event.imageUrl || "/image-placeholder.svg",
-        large: event.imageUrl || "/image-placeholder.svg",
-        "320wx320h": event.imageUrl || "/image-placeholder.svg",
-        extra_large: event.imageUrl || "/image-placeholder.svg",
-        "640wx640h": event.imageUrl || "/image-placeholder.svg",
-        "768wx768h": event.imageUrl || "/image-placeholder.svg",
-        "1024wx1024h": event.imageUrl || "/image-placeholder.svg",
-      },
-      created_time: event.startTime,
-      updated_time: event.updatedAt,
-      play_count: 0,
-      favorite_count: 0,
-      comment_count: 0,
-      listener_count: 0,
-      repost_count: 0,
-      tags: event.tags.map((tag) => ({
-        key: tag.toLowerCase().replace(/\s+/g, "-"),
-        url: `/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`,
-        name: tag,
-      })),
-      slug: event.slug,
-      user: {
-        key: "radiocult",
-        url: "/",
-        name: "RadioCult",
-        username: "radiocult",
-        pictures: {
-          small: "/logo.svg",
-          thumbnail: "/logo.svg",
-          medium_mobile: "/logo.svg",
-          medium: "/logo.svg",
-          large: "/logo.svg",
-          "320wx320h": "/logo.svg",
-          extra_large: "/logo.svg",
-          "640wx640h": "/logo.svg",
-        },
-      },
-      hosts: event.artists.map((artist) => ({
-        key: artist.id,
-        url: `/artists/${artist.slug}`,
-        name: artist.name,
-        username: artist.slug,
-        pictures: {
-          small: artist.imageUrl || "/image-placeholder.svg",
-          thumbnail: artist.imageUrl || "/image-placeholder.svg",
-          medium_mobile: artist.imageUrl || "/image-placeholder.svg",
-          medium: artist.imageUrl || "/image-placeholder.svg",
-          large: artist.imageUrl || "/image-placeholder.svg",
-          "320wx320h": artist.imageUrl || "/image-placeholder.svg",
-          extra_large: artist.imageUrl || "/image-placeholder.svg",
-          "640wx640h": artist.imageUrl || "/image-placeholder.svg",
-        },
-      })),
-      hidden_stats: false,
-      audio_length: event.duration * 60, // convert minutes to seconds
-      __source: "radiocult", // Add a source marker to identify RadioCult events
-    }));
+    // Get RadioCult live events if we want recent/live content
+    if (!filters.random && (!filters.skip || filters.skip === 0)) {
+      try {
+        const { events: radioCultEvents } = await getRadioCultEvents({ limit: 10 });
 
-    // Combine shows from both sources
-    const combinedShows = [...mixcloudShows, ...adaptedEvents];
+        // Convert RadioCult events to show format
+        const adaptedEvents = radioCultEvents.map((event) => ({
+          key: event.slug,
+          name: event.showName,
+          title: event.showName,
+          slug: event.slug,
+          url: `/episode/${event.slug}`,
+          pictures: {
+            small: event.imageUrl || "/image-placeholder.svg",
+            thumbnail: event.imageUrl || "/image-placeholder.svg",
+            medium_mobile: event.imageUrl || "/image-placeholder.svg",
+            medium: event.imageUrl || "/image-placeholder.svg",
+            large: event.imageUrl || "/image-placeholder.svg",
+            "320wx320h": event.imageUrl || "/image-placeholder.svg",
+            extra_large: event.imageUrl || "/image-placeholder.svg",
+            "640wx640h": event.imageUrl || "/image-placeholder.svg",
+            "768wx768h": event.imageUrl || "/image-placeholder.svg",
+            "1024wx1024h": event.imageUrl || "/image-placeholder.svg",
+          },
+          created_time: event.startTime,
+          updated_time: event.updatedAt,
+          play_count: 0,
+          favorite_count: 0,
+          comment_count: 0,
+          listener_count: 0,
+          repost_count: 0,
+          tags: event.tags.map((tag) => ({
+            key: tag.toLowerCase().replace(/\s+/g, "-"),
+            url: `/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`,
+            name: tag,
+          })),
+          hosts: event.artists.map((artist) => ({
+            key: artist.id,
+            url: `/artists/${artist.slug}`,
+            name: artist.name,
+            username: artist.slug,
+            pictures: {
+              small: artist.imageUrl || "/image-placeholder.svg",
+              thumbnail: artist.imageUrl || "/image-placeholder.svg",
+              medium_mobile: artist.imageUrl || "/image-placeholder.svg",
+              medium: artist.imageUrl || "/image-placeholder.svg",
+              large: artist.imageUrl || "/image-placeholder.svg",
+              "320wx320h": artist.imageUrl || "/image-placeholder.svg",
+              extra_large: artist.imageUrl || "/image-placeholder.svg",
+              "640wx640h": artist.imageUrl || "/image-placeholder.svg",
+            },
+          })),
+          hidden_stats: false,
+          audio_length: event.duration * 60,
+          __source: "radiocult",
+        }));
 
-    // Apply any filtering if needed
-    let filteredShows = combinedShows;
+        // Add RadioCult events at the beginning for live content
+        allShows = [...adaptedEvents, ...allShows];
+      } catch (error) {
+        console.error("Error fetching RadioCult events:", error);
+        // Continue with just episode data
+      }
+    }
+
+    // Apply additional filtering if needed
+    let filteredShows = allShows;
 
     if (filters.searchTerm) {
       const searchTerm = filters.searchTerm.toLowerCase();
-      filteredShows = filteredShows.filter((show) => show.name.toLowerCase().includes(searchTerm) || show.tags.some((tag: any) => tag.name.toLowerCase().includes(searchTerm)));
-    }
-
-    if (filters.genre) {
-      const genres = Array.isArray(filters.genre) ? filters.genre : [filters.genre];
-      filteredShows = filteredShows.filter((show) => show.tags.some((tag: any) => genres.includes(tag.name.toLowerCase())));
-    }
-
-    if (filters.host) {
-      const hosts = Array.isArray(filters.host) ? filters.host : [filters.host];
-      filteredShows = filteredShows.filter((show) => show.hosts.some((host: any) => hosts.includes(host.name.toLowerCase())));
-    }
-
-    if (filters.isNew) {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      filteredShows = filteredShows.filter((show) => new Date(show.created_time) > thirtyDaysAgo);
-    }
-
-    // Sort by created_time (newest first)
-    filteredShows.sort((a, b) => new Date(b.created_time).getTime() - new Date(a.created_time).getTime());
-
-    // Apply pagination
-    const skip = filters.skip || 0;
-    const limit = filters.limit || 20;
-    const paginatedShows = filteredShows.slice(skip, skip + limit);
-
-    return {
-      shows: paginatedShows,
-      total: filteredShows.length,
-    };
-  } catch (error) {
-    console.error("Error in getMixcloudShows:", error);
-
-    // Try to return just Mixcloud shows if RadioCult fails
-    try {
-      return await getMixcloudShowsOriginal(filters);
-    } catch (e) {
-      console.error("Fallback to original Mixcloud shows failed:", e);
-      return { shows: [], total: 0 };
-    }
-  }
-}
-
-// Rename the original function to avoid conflicts
-const getMixcloudShowsOriginal = async (filters: MixcloudShowsFilters = {}): Promise<{ shows: MixcloudShow[]; total: number }> => {
-  try {
-    // Convert the simplified filter object to Mixcloud params
-    const params: {
-      limit: number;
-      isNew?: boolean;
-      searchTerm?: string;
-      tag?: string;
-    } = {
-      limit: filters.limit || 20,
-    };
-
-    if (filters.genre && typeof filters.genre === "string") {
-      params.tag = filters.genre;
-    }
-
-    if (filters.searchTerm) {
-      params.searchTerm = filters.searchTerm;
-    }
-
-    if (filters.isNew) {
-      params.isNew = true;
-    }
-
-    // Get shows from Mixcloud
-    const response = await fetch(`https://api.mixcloud.com/worldwidefm/cloudcasts/?limit=${params.limit}${params.tag ? `&tag=${params.tag}` : ""}${params.searchTerm ? `&q=${params.searchTerm}` : ""}`, {
-      next: {
-        revalidate: 900, // 15 minutes
-        tags: ["mixcloud"],
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Mixcloud API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    // Filter the shows if needed
-    let filteredShows = data.data;
-
-    // If isNew is set, filter to shows from the last 30 days
-    if (params.isNew) {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      filteredShows = filteredShows.filter((show: MixcloudShow) => new Date(show.created_time) > thirtyDaysAgo);
+      filteredShows = filteredShows.filter((show) => show.name?.toLowerCase().includes(searchTerm) || show.title?.toLowerCase().includes(searchTerm) || (show.tags || []).some((tag: any) => tag.name?.toLowerCase().includes(searchTerm)) || (show.genres || []).some((genre: any) => genre.title?.toLowerCase().includes(searchTerm)));
     }
 
     return {
@@ -1083,10 +708,10 @@ const getMixcloudShowsOriginal = async (filters: MixcloudShowsFilters = {}): Pro
       total: filteredShows.length,
     };
   } catch (error) {
-    console.error("Error fetching from Mixcloud:", error);
+    console.error("Error in getMixcloudShows (now using episodes):", error);
     return { shows: [], total: 0 };
   }
-};
+}
 
 export async function searchContent(query?: string, source?: string, limit: number = 100): Promise<SearchResult[]> {
   try {
@@ -1175,34 +800,43 @@ export async function searchContent(query?: string, source?: string, limit: numb
     }
 
     // If no source specified, search in both and combine results
-    const [mixcloudShows, postsResponse, eventsResponse, videosResponse, takeoversResponse] = await Promise.all([
-      getAllShowsFromMixcloud(),
+    const [episodesResponse, postsResponse, eventsResponse, videosResponse, takeoversResponse] = await Promise.all([
+      import("./episode-service").then((m) => m.getEpisodesForShows({ searchTerm: query, limit })),
       cosmic.objects.find({ type: "posts", ...(query && { q: query }), props: "id,title,slug,metadata,created_at", limit, status: "published" }),
       cosmic.objects.find({ type: "events", ...(query && { q: query }), props: "id,title,slug,metadata,created_at", limit, status: "published" }),
       cosmic.objects.find({ type: "videos", ...(query && { q: query }), props: "id,title,slug,metadata,created_at", limit, status: "published" }),
       cosmic.objects.find({ type: "takeovers", ...(query && { q: query }), props: "id,title,slug,metadata,created_at", limit, status: "published" }),
     ]);
+    const episodes = episodesResponse.shows || [];
     const posts = postsResponse.objects || [];
     const events = eventsResponse.objects || [];
     const videos = videosResponse.objects || [];
     const takeovers = takeoversResponse.objects || [];
     const results = [
-      // Radio Shows (Mixcloud)
-      ...mixcloudShows
+      // Radio Shows (Episodes from Cosmic)
+      ...episodes
         .slice(0, limit)
-        .map((show: any) => {
+        .map((episode: any) => {
           return {
-            id: show.key,
+            id: episode.id || episode.slug,
             type: "radio-shows",
-            slug: show.key.split("/").pop() || "",
-            title: safeString(show.name),
-            description: safeString(show.description) || safeString(show.name),
-            image: show.pictures?.extra_large || undefined,
-            date: safeString(show.created_time),
-            genres: (show.tags || []).filter(Boolean).map((tag: any) => ({ slug: tag.name.toLowerCase().replace(/\s+/g, "-"), title: tag.name, type: "genres" })),
-            hosts: (show.hosts || []).filter(Boolean).map((host: any) => ({ slug: host.username, title: host.name, type: "hosts" })),
-            locations: [],
-            takeovers: [],
+            slug: episode.slug,
+            title: safeString(episode.title || episode.name),
+            description: safeString(episode.description) || safeString(episode.title || episode.name),
+            image: episode.pictures?.extra_large || episode.enhanced_image || undefined,
+            date: safeString(episode.created_time || episode.broadcast_date),
+            genres: (episode.genres || episode.enhanced_genres || []).filter(Boolean).map((genre: any) => ({
+              slug: genre.slug || genre.title?.toLowerCase().replace(/\s+/g, "-"),
+              title: genre.title || genre.name,
+              type: "genres",
+            })),
+            hosts: (episode.hosts || episode.enhanced_hosts || episode.regular_hosts || []).filter(Boolean).map((host: any) => ({
+              slug: host.slug || host.username,
+              title: host.title || host.name,
+              type: "hosts",
+            })),
+            locations: episode.locations || [],
+            takeovers: episode.takeovers || [],
           };
         })
         .filter((item: any) => item.title),
@@ -1560,12 +1194,12 @@ export async function createColouredSections(homepageData: any): Promise<Process
       let shows: any[] = [];
 
       try {
-        // For now, we'll fetch recent shows as a placeholder
-        // In a real implementation, you'd filter by the show_type IDs
-        const { shows: recentShows } = await getMixcloudShows({ limit: 8 });
+        // Fetch recent episodes as content for colored sections
+        const { getEpisodesForShows } = await import("./episode-service");
+        const { shows: recentShows } = await getEpisodesForShows({ limit: 8 });
         shows = recentShows.slice(0, 8);
-      } catch (mixcloudError) {
-        console.warn(`Failed to fetch Mixcloud shows for coloured section "${colouredSection.title}":`, mixcloudError);
+      } catch (episodeError) {
+        console.warn(`Failed to fetch episodes for coloured section "${colouredSection.title}":`, episodeError);
         // Continue with empty shows array - the section will be skipped
         continue;
       }

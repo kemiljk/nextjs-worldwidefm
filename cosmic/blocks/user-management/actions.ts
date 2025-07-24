@@ -6,7 +6,7 @@ import { cosmic } from "@/cosmic/client";
 import bcrypt from "bcryptjs";
 import { Resend } from "resend";
 import { getRadioShows } from "@/lib/cosmic-service";
-import { getMixcloudShows } from "@/lib/mixcloud-service";
+
 import { getCanonicalGenres } from "@/lib/get-canonical-genres";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -592,18 +592,10 @@ export async function getDashboardData(userId: string) {
       episodesRes = { objects: [] };
     }
 
-    try {
-      mixcloudRes = await getMixcloudShows({ limit: 1000 });
-    } catch (error) {
-      console.log("Mixcloud API error, using empty array:", error);
-      mixcloudRes = { shows: [] };
-    }
-
     const allGenres = genresRes.objects || [];
     const allHosts = hostsRes.objects || [];
     const rawShows = showsRes.objects || [];
     const allEpisodes = episodesRes.objects || [];
-    const mixcloudShows = mixcloudRes.shows || [];
 
     // Transform allShows to have complete MixcloudShow structure
     const allShows = rawShows.map((show: any) => ({
@@ -906,8 +898,7 @@ export async function getDashboardData(userId: string) {
         allGenres,
         allHosts,
         allShows,
-        allEpisodes: [], // Not using episodes for now
-        mixcloudShows,
+        allEpisodes,
         canonicalGenres,
         genreShows,
         hostShows,

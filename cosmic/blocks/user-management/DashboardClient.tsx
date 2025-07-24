@@ -72,7 +72,7 @@ interface DashboardClientProps {
   allHosts: HostObject[];
   allShows: RadioShowObject[];
   allEpisodes?: EpisodeObject[];
-  mixcloudShows: any[];
+
   canonicalGenres: { slug: string; title: string }[];
   genreShows: { [key: string]: BlendedShow[] };
   hostShows: { [key: string]: BlendedShow[] };
@@ -83,7 +83,7 @@ interface DashboardClientProps {
 
 // Function to calculate similarity score between genres
 
-export default function DashboardClient({ userData, allGenres, allHosts, allShows, allEpisodes = [], mixcloudShows = [], canonicalGenres = [], genreShows, hostShows, favouriteGenres = [], favouriteHosts = [], favouriteShows = [] }: DashboardClientProps) {
+export default function DashboardClient({ userData, allGenres, allHosts, allShows, allEpisodes = [], canonicalGenres = [], genreShows, hostShows, favouriteGenres = [], favouriteHosts = [], favouriteShows = [] }: DashboardClientProps) {
   const { user } = useAuth();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -114,81 +114,80 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
       .map((genre) => genre.slug);
   }
 
-  // Function to get blended shows for a genre (no Episode objects needed)
+  // Function to get shows for a genre (simplified - using only Cosmic episodes)
   function getBlendedShowsForGenre(genreId: string): BlendedShow[] {
     const genre = allGenres.find((g: any) => g.id === genreId);
     if (!genre) return [];
 
-    // Find Mixcloud shows for this genre using the same logic as shows-client.tsx
-    const genreMixcloudShows = mixcloudShows.filter((show) => {
-      const showGenres = mapShowToCanonicalGenres(show);
-      return showGenres.includes(genre.slug);
+    // Use episodes from Cosmic only
+    const genreEpisodes = allEpisodes.filter((episode: any) => {
+      const episodeGenres = episode.metadata?.genres || [];
+      return episodeGenres.some((episodeGenre: any) => episodeGenre.id === genreId);
     });
 
-    // Convert Mixcloud shows to BlendedShow format
-    const blendedMixcloudShows = genreMixcloudShows.map((show) => ({
-      id: show.key,
-      key: show.key,
-      name: show.name,
-      title: show.name,
-      slug: show.key,
-      url: show.url,
-      description: show.description || "",
-      created_time: show.created_time,
-      broadcast_date: show.created_time,
-      pictures: show.pictures || {},
-      image: null,
-      enhanced_image: show.pictures?.large || "/image-placeholder.svg",
-      genres: show.tags || [],
-      enhanced_genres: [],
-      hosts: show.user ? [show.user.name] : [],
-      enhanced_hosts: [],
-      __source: "mixcloud" as const,
-      episodeData: undefined,
-      mixcloudData: show,
+    // Convert episodes to BlendedShow format
+    const blendedEpisodes = genreEpisodes.slice(0, 4).map((episode: any) => ({
+      id: episode.id,
+      key: episode.slug,
+      name: episode.title,
+      title: episode.title,
+      slug: episode.slug,
+      url: `/episode/${episode.slug}`,
+      description: episode.metadata?.description || "",
+      created_time: episode.metadata?.broadcast_date || episode.created_at,
+      broadcast_date: episode.metadata?.broadcast_date || episode.created_at,
+      pictures: {},
+      image: episode.metadata?.image,
+      enhanced_image: episode.metadata?.image?.imgix_url || "/image-placeholder.svg",
+      genres: [],
+      enhanced_genres: episode.metadata?.genres || [],
+      hosts: [],
+      enhanced_hosts: episode.metadata?.regular_hosts || [],
+      __source: "episode" as const,
+      episodeData: episode,
+      mixcloudData: undefined,
       matchScore: 1,
     }));
 
-    return blendedMixcloudShows.slice(0, 4);
+    return blendedEpisodes;
   }
 
-  // Function to get blended shows for a host (no Episode objects needed)
+  // Function to get shows for a host (simplified - using only Cosmic episodes)
   function getBlendedShowsForHost(hostId: string): BlendedShow[] {
     const host = allHosts.find((h: any) => h.id === hostId);
     if (!host) return [];
 
-    // Find Mixcloud shows for this host by matching host names
-    const hostMixcloudShows = mixcloudShows.filter((show) => {
-      const showHostName = show.user?.name?.toLowerCase() || "";
-      const hostTitle = host.title.toLowerCase();
-      return showHostName.includes(hostTitle) || hostTitle.includes(showHostName);
+    // Use episodes from Cosmic only
+    const hostEpisodes = allEpisodes.filter((episode: any) => {
+      const episodeHosts = episode.metadata?.regular_hosts || [];
+      return episodeHosts.some((episodeHost: any) => episodeHost.id === hostId);
     });
 
-    // Convert Mixcloud shows to BlendedShow format
-    const blendedMixcloudShows = hostMixcloudShows.map((show) => ({
-      id: show.key,
-      key: show.key,
-      name: show.name,
-      title: show.name,
-      slug: show.key,
-      url: show.url,
-      description: show.description || "",
-      created_time: show.created_time,
-      broadcast_date: show.created_time,
-      pictures: show.pictures || {},
-      image: null,
-      enhanced_image: show.pictures?.large || "/image-placeholder.svg",
-      genres: show.tags || [],
-      enhanced_genres: [],
-      hosts: show.user ? [show.user.name] : [],
-      enhanced_hosts: [],
-      __source: "mixcloud" as const,
-      episodeData: undefined,
-      mixcloudData: show,
+    // Convert episodes to BlendedShow format
+    const blendedEpisodes = hostEpisodes.slice(0, 4).map((episode: any) => ({
+      id: episode.id,
+      key: episode.slug,
+      name: episode.title,
+      title: episode.title,
+      slug: episode.slug,
+      url: `/episode/${episode.slug}`,
+      description: episode.metadata?.description || "",
+      created_time: episode.metadata?.broadcast_date || episode.created_at,
+      broadcast_date: episode.metadata?.broadcast_date || episode.created_at,
+      pictures: {},
+      image: episode.metadata?.image,
+      enhanced_image: episode.metadata?.image?.imgix_url || "/image-placeholder.svg",
+      genres: [],
+      enhanced_genres: episode.metadata?.genres || [],
+      hosts: [],
+      enhanced_hosts: episode.metadata?.regular_hosts || [],
+      __source: "episode" as const,
+      episodeData: episode,
+      mixcloudData: undefined,
       matchScore: 1,
     }));
 
-    return blendedMixcloudShows.slice(0, 4);
+    return blendedEpisodes;
   }
 
   // Generate blended shows for genres and hosts (no Episode objects needed)
@@ -196,64 +195,29 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
 
   const blendedHostShows = Object.fromEntries(favouriteHosts.map((host) => [host.id, getBlendedShowsForHost(host.id)]));
 
-  // Blend favourite shows with Mixcloud data (no Episode objects needed)
-  const blendedFavouriteShows = favouriteShows.map((show) => {
-    // Try to find a matching Mixcloud show by title similarity
-    const matchingMixcloudShow = mixcloudShows.find((mixcloudShow) => {
-      const showTitle = show.title.toLowerCase();
-      const mixcloudTitle = mixcloudShow.name.toLowerCase();
-      return showTitle.includes(mixcloudTitle) || mixcloudTitle.includes(showTitle);
-    });
-
-    if (matchingMixcloudShow) {
-      return {
-        id: show.id,
-        key: show.slug,
-        name: show.title,
-        title: show.title,
-        slug: show.slug,
-        url: `/episode/${show.slug}`,
-        description: show.metadata?.description || matchingMixcloudShow.description || "",
-        created_time: show.metadata?.broadcast_date || show.created_at,
-        broadcast_date: show.metadata?.broadcast_date || show.created_at,
-        pictures: matchingMixcloudShow.pictures || {},
-        image: show.metadata?.image,
-        enhanced_image: show.metadata?.image?.imgix_url || matchingMixcloudShow.pictures?.large || "/image-placeholder.svg",
-        genres: matchingMixcloudShow.tags || [],
-        enhanced_genres: show.metadata?.genres || [],
-        hosts: matchingMixcloudShow.user?.name ? [matchingMixcloudShow.user.name] : [],
-        enhanced_hosts: show.metadata?.regular_hosts || [],
-        __source: "blended" as const,
-        episodeData: undefined,
-        mixcloudData: matchingMixcloudShow,
-        matchScore: 0.8,
-      };
-    }
-
-    // Create a BlendedShow from the RadioShowObject when no Mixcloud match is found
-    return {
-      id: show.id,
-      key: show.slug,
-      name: show.title,
-      title: show.title,
-      slug: show.slug,
-      url: `/episode/${show.slug}`,
-      description: show.metadata?.description || "",
-      created_time: show.metadata?.broadcast_date || show.created_at,
-      broadcast_date: show.metadata?.broadcast_date || show.created_at,
-      pictures: {},
-      image: show.metadata?.image,
-      enhanced_image: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-      genres: [],
-      enhanced_genres: show.metadata?.genres || [],
-      hosts: [],
-      enhanced_hosts: show.metadata?.regular_hosts || [],
-      __source: "cosmic" as const,
-      episodeData: undefined,
-      mixcloudData: undefined,
-      matchScore: 0,
-    };
-  });
+  // Transform favourite shows to consistent format (simplified)
+  const blendedFavouriteShows = favouriteShows.map((show) => ({
+    id: show.id,
+    key: show.slug,
+    name: show.title,
+    title: show.title,
+    slug: show.slug,
+    url: `/episode/${show.slug}`,
+    description: show.metadata?.description || "",
+    created_time: show.metadata?.broadcast_date || show.created_at,
+    broadcast_date: show.metadata?.broadcast_date || show.created_at,
+    pictures: {},
+    image: show.metadata?.image,
+    enhanced_image: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+    genres: [],
+    enhanced_genres: show.metadata?.genres || [],
+    hosts: [],
+    enhanced_hosts: show.metadata?.regular_hosts || [],
+    __source: "cosmic" as const,
+    episodeData: undefined,
+    mixcloudData: undefined,
+    matchScore: 1.0,
+  }));
 
   const handleServerAction = async (action: () => Promise<any>) => {
     if (!user) return;
@@ -381,7 +345,7 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {shows.map((show: BlendedShow) => (
-                  <ShowCard key={show.key} show={show} slug={show.url} playable={show.__source !== "episode"} />
+                  <ShowCard key={show.key} show={show} slug={show.url} playable />
                 ))}
               </div>
             </div>
@@ -508,7 +472,7 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {blendedFavouriteShows.map((show: BlendedShow) => (
                 <div key={show.id} className="relative">
-                  <ShowCard show={show} slug={show.url} playable={show.__source !== "episode"} />
+                  <ShowCard show={show} slug={show.url} playable />
                 </div>
               ))}
             </div>

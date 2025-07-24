@@ -22,7 +22,7 @@ interface Category {
   metadata: null;
 }
 
-export default async function EditorialArticlePage({ params }: { params: { slug: string } }) {
+export default async function EditorialArticlePage({ params }: { params: Promise<{ slug: string }> }) {
   // Await the entire params object first
   const resolvedParams = await params;
 

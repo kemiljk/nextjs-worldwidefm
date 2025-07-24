@@ -11,10 +11,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getMixcloudShows } from "@/lib/mixcloud-service";
 import { getAllPosts, getVideos, getEvents, getTakeovers } from "@/lib/actions";
 import type { ContentType } from "@/lib/search/types";
-import type { MixcloudShow } from "@/lib/mixcloud-service";
 import type { PostObject, VideoObject } from "@/lib/cosmic-config";
 
 interface SearchDialogProps {
@@ -50,8 +48,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     if (!open) return;
     async function checkTypes() {
       const types: string[] = [];
-      const [mixcloud, posts, videos, events, takeovers] = await Promise.all([getMixcloudShows({ limit: 1 }), getAllPosts({ limit: 1 }), getVideos({ limit: 1 }), getEvents({ limit: 1 }), getTakeovers({ limit: 1 })]);
-      if (mixcloud.shows.length > 0) types.push("radio-shows");
+      const [episodes, posts, videos, events, takeovers] = await Promise.all([import("@/lib/episode-service").then((m) => m.getEpisodesForShows({ limit: 1 })), getAllPosts({ limit: 1 }), getVideos({ limit: 1 }), getEvents({ limit: 1 }), getTakeovers({ limit: 1 })]);
+      if (episodes.shows.length > 0) types.push("radio-shows");
       if (posts.posts.length > 0) types.push("posts");
       if (events.events.length > 0) types.push("events");
       if (videos.videos.length > 0) types.push("videos");
@@ -71,10 +69,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     async function fetchTags() {
       let tagSet = new Set<string>();
       if (selectedType === "radio-shows") {
-        const response = await getMixcloudShows({ limit: 100, offset: 0 });
-        response.shows.forEach((show: MixcloudShow) => {
-          show.tags?.forEach((tag) => {
-            if (tag.name) tagSet.add(tag.name);
+        const response = await import("@/lib/episode-service").then((m) => m.getEpisodesForShows({ limit: 100, offset: 0 }));
+        response.shows.forEach((episode: any) => {
+          const genres = episode.genres || episode.enhanced_genres || [];
+          genres.forEach((genre: any) => {
+            if (genre.title || genre.name) tagSet.add(genre.title || genre.name);
           });
         });
       } else if (selectedType === "posts") {
@@ -121,12 +120,18 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       let res: any;
       let allResults: any[] = [];
       if (selectedType === "radio-shows") {
-        // Fetch a large enough sample to filter client-side
-        res = await getMixcloudShows({ searchTerm, limit: 100, offset: 0 });
+        // Fetch episodes from Cosmic
+        const { getEpisodesForShows } = await import("@/lib/episode-service");
+        res = await getEpisodesForShows({ searchTerm, limit: 100, offset: 0 });
         allResults = res.shows;
         // Filter by all selected tags (AND logic)
         if (selectedTags.length > 0) {
-          allResults = allResults.filter((show: any) => selectedTags.every((tag) => Array.isArray(show.tags) && show.tags.some((t: any) => t.name && t.name.toLowerCase() === tag.toLowerCase())));
+          allResults = allResults.filter((episode: any) =>
+            selectedTags.every((tag) => {
+              const episodeGenres = episode.genres || episode.enhanced_genres || [];
+              return episodeGenres.some((genre: any) => genre.title?.toLowerCase() === tag.toLowerCase() || genre.name?.toLowerCase() === tag.toLowerCase());
+            })
+          );
         }
         setResults(allResults.slice(0, PAGE_SIZE));
         setHasNext(allResults.length > PAGE_SIZE);
@@ -180,7 +185,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           async function fetchMore() {
             let res: any;
             if (selectedType === "radio-shows") {
-              res = await getMixcloudShows({ tag: selectedTags.join("|"), searchTerm, limit: PAGE_SIZE, offset: nextOffset });
+              const episodeModule = await import("@/lib/episode-service");
+              res = await episodeModule.getEpisodesForShows({ searchTerm, limit: PAGE_SIZE, offset: nextOffset });
               setResults((prev) => [...prev, ...res.shows]);
               setHasNext(res.hasNext);
             } else if (selectedType === "posts") {
