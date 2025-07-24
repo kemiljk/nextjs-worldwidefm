@@ -557,15 +557,18 @@ export async function getAllFilters() {
 
 export async function getShowsFilters() {
   try {
-    // Fetch all filter collections in parallel from Cosmic
-    const [genresRes, hostsRes, takeoversRes, locationsRes, featuredShowsRes, seriesRes] = await Promise.all([
-      cosmic.objects.find({ type: "genres", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
-      cosmic.objects.find({ type: "regular-hosts", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
-      cosmic.objects.find({ type: "takeovers", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
-      cosmic.objects.find({ type: "locations", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
-      cosmic.objects.find({ type: "featured-shows", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
-      cosmic.objects.find({ type: "series", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }),
-    ]);
+    // Helper function to safely fetch objects
+    const safeFind = async (type: string) => {
+      try {
+        return await cosmic.objects.find({ type, props: "id,slug,title,type,metadata", depth: 1, limit: 1000 });
+      } catch (error) {
+        console.warn(`Failed to fetch ${type}:`, error);
+        return { objects: [] };
+      }
+    };
+
+    // Fetch only the filter collections we actually need
+    const [genresRes, hostsRes, takeoversRes, locationsRes] = await Promise.all([safeFind("genres"), safeFind("regular-hosts"), safeFind("takeovers"), safeFind("locations")]);
 
     // Convert to FilterItem type with id property for shows page
     const toShowsFilterItems = (objects: any[] = [], type: string) =>
@@ -587,8 +590,8 @@ export async function getShowsFilters() {
       hosts: toShowsFilterItems(hostsRes.objects || [], "hosts"),
       takeovers: toShowsFilterItems(takeoversRes.objects || [], "takeovers"),
       locations: toShowsFilterItems(locationsRes.objects || [], "locations"),
-      featuredShows: toShowsFilterItems(featuredShowsRes.objects || [], "featured-shows"),
-      series: toShowsFilterItems(seriesRes.objects || [], "series"),
+      featuredShows: [], // Remove this since we don't need it
+      series: [], // Remove this since we don't need it
     };
   } catch (error) {
     console.error("Error getting shows filters:", error);

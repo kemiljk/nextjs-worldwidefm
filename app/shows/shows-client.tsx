@@ -32,40 +32,70 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
 
   // Parse filter params
   const genreParam = searchParams.get("genre") ?? undefined;
-  const typeParam = searchParams.get("type") ?? undefined; // New type parameter for navigation
+  const locationParam = searchParams.get("location") ?? undefined;
+  const typeParam = searchParams.get("type") ?? undefined; // New type parameter for host/takeover filtering
   const searchTerm = searchParams.get("searchTerm") ?? undefined;
 
   const selectedGenres = genreParam ? genreParam.split("|").filter(Boolean) : [];
+  const selectedLocations = locationParam ? locationParam.split("|").filter(Boolean) : [];
 
   // Determine which filter type is active based on the type parameter
   const activeType = typeParam || "all";
 
   // Build params for getEpisodesForShows
   const episodeParams: any = {
-    genre: selectedGenres.length > 0 ? selectedGenres : undefined,
     searchTerm,
     limit: PAGE_SIZE,
   };
+
+  // Only add filters if they're selected
+  if (selectedGenres.length > 0) {
+    episodeParams.genre = selectedGenres;
+  }
+
+  if (selectedLocations.length > 0) {
+    episodeParams.location = selectedLocations;
+  }
+
+  // Handle type-specific filtering at the backend level
+  if (activeType === "hosts-series") {
+    // This will be filtered client-side since we need to match against available hosts
+    // The backend doesn't know about our canonical host mapping
+  } else if (activeType === "takeovers") {
+    // Filter for episodes that have takeovers
+    episodeParams.takeover = "*"; // Use a wildcard to indicate we want episodes with any takeovers
+  }
 
   // Load initial data and whenever filters/search change
   useEffect(() => {
     let isMounted = true;
     setIsLoadingMore(true);
-    console.log("Fetching initial episodes with offset 0");
-    getEpisodesForShows({ ...episodeParams, offset: 0 }).then((response) => {
-      if (!isMounted) return;
-      console.log("Initial fetch response:", response);
-      setShows(response.shows);
-      setHasNext(response.hasNext);
-      setIsLoadingMore(false);
-      setPage(1);
-      console.log("Episodes after initial fetch:", response.shows.length);
-    });
+    console.log("=== SHOWS FETCH ===");
+    console.log("Active type:", activeType);
+    console.log("Episode params:", episodeParams);
+    console.log("Selected genres:", selectedGenres);
+    console.log("Selected locations:", selectedLocations);
+
+    getEpisodesForShows({ ...episodeParams, offset: 0 })
+      .then((response) => {
+        if (!isMounted) return;
+        console.log("Initial fetch response:", response);
+        setShows(response.shows);
+        setHasNext(response.hasNext);
+        setIsLoadingMore(false);
+        setPage(1);
+        console.log("Episodes after initial fetch:", response.shows.length);
+      })
+      .catch((error) => {
+        console.error("Error fetching episodes:", error);
+        setIsLoadingMore(false);
+      });
+
     return () => {
       isMounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genreParam, typeParam, searchTerm]);
+  }, [genreParam, locationParam, typeParam, searchTerm]);
 
   // Infinite scroll: load more when sentinel is in view
   useEffect(() => {
@@ -86,7 +116,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inView, hasNext, isLoadingMore, page, genreParam, typeParam, searchTerm]);
+  }, [inView, hasNext, isLoadingMore, page, genreParam, locationParam, typeParam, searchTerm]);
 
   // Map episode genres to canonical genres (by slug or title, case-insensitive)
   function mapShowToCanonicalGenres(show: any): string[] {
@@ -117,11 +147,27 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       .map((host) => host.slug);
   }
 
+  // Map episode locations to available locations (by name or slug, case-insensitive)
+  function mapShowToAvailableLocations(show: any): string[] {
+    const locations = show.locations || [];
+    return availableFilters.locations
+      .filter((availableLocation) =>
+        locations.some((showLocation: any) => {
+          const showLocationName = showLocation.name?.toLowerCase() || showLocation.title?.toLowerCase() || "";
+          const showLocationSlug = showLocation.slug?.toLowerCase() || "";
+          const availableLocationTitle = availableLocation.title.toLowerCase();
+          const availableLocationSlug = availableLocation.slug.toLowerCase();
+          return showLocationName === availableLocationTitle || showLocationSlug === availableLocationSlug;
+        })
+      )
+      .map((location) => location.slug);
+  }
+
   // Check if show matches the selected type filter
   function matchesTypeFilter(show: any): boolean {
     switch (activeType) {
-      case "regular-hosts":
-        // For regular hosts, check if the show has any hosts that match our available hosts
+      case "hosts-series":
+        // For hosts & series, check if the show has any hosts that match our available hosts
         const mappedHosts = mapShowToAvailableHosts(show);
         return mappedHosts.length > 0;
 
@@ -130,12 +176,9 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
         const showTakeovers = show.takeovers || show.enhanced_takeovers || [];
         return showTakeovers.length > 0;
 
-      case "featured-shows":
-        // For featured shows, check if this is an episode with featured show metadata
-        return show.featured_on_homepage === true;
-
       case "all":
       default:
+        // For "all", always return true - show everything
         return true;
     }
   }
@@ -166,6 +209,19 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
+  // Handle location dropdown selection changes
+  const handleLocationSelectionChange = (values: string[]) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (values.length === 0) {
+      params.delete("location");
+    } else {
+      params.set("location", values.join("|"));
+    }
+
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
   // Handle clear individual genre chip
   const handleClearGenre = (genreSlug: string) => {
     const newGenres = selectedGenres.filter((g) => g !== genreSlug);
@@ -175,6 +231,20 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       params.delete("genre");
     } else {
       params.set("genre", newGenres.join("|"));
+    }
+
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  // Handle clear individual location chip
+  const handleClearLocation = (locationSlug: string) => {
+    const newLocations = selectedLocations.filter((l) => l !== locationSlug);
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (newLocations.length === 0) {
+      params.delete("location");
+    } else {
+      params.set("location", newLocations.join("|"));
     }
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -194,10 +264,23 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       if (!matchesGenre) return false;
     }
 
+    // Check locations
+    if (selectedLocations.length > 0) {
+      const mappedLocations = mapShowToAvailableLocations(show);
+      const matchesLocation = mappedLocations.some((slug) => selectedLocations.includes(slug));
+      if (!matchesLocation) return false;
+    }
+
     return true;
   });
 
-  const hasActiveFilters = selectedGenres.length > 0;
+  const hasActiveFilters = selectedGenres.length > 0 || selectedLocations.length > 0;
+
+  console.log("=== FILTERING DEBUG ===");
+  console.log("Total shows from server:", shows.length);
+  console.log("Filtered shows:", filteredShows.length);
+  console.log("Active type:", activeType);
+  console.log("Has active filters:", hasActiveFilters);
 
   return (
     <div className="mx-auto lg:px-4 py-16">
@@ -213,11 +296,19 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
             All
           </Button>
 
+          <Button variant="outline" className={cn("border-almostblack dark:border-white", activeType === "hosts-series" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleTypeNavigation("hosts-series")}>
+            Hosts & Series
+          </Button>
+
+          <Button variant="outline" className={cn("border-almostblack dark:border-white", activeType === "takeovers" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleTypeNavigation("takeovers")}>
+            Takeovers
+          </Button>
+
           {/* Genres Dropdown */}
           <MultiSelectDropdown
             options={canonicalGenres.map((genre) => ({
               id: genre.slug,
-              title: genre.title,
+              title: genre.title.toUpperCase(),
               slug: genre.slug,
             }))}
             selectedValues={selectedGenres}
@@ -225,32 +316,47 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
             placeholder="Genres"
           />
 
-          <Button variant="outline" className={cn("border-almostblack dark:border-white", activeType === "regular-hosts" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleTypeNavigation("regular-hosts")}>
-            Regular Hosts
-          </Button>
-
-          <Button variant="outline" className={cn("border-almostblack dark:border-white", activeType === "takeovers" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleTypeNavigation("takeovers")}>
-            Takeovers
-          </Button>
-
-          <Button variant="outline" className={cn("border-almostblack dark:border-white", activeType === "featured-shows" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleTypeNavigation("featured-shows")}>
-            Featured Shows
-          </Button>
+          {/* Locations Dropdown */}
+          <MultiSelectDropdown
+            options={availableFilters.locations.map((location) => ({
+              id: location.slug,
+              title: location.title.toUpperCase(),
+              slug: location.slug,
+            }))}
+            selectedValues={selectedLocations}
+            onSelectionChange={handleLocationSelectionChange}
+            placeholder="Locations"
+          />
         </div>
 
-        {/* Active Genre Filter Chips */}
+        {/* Active Filter Chips */}
         {hasActiveFilters && (
           <div className="flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
             {selectedGenres.map((genreSlug, index) => {
               const genre = canonicalGenres.find((g) => g.slug === genreSlug);
               return (
                 <Badge key={`genre-${genreSlug}-${index}`} variant="default" className="uppercase font-mono text-m6 cursor-pointer whitespace-nowrap bg-accent text-accent-foreground flex items-center gap-1">
-                  {genre?.title || genreSlug}
+                  {genre?.title.toUpperCase() || genreSlug.toUpperCase()}
                   <X
                     className="h-3 w-3"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleClearGenre(genreSlug);
+                    }}
+                  />
+                </Badge>
+              );
+            })}
+            {selectedLocations.map((locationSlug, index) => {
+              const location = availableFilters.locations.find((l) => l.slug === locationSlug);
+              return (
+                <Badge key={`location-${locationSlug}-${index}`} variant="default" className="uppercase font-mono text-m6 cursor-pointer whitespace-nowrap bg-accent text-accent-foreground flex items-center gap-1">
+                  {location?.title.toUpperCase() || locationSlug.toUpperCase()}
+                  <X
+                    className="h-3 w-3"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClearLocation(locationSlug);
                     }}
                   />
                 </Badge>

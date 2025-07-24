@@ -64,8 +64,8 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, slug, className = "", 
     return [];
   };
 
-  const formatShowTime = (dateString: string | undefined): string => {
-    if (!dateString) return "Time TBA";
+  const formatShowTime = (dateString: string | undefined): string | null => {
+    if (!dateString) return null;
     const date = new Date(dateString);
     return (
       date.toLocaleTimeString("en-GB", {
@@ -82,6 +82,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, slug, className = "", 
   const createdTime = show.created_time || show.created_at || show.broadcast_date || show.date;
   const showName = show.name || show.title || "Untitled Show";
   const showHost = show.user?.name || show.host || "";
+  const formattedTime = formatShowTime(createdTime);
 
   // Split showName for two-line title (Figma: first line main, second line host/guest)
   const [mainTitle, ...restTitle] = showName.split(":");
@@ -103,15 +104,13 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, slug, className = "", 
           {subtitle && <div className="font-mono text-xl leading-none text-almostblack/75 dark:text-white/75 uppercase w-full break-words">{subtitle}</div>}
         </div>
         {/* Show Info */}
-        <div className="flex flex-row items-center gap-2.5 font-mono text-xs text-almostblack dark:text-white uppercase pl-1 pt-1">
-          <span>{formatShowTime(createdTime)}</span>
-          {show.location?.name && (
-            <>
-              <span>|</span>
-              <span>{show.location?.name}</span>
-            </>
-          )}
-        </div>
+        {(formattedTime || show.location?.name) && (
+          <div className="flex flex-row items-center gap-2.5 font-mono text-xs text-almostblack dark:text-white uppercase pl-1 pt-1">
+            {formattedTime && <span>{formattedTime}</span>}
+            {formattedTime && show.location?.name && <span>|</span>}
+            {show.location?.name && <span>{show.location?.name}</span>}
+          </div>
+        )}
         {/* Tags and Play Button */}
         <div className="flex flex-row items-end justify-between w-full mt-4">
           <div className="flex flex-row flex-wrap">

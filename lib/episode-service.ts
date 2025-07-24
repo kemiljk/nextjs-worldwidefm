@@ -10,6 +10,8 @@ export interface EpisodeParams {
   isNew?: boolean;
   genre?: string | string[];
   host?: string | string[];
+  takeover?: string | string[] | "*"; // "*" means any takeovers
+  location?: string | string[];
 }
 
 export interface EpisodeResponse {
@@ -26,11 +28,11 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     const limit = params.limit || 20;
     const offset = params.offset || 0;
 
-    // Build query object - only include episodes with audio content
+    // Build query object - include all published episodes
     let query: any = {
       type: "episode",
       status: "published",
-      "metadata.player": { $regex: ".", $options: "i" }, // Must have non-empty player field
+      // Temporarily removed player requirement to debug - we were getting 0 episodes
     };
 
     // Filter by genre
@@ -43,6 +45,23 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     if (params.host) {
       const hosts = Array.isArray(params.host) ? params.host : [params.host];
       query["metadata.regular_hosts.slug"] = { $in: hosts };
+    }
+
+    // Filter by takeover
+    if (params.takeover) {
+      if (params.takeover === "*") {
+        // Special case: find episodes with ANY takeovers
+        query["metadata.takeovers"] = { $exists: true, $ne: [] };
+      } else {
+        const takeovers = Array.isArray(params.takeover) ? params.takeover : [params.takeover];
+        query["metadata.takeovers.id"] = { $in: takeovers };
+      }
+    }
+
+    // Filter by location
+    if (params.location) {
+      const locations = Array.isArray(params.location) ? params.location : [params.location];
+      query["metadata.locations.slug"] = { $in: locations };
     }
 
     // Filter by search term
@@ -80,6 +99,10 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     }
 
     // Regular query with pagination
+    console.log("=== EPISODE SERVICE DEBUG ===");
+    console.log("Final query:", JSON.stringify(query, null, 2));
+    console.log("Limit:", limit, "Offset:", offset);
+
     const response = await cosmic.objects
       .find(query)
       .props("slug,title,metadata,type,created_at,published_at")
@@ -91,6 +114,12 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     const episodes = response.objects || [];
     const total = response.total || episodes.length;
     const hasNext = episodes.length === limit && offset + limit < total;
+
+    console.log("Episodes found:", episodes.length, "Total:", total);
+    if (episodes.length > 0) {
+      console.log("First episode:", episodes[0].title, episodes[0].metadata?.broadcast_date);
+      console.log("Last episode:", episodes[episodes.length - 1].title, episodes[episodes.length - 1].metadata?.broadcast_date);
+    }
 
     return {
       episodes,
@@ -345,7 +374,6 @@ export async function getRelatedEpisodes(currentEpisode: EpisodeObject, limit: n
     const metadata = currentEpisode.metadata || {};
     const genres = metadata.genres || [];
     const hosts = metadata.regular_hosts || [];
-    const currentTitle = currentEpisode.title || "";
 
     // Get a larger pool of potential matches
     const poolSize = Math.min(50, limit * 10);

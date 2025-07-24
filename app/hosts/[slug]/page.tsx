@@ -181,7 +181,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
 
       {hostedShows.length === 0 && (
         <div className="text-center py-12">
-          <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white text-muted-foreground mb-2">No Shows Found</h3>
+          <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-2">No Shows Found</h3>
           <p className="text-muted-foreground">This host doesn't have any shows yet.</p>
         </div>
       )}
