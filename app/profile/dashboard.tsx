@@ -30,7 +30,7 @@ export default async function DashboardPage() {
   return (
     <div className="container mx-auto py-8 px-4">
       <Suspense fallback={<Loader2 className="text-accent mx-auto w-8 h-8 animate-spin" />}>
-        <DashboardClient userData={data.userData} allGenres={data.allGenres} allHosts={data.allHosts} allShows={data.allShows} canonicalGenres={data.canonicalGenres} genreShows={data.genreShows} hostShows={data.hostShows} favouriteGenres={data.favouriteGenres} favouriteHosts={data.favouriteHosts} favouriteShows={data.favouriteShows} />
+        <DashboardClient userData={data.userData} allGenres={data.allGenres} allHosts={data.allHosts} canonicalGenres={data.canonicalGenres} genreShows={data.genreShows} hostShows={data.hostShows} favouriteGenres={data.favouriteGenres} favouriteHosts={data.favouriteHosts} />
       </Suspense>
     </div>
   );

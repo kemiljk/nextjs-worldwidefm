@@ -491,11 +491,10 @@ export async function logoutUser() {
 
 // --- FAVOURITES MANAGEMENT ---
 import type { GenreObject } from "@/lib/cosmic-config";
-import type { RadioShowObject } from "@/lib/cosmic-config";
 import type { HostObject } from "@/lib/cosmic-config";
 
 // Generic helper for managing favorites
-async function manageFavourites<T extends { id: string }>(userId: string, item: T, field: "favourite_genres" | "favourite_shows" | "favourite_hosts", action: "add" | "remove") {
+async function manageFavourites<T extends { id: string }>(userId: string, item: T, field: "favourite_genres" | "favourite_hosts", action: "add" | "remove") {
   try {
     // Validate inputs
     if (!userId || !item?.id) {
@@ -541,14 +540,6 @@ export async function removeFavouriteGenre(userId: string, genreId: string) {
   return manageFavourites(userId, { id: genreId } as GenreObject, "favourite_genres", "remove");
 }
 
-export async function addFavouriteShow(userId: string, show: RadioShowObject) {
-  return manageFavourites(userId, show, "favourite_shows", "add");
-}
-
-export async function removeFavouriteShow(userId: string, showId: string) {
-  return manageFavourites(userId, { id: showId } as RadioShowObject, "favourite_shows", "remove");
-}
-
 // For hosts, use the same pattern. Type is any for now, but should be HostObject if defined.
 export async function addFavouriteHost(userId: string, host: HostObject) {
   return manageFavourites(userId, host, "favourite_hosts", "add");
@@ -567,11 +558,10 @@ export async function getDashboardData(userId: string) {
     }
 
     // Fetch all required collections in parallel
-    const [genresRes, hostsRes, showsRes] = await Promise.all([cosmic.objects.find({ type: "genres", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }), cosmic.objects.find({ type: "regular-hosts", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }), cosmic.objects.find({ type: "episodes", props: "id,slug,title,type,metadata", depth: 1, limit: 1000, status: "published" })]);
+    const [genresRes, hostsRes] = await Promise.all([cosmic.objects.find({ type: "genres", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }), cosmic.objects.find({ type: "regular-hosts", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 })]);
 
     const allGenres = genresRes.objects || [];
     const allHosts = hostsRes.objects || [];
-    const allShows = showsRes.objects || [];
 
     // Fetch canonical genres for genre matching
     let canonicalGenres: { slug: string; title: string }[] = [];
@@ -697,44 +687,16 @@ export async function getDashboardData(userId: string) {
     const favouriteGenres = userData.metadata?.favourite_genres || [];
     const favouriteHosts = userData.metadata?.favourite_hosts || [];
 
-    // Transform favourite shows to match ShowCard expectations
-    const favouriteShows = (userData.metadata?.favourite_shows || []).map((show: any) => ({
-      ...show,
-      key: show.slug,
-      name: show.title,
-      url: `/episode/${show.slug}`,
-      pictures: {
-        large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-        extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-      },
-      enhanced_image: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-      created_time: show.metadata?.broadcast_date || show.created_at,
-      broadcast_date: show.metadata?.broadcast_date || show.created_at,
-      tags: (show.metadata?.genres || []).map((genre: any) => ({
-        name: genre.title || genre.name,
-        title: genre.title || genre.name,
-      })),
-      enhanced_genres: show.metadata?.genres || [],
-      user: {
-        name: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
-      },
-      host: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
-      location: show.metadata?.locations?.[0] || null,
-      __source: "episode" as const,
-    }));
-
     return {
       data: {
         userData,
         allGenres,
         allHosts,
-        allShows,
         canonicalGenres,
         genreShows,
         hostShows,
         favouriteGenres,
         favouriteHosts,
-        favouriteShows,
       },
       error: null,
     };

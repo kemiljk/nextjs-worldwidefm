@@ -1,0 +1,406 @@
+# GraphQL to Cosmic Migration Rules
+
+## Overview
+
+This document outlines the specific patterns and rules for migrating data from Craft CMS (via GraphQL) to Cosmic CMS in the Worldwide FM codebase. These rules are based on successful migrations and should be followed for all future migrations.
+
+## Core Migration Pattern
+
+### 1. Always Start with Structure Analysis
+
+- **First step**: Create a `check-{entity}-structure.js` script to examine the GraphQL schema
+- **Use introspection queries** to understand available fields and data types
+- **Test field names** - Craft CMS often uses different field names than expected (e.g., `entries(type: "episode")` not `episodes`)
+- **Verify data availability** before attempting migration
+
+### 2. GraphQL Query Structure
+
+```javascript
+const query = `
+  query {
+    entries(type: "episode", limit: 5) {
+      id
+      title
+      slug
+      // Always test with minimal fields first
+    }
+  }
+`;
+```
+
+### 3. Field Mapping Rules
+
+- **Craft CMS → Cosmic CMS**:
+  - `broadcastDate` → `broadcast_date`
+  - `bodyText` → `body_text`
+  - `thumbnail` → `image` (array format in Craft, single object in Cosmic)
+  - `categories` → `genres` (filter by `groupId` for proper categorization)
+  - `hosts` → `regular_hosts`
+  - `takeovers` → `takeovers`
+  - `locations` → `locations`
+
+### 4. Media Handling Pattern
+
+**CRITICAL**: Understanding Cosmic's image field structure is essential for proper display
+
+```javascript
+// 1. Download from Craft CMS
+const filepath = await downloadImage(imageUrl, filename);
+
+// 2. Upload to Cosmic Media
+const mediaItem = await uploadImageToCosmic(filepath, filename, title);
+
+// 3. IMPORTANT: Both image and thumbnail use mediaItem.name
+//    This is how Cosmic references media internally
+metadata: {
+  image: mediaItem.name; // Use the media name for image field
+}
+
+// 4. Thumbnail field also uses the media name for Cosmic's internal reference
+thumbnail: mediaItem.name;
+```
+
+**Why this matters:**
+
+- Both `metadata.image` and `thumbnail` use `mediaItem.name`
+- This is Cosmic's standard way of referencing media objects
+- The name field contains the unique identifier that Cosmic uses to resolve the full media object
+- This ensures proper image display in the UI
+
+### 5. Metadata Validation Rules
+
+**CRITICAL**: Never include fields with `null` values in Cosmic metadata
+
+- **Only include fields when they have actual data**
+- **Use conditional assignment**:
+
+```javascript
+const episodeData = {
+  metadata: {
+    // Required fields only
+    broadcast_date: episode.broadcastDate,
+    source: "migrated_from_craft",
+    radiocult_synced: false,
+  },
+};
+
+// Conditional field addition
+if (episode.description) {
+  episodeData.metadata.description = episode.description;
+}
+if (mediaItem) {
+  episodeData.metadata.image = mediaItem.id;
+}
+```
+
+### 6. Required Base Fields
+
+Every migrated object must include:
+
+```javascript
+{
+  title: string,
+  slug: string,
+  type: string,
+  metadata: {
+    source: "migrated_from_craft",
+    // ... other fields
+  },
+  status: "published"
+}
+```
+
+### 7. Reference Object Mapping
+
+- **Always fetch existing Cosmic objects first** to avoid duplicates
+- **Use slug-based matching** for relationships
+- **Handle missing references gracefully**:
+
+```javascript
+async function findMatchingCosmicObject(items, craftItem, type) {
+  if (!craftItem || !craftItem.slug) return null;
+
+  const matching = items.find((item) => item.slug === craftItem.slug);
+  if (matching) {
+    console.log(`   ✅ Found matching ${type}: ${craftItem.title}`);
+    return matching;
+  }
+
+  console.log(`   ⚠️ No matching ${type} found for: ${craftItem.title}`);
+  return null;
+}
+```
+
+### 8. Error Handling Patterns
+
+```javascript
+// Check for existing objects before creating
+try {
+  const existingObject = await cosmic.objects.findOne({
+    type: "episode",
+    slug: episode.slug,
+  });
+
+  if (existingObject) {
+    console.log(`   ⚠️ Object already exists: ${episode.title}`);
+    skipped++;
+    continue;
+  }
+} catch (error) {
+  // Object doesn't exist, continue
+}
+
+// Handle GraphQL errors
+if (response.data.errors) {
+  console.error("GraphQL Errors:", JSON.stringify(response.data.errors, null, 2));
+  throw new Error(JSON.stringify(response.data.errors, null, 2));
+}
+```
+
+### 9. Batch Processing Strategy
+
+- **Start with small batches** (50-100 items) to test
+- **Implement proper pagination** for large datasets
+- **Use skip/limit** for efficient processing
+- **Track progress** with counters and summaries
+
+### 10. File Structure Requirements
+
+```
+scripts/
+├── check-{entity}-structure.js    # Structure analysis
+├── migrate-{entity}.js            # Main migration script
+└── downloads/                     # Temporary media storage
+```
+
+### 11. Environment Configuration
+
+```javascript
+const config = {
+  craft: {
+    apiUrl: "https://vague-roadrunner-production.cl-eu-west-1.servd.dev/api",
+  },
+  cosmic: {
+    bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG,
+    readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY,
+    writeKey: process.env.COSMIC_WRITE_KEY,
+  },
+  downloadDir: path.join(__dirname, "downloads"),
+};
+```
+
+### 12. Migration Script Template
+
+```javascript
+// 1. Configuration and validation
+// 2. Ensure download directory exists
+// 3. Fetch existing media to avoid re-uploading
+// 4. Fetch source data from Craft CMS
+// 5. Process each item:
+//    - Check if already exists
+//    - Handle media (download → upload → reference)
+//    - Map relationships
+//    - Create object in Cosmic
+// 6. Provide detailed summary
+```
+
+### 13. Common Pitfalls to Avoid
+
+- **Don't assume field names** - always verify with introspection
+- **Don't include null values** in metadata
+- **Don't skip media handling** - always download and upload
+- **Don't forget relationship mapping** - genres, hosts, locations
+- **Don't ignore error responses** - always check for GraphQL errors
+
+### 14. Testing and Validation
+
+- **Run structure check first** to understand data
+- **Test with small sample** before full migration
+- **Verify created objects** in Cosmic CMS
+- **Check media attachments** and relationships
+- **Validate field mappings** are correct
+
+### 15. Post-Migration Tasks
+
+- **Clean up download directory** (optional)
+- **Verify object counts** match expectations
+- **Test object retrieval** via Cosmic API
+- **Check media references** are working
+- **Validate relationships** are properly linked
+
+### 16. Diagnostic Tools and False Positives
+
+**CRITICAL**: Always verify diagnostic results before taking action
+
+- **Check scripts can give false positives** if they don't properly parse Cosmic's data structure
+- **Always examine the actual data** before assuming a migration failed
+- **Use multiple diagnostic approaches** to confirm issues
+
+**Example of False Positive:**
+
+```javascript
+// WRONG: This will group all images as "unknown"
+const key = typeof image === "string" ? image : image.name || image.id || "unknown";
+
+// CORRECT: This properly identifies unique images by URL
+let imageKey;
+if (typeof image === "string") {
+  imageKey = image;
+} else if (image && typeof image === "object" && image.url) {
+  imageKey = image.url; // Use the actual URL for uniqueness
+} else {
+  imageKey = "unknown";
+}
+```
+
+**Diagnostic Best Practices:**
+
+1. **Start with small samples** (10-20 items) to understand data structure
+2. **Examine raw data** before writing grouping logic
+3. **Use multiple check methods** to verify issues
+4. **Don't assume migration failed** based on diagnostic output alone
+5. **Always verify the actual Cosmic data** before taking corrective action
+
+**Common Diagnostic Pitfalls:**
+
+- **Object vs String confusion**: Cosmic returns image objects, not just strings
+- **URL vs ID confusion**: Use URLs for uniqueness, not IDs
+- **Metadata structure assumptions**: Always check the actual metadata structure
+- **False grouping**: Incorrect logic can make unique items appear identical
+
+### 17. Cosmic Metafield Types and Validation
+
+**CRITICAL**: Understanding Cosmic's metafield types is essential for successful updates
+
+- **`file` type metafields** expect file references, not custom objects
+- **`text` type metafields** expect strings, not objects
+- **`textarea` type metafields** expect strings, not objects
+
+**File Field Handling:**
+
+```javascript
+// WRONG: Setting file field to custom object
+metadata: {
+  image: {
+    url: "https://cdn.cosmicjs.com/...",
+    imgix_url: "https://imgix.cosmicjs.com/..."
+  }
+}
+
+// CORRECT: File fields expect just the filename
+metadata: {
+  image: mediaItem.name  // Simple filename reference
+}
+
+// This is the same pattern used for thumbnails
+thumbnail: mediaItem.name
+```
+
+**Why this matters:**
+
+- Cosmic's `file` type metafields expect simple filename references
+- The filename (`mediaItem.name`) is how Cosmic internally resolves the full media object
+- Custom objects with URLs cause validation errors
+- This matches the working thumbnail pattern we see in the episodes
+
+**Validation Error Patterns:**
+
+- `invalid 'value' for metafield with key: 'image' and type: 'file'` = Wrong data type for file field
+- `invalid 'value' for metafield with key: 'title' and type: 'text'` = Wrong data type for text field
+
+**Best Practice:**
+
+- **Always check the metafield type** before updating
+- **Use Cosmic's schema introspection** to understand field types
+- **Test with small updates** before bulk operations
+
+### 18. Automated Cron Job Migrations
+
+**For continuous, automated migrations, use Vercel cron jobs**
+
+- **Setup**: Create API endpoint at `/api/cron/migrate-episodes`
+- **Schedule**: Daily at 2:00 AM UTC (`0 2 * * *`)
+- **Smart Detection**: Automatically finds most recent episode date in Cosmic
+- **Incremental**: Only migrates episodes newer than the last one
+
+**Cron Job Benefits:**
+
+```javascript
+// Automatic detection of new episodes
+const mostRecentDate = await getMostRecentEpisodeDate();
+const episodes = await fetchEpisodesFromCraft(mostRecentDate, 100);
+
+// Safe migration with duplicate checking
+const existingEpisode = await cosmic.objects.findOne({
+  type: "episode",
+  slug: episode.slug,
+});
+
+if (existingEpisode) {
+  console.log(`Episode already exists, skipping`);
+  continue;
+}
+```
+
+**Current Limitations:**
+
+- No media handling (images) in cron job
+- Basic metadata only
+- No genre/host mapping
+
+**Use Cases:**
+
+- **Daily sync**: Keep Cosmic updated with new Craft episodes
+- **Production automation**: Reduce manual migration work
+- **Continuous integration**: Part of automated content pipeline
+
+**Manual Override:**
+If cron job fails, run: `node scripts/migrate-episodes.js`
+
+## Example Migration Flow
+
+1. **Analyze**: Run structure check script
+2. **Plan**: Identify field mappings and relationships
+3. **Prepare**: Set up download directory and media handling
+4. **Execute**: Run migration with proper error handling
+5. **Validate**: Verify results in Cosmic CMS
+6. **Cleanup**: Remove temporary files and logs
+
+## Key Success Factors
+
+- **Always start with structure analysis**
+- **Handle media properly** (download → upload → reference)
+- **Never include null values** in metadata
+- **Map relationships correctly** using slug matching
+- **Implement proper error handling** and logging
+- **Test with small batches** before scaling up
+
+Remember: These migrations are data-critical operations. Always test thoroughly and maintain detailed logs of the process.
+alwaysApply: false
+
+---
+
+Remember: These migrations are data-critical operations. Always test thoroughly and maintain detailed logs of the process.
+alwaysApply: false
+
+---
+
+Remember: These migrations are data-critical operations. Always test thoroughly and maintain detailed logs of the process.
+alwaysApply: false
+
+---
+
+Remember: These migrations are data-critical operations. Always test thoroughly and maintain detailed logs of the process.
+alwaysApply: false
+
+---
+
+Remember: These migrations are data-critical operations. Always test thoroughly and maintain detailed logs of the process.
+alwaysApply: false
+
+---
+
+Remember: These migrations are data-critical operations. Always test thoroughly and maintain detailed logs of the process.
+alwaysApply: false
+
+---

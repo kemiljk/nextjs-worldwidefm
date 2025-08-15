@@ -1,8 +1,9 @@
 ---
 description: If using TailwindCSS in the project, request these rules
-globs: 
+globs:
 alwaysApply: false
 ---
+
 # Tailwind CSS Rules and Best Practices
 
 ## Core Principles
@@ -41,27 +42,27 @@ alwaysApply: false
 | `placeholder-opacity-*` | Use opacity modifiers like `placeholder-black/50` |
 | `flex-shrink-*`         | `shrink-*`                                        |
 | `flex-grow-*`           | `grow-*`                                          |
-| `text-ellipsis`     | `text-ellipsis`                                   |
-| `box-decoration-slice`      | `box-decoration-slice`                            |
-| `box-decoration-clone`      | `box-decoration-clone`                            |
+| `text-ellipsis`         | `text-ellipsis`                                   |
+| `box-decoration-slice`  | `box-decoration-slice`                            |
+| `box-decoration-clone`  | `box-decoration-clone`                            |
 
 ### Renamed Utilities (ALWAYS use the v4 name)
 
 | ❌ v3              | ✅ v4              |
 | ------------------ | ------------------ |
 | `bg-gradient-*`    | `bg-linear-*`      |
-| `shadow-xs`        | `shadow-2xs`        |
-| `shadow-sm`           | `shadow-xs`        |
+| `shadow-xs`        | `shadow-2xs`       |
+| `shadow-sm`        | `shadow-xs`        |
 | `drop-shadow-xs`   | `drop-shadow-xs`   |
-| `drop-shadow-sm`      | `drop-shadow-xs`   |
+| `drop-shadow-sm`   | `drop-shadow-xs`   |
 | `blur-xs`          | `blur-xs`          |
-| `blur-sm`             | `blur-xs`          |
+| `blur-sm`          | `blur-xs`          |
 | `backdrop-blur-xs` | `backdrop-blur-xs` |
-| `backdrop-blur-sm`    | `backdrop-blur-xs` |
+| `backdrop-blur-sm` | `backdrop-blur-xs` |
 | `rounded-sm`       | `rounded-xs`       |
 | `rounded`          | `rounded-sm`       |
-| `outline-hidden`     | `outline-hidden`   |
-| `ring-3`             | `ring-3`           |
+| `outline-hidden`   | `outline-hidden`   |
+| `ring-3`           | `ring-3`           |
 
 ## Layout and Spacing Rules
 
@@ -198,12 +199,8 @@ Be precise with font sizes - know the actual pixel values:
 ```html
 <!-- ✅ Use the new gradient utilities -->
 <div class="h-14 bg-linear-to-br from-violet-500 to-fuchsia-500"></div>
-<div
-  class="size-18 bg-radial-[at_50%_75%] from-sky-200 via-blue-400 to-indigo-900 to-90%"
-></div>
-<div
-  class="size-24 bg-conic-180 from-indigo-600 via-indigo-50 to-indigo-600"
-></div>
+<div class="size-18 bg-radial-[at_50%_75%] from-sky-200 via-blue-400 to-indigo-900 to-90%"></div>
+<div class="size-24 bg-conic-180 from-indigo-600 via-indigo-50 to-indigo-600"></div>
 
 <!-- ❌ Do not use bg-gradient-* utilities -->
 <div class="h-14 bg-linear-to-br from-violet-500 to-fuchsia-500"></div>
@@ -296,14 +293,10 @@ Use the new composable mask utilities for image and gradient masks:
 <!-- ✅ Linear gradient masks on specific sides -->
 <div class="mask-t-from-50%">Top fade</div>
 <div class="mask-b-from-20% mask-b-to-80%">Bottom gradient</div>
-<div class="mask-linear-from-white mask-linear-to-black/60">
-  Fade from white to black
-</div>
+<div class="mask-linear-from-white mask-linear-to-black/60">Fade from white to black</div>
 
 <!-- ✅ Radial gradient masks -->
-<div class="mask-radial-[100%_100%] mask-radial-from-75% mask-radial-at-left">
-  Radial mask
-</div>
+<div class="mask-radial-[100%_100%] mask-radial-from-75% mask-radial-at-left">Radial mask</div>
 ```
 
 ## Component Patterns

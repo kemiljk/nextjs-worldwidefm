@@ -17,7 +17,7 @@ export interface CosmicObjectMeta {
   broadcast_time: string;
   duration: string;
   player: null;
-  tracklist: null;
+  tracklist: string | null; // Rich Text content
   body_text: null;
   radiocult_media_id: null;
   media_file: null;

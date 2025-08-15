@@ -5,44 +5,38 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/cosmic/blocks/user-management/AuthContext";
 import { UserProfileForm } from "@/cosmic/blocks/user-management/UserProfileForm";
 import { XIcon, Settings, LogOut } from "lucide-react";
-import { addFavouriteGenre, removeFavouriteGenre, addFavouriteShow, removeFavouriteShow, addFavouriteHost, removeFavouriteHost } from "./actions";
-import type { GenreObject, RadioShowObject, HostObject } from "@/lib/cosmic-config";
+import { addFavouriteGenre, removeFavouriteGenre, addFavouriteHost, removeFavouriteHost } from "./actions";
+import type { GenreObject, HostObject } from "@/lib/cosmic-config";
 import { Button } from "@/components/ui/button";
-import { ShowCard } from "@/components/ui/show-card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface DashboardClientProps {
   userData: any;
   allGenres: GenreObject[];
   allHosts: HostObject[];
-  allShows: RadioShowObject[];
   canonicalGenres: { slug: string; title: string }[];
   genreShows: { [key: string]: any[] };
   hostShows: { [key: string]: any[] };
   favouriteGenres: GenreObject[];
   favouriteHosts: HostObject[];
-  favouriteShows: RadioShowObject[];
 }
 
 // Function to calculate similarity score between genres
 
-export default function DashboardClient({ userData, allGenres, allHosts, allShows, canonicalGenres = [], genreShows, hostShows, favouriteGenres = [], favouriteHosts = [], favouriteShows = [] }: DashboardClientProps) {
+export default function DashboardClient({ userData, allGenres, allHosts, canonicalGenres = [], genreShows, hostShows, favouriteGenres = [], favouriteHosts = [] }: DashboardClientProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [isAdding, setIsAdding] = useState<null | "genre" | "show" | "host">(null);
+  const [isAdding, setIsAdding] = useState<null | "genre" | "host">(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState<string>("");
   const [selectedHost, setSelectedHost] = useState<string>("");
-  const [selectedShow, setSelectedShow] = useState<string>("");
 
   const [optimisticGenres, addOptimisticGenre] = useOptimistic(favouriteGenres, (state, newGenre: GenreObject) => [...state, newGenre]);
   const [optimisticHosts, addOptimisticHost] = useOptimistic(favouriteHosts, (state, newHost: HostObject) => [...state, newHost]);
-  const [optimisticShows, addOptimisticShow] = useOptimistic(favouriteShows, (state, newShow: RadioShowObject) => [...state, newShow]);
 
   const [optimisticGenresRemove, removeOptimisticGenre] = useOptimistic(optimisticGenres, (state, genreId: string) => state.filter((genre) => genre.id !== genreId));
   const [optimisticHostsRemove, removeOptimisticHost] = useOptimistic(optimisticHosts, (state, hostId: string) => state.filter((host) => host.id !== hostId));
-  const [optimisticShowsRemove, removeOptimisticShow] = useOptimistic(optimisticShows, (state, showId: string) => state.filter((show) => show.id !== showId));
 
   const handleLogout = async () => {
     await logout();
@@ -70,16 +64,6 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
     handleServerAction(() => removeFavouriteGenre(user!.id, genreId));
   };
 
-  const handleRemoveShow = (showId: string) => {
-    const showToRemove = optimisticShowsRemove.find((s) => s.id === showId);
-    if (showToRemove) {
-      startTransition(() => {
-        removeOptimisticShow(showId);
-      });
-    }
-    handleServerAction(() => removeFavouriteShow(user!.id, showId));
-  };
-
   const handleRemoveHost = (hostId: string) => {
     const hostToRemove = optimisticHostsRemove.find((h) => h.id === hostId);
     if (hostToRemove) {
@@ -90,18 +74,16 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
     handleServerAction(() => removeFavouriteHost(user!.id, hostId));
   };
 
-  const handleAddClick = (type: "genre" | "show" | "host") => {
+  const handleAddClick = (type: "genre" | "host") => {
     setIsAdding(type);
     setSelectedGenre("");
     setSelectedHost("");
-    setSelectedShow("");
   };
 
   const handleAddClose = () => {
     setIsAdding(null);
     setSelectedGenre("");
     setSelectedHost("");
-    setSelectedShow("");
   };
 
   const handleSave = async () => {
@@ -124,13 +106,6 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
           addOptimisticHost(host);
         });
         res = await addFavouriteHost(user.id, host);
-      } else if (isAdding === "show" && selectedShow) {
-        const show = allShows.find((s) => s.id === selectedShow);
-        if (!show) return;
-        startTransition(() => {
-          addOptimisticShow(show);
-        });
-        res = await addFavouriteShow(user.id, show);
       }
 
       if (res?.success) {
@@ -179,7 +154,20 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {shows.map((show: any) => (
-                  <ShowCard key={show.key || show.id || show.slug} show={show} slug={show.url || `/episode/${show.slug}`} playable />
+                  <div key={show.key || show.id || show.slug} className="relative">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+                      <div className="aspect-video bg-gray-200 dark:bg-gray-700">
+                        <img src={show.enhanced_image || show.pictures?.large || "/image-placeholder.svg"} alt={show.name || show.title} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="p-4">
+                        <h4 className="font-semibold text-sm mb-2 line-clamp-2">{show.name || show.title}</h4>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{show.host || show.user?.name || "Worldwide FM"}</p>
+                        <a href={show.url || `/episode/${show.slug}`} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                          Listen Now
+                        </a>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -235,29 +223,6 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
           </div>
         );
 
-      case "show":
-        return (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Select a show to add to your favorites:</p>
-            <Select onValueChange={setSelectedShow} value={selectedShow}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a show..." />
-              </SelectTrigger>
-              <SelectContent className="max-h-60">
-                {allShows
-                  .filter((show) => !optimisticShowsRemove.some((favShow) => favShow.id === show.id))
-                  .sort((a, b) => a.title.localeCompare(b.title))
-                  .slice(0, 50)
-                  .map((show) => (
-                    <SelectItem key={show.id} value={show.id}>
-                      {show.title}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-        );
-
       default:
         return null;
     }
@@ -299,28 +264,6 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
           {renderShowsSection(optimisticGenresRemove, genreShows, "genre")}
         </section>
 
-        {/* Favourite Shows */}
-        <section className="mt-10">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold">Favourite Shows</h2>
-            <Button variant="outline" onClick={() => handleAddClick("show")} disabled={isPending}>
-              Add Show
-            </Button>
-          </div>
-
-          {favouriteShows.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {favouriteShows.map((show: any) => (
-                <div key={show.id || show.slug} className="relative">
-                  <ShowCard show={show} slug={`/episode/${show.slug}`} playable />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 italic">No favorite shows yet. Add some!</p>
-          )}
-        </section>
-
         {/* Favourite Hosts */}
         <section className="mt-10">
           <div className="flex items-center justify-between mb-4">
@@ -348,7 +291,7 @@ export default function DashboardClient({ userData, allGenres, allHosts, allShow
                 <Button variant="outline" onClick={handleAddClose} className="flex-1" disabled={isPending}>
                   Cancel
                 </Button>
-                <Button onClick={handleSave} disabled={(!selectedGenre && !selectedHost && !selectedShow) || isPending} className="flex-1">
+                <Button onClick={handleSave} disabled={(!selectedGenre && !selectedHost) || isPending} className="flex-1">
                   {isPending ? "Saving..." : "Save"}
                 </Button>
               </div>

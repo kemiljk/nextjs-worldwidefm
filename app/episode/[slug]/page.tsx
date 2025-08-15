@@ -6,6 +6,7 @@ import { addHours, isWithinInterval } from "date-fns";
 import { findHostSlug, displayNameToSlug } from "@/lib/host-matcher";
 import { ShowCard } from "@/components/ui/show-card";
 import { EpisodeHero } from "@/components/homepage-hero";
+import { SafeHtml } from "@/components/ui/safe-html";
 // stripUrlsFromText removed as we now render HTML content directly
 
 export const revalidate = 900; // 15 minutes
@@ -103,11 +104,10 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
             {(metadata.body_text || metadata.description) && (
               <div className="mb-4">
                 <div className="prose dark:prose-invert max-w-none">
-                  <div
+                  <SafeHtml
+                    content={metadata.body_text || metadata.description || ""}
+                    type="editorial"
                     className="text-b2 text-muted-foreground leading-tight"
-                    dangerouslySetInnerHTML={{
-                      __html: metadata.body_text || metadata.description || "",
-                    }}
                   />
                 </div>
               </div>
@@ -162,7 +162,11 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
                 <div className="mt-12">
                   <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white mb-6">Tracklist</h2>
                   <div className="prose dark:prose-invert max-w-none">
-                    <div className="text-b4 text-muted-foreground leading-relaxed" dangerouslySetInnerHTML={{ __html: metadata.tracklist }} />
+                    <SafeHtml
+                      content={metadata.tracklist}
+                      type="tracklist"
+                      className="text-b4 text-muted-foreground leading-relaxed"
+                    />
                   </div>
                 </div>
               )}
