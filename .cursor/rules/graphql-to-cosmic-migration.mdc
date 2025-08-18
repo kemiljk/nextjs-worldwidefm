@@ -1,3 +1,9 @@
+---
+description: If using GraphQL and Cosmic in the project, request these rules
+globs:
+alwaysApply: false
+---
+
 # GraphQL to Cosmic Migration Rules
 
 ## Overview

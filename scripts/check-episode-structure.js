@@ -82,7 +82,8 @@ async function checkEpisodeStructure() {
     }
 
     // Check for episodes after the last migrated date
-    const lastMigratedDate = "2025-07-23T13:00:00+00:00";
+    // Starting from Cousin Kula episode from 2025-07-24T11:00:00+00:00
+    const lastMigratedDate = "2025-07-24T11:00:00+00:00";
     console.log(`\n🔍 Looking for episodes after: ${lastMigratedDate}`);
 
     const recentEpisodesQuery = `
@@ -122,9 +123,9 @@ async function checkEpisodeStructure() {
     } else {
       const recentEpisodes = recentResponse.data.data.entries || [];
       console.log(`\n📅 Found ${recentEpisodes.length} episodes after ${lastMigratedDate}:`);
-      
-      recentEpisodes.forEach(episode => {
-        console.log(`   - ${episode.title} (${episode.broadcastDate}) - ${episode.thumbnail ? 'Has image' : 'No image'}`);
+
+      recentEpisodes.forEach((episode) => {
+        console.log(`   - ${episode.title} (${episode.broadcastDate}) - ${episode.thumbnail ? "Has image" : "No image"}`);
       });
     }
 
@@ -152,7 +153,6 @@ async function checkEpisodeStructure() {
       const totalCount = countResponse.data.data.entryCount;
       console.log(`📊 Total episodes available: ${totalCount}`);
     }
-
   } catch (error) {
     console.error("❌ Failed to check episode structure:", error.message);
     if (error.response) {

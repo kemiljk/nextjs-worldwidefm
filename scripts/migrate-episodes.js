@@ -62,6 +62,11 @@ async function fetchEpisodesFromCraft(afterDate, limit = 100) {
             slug
             groupId
           }
+          genreTags {
+            id
+            title
+            slug
+          }
           locations {
             id
             title
@@ -316,15 +321,18 @@ async function getCosmicTakeovers() {
 }
 
 async function findMatchingCosmicObject(items, craftItem, type) {
-  if (!craftItem || !craftItem.slug) return null;
+  if (!craftItem || !craftItem.title) return null;
 
-  const matching = items.find((item) => item.slug === craftItem.slug);
+  // Use case-insensitive title matching for genres
+  const matching = items.find((item) => item.title.toLowerCase() === craftItem.title.toLowerCase());
+
   if (matching) {
-    console.log(`   ✅ Found matching ${type}: ${craftItem.title}`);
-    return matching;
+    console.log(`   ✅ Found matching ${type}: ${craftItem.title} (ID: ${matching.id})`);
+    // Return just the ID for proper object relationships in Cosmic
+    return matching.id;
   }
 
-  console.log(`   ⚠️ No matching ${type} found for: ${craftItem.title} (${craftItem.slug})`);
+  console.log(`   ⚠️ No matching ${type} found for: ${craftItem.title}`);
   return null;
 }
 
@@ -338,12 +346,8 @@ async function createEpisodeInCosmic(episode, mediaItem) {
     const cosmicHosts = await getCosmicRegularHosts();
     const cosmicTakeovers = await getCosmicTakeovers();
 
-    // Map categories to genres (filter by groupId for genres)
-    const genres =
-      episode.categories
-        ?.filter((cat) => cat.groupId === 1) // Assuming groupId 1 is genres
-        .map((cat) => findMatchingCosmicObject(cosmicGenres, cat, "genre"))
-        .filter(Boolean) || [];
+    // Map genreTags to genres (this is where genres are actually stored in Craft CMS)
+    const genres = episode.genreTags?.map((tag) => findMatchingCosmicObject(cosmicGenres, tag, "genre")).filter(Boolean) || [];
 
     // Map locations
     const locations = episode.locations?.map((loc) => findMatchingCosmicObject(cosmicLocations, loc, "location")).filter(Boolean) || [];
@@ -361,7 +365,6 @@ async function createEpisodeInCosmic(episode, mediaItem) {
       type: "episode",
       metadata: {
         broadcast_date: episode.broadcastDate,
-        body_text: episode.bodyText,
         genres: genres,
         locations: locations,
         regular_hosts: hosts,
@@ -372,6 +375,11 @@ async function createEpisodeInCosmic(episode, mediaItem) {
       },
       thumbnail: mediaItem ? mediaItem.name : null,
     };
+
+    // Only add fields if they have values (following Cosmic validation rules)
+    if (episode.bodyText && episode.bodyText.trim()) {
+      episodeData.metadata.body_text = episode.bodyText;
+    }
 
     // Only add fields if they have values
     if (episode.broadcastTime) {
@@ -433,7 +441,8 @@ async function processEpisodes() {
     const existingMediaMap = await getExistingCosmicMedia();
 
     // Get episodes from Craft CMS after the last migrated date
-    const lastMigratedDate = "2025-07-23T13:00:00+00:00";
+    // Starting from Cousin Kula episode from 2025-07-24T11:00:00+00:00
+    const lastMigratedDate = "2025-07-24T11:00:00+00:00";
     const episodes = await fetchEpisodesFromCraft(lastMigratedDate, 50); // Start with 50
 
     if (episodes.length === 0) {

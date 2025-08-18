@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createBucketClient } from '@cosmicjs/sdk';
+import { NextRequest, NextResponse } from "next/server";
+import { createBucketClient } from "@cosmicjs/sdk";
 
 // Initialize Cosmic client
 const cosmic = createBucketClient({
@@ -17,7 +17,7 @@ async function getMostRecentEpisodeDate(): Promise<string | null> {
       "metadata.source": "migrated_from_craft",
       sort: "-metadata.broadcast_date",
       limit: 1,
-      props: "metadata.broadcast_date"
+      props: "metadata.broadcast_date",
     });
 
     if (response && response.objects && response.objects.length > 0) {
@@ -34,7 +34,7 @@ async function getMostRecentEpisodeDate(): Promise<string | null> {
 
 async function fetchEpisodesFromCraft(afterDate: string | null, limit: number = 50) {
   try {
-    console.log(`🔍 Fetching episodes from Craft CMS after: ${afterDate || 'beginning of time'}`);
+    console.log(`🔍 Fetching episodes from Craft CMS after: ${afterDate || "beginning of time"}`);
 
     // Build the GraphQL query
     let query = `
@@ -59,6 +59,11 @@ async function fetchEpisodesFromCraft(afterDate: string | null, limit: number = 
             title
             slug
             groupId
+          }
+          genreTags {
+            id
+            title
+            slug
           }
           locations {
             id
@@ -108,6 +113,11 @@ async function fetchEpisodesFromCraft(afterDate: string | null, limit: number = 
               slug
               groupId
             }
+            genreTags {
+              id
+              title
+              slug
+            }
             locations {
               id
               title
@@ -133,9 +143,9 @@ async function fetchEpisodesFromCraft(afterDate: string | null, limit: number = 
     }
 
     const response = await fetch(process.env.CRAFT_GRAPHQL_URL!, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ query }),
     });
@@ -145,7 +155,7 @@ async function fetchEpisodesFromCraft(afterDate: string | null, limit: number = 
     }
 
     const data = await response.json();
-    
+
     if (data.errors) {
       console.error("GraphQL Errors:", JSON.stringify(data.errors, null, 2));
       throw new Error(JSON.stringify(data.errors, null, 2));
@@ -153,7 +163,7 @@ async function fetchEpisodesFromCraft(afterDate: string | null, limit: number = 
 
     const episodes = data.data.entries || [];
     console.log(`✅ Found ${episodes.length} episodes from Craft CMS`);
-    
+
     return episodes;
   } catch (error) {
     console.error("❌ Failed to fetch episodes from Craft:", error);
@@ -161,10 +171,95 @@ async function fetchEpisodesFromCraft(afterDate: string | null, limit: number = 
   }
 }
 
+async function getCosmicGenres() {
+  try {
+    const response = await cosmic.objects.find({
+      type: "genre",
+      status: "published",
+      limit: 1000,
+      props: "id,title,slug",
+    });
+    return response.objects || [];
+  } catch (error) {
+    console.error("❌ Error fetching Cosmic genres:", error.message);
+    return [];
+  }
+}
+
+async function getCosmicLocations() {
+  try {
+    const response = await cosmic.objects.find({
+      type: "location",
+      status: "published",
+      limit: 1000,
+      props: "id,title,slug",
+    });
+    return response.objects || [];
+  } catch (error) {
+    console.error("❌ Error fetching Cosmic locations:", error.message);
+    return [];
+  }
+}
+
+async function getCosmicRegularHosts() {
+  try {
+    const response = await cosmic.objects.find({
+      type: "regular_host",
+      status: "published",
+      limit: 1000,
+      props: "id,title,slug",
+    });
+    return response.objects || [];
+  } catch (error) {
+    console.error("❌ Error fetching Cosmic regular hosts:", error.message);
+    return [];
+  }
+}
+
+async function getCosmicTakeovers() {
+  try {
+    const response = await cosmic.objects.find({
+      type: "takeover",
+      status: "published",
+      limit: 1000,
+      props: "id,title,slug",
+    });
+    return response.objects || [];
+  } catch (error) {
+    console.error("❌ Error fetching Cosmic takeovers:", error.message);
+    return [];
+  }
+}
+
+async function findMatchingCosmicObject(items: any[], craftItem: any, type: string) {
+  if (!craftItem || !craftItem.title) return null;
+
+  // Use case-insensitive title matching
+  const matching = items.find((item) => item.title.toLowerCase() === craftItem.title.toLowerCase());
+
+  if (matching) {
+    console.log(`   ✅ Found matching ${type}: ${craftItem.title} (ID: ${matching.id})`);
+    // Return just the ID for proper object relationships in Cosmic
+    return matching.id;
+  }
+
+  console.log(`   ⚠️ No matching ${type} found for: ${craftItem.title}`);
+  return null;
+}
+
 async function migrateEpisodes(episodes: any[]) {
   try {
     let created = 0;
     let failed = 0;
+
+    // Get reference objects from Cosmic for relationship mapping
+    console.log("📋 Fetching existing genres, locations, hosts, and takeovers from Cosmic...");
+    const cosmicGenres = await getCosmicGenres();
+    const cosmicLocations = await getCosmicLocations();
+    const cosmicHosts = await getCosmicRegularHosts();
+    const cosmicTakeovers = await getCosmicTakeovers();
+
+    console.log(`✅ Found ${cosmicGenres.length} genres, ${cosmicLocations.length} locations, ${cosmicHosts.length} hosts, ${cosmicTakeovers.length} takeovers in Cosmic`);
 
     for (const episode of episodes) {
       console.log(`\n🎯 Processing episode: ${episode.title} (${episode.slug})`);
@@ -195,7 +290,34 @@ async function migrateEpisodes(episodes: any[]) {
         }
       }
 
-      // Create episode in Cosmic (without media for now)
+      // Map relationships from Craft CMS to Cosmic
+      console.log(`   🔍 Mapping relationships from Craft CMS...`);
+
+      // Map genreTags to genres (this is where genres are actually stored in Craft CMS)
+      const craftGenres = episode.genreTags || [];
+      console.log(`   🎵 Found ${craftGenres.length} genres in Craft CMS:`, craftGenres.map((g: any) => g.title).join(", "));
+
+      const genres = (await Promise.all(craftGenres.map((tag: any) => findMatchingCosmicObject(cosmicGenres, tag, "genre")))).filter(Boolean) || [];
+
+      // Map locations
+      const craftLocations = episode.locations || [];
+      console.log(`   🌍 Found ${craftLocations.length} locations in Craft CMS:`, craftLocations.map((l: any) => l.title).join(", "));
+
+      const locations = (await Promise.all(craftLocations.map((loc: any) => findMatchingCosmicObject(cosmicLocations, loc, "location")))).filter(Boolean) || [];
+
+      // Map hosts
+      const craftHosts = episode.hosts || [];
+      console.log(`   👤 Found ${craftHosts.length} hosts in Craft CMS:`, craftHosts.map((h: any) => h.title).join(", "));
+
+      const hosts = (await Promise.all(craftHosts.map((host: any) => findMatchingCosmicObject(cosmicHosts, host, "host")))).filter(Boolean) || [];
+
+      // Map takeovers
+      const craftTakeovers = episode.takeovers || [];
+      console.log(`   🎭 Found ${craftTakeovers.length} takeovers in Craft CMS:`, craftTakeovers.map((t: any) => t.title).join(", "));
+
+      const takeovers = (await Promise.all(craftTakeovers.map((takeover: any) => findMatchingCosmicObject(cosmicTakeovers, takeover, "takeover")))).filter(Boolean) || [];
+
+      // Create episode in Cosmic with relationships
       try {
         const episodeData = {
           title: episode.title,
@@ -207,6 +329,11 @@ async function migrateEpisodes(episodes: any[]) {
             featured_on_homepage: episode.featuredOnHomepage || false,
             source: "migrated_from_craft",
             radiocult_synced: false,
+            // Add relationships
+            genres: genres.length > 0 ? genres : null,
+            locations: locations.length > 0 ? locations : null,
+            regular_hosts: hosts.length > 0 ? hosts : null,
+            takeovers: takeovers.length > 0 ? takeovers : null,
           },
           thumbnail: null, // Will be updated later when media is handled
         };
@@ -228,6 +355,11 @@ async function migrateEpisodes(episodes: any[]) {
           episodeData.metadata.tracklist = episode.tracklist;
         }
 
+        // Only add body_text if it exists and is not empty (Cosmic validation)
+        if (episode.bodyText && episode.bodyText.trim()) {
+          episodeData.metadata.body_text = episode.bodyText;
+        }
+
         const result = await cosmic.objects.insertOne({
           ...episodeData,
           status: "published",
@@ -235,6 +367,7 @@ async function migrateEpisodes(episodes: any[]) {
 
         if (result && result.object) {
           console.log(`   ✅ Successfully created episode: ${result.object.title}`);
+          console.log(`   📊 Relationships: Genres: ${genres.length}, Locations: ${locations.length}, Hosts: ${hosts.length}, Takeovers: ${takeovers.length}`);
           created++;
         } else {
           console.log(`   ❌ Failed to create episode: ${episode.title}`);
@@ -259,17 +392,17 @@ export async function GET(request: NextRequest) {
 
     // Get the most recent episode date from Cosmic
     const mostRecentDate = await getMostRecentEpisodeDate();
-    console.log(`📅 Most recent episode date in Cosmic: ${mostRecentDate || 'None'}`);
+    console.log(`📅 Most recent episode date in Cosmic: ${mostRecentDate || "None"}`);
 
     // Fetch new episodes from Craft CMS
     const episodes = await fetchEpisodesFromCraft(mostRecentDate, 100);
-    
+
     if (episodes.length === 0) {
       console.log("✅ No new episodes found to migrate");
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         message: "No new episodes found",
-        episodesProcessed: 0 
+        episodesProcessed: 0,
       });
     }
 
@@ -287,15 +420,17 @@ export async function GET(request: NextRequest) {
       created: result.created,
       failed: result.failed,
       mostRecentDate,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     console.error("❌ Error in cron job:", error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 }
+    );
   }
 }
