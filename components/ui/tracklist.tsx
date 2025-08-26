@@ -1,4 +1,4 @@
-import React from "react";
+"use client";
 
 interface TracklistProps {
   content: string;
@@ -8,6 +8,8 @@ interface TracklistProps {
 interface Track {
   artist: string;
   title: string;
+  isDivider?: boolean;
+  dividerText?: string;
 }
 
 export function Tracklist({ content, className = "" }: TracklistProps) {
@@ -57,7 +59,7 @@ export function Tracklist({ content, className = "" }: TracklistProps) {
         const parts = trimmedLine.split(" – ");
         if (parts.length >= 2) {
           artist = parts[0].trim();
-          title = parts.slice(1).join(" – ").trim();
+          title = parts.slice(1).join(" - ").trim();
         }
       }
       // Format: "Artist / Title"
@@ -76,9 +78,14 @@ export function Tracklist({ content, className = "" }: TracklistProps) {
           title = parts.slice(1).join(" | ").trim();
         }
       }
-      // If no separator found, treat the whole line as title
+      // If no separator found, check if it's a divider line
       else {
-        title = trimmedLine;
+        // Check for common divider patterns (dashes, asterisks, etc.)
+        if (trimmedLine.match(/^[-=_*~]{3,}$/) || trimmedLine.includes("---")) {
+          tracks.push({ artist: "", title: "", isDivider: true });
+        } else {
+          title = trimmedLine;
+        }
       }
 
       if (artist || title) {
@@ -89,12 +96,8 @@ export function Tracklist({ content, className = "" }: TracklistProps) {
     return tracks;
   };
 
-  // Parse tracks on the client side
-  const [tracks, setTracks] = React.useState<Track[]>([]);
-
-  React.useEffect(() => {
-    setTracks(parseTracklist(content));
-  }, [content]);
+  // Parse tracks directly
+  const tracks = parseTracklist(content);
 
   if (tracks.length === 0) {
     // Fallback to original content if parsing fails
@@ -108,13 +111,21 @@ export function Tracklist({ content, className = "" }: TracklistProps) {
   return (
     <div className={`space-y-0 ${className}`}>
       {tracks.map((track, index) => (
-        <div key={index} className="flex items-center py-3 border-b border-gray-300 dark:border-gray-600 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
-          <div className="flex-1 min-w-0 pr-4">
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block leading-tight">{track.artist || "Unknown Artist"}</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-sm text-gray-700 dark:text-gray-300 block leading-tight">{track.title}</span>
-          </div>
+        <div key={index} className={`${track.isDivider ? "py-2 bg-gray-100 dark:bg-gray-800" : "py-3 border-b border-gray-300 dark:border-gray-600 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800"} transition-colors duration-150`}>
+          {track.isDivider ? (
+            <div className="flex items-center justify-center">
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-mono tracking-wider" />
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 min-w-0 pr-4">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block leading-tight">{track.artist || "Unknown Artist"}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm text-gray-700 dark:text-gray-300 block leading-tight">{track.title}</span>
+              </div>
+            </>
+          )}
         </div>
       ))}
     </div>
@@ -182,9 +193,14 @@ export function TracklistServer({ content, className = "" }: TracklistProps) {
           title = parts.slice(1).join(" | ").trim();
         }
       }
-      // If no separator found, treat the whole line as title
+      // If no separator found, check if it's a divider line
       else {
-        title = trimmedLine;
+        // Check for common divider patterns (dashes, asterisks, etc.)
+        if (trimmedLine.match(/^[-=_*~]{3,}$/) || trimmedLine.includes("---")) {
+          tracks.push({ artist: "", title: "", isDivider: true });
+        } else {
+          title = trimmedLine;
+        }
       }
 
       if (artist || title) {
@@ -209,13 +225,21 @@ export function TracklistServer({ content, className = "" }: TracklistProps) {
   return (
     <div className={`space-y-0 ${className}`}>
       {tracks.map((track, index) => (
-        <div key={index} className="flex items-center py-3 border-b border-gray-300 dark:border-gray-600 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
-          <div className="flex-1 min-w-0 pr-4">
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block leading-tight">{track.artist || "Unknown Artist"}</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-sm text-gray-700 dark:text-gray-300 block leading-tight">{track.title}</span>
-          </div>
+        <div key={index} className={`${track.isDivider ? "py-2 bg-gray-100 dark:bg-gray-800" : "py-3 border-b border-gray-300 dark:border-gray-600 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800"} transition-colors duration-150`}>
+          {track.isDivider ? (
+            <div className="flex items-center justify-center">
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-mono tracking-wider">—</span>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 min-w-0 pr-4">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block leading-tight">{track.artist || "Unknown Artist"}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm text-gray-700 dark:text-gray-300 block leading-tight">{track.title}</span>
+              </div>
+            </>
+          )}
         </div>
       ))}
     </div>

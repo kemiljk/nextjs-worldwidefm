@@ -1,13 +1,11 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import { getEpisodeBySlug, getRelatedEpisodes, transformEpisodeToShowFormat } from "@/lib/episode-service";
-import { EpisodeObject } from "@/lib/cosmic-types";
 import { addHours, isWithinInterval } from "date-fns";
 import { findHostSlug, displayNameToSlug } from "@/lib/host-matcher";
 import { ShowCard } from "@/components/ui/show-card";
 import { EpisodeHero } from "@/components/homepage-hero";
 import { SafeHtml } from "@/components/ui/safe-html";
-import { TracklistServer } from "@/components/ui/tracklist";
+import { Tracklist } from "@/components/ui/tracklist";
 import { GenreTag } from "@/components/ui/genre-tag";
 // stripUrlsFromText removed as we now render HTML content directly
 
@@ -161,7 +159,7 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
                     <span className="ml-2 text-sm font-normal text-muted-foreground">({metadata.tracklist.split("\n").filter((line) => line.trim()).length} tracks)</span>
                   </h2>
                   <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-none p-6 shadow-sm">
-                    <TracklistServer content={metadata.tracklist} className="text-b4" />
+                    <Tracklist content={metadata.tracklist} className="text-b4" />
                   </div>
                 </div>
               )}
