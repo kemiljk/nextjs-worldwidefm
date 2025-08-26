@@ -13,6 +13,7 @@ import { subDays } from "date-fns";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { GenreTag } from "@/components/ui/genre-tag";
 
 interface PostsGridProps {
   initialPosts: PostObject[];
@@ -105,11 +106,11 @@ export default function PostsGrid({ initialPosts, activeFilter = "", activeSubfi
                 <div className="mt-2">
                   <div className="text-xs leading-none uppercase text-muted-foreground mb-1">{formattedDate}</div>
                   <h3 className="text-m7 font-mono font-normal text-almostblack dark:text-white group-hover:text-sky-50 transition-colors line-clamp-2">{post.title}</h3>
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="flex flex-wrap mt-2">
                     {post.metadata.categories?.map((category) => (
-                      <span key={category.slug} className="text-[9.5px] leading-none uppercase px-2 py-1 rounded-full border border-black dark:border-white">
+                      <GenreTag key={category.slug}>
                         {category.title}
-                      </span>
+                      </GenreTag>
                     ))}
                   </div>
                   <div className="text-xs leading-none uppercase text-muted-foreground mt-2">By {typeof post.metadata.author === "string" ? post.metadata.author : post.metadata.author?.title || "WWFM"}</div>

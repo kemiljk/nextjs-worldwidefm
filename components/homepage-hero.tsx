@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatDateShort } from "@/lib/utils";
 import { GenreObject } from "@/lib/cosmic-config";
 import { PlayButton } from "@/components/play-button";
+import { HighlightedText } from "@/components/ui/highlighted-text";
 
 interface HomepageHeroProps {
   heroLayout: string;
@@ -25,8 +26,10 @@ const renderHeroItem = (item: CosmicItem, isPriority: boolean) => {
         <CardContent className="p-0 grow flex flex-col">
           <div className="relative w-full h-[calc(100dvh-112px)] flex items-center justify-center">{item.metadata.image?.url && <Image src={item.metadata.image.url} alt={item.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={isPriority} />}</div>
           <div className="absolute bottom-0 left-0 right-0 flex bg-linear-to-t from-almostblack to-transparent h-1/2 flex-col p-4 flex-1 justify-end">
-            <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-2 p-1 text-left">{(item.metadata.date && formatDateShort(item.metadata.date)) || formatDateShort(item.metadata.broadcast_date)}</div>
-            <h3 className="bg-white border border-almostblack text-h8 max-w-2xl leading-none font-display text-almostblack pt-2 p-1 text-left w-fit">{item.title}</h3>
+            <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-1 px-1 text-left">{(item.metadata.date && formatDateShort(item.metadata.date)) || formatDateShort(item.metadata.broadcast_date)}</div>
+            <h3 className="text-h7 max-w-2xl leading-none font-display w-fit">
+              <HighlightedText variant="white">{item.title}</HighlightedText>
+            </h3>
             {item.metadata.broadcast_time && <p className="text-m5 font-mono text-white max-w-xl mt-2 line-clamp-3 text-left">{item.metadata.broadcast_time}</p>}
             {item.metadata.genres && (
               <div className="flex items-center">
@@ -93,8 +96,10 @@ export const EpisodeHero = ({ displayName, displayImage, showDate, show }: { dis
       {/* Overlay: Date, Title, Genres */}
       <div className="absolute inset-0 flex flex-col justify-end">
         <div className="flex flex-col p-4 sm:p-8 max-w-full">
-          {showDate && <span className="inline-block bg-almostblack text-white font-display text-h8 leading-none uppercase w-fit pt-2 p-1 text-left shadow-lg border border-almostblack">{showDate}</span>}
-          <span className="inline-block bg-white border border-almostblack text-h8 max-w-2xl leading-none font-display text-almostblack pt-2 p-1 text-left w-fit uppercase font-bold shadow-lg">{displayName}</span>
+          {showDate && <span className="inline-block bg-almostblack text-white font-display text-h8 leading-none uppercase w-fit pt-1 px-1 text-left shadow-lg border border-almostblack">{showDate}</span>}
+          <span className="text-h7 max-w-2xl leading-none font-display w-fit uppercase font-bold shadow-lg">
+            <HighlightedText variant="white">{displayName}</HighlightedText>
+          </span>
         </div>
       </div>
       {/* Overlay: Play Button - Always show for episodes or if audio content exists */}

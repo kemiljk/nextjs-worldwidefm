@@ -54,7 +54,7 @@ export default function Navbar({ navItems }: NavbarProps) {
       <div className="mx-auto pl-4 flex justify-between items-center">
         <div className="flex items-center w-full">
           <Link href="/" className="flex items-center">
-            <Logo className="w-auto h-8 text-foreground" />
+            <Logo className="w-auto h-6 text-foreground" />
           </Link>
 
           {/* Desktop Navigation */}

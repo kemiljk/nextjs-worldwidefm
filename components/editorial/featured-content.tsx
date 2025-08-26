@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { PostObject } from "@/lib/cosmic-config";
+import { GenreTag } from "@/components/ui/genre-tag";
+import { HighlightedText } from "@/components/ui/highlighted-text";
 import { format } from "date-fns";
 
 interface FeaturedContentProps {
@@ -33,14 +35,16 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
                 <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
               </div>
               <div className="absolute bottom-0 left-0 right-0 flex bg-linear-to-t from-almostblack to-transparent h-1/2 flex-col p-4 flex-1 justify-end">
-                <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-2 p-1 text-left">{formattedDate}</div>
-                <h3 className="bg-white border border-almostblack text-h8 max-w-2xl leading-none font-display text-almostblack pt-2 p-1 text-left w-fit">{post.title}</h3>
+                <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-1 px-1 text-left">{formattedDate}</div>
+                <h3 className="text-h7 max-w-2xl leading-none font-display w-fit">
+                  <HighlightedText variant="white">{post.title}</HighlightedText>
+                </h3>
                 {isLarge && <p className="mt-2 text-sm line-clamp-2 text-white opacity-90">{post.metadata.excerpt}</p>}
-                <div className="flex flex-wrap gap-2 mt-3">
+                <div className="flex flex-wrap mt-3">
                   {post.metadata.categories?.map((category) => (
-                    <span key={category.slug} className="text-[10px] leading-none uppercase tracking-wider px-2 py-1 rounded-full border border-white/30 text-white">
+                    <GenreTag key={category.slug} variant="white">
                       {category.title}
-                    </span>
+                    </GenreTag>
                   ))}
                 </div>
               </div>

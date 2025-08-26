@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
+import { GenreTag } from "@/components/ui/genre-tag";
+import { HighlightedText } from "@/components/ui/highlighted-text";
 import { formatDateShort } from "@/lib/utils";
 
 interface FeaturedSectionsProps {
@@ -27,13 +29,15 @@ export default function FeaturedSections({ shows }: FeaturedSectionsProps) {
               <div className="relative aspect-square">
                 <Image src={show.pictures?.extra_large || show.enhanced_image || show.image || "/image-placeholder.svg"} alt={show.name || show.title || "Show"} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" priority={index === 0} />
                 <div className="absolute bottom-0 left-0 right-0 flex bg-linear-to-t from-almostblack to-transparent h-1/2 flex-col p-4 flex-1 justify-end">
-                  <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-2 p-1 text-left">{show.broadcast_date ? formatDateShort(show.broadcast_date) : "RECENT SHOW"}</div>
-                  <h3 className="bg-white border border-almostblack text-h8 max-w-2xl leading-none font-display text-almostblack pt-2 p-1 text-left w-fit">{show.name || show.title}</h3>
-                  <div className="flex flex-wrap gap-2 mt-3">
+                  <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-1 px-1 text-left">{show.broadcast_date ? formatDateShort(show.broadcast_date) : "RECENT SHOW"}</div>
+                  <h3 className="text-h7 max-w-2xl leading-none font-display w-fit">
+                    <HighlightedText variant="white">{show.name || show.title}</HighlightedText>
+                  </h3>
+                  <div className="flex flex-wrap mt-3">
                     {(show.tags || show.genres || show.enhanced_genres || []).slice(0, 3).map((tag: any, tagIndex: number) => (
-                      <span key={tag.name || tag.title || tagIndex} className="text-[10px] leading-none uppercase tracking-wider px-2 py-1 rounded-full border border-white/30 text-white">
+                      <GenreTag key={tag.name || tag.title || tagIndex} variant="white">
                         {tag.name || tag.title}
-                      </span>
+                      </GenreTag>
                     ))}
                   </div>
                 </div>

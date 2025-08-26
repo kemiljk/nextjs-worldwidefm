@@ -4,6 +4,7 @@ import { Play, Pause } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useMediaPlayer } from "../providers/media-player-provider";
+import { GenreTag } from "./genre-tag";
 
 interface ShowCardProps {
   show: any; // Using any to work with both episode and legacy show formats
@@ -89,7 +90,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, slug, className = "", 
   const subtitle = restTitle.length > 0 ? restTitle.join(":").trim() : showHost;
 
   return (
-    <Link href={slug} className={`border border-almostblack dark:border-white rounded-none overflow-hidden flex flex-col p-2 h-full w-full max-w-[440px] ${className}`}>
+    <Link href={slug} className={`border border-almostblack dark:border-white rounded-none overflow-hidden flex flex-col p-4 h-full w-full max-w-[440px] ${className}`}>
       {/* Image */}
       <div className="relative w-full h-full">
         <div className="relative w-full h-[440px]">
@@ -100,8 +101,8 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, slug, className = "", 
       <div className="flex flex-col justify-between h-full pt-4 pb-1 relative grow">
         {/* Title */}
         <div className="h-full flex-1 flex flex-col">
-          <div className="font-mono text-2xl leading-none text-almostblack dark:text-white uppercase w-full break-none">{mainTitle}</div>
-          {subtitle && <div className="font-mono text-xl leading-none text-almostblack/75 dark:text-white/75 uppercase w-full break-words">{subtitle}</div>}
+          <div className="font-mono text-2xl leading-none text-almostblack dark:text-white uppercase w-full break-none line-clamp-2">{mainTitle}</div>
+          {subtitle && <div className="font-mono text-xl leading-none text-almostblack/75 dark:text-white/75 uppercase w-full break-words line-clamp-2">{subtitle}</div>}
         </div>
         {/* Show Info */}
         {(formattedTime || show.location?.name) && (
@@ -115,9 +116,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, slug, className = "", 
         <div className="flex flex-row items-end justify-between w-full mt-4">
           <div className="flex flex-row flex-wrap">
             {showTags.map((tag, idx) => (
-              <span key={tag + idx} className="border border-almostblack dark:border-white rounded-full px-2.5 py-1 text-[12px] font-mono uppercase text-almostblack dark:text-white">
-                {tag}
-              </span>
+              <GenreTag key={tag + idx}>{tag}</GenreTag>
             ))}
           </div>
           {shouldShowPlayButton && (

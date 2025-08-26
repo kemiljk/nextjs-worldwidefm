@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { VideoObject } from "@/lib/cosmic-config";
+import { GenreTag } from "@/components/ui/genre-tag";
 
 interface VideoGridProps {
   videos: VideoObject[];
@@ -54,12 +55,12 @@ export default function VideoGrid({ videos, availableCategories }: VideoGridProp
               <div className="space-y-2">
                 <h3 className="text-m7 font-mono font-normal text-almostblack dark:text-white line-clamp-2 group-hover:text-black dark:group-hover:text-white transition-colors">{video.title}</h3>
                 {categoryObjects.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="flex flex-wrap mt-2">
                     {categoryObjects.map((cat) =>
                       cat ? (
-                        <span key={cat.id} className="border border-almostblack dark:border-white px-2 py-1 rounded-full text-xs uppercase">
+                        <GenreTag key={cat.id}>
                           {cat.title}
-                        </span>
+                        </GenreTag>
                       ) : null
                     )}
                   </div>

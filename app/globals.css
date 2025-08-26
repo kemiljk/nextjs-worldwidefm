@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @source '../*.{js,ts,jsx,tsxmdx}';
 
@@ -8,9 +8,7 @@
   --font-*: initial;
   --font-sans: var(--font-sans), system-ui, sans-serif;
   --font-display: var(--font-display), system-ui, sans-serif;
-  --font-mono:
-    var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    monospace;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
@@ -132,8 +130,7 @@
   --radius-xl: 20px;
   --radius-2xl: 24px;
 
-  --animate-marquee-move: marquee-move-text var(--speed, 15s) linear infinite
-    var(--direction, forwards);
+  --animate-marquee-move: marquee-move-text var(--speed, 15s) linear infinite var(--direction, forwards);
 
   --text-h4: 80px;
   --text-h4--line-height: 0.9;
@@ -354,4 +351,30 @@
 
 .animate-slide-down {
   animation: slide-down 0.2s ease-out forwards;
+}
+
+/* Highlighted text utilities */
+.highlight-text {
+  display: inline;
+  padding: 0.25em 0;
+  background: var(--color-almostblack);
+  color: var(--color-white);
+  box-shadow:
+    0.5em 0 0 var(--color-almostblack),
+    -0.5em 0 0 var(--color-almostblack);
+}
+
+.highlight-text-white {
+  display: inline;
+  padding: 0.25em 0;
+  background: var(--color-white);
+  color: var(--color-almostblack);
+  box-shadow:
+    0.5em 0 0 var(--color-white),
+    -0.5em 0 0 var(--color-white);
+}
+
+.highlight-text-custom {
+  display: inline;
+  padding: 0.25em 0;
 }

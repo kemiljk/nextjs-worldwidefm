@@ -99,7 +99,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({ section, 
         <div className="flex items-center pb-12">
           {/* Main Title */}
           <div className="bg-almostblack">
-            <div className="px-2 pt-1">
+            <div className="px-2 pt-0.5">
               <h2 className="font-display text-4xl md:text-5xl leading-none text-white uppercase tracking-tight">{displayTitle}</h2>
             </div>
           </div>
@@ -107,7 +107,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({ section, 
           {/* Subtitle with color background */}
           {displayTime && (
             <div style={{ backgroundColor: sectionColor }}>
-              <div className="px-2 pt-1">
+              <div className="px-2 pt-0.5">
                 <h3 className="font-display text-4xl md:text-5xl leading-none text-almostblack uppercase tracking-tight">{displayTime}</h3>
               </div>
             </div>

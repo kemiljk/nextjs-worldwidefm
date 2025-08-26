@@ -7,6 +7,7 @@ import { findHostSlug, displayNameToSlug } from "@/lib/host-matcher";
 import { ShowCard } from "@/components/ui/show-card";
 import { EpisodeHero } from "@/components/homepage-hero";
 import { SafeHtml } from "@/components/ui/safe-html";
+import { GenreTag } from "@/components/ui/genre-tag";
 // stripUrlsFromText removed as we now render HTML content directly
 
 export const revalidate = 900; // 15 minutes
@@ -104,11 +105,7 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
             {(metadata.body_text || metadata.description) && (
               <div className="mb-4">
                 <div className="prose dark:prose-invert max-w-none">
-                  <SafeHtml
-                    content={metadata.body_text || metadata.description || ""}
-                    type="editorial"
-                    className="text-b2 text-muted-foreground leading-tight"
-                  />
+                  <SafeHtml content={metadata.body_text || metadata.description || ""} type="editorial" className="text-b2 text-muted-foreground leading-tight" />
                 </div>
               </div>
             )}
@@ -118,11 +115,9 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
               {/* Genres Section */}
               {metadata.genres?.length > 0 && (
                 <div>
-                  <div className="flex flex-wrap select-none cursor-default gap-2">
+                  <div className="flex flex-wrap select-none cursor-default">
                     {metadata.genres.map((genre: any) => (
-                      <span key={genre.id || genre.slug} className="border border-almostblack dark:border-white px-3 py-1.5 rounded-full text-sm uppercase tracking-wide font-mono">
-                        {genre.title || genre.name}
-                      </span>
+                      <GenreTag key={genre.id || genre.slug}>{genre.title || genre.name}</GenreTag>
                     ))}
                   </div>
                 </div>
@@ -162,11 +157,7 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
                 <div className="mt-12">
                   <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white mb-6">Tracklist</h2>
                   <div className="prose dark:prose-invert max-w-none">
-                    <SafeHtml
-                      content={metadata.tracklist}
-                      type="tracklist"
-                      className="text-b4 text-muted-foreground leading-relaxed"
-                    />
+                    <SafeHtml content={metadata.tracklist} type="tracklist" className="text-b4 text-muted-foreground leading-relaxed" />
                   </div>
                 </div>
               )}

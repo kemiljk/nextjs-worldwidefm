@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { PostObject, AuthorObject } from "@/lib/cosmic-config";
 import { Card, CardContent } from "@/components/ui/card";
+import { GenreTag } from "@/components/ui/genre-tag";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight } from "lucide-react";
@@ -46,11 +47,11 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
                     )}
                   </div>
                   {article.metadata.categories && article.metadata.categories.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
+                    <div className="flex flex-wrap mt-2">
                       {article.metadata.categories.map((category, idx) => (
-                        <span key={idx} className="border border-black dark:border-white text-m8 font-mono px-2 py-1 rounded-none uppercase tracking-wide bg-transparent">
+                        <GenreTag key={idx}>
                           {category.title}
-                        </span>
+                        </GenreTag>
                       ))}
                     </div>
                   )}

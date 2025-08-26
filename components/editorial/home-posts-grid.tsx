@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { PostObject } from "@/lib/cosmic-config";
+import { GenreTag } from "@/components/ui/genre-tag";
 import { format } from "date-fns";
 
 interface HomePostsGridProps {
@@ -23,11 +24,11 @@ export default function HomePostsGrid({ posts }: HomePostsGridProps) {
               <div className="mt-2">
                 <div className="text-xs leading-none uppercase text-foreground mb-1">{formattedDate}</div>
                 <h3 className="text-m7 font-mono font-normal text-almostblack dark:text-white transition-colors line-clamp-2">{post.title}</h3>
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex flex-wrap mt-2">
                   {post.metadata.categories?.map((category) => (
-                    <span key={category.slug} className="text-[9.5px] leading-1 uppercase px-2 py-1 rounded-full border border-black dark:border-white">
+                    <GenreTag key={category.slug}>
                       {category.title}
-                    </span>
+                    </GenreTag>
                   ))}
                 </div>
                 <div className="text-xs leading-none uppercase text-foreground mt-2">By {typeof post.metadata.author === "string" ? post.metadata.author : post.metadata.author?.title || "WWFM"}</div>
