@@ -7,6 +7,7 @@ import { findHostSlug, displayNameToSlug } from "@/lib/host-matcher";
 import { ShowCard } from "@/components/ui/show-card";
 import { EpisodeHero } from "@/components/homepage-hero";
 import { SafeHtml } from "@/components/ui/safe-html";
+import { TracklistServer } from "@/components/ui/tracklist";
 import { GenreTag } from "@/components/ui/genre-tag";
 // stripUrlsFromText removed as we now render HTML content directly
 
@@ -155,9 +156,12 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
               {/* Tracklist Section */}
               {metadata.tracklist && (
                 <div className="mt-12">
-                  <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white mb-6">Tracklist</h2>
-                  <div className="prose dark:prose-invert max-w-none">
-                    <SafeHtml content={metadata.tracklist} type="tracklist" className="text-b4 text-muted-foreground leading-relaxed" />
+                  <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white mb-6">
+                    Tracklist
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">({metadata.tracklist.split("\n").filter((line) => line.trim()).length} tracks)</span>
+                  </h2>
+                  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-none p-6 shadow-sm">
+                    <TracklistServer content={metadata.tracklist} className="text-b4" />
                   </div>
                 </div>
               )}
