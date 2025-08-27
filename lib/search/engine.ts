@@ -89,10 +89,25 @@ export class WWFMSearchEngine implements SearchEngine {
       // Map to unified format
       const items: SearchItem[] = [...mapEpisodesToSearchItems(episodes.shows || []), ...mapPostsToSearchItems(postsRes.posts || []), ...mapVideosToSearchItems(videosRes.videos || [])];
 
-      // Sort by date (newest first)
+      // Sort by date (newest first), prioritizing broadcast_date for episodes
       items.sort((a, b) => {
-        const dateA = a.date ? new Date(a.date).getTime() : 0;
-        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        let dateA: number, dateB: number;
+        
+        // For episodes, prioritize broadcast_date if available
+        if (a.contentType === "episodes") {
+          const episodeA = a.metadata;
+          dateA = episodeA?.broadcast_date ? new Date(episodeA.broadcast_date).getTime() : (a.date ? new Date(a.date).getTime() : 0);
+        } else {
+          dateA = a.date ? new Date(a.date).getTime() : 0;
+        }
+        
+        if (b.contentType === "episodes") {
+          const episodeB = b.metadata;
+          dateB = episodeB?.broadcast_date ? new Date(episodeB.broadcast_date).getTime() : (b.date ? new Date(b.date).getTime() : 0);
+        } else {
+          dateB = b.date ? new Date(b.date).getTime() : 0;
+        }
+        
         return dateB - dateA;
       });
 

@@ -26,10 +26,10 @@ export default async function Home() {
   const shows = response?.shows || [];
   console.log("Recent episodes:", shows.length);
 
-  // Sort all shows by created time, most recent first
+  // Sort all shows by broadcast date, most recent first
   const sortedShows = [...shows].sort((a: any, b: any) => {
-    const dateA = new Date(a.created_time);
-    const dateB = new Date(b.created_time);
+    const dateA = new Date(a.broadcast_date || a.created_time);
+    const dateB = new Date(b.broadcast_date || b.created_time);
     return dateB.getTime() - dateA.getTime();
   });
 

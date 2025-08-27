@@ -15,6 +15,7 @@ import { getAllPosts, getVideos, getEvents, getTakeovers } from "@/lib/actions";
 import type { ContentType } from "@/lib/search/types";
 import type { PostObject, VideoObject } from "@/lib/cosmic-config";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useInView } from "react-intersection-observer";
 
 interface SearchDialogProps {
   open: boolean;
@@ -41,7 +42,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [videoCategories, setVideoCategories] = useState<any[]>([]);
-  const observerTarget = useRef<HTMLDivElement>(null);
+  const { ref: observerTarget, inView } = useInView({
+    threshold: 0.1,
+    rootMargin: "100px",
+  });
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const PAGE_SIZE = 20;
@@ -153,6 +157,12 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               })
             );
           }
+          // Ensure episodes are sorted by broadcast date (most recent first)
+          allResults.sort((a: any, b: any) => {
+            const dateA = new Date(a.broadcast_date || a.created_time);
+            const dateB = new Date(b.broadcast_date || b.created_time);
+            return dateB.getTime() - dateA.getTime();
+          });
         } else if (selectedType === "posts") {
           const searchParams = debouncedSearchTerm ? { searchTerm: debouncedSearchTerm, limit: 100, offset: 0 } : { limit: 100, offset: 0 };
           res = await getAllPosts(searchParams);
@@ -208,65 +218,61 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     };
   }, [open, selectedType, selectedTags.join("|"), debouncedSearchTerm]);
 
-  // Infinite scroll: load more when observerTarget is in view
+  // Infinite scroll: load more when sentinel is in view
   useEffect(() => {
-    if (!open) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNext && !isLoadingMore) {
-          setIsLoadingMore(true);
-          const nextOffset = page * PAGE_SIZE;
-          async function fetchMore() {
-            try {
-              let res: any;
-              if (selectedType === "episodes") {
-                const episodeModule = await import("@/lib/episode-service");
-                const searchParams = debouncedSearchTerm ? { searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { limit: PAGE_SIZE, offset: nextOffset };
-                res = await episodeModule.getEpisodesForShows(searchParams);
-                setResults((prev) => [...prev, ...(res?.shows || [])]);
-                setHasNext(res?.hasNext || false);
-              } else if (selectedType === "posts") {
-                const searchParams = debouncedSearchTerm ? { tag: selectedTags.join("|"), searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { tag: selectedTags.join("|"), limit: PAGE_SIZE, offset: nextOffset };
-                res = await getAllPosts(searchParams);
-                setResults((prev) => [...prev, ...(res?.posts || [])]);
-                setHasNext(res?.hasNext || false);
-              } else if (selectedType === "videos") {
-                const searchParams = debouncedSearchTerm ? { tag: selectedTags.join("|"), searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { tag: selectedTags.join("|"), limit: PAGE_SIZE, offset: nextOffset };
-                res = await getVideos(searchParams);
-                setResults((prev) => [...prev, ...(res?.videos || [])]);
-                setHasNext(res?.hasNext || false);
-              } else if (selectedType === "events") {
-                const searchParams = debouncedSearchTerm ? { tag: selectedTags.join("|"), searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { tag: selectedTags.join("|"), limit: PAGE_SIZE, offset: nextOffset };
-                res = await getEvents(searchParams);
-                setResults((prev) => [...prev, ...(res?.events || [])]);
-                setHasNext(res?.hasNext || false);
-              } else if (selectedType === "takeovers") {
-                const searchParams = debouncedSearchTerm ? { tag: selectedTags.join("|"), searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { tag: selectedTags.join("|"), limit: PAGE_SIZE, offset: nextOffset };
-                res = await getTakeovers(searchParams);
-                setResults((prev) => [...prev, ...(res?.takeovers || [])]);
-                setHasNext(res?.hasNext || false);
-              }
-              setPage((prev) => prev + 1);
-            } catch (error) {
-              console.warn("Error loading more results:", error);
-              setHasNext(false);
-            } finally {
-              setIsLoadingMore(false);
+    if (inView && hasNext && !isLoadingMore) {
+      // Add a small delay to prevent rapid API calls
+      const timeoutId = setTimeout(() => {
+        setIsLoadingMore(true);
+        const nextOffset = page * PAGE_SIZE;
+
+        async function fetchMore() {
+          try {
+            let res: any;
+            if (selectedType === "episodes") {
+              const episodeModule = await import("@/lib/episode-service");
+              const searchParams = debouncedSearchTerm ? { searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { limit: PAGE_SIZE, offset: nextOffset };
+              res = await episodeModule.getEpisodesForShows(searchParams);
+              setResults((prev) => [...prev, ...(res?.shows || [])]);
+              setHasNext(res?.hasNext || false);
+            } else if (selectedType === "posts") {
+              const searchParams = debouncedSearchTerm ? { tag: selectedTags.join("|"), searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { tag: selectedTags.join("|"), limit: PAGE_SIZE, offset: nextOffset };
+              res = await getAllPosts(searchParams);
+              setResults((prev) => [...prev, ...(res?.posts || [])]);
+              setHasNext(res?.hasNext || false);
+            } else if (selectedType === "videos") {
+              const searchParams = debouncedSearchTerm ? { tag: selectedTags.join("|"), searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { tag: selectedTags.join("|"), limit: PAGE_SIZE, offset: nextOffset };
+              res = await getVideos(searchParams);
+              setResults((prev) => [...prev, ...(res?.videos || [])]);
+              setHasNext(res?.hasNext || false);
+            } else if (selectedType === "events") {
+              const searchParams = debouncedSearchTerm ? { tag: selectedTags.join("|"), searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { tag: selectedTags.join("|"), limit: PAGE_SIZE, offset: nextOffset };
+              res = await getEvents(searchParams);
+              setResults((prev) => [...prev, ...(res?.events || [])]);
+              setHasNext(res?.hasNext || false);
+            } else if (selectedType === "takeovers") {
+              const searchParams = debouncedSearchTerm ? { tag: selectedTags.join("|"), searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset } : { tag: selectedTags.join("|"), limit: PAGE_SIZE, offset: nextOffset };
+              res = await getTakeovers(searchParams);
+              setResults((prev) => [...prev, ...(res?.takeovers || [])]);
+              setHasNext(res?.hasNext || false);
             }
+            setPage((prev) => prev + 1);
+          } catch (error) {
+            console.warn("Error loading more results:", error);
+            setHasNext(false);
+          } finally {
+            setIsLoadingMore(false);
           }
-          fetchMore();
         }
-      },
-      {
-        threshold: 0.1,
-        root: scrollAreaRef.current,
-      }
-    );
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
+
+        fetchMore();
+      }, 1000); // 1000ms delay to match debounce
+
+      return () => {
+        clearTimeout(timeoutId);
+      };
     }
-    return () => observer.disconnect();
-  }, [hasNext, isLoadingMore, open, page, results.length, selectedType, selectedTags.join("|"), debouncedSearchTerm]);
+  }, [inView, hasNext, isLoadingMore, page, selectedType, selectedTags.join("|"), debouncedSearchTerm]);
 
   // Filter toggle logic (content type and tags)
   const handleFilterToggle = (filter: { type: string; slug: string }) => {
@@ -573,7 +579,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                       </>
                     ))}
                     {/* Sentinel for Intersection Observer infinite scroll */}
-                    <div ref={observerTarget} className="h-4 col-span-full flex items-center justify-center">
+                    <div ref={observerTarget} className="h-8 w-full flex items-center justify-center py-4">
                       {isLoadingMore && <Loader className="h-4 w-4 animate-spin" />}
                     </div>
                   </>

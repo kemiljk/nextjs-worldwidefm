@@ -185,6 +185,13 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       const endIndex = startIndex + limit;
       const paginatedEpisodes = allEpisodes.slice(startIndex, endIndex);
 
+      // Ensure episodes are still sorted by broadcast date after filtering
+      paginatedEpisodes.sort((a: EpisodeObject, b: EpisodeObject) => {
+        const dateA = new Date(a.metadata?.broadcast_date || a.created_at);
+        const dateB = new Date(b.metadata?.broadcast_date || b.created_at);
+        return dateB.getTime() - dateA.getTime();
+      });
+
       return {
         episodes: paginatedEpisodes,
         total: allEpisodes.length,
