@@ -1197,12 +1197,11 @@ export async function createColouredSections(homepageData: any): Promise<Process
     return colouredSections;
   }
 
-  const colors = ["#F8971D", "#88CA4F", "#6A1DF8", "#1DA0F8"];
+  const colors = ["#F8971D", "#88CA4F", "#A97AFF", "#1DA0F8"];
 
-  for (const colouredSection of homepageData.metadata.coloured_sections) {
+  for (let i = 0; i < homepageData.metadata.coloured_sections.length; i++) {
+    const colouredSection = homepageData.metadata.coloured_sections[i];
     try {
-      // Fetch shows based on the show_type IDs
-      const showTypeIds = colouredSection.show_type;
       let shows: any[] = [];
 
       try {
@@ -1248,8 +1247,9 @@ export async function createColouredSections(homepageData: any): Promise<Process
         },
       }));
 
-      // Assign a random color
-      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+      // Assign colors sequentially: orange, green, purple, blue, then repeat
+      const colorIndex = i % colors.length;
+      const sectionColor = colors[colorIndex];
 
       const section: ProcessedHomepageSection = {
         is_active: true,
@@ -1258,7 +1258,7 @@ export async function createColouredSections(homepageData: any): Promise<Process
         layout: "Unique",
         itemsPerRow: 4,
         items: showItems,
-        color: randomColor,
+        color: sectionColor,
         subtitle: colouredSection.time,
         description: colouredSection.description,
       };

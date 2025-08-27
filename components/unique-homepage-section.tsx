@@ -14,21 +14,9 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({ section, 
     return null;
   }
 
-  const colors: { [key: string]: string } = {
-    orange: "#F8971D",
-    green: "#88CA4F",
-    purple: "#9661FA",
-    blue: "#1DA0F8",
-  };
-
-  // Get a random color for the section
-  const getRandomColor = (): string => {
-    const colorKeys = Object.keys(colors);
-    const randomKey = colorKeys[Math.floor(Math.random() * colorKeys.length)];
-    return colors[randomKey];
-  };
-
-  const sectionColor = section.color || getRandomColor();
+  // Colors are now assigned sequentially in the parent component
+  // Fallback to orange if no color is provided
+  const sectionColor = section.color || "#F8971D";
 
   // Convert Cosmic items to show format for ShowCard
   const convertToShowFormat = (item: CosmicItem) => {
@@ -89,7 +77,17 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({ section, 
       <div
         className="absolute inset-0"
         style={{
-          background: `linear-gradient(180deg, ${sectionColor}30 0%, ${sectionColor} 13%, ${sectionColor} 93%, ${sectionColor}30 100%)`,
+          background: `linear-gradient(180deg, ${sectionColor}20 0%, ${sectionColor} 13%, ${sectionColor} 93%, ${sectionColor}20 100%)`,
+        }}
+      />
+
+      {/* Noise Overlay */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          backgroundSize: "200px 200px",
+          mixBlendMode: "overlay",
         }}
       />
 
