@@ -1,14 +1,12 @@
 "use server";
 
-import { getPosts, getRadioShows, getEditorialHomepage, getRadioShowBySlug } from "./cosmic-service";
+import { getPosts, getEditorialHomepage, getRadioShowBySlug } from "./cosmic-service";
 import { SearchResult, FilterItem } from "./search-context";
-import { PostObject, RadioShowObject, VideoObject } from "./cosmic-config";
+import { PostObject, VideoObject } from "./cosmic-config";
 import { cosmic } from "./cosmic-config";
-import { addHours, isWithinInterval, isAfter } from "date-fns";
-// Mixcloud imports removed - now using only Cosmic episodes and RadioCult for live shows
 import { getEventBySlug as getRadioCultEventBySlug, getEvents as getRadioCultEvents, RadioCultEvent, getScheduleData as getRadioCultScheduleData, getTags } from "./radiocult-service";
 import FormData from "form-data";
-import { CosmicHomepageData, HomepageSectionItem, CosmicAPIObject, ProcessedHomepageSection, ColouredSection } from "./cosmic-types";
+import { CosmicHomepageData, HomepageSectionItem, CosmicAPIObject, ProcessedHomepageSection } from "./cosmic-types";
 import { stripUrlsFromText } from "./utils";
 import { deduplicateFilters } from "./filter-types";
 

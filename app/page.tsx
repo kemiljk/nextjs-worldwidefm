@@ -123,11 +123,11 @@ export default async function Home() {
           <GenreSelector shows={shows} />
         </Suspense>
         {/* From The Archive Section */}
-        <ArchiveSection shows={archiveShows} className="px-5 pt-8" />
+        {archiveShows.length > 0 && <ArchiveSection shows={archiveShows} className="px-5 pt-8" />}
         {/* Video Section */}
-        <VideoSection videos={videosData.videos} className="px-5 pt-8" />
+        {videosData.videos.length > 0 && <VideoSection videos={videosData.videos} className="px-5 pt-8" />}
         {/* Editorial section */}
-        <EditorialSection title="POSTS" posts={postsData.posts} className="px-5 pt-8" isHomepage={true} />
+        {postsData.posts.length > 0 && <EditorialSection title="POSTS" posts={postsData.posts} className="px-5 pt-8" isHomepage={true} />}
       </div>
     </div>
   );
