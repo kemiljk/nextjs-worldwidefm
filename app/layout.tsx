@@ -11,6 +11,7 @@ import NavWrapper from "@/components/nav-wrapper";
 import Footer from "@/components/footer";
 import LivePlayer from "@/components/live-player";
 import ArchivePlayer from "@/components/archive-player";
+import DiscordButton from "@/components/discord-button";
 import "./globals.css";
 
 const sans = Nimbus({
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <main className="px-4 md:px-8 lg:px-16 mx-auto pt-24 overflow-x-hidden">{children}</main>
                 <ArchivePlayer />
                 <Footer />
+                <DiscordButton />
               </MediaPlayerProvider>
             </SearchProvider>
           </AuthProvider>
