@@ -173,7 +173,7 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
                 <h2 className="font-aircompressed text-[40px] uppercase tracking-tight leading-[0.9] text-black mb-6 w-full" style={{ fontFamily: "AirCompressed-Black, sans-serif" }}>
                   RELATED EPISODES
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 overflow-x-auto pb-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-x-auto pb-2">
                   {relatedShows.map((relatedShow) => {
                     const slug = `/episode/${relatedShow.slug}`;
                     return <ShowCard key={relatedShow.id || relatedShow.slug} show={relatedShow} slug={slug} playable />;

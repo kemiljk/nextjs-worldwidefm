@@ -45,7 +45,7 @@ const CosmicSectionComponent: React.FC<CosmicSectionProps> = ({ section, coloure
   return (
     <section className="py-8 md:py-12 lg:py-16 px-5">
       <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white mb-6 md:mb-8">{section.title}</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {section.items.map((item) => (
           <SectionItemCard key={item.slug} item={item} />
         ))}

@@ -38,7 +38,7 @@ const LatestEpisodes: React.FC = () => {
     <section className="py-8 px-5">
       <h2 className="text-h7 font-bold mb-8 tracking-wide">LATEST SHOWS</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full h-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full h-full">
         {episodes.map((episode) => (
           <ShowCard key={episode.key || episode.id || episode.slug} show={episode} slug={`/episode/${episode.slug}`} playable />
         ))}
