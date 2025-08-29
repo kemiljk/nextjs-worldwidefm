@@ -1,0 +1,7 @@
+---
+description: Always use bun as your package manager
+globs:
+alwaysApply: true
+---
+
+When running any scripts, always use Bun for package management
