@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { ProcessedHomepageSection, CosmicItem, ColouredSection } from "@/lib/cosmic-types";
 import { ShowCard } from "@/components/ui/show-card";
 import UniqueHomepageSection from "./unique-homepage-section";
@@ -14,8 +15,8 @@ const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
 
   return (
     <div className="border border-almostblack dark:border-white overflow-hidden">
-      <div className="aspect-square relative">
-        <img src={imageUrl} alt={title} className="w-full h-full object-cover" loading="lazy" />
+      <div className="aspect-square relative overflow-hidden">
+        <Image src={imageUrl} alt={title} fill className="object-cover" sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw" />
       </div>
       <div className="p-4">
         <h3 className="font-mono text-2xl text-almostblack dark:text-white mb-1 line-clamp-2">{title}</h3>

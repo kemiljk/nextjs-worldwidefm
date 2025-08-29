@@ -134,7 +134,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
       </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="aspect-square relative">
+        <div className="aspect-square relative overflow-hidden">
           <Image src={hostImage} alt={host.title} fill className="object-cover rounded-none" />
         </div>
 
@@ -162,7 +162,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
               return (
                 <Link key={show.id} href={`/episode${show.slug}`}>
                   <Card className="overflow-hidden h-full hover:shadow-lg transition-all">
-                    <div className="aspect-square relative">
+                    <div className="aspect-square relative overflow-hidden">
                       <Image src={showImage} alt={show.title} fill className="object-cover" />
                       <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end">
                         <div className="p-4 w-full">

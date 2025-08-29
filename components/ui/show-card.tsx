@@ -92,9 +92,9 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, slug, className = "", 
   return (
     <Link href={slug} className={`border border-almostblack dark:border-white rounded-none overflow-hidden flex flex-col p-4 h-full w-full max-w-[440px] ${className}`}>
       {/* Image */}
-      <div className="relative w-full h-full">
-        <div className="relative w-full">
-          <Image src={showImage} alt={showName} className="object-cover border border-almostblack dark:border-white aspect-square h-auto lg:h-[440px]" width={440} height={440} sizes="320px" priority={false} />
+      <div className="relative w-full">
+        <div className="relative aspect-square w-full overflow-hidden">
+          <Image src={showImage} alt={showName} fill className="object-cover border border-almostblack dark:border-white" sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw" priority={false} />
         </div>
       </div>
       {/* Details */}

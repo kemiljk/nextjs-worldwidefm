@@ -133,7 +133,7 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
       </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="aspect-square relative">
+        <div className="aspect-square relative overflow-hidden">
           <Image src={takeoverImage} alt={takeover.title} fill className="object-cover rounded-none" />
         </div>
 
@@ -161,7 +161,7 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
               return (
                 <Link key={episode.id || episode.slug} href={`/episode${episode.slug}`}>
                   <Card className="overflow-hidden h-full hover:shadow-lg transition-all">
-                    <div className="aspect-square relative">
+                    <div className="aspect-square relative overflow-hidden">
                       <Image src={episodeImage} alt={episode.title || episode.name} fill className="object-cover" />
                       <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end">
                         <div className="p-4 w-full">
