@@ -1,3 +1,4 @@
+import { metadata } from "./../app/layout";
 import { Metadata } from "next";
 
 // Base metadata configuration that can be extended
@@ -21,19 +22,11 @@ export const DEFAULT_METADATA = {
 
 // Generate base metadata with fallbacks
 export function generateBaseMetadata(config: BaseMetadataConfig): Metadata {
-  const {
-    title,
-    description,
-    keywords = DEFAULT_METADATA.defaultKeywords,
-    image = DEFAULT_METADATA.defaultImage,
-    canonical = DEFAULT_METADATA.canonical,
-    noIndex = false,
-  } = config;
+  const { title, description, keywords = DEFAULT_METADATA.defaultKeywords, image = DEFAULT_METADATA.defaultImage, canonical = DEFAULT_METADATA.canonical, noIndex = false } = config;
 
   return {
     title,
     description,
-    keywords,
     openGraph: {
       title,
       description,
@@ -55,17 +48,19 @@ export function generateBaseMetadata(config: BaseMetadataConfig): Metadata {
       description,
       images: [image],
     },
-    robots: noIndex ? "noindex, nofollow" : {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-video-preview": -1,
-        "max-image-preview": "large" as const,
-        "max-snippet": -1,
-      },
-    },
+    robots: noIndex
+      ? "noindex, nofollow"
+      : {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-video-preview": -1,
+            "max-image-preview": "large" as const,
+            "max-snippet": -1,
+          },
+        },
     alternates: {
       canonical,
     },
@@ -75,7 +70,7 @@ export function generateBaseMetadata(config: BaseMetadataConfig): Metadata {
 // Template for homepage metadata
 export function generateHomepageMetadata(cosmicData?: any): Metadata {
   const baseConfig: BaseMetadataConfig = {
-    title: cosmicData?.title || "Worldwide FM - Independent Radio Station",
+    title: cosmicData?.metadata?.seo.title || "Worldwide FM - Independent Radio Station",
     description: "Listen to the best independent music, shows, and content from Worldwide FM. Discover new artists, exclusive mixes, and curated playlists.",
     keywords: ["radio", "music", "independent", "worldwide fm", "shows", "mixes", "playlists", "live radio", "music discovery"],
   };
@@ -91,7 +86,7 @@ export function generateHomepageMetadata(cosmicData?: any): Metadata {
 // Template for about page metadata
 export function generateAboutMetadata(cosmicData?: any): Metadata {
   const baseConfig: BaseMetadataConfig = {
-    title: cosmicData?.title || "About - Worldwide FM",
+    title: cosmicData?.metadata?.seo.title || "About - Worldwide FM",
     description: cosmicData?.metadata?.mission_content || "Learn about Worldwide FM's mission to promote independent music and provide a platform for emerging artists and established musicians alike.",
     keywords: ["about", "mission", "worldwide fm", "independent radio", "music platform", "artist support"],
   };
@@ -206,9 +201,9 @@ export function generateTermsMetadata(): Metadata {
 
 // Template for individual show/episode metadata
 export function generateShowMetadata(showData: any): Metadata {
-  const title = showData?.title || "Show - Worldwide FM";
+  const title = showData?.metadata?.seo.title || "Show - Worldwide FM";
   const description = showData?.metadata?.description || showData?.metadata?.subtitle || `Listen to ${title} on Worldwide FM`;
-  
+
   return generateBaseMetadata({
     title: `${title} - Worldwide FM`,
     description,
@@ -219,9 +214,9 @@ export function generateShowMetadata(showData: any): Metadata {
 
 // Template for individual post/article metadata
 export function generatePostMetadata(postData: any): Metadata {
-  const title = postData?.title || "Article - Worldwide FM";
+  const title = postData?.metadata?.seo.title || "Article - Worldwide FM";
   const description = postData?.metadata?.excerpt || postData?.metadata?.description || `Read ${title} on Worldwide FM`;
-  
+
   return generateBaseMetadata({
     title: `${title} - Worldwide FM`,
     description,
@@ -232,9 +227,9 @@ export function generatePostMetadata(postData: any): Metadata {
 
 // Template for individual video metadata
 export function generateVideoMetadata(videoData: any): Metadata {
-  const title = videoData?.title || "Video - Worldwide FM";
+  const title = videoData?.metadata?.seo.title || "Video - Worldwide FM";
   const description = videoData?.metadata?.description || `Watch ${title} on Worldwide FM`;
-  
+
   return generateBaseMetadata({
     title: `${title} - Worldwide FM`,
     description,

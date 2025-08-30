@@ -1024,9 +1024,9 @@ export async function getHostProfileUrl(hostName: string): Promise<string | null
 
 // Add: Fetch Cosmic homepage data
 export async function getCosmicHomepageData(): Promise<CosmicHomepageData | null> {
-  const COSMIC_BUCKET_SLUG = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "worldwide-fm-production";
-  const COSMIC_READ_KEY = process.env.NEXT_PUBLIC_COSMIC_READ_KEY || "Qo9hr8E9Vef66JrXQdyVrh29CVkd7Vz9GuGVdiQIClX6U7N9oh";
-  const COSMIC_HOMEPAGE_ID = process.env.NEXT_PUBLIC_COSMIC_HOMEPAGE_ID || "67f91dfd43f4b238152e7003";
+  const COSMIC_BUCKET_SLUG = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG;
+  const COSMIC_READ_KEY = process.env.NEXT_PUBLIC_COSMIC_READ_KEY;
+  const COSMIC_HOMEPAGE_ID = process.env.NEXT_PUBLIC_COSMIC_HOMEPAGE_ID;
   const url = `https://api.cosmicjs.com/v3/buckets/${COSMIC_BUCKET_SLUG}/objects/${COSMIC_HOMEPAGE_ID}?pretty=true&read_key=${COSMIC_READ_KEY}&depth=2&props=slug,title,metadata,type`;
   try {
     const response = await fetch(url, { next: { revalidate: 10 } });
@@ -1044,8 +1044,8 @@ export async function getCosmicHomepageData(): Promise<CosmicHomepageData | null
 
 // Add: Fetch a single Cosmic object by ID
 export async function fetchCosmicObjectById(id: string): Promise<HomepageSectionItem | null> {
-  const COSMIC_BUCKET_SLUG = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "worldwide-fm-production";
-  const COSMIC_READ_KEY = process.env.NEXT_PUBLIC_COSMIC_READ_KEY || "Qo9hr8E9Vef66JrXQdyVrh29CVkd7Vz9GuGVdiQIClX6U7N9oh";
+  const COSMIC_BUCKET_SLUG = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG;
+  const COSMIC_READ_KEY = process.env.NEXT_PUBLIC_COSMIC_READ_KEY;
   const url = `https://api.cosmicjs.com/v3/buckets/${COSMIC_BUCKET_SLUG}/objects/${id}?read_key=${COSMIC_READ_KEY}&props=slug,title,metadata,type`;
   try {
     const response = await fetch(url, { next: { revalidate: 10 } });
