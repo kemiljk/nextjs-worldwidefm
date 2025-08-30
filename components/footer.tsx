@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Instagram, Twitter, Facebook, MessageCircle } from "lucide-react";
+import { siInstagram, siX, siFacebook, siDiscord } from "simple-icons";
 import { Button } from "@/components/ui/button";
 
 export default function Footer() {
@@ -10,35 +10,35 @@ export default function Footer() {
           {/* About section */}
           <div>
             <h3 className="text-m4 font-display uppercase font-normal text-almostblack dark:text-white mb-4">Worldwide FM</h3>
-            <p className="text-sm opacity-80">A global music radio platform founded by Gilles Peterson, connecting people through music that transcends borders and cultures.</p>
+            <p className="text-sm">A global music radio platform founded by Gilles Peterson, connecting people through music that transcends borders and cultures.</p>
           </div>
 
           {/* Quick links */}
           <div>
             <h3 className="text-m4 font-display uppercase font-normal text-almostblack dark:text-white mb-4">Quick Links</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/shows" className="text-sm opacity-80 hover:opacity-100 transition-colors">
+            <ul className="space-y-2 w-full">
+              <li className="w-full">
+                <Link href="/shows" className="text-sm py-2 w-full">
                   Archive
                 </Link>
               </li>
-              <li>
-                <Link href="/about" className="text-sm opacity-80 hover:opacity-100 transition-colors">
+              <li className="w-full">
+                <Link href="/about" className="text-sm py-2 w-full">
                   About
                 </Link>
               </li>
-              <li>
-                <Link href="/contact" className="text-sm opacity-80 hover:opacity-100 transition-colors">
+              <li className="w-full">
+                <Link href="/contact" className="text-sm py-2 w-full">
                   Contact
                 </Link>
               </li>
-              <li>
-                <Link href="/privacy-policy" className="text-sm opacity-80 hover:opacity-100 transition-colors">
+              <li className="w-full">
+                <Link href="/privacy-policy" className="text-sm py-2 w-full">
                   Privacy Policy
                 </Link>
               </li>
-              <li>
-                <Link href="/terms-and-conditions" className="text-sm opacity-80 hover:opacity-100 transition-colors">
+              <li className="w-full">
+                <Link href="/terms-and-conditions" className="text-sm py-2 w-full">
                   Terms & Conditions
                 </Link>
               </li>
@@ -49,34 +49,26 @@ export default function Footer() {
           <div>
             <h3 className="text-m4 font-display uppercase font-normal text-almostblack dark:text-white mb-4">Connect</h3>
             <div className="flex gap-4">
-              <Button variant="ghost" size="icon" className="text-foreground hover:bg-white/10" asChild>
-                <Link href="https://discord.gg/worldwidefm" target="_blank" rel="noopener noreferrer">
-                  <MessageCircle className="h-5 w-5" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" className="text-foreground hover:bg-white/10" asChild>
-                <Link href="https://instagram.com/worldwidefm" target="_blank" rel="noopener noreferrer">
-                  <Instagram className="h-5 w-5" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" className="text-foreground hover:bg-white/10" asChild>
-                <Link href="https://twitter.com/worldwidefm" target="_blank" rel="noopener noreferrer">
-                  <Twitter className="h-5 w-5" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" className="text-foreground hover:bg-white/10" asChild>
-                <Link href="https://facebook.com/worldwidefm" target="_blank" rel="noopener noreferrer">
-                  <Facebook className="h-5 w-5" />
-                </Link>
-              </Button>
+              <Link href="https://discord.gg/worldwidefm" target="_blank" rel="noopener noreferrer">
+                <div dangerouslySetInnerHTML={{ __html: siDiscord.svg }} className="h-5 w-5" />
+              </Link>
+              <Link href="https://instagram.com/worldwidefm" target="_blank" rel="noopener noreferrer">
+                <div dangerouslySetInnerHTML={{ __html: siInstagram.svg }} className="h-5 w-5" />
+              </Link>
+              <Link href="https://twitter.com/worldwidefm" target="_blank" rel="noopener noreferrer">
+                <div dangerouslySetInnerHTML={{ __html: siX.svg }} className="h-5 w-5" />
+              </Link>
+              <Link href="https://facebook.com/worldwidefm" target="_blank" rel="noopener noreferrer">
+                <div dangerouslySetInnerHTML={{ __html: siFacebook.svg }} className="h-5 w-5" />
+              </Link>
             </div>
           </div>
 
           {/* Newsletter section */}
           <div>
             <h3 className="text-m4 font-display uppercase font-normal text-almostblack dark:text-white mb-4">Stay Updated</h3>
-            <p className="text-sm opacity-80 mb-4">Subscribe to our newsletter for the latest updates and exclusive content.</p>
-            <Button variant="outline" className="w-full border-black rounded-full dark:border-white text-foreground hover:bg-white/10" asChild>
+            <p className="text-sm mb-4">Subscribe to our newsletter for the latest updates and exclusive content.</p>
+            <Button variant="outline" className="w-full border-black rounded-full dark:border-white text-foreground" asChild>
               <Link href="/newsletter">Subscribe</Link>
             </Button>
           </div>
