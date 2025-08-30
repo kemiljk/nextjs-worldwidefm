@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -6,9 +7,43 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { cosmic } from "@/lib/cosmic-config";
 import { getEpisodesForShows } from "@/lib/episode-service";
+import { generateBaseMetadata } from "@/lib/metadata-utils";
 
 // Add consistent revalidation time
 export const revalidate = 900; // 15 minutes
+
+interface Props {
+  params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  try {
+    const { slug } = await params;
+    const takeover = await getTakeoverBySlug(slug);
+
+    if (takeover) {
+      return generateBaseMetadata({
+        title: `${takeover.title} - Takeover - Worldwide FM`,
+        description: takeover.metadata?.description || `Experience the ${takeover.title} takeover on Worldwide FM.`,
+        image: takeover.metadata?.image?.imgix_url,
+        keywords: ["takeover", "guest programming", "curated music", "worldwide fm", takeover.title.toLowerCase()],
+      });
+    }
+
+    return generateBaseMetadata({
+      title: "Takeover Not Found - Worldwide FM",
+      description: "The requested takeover could not be found.",
+      noIndex: true,
+    });
+  } catch (error) {
+    console.error("Error generating takeover metadata:", error);
+    return generateBaseMetadata({
+      title: "Takeover Not Found - Worldwide FM",
+      description: "The requested takeover could not be found.",
+      noIndex: true,
+    });
+  }
+}
 
 // Generate static params for all takeovers
 export async function generateStaticParams() {

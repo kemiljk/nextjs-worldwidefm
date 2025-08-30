@@ -1,8 +1,31 @@
+import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getVideos } from "@/lib/actions";
 import { format } from "date-fns";
 import { VideoPlayer } from "@/components/video/video-player";
 import { PageHeader } from "@/components/shared/page-header";
+import { generateVideoMetadata } from "@/lib/metadata-utils";
+
+interface Props {
+  params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  try {
+    const { slug } = await params;
+    const allVideos = await getVideos({ limit: 50 });
+    const video = allVideos.videos.find((v) => v.slug === slug);
+    
+    if (video) {
+      return generateVideoMetadata(video);
+    }
+    
+    return generateVideoMetadata({ title: "Video Not Found" });
+  } catch (error) {
+    console.error("Error generating video metadata:", error);
+    return generateVideoMetadata({ title: "Video Not Found" });
+  }
+}
 
 export default async function VideoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

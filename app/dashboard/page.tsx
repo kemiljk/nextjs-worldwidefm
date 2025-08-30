@@ -1,8 +1,18 @@
+import { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import DashboardClient from "@/cosmic/blocks/user-management/DashboardClient";
 import { Loader2 } from "lucide-react";
 import { getAuthUser, getDashboardData } from "@/cosmic/blocks/user-management/actions";
+import { generateBaseMetadata } from "@/lib/metadata-utils";
+
+export const generateMetadata = async (): Promise<Metadata> => {
+  return generateBaseMetadata({
+    title: "Dashboard - Worldwide FM",
+    description: "Manage your Worldwide FM account, preferences, and favorites.",
+    noIndex: true, // Don't index authenticated pages
+  });
+};
 
 export default async function DashboardPage() {
   // Get the authenticated user

@@ -1,6 +1,18 @@
+import { Metadata } from "next";
 import { PageHeader } from "@/components/shared/page-header";
 import { getAboutPage } from "@/lib/cosmic-service";
 import type { AboutPage } from "@/lib/cosmic-service";
+import { generateAboutMetadata } from "@/lib/metadata-utils";
+
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const about = await getAboutPage();
+    return generateAboutMetadata(about);
+  } catch (error) {
+    console.error("Error generating about page metadata:", error);
+    return generateAboutMetadata();
+  }
+}
 
 export default async function AboutPage() {
   const about = await getAboutPage();

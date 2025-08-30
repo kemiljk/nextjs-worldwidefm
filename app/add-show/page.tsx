@@ -1,9 +1,13 @@
 import { Metadata } from "next";
 import { AddShowForm } from "./add-show-form";
+import { generateBaseMetadata } from "@/lib/metadata-utils";
 
-export const metadata: Metadata = {
-  title: "Add Show | WorldwideFM",
-  description: "Add a new show to the WorldwideFM schedule",
+export const generateMetadata = async (): Promise<Metadata> => {
+  return generateBaseMetadata({
+    title: "Add Show - Worldwide FM",
+    description: "Add a new show to the Worldwide FM schedule.",
+    noIndex: true, // Don't index admin pages
+  });
 };
 
 export default function AddShowPage() {

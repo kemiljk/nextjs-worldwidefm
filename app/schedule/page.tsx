@@ -1,9 +1,15 @@
+import { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/shared/page-header";
 import { getEvents, transformRadioCultEvent } from "@/lib/radiocult-service";
+import { generateScheduleMetadata } from "@/lib/metadata-utils";
+
+export const generateMetadata = async (): Promise<Metadata> => {
+  return generateScheduleMetadata();
+};
 
 interface ScheduleShow {
   show_key: string;

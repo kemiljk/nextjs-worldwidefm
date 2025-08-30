@@ -1,5 +1,7 @@
 import { Suspense } from "react";
+import { Metadata } from "next";
 import { getCosmicHomepageData, fetchCosmicObjectById, getVideos, getAllPosts, createColouredSections } from "@/lib/actions";
+import { generateHomepageMetadata } from "@/lib/metadata-utils";
 import { getEpisodesForShows } from "@/lib/episode-service";
 import EditorialSection from "@/components/editorial/editorial-section";
 import VideoSection from "@/components/video/video-section";
@@ -14,6 +16,17 @@ import LatestEpisodes from "@/components/latest-episodes";
 
 // Add consistent revalidation time for episode content
 export const revalidate = 900; // 15 minutes
+
+// Generate metadata for the homepage
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const homepageData = await getCosmicHomepageData();
+    return generateHomepageMetadata(homepageData);
+  } catch (error) {
+    console.error("Error generating metadata:", error);
+    return generateHomepageMetadata();
+  }
+}
 
 export default async function Home() {
   const [homepageData, videosData, postsData] = await Promise.all([getCosmicHomepageData(), getVideos(), getAllPosts()]);

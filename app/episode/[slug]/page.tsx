@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import Link from "next/link";
 import { getEpisodeBySlug, getRelatedEpisodes, transformEpisodeToShowFormat } from "@/lib/episode-service";
 import { addHours, isWithinInterval } from "date-fns";
@@ -7,9 +8,30 @@ import { EpisodeHero } from "@/components/homepage-hero";
 import { SafeHtml } from "@/components/ui/safe-html";
 import { Tracklist } from "@/components/ui/tracklist";
 import { GenreTag } from "@/components/ui/genre-tag";
+import { generateShowMetadata } from "@/lib/metadata-utils";
 // stripUrlsFromText removed as we now render HTML content directly
 
 export const revalidate = 900; // 15 minutes
+
+interface Props {
+  params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  try {
+    const { slug } = await params;
+    const episode = await getEpisodeBySlug(slug);
+    
+    if (episode) {
+      return generateShowMetadata(episode);
+    }
+    
+    return generateShowMetadata({ title: "Episode Not Found" });
+  } catch (error) {
+    console.error("Error generating episode metadata:", error);
+    return generateShowMetadata({ title: "Episode Not Found" });
+  }
+}
 
 export async function generateStaticParams() {
   try {

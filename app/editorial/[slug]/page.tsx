@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { getPostBySlug, getRelatedPosts } from "@/lib/actions";
@@ -5,6 +6,27 @@ import { PageHeader } from "@/components/shared/page-header";
 import { format } from "date-fns";
 import EditorialSection from "@/components/editorial/editorial-section";
 import { cn } from "@/lib/utils";
+import { generatePostMetadata } from "@/lib/metadata-utils";
+
+interface Props {
+  params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  try {
+    const { slug } = await params;
+    const response = await getPostBySlug(slug);
+    
+    if (response?.object) {
+      return generatePostMetadata(response.object);
+    }
+    
+    return generatePostMetadata({ title: "Article Not Found" });
+  } catch (error) {
+    console.error("Error generating editorial metadata:", error);
+    return generatePostMetadata({ title: "Article Not Found" });
+  }
+}
 
 interface Category {
   id: string;

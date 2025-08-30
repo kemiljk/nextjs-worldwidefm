@@ -33,8 +33,13 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-sm opacity-80 hover:opacity-100 transition-colors">
+                <Link href="/privacy-policy" className="text-sm opacity-80 hover:opacity-100 transition-colors">
                   Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms-and-conditions" className="text-sm opacity-80 hover:opacity-100 transition-colors">
+                  Terms & Conditions
                 </Link>
               </li>
             </ul>

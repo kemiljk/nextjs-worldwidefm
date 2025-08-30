@@ -1,7 +1,17 @@
+import { Metadata } from "next";
 import { Suspense } from "react";
 import LoginClient from "@/cosmic/blocks/user-management/LoginClient";
 import { login } from "@/cosmic/blocks/user-management/actions";
 import { Loader2 } from "lucide-react";
+import { generateBaseMetadata } from "@/lib/metadata-utils";
+
+export const generateMetadata = async (): Promise<Metadata> => {
+  return generateBaseMetadata({
+    title: "Login - Worldwide FM",
+    description: "Sign in to your Worldwide FM account to access your dashboard and preferences.",
+    noIndex: true, // Don't index authentication pages
+  });
+};
 
 export default function LoginPage() {
   return (

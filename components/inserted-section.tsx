@@ -11,7 +11,6 @@ const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
   const subtitle = item.metadata?.subtitle || "";
   const description = item.metadata?.description || "";
   const date = item.metadata?.date || "";
-  const type = item.type || "unknown";
 
   return (
     <div className="border border-almostblack dark:border-white overflow-hidden">

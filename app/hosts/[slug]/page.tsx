@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -7,9 +8,43 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getRadioShows } from "@/lib/cosmic-service";
 import { cosmic } from "@/lib/cosmic-config";
 import { PlayButton } from "@/components/play-button";
+import { generateBaseMetadata } from "@/lib/metadata-utils";
 
 // Add consistent revalidation time
 export const revalidate = 900; // 15 minutes
+
+interface Props {
+  params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  try {
+    const { slug } = await params;
+    const host = await getHostBySlug(slug);
+
+    if (host) {
+      return generateBaseMetadata({
+        title: `${host.title} - Host - Worldwide FM`,
+        description: host.metadata?.description || `Listen to shows hosted by ${host.title} on Worldwide FM.`,
+        image: host.metadata?.image?.imgix_url,
+        keywords: ["host", "dj", "presenter", "radio", "worldwide fm", host.title.toLowerCase()],
+      });
+    }
+
+    return generateBaseMetadata({
+      title: "Host Not Found - Worldwide FM",
+      description: "The requested host could not be found.",
+      noIndex: true,
+    });
+  } catch (error) {
+    console.error("Error generating host metadata:", error);
+    return generateBaseMetadata({
+      title: "Host Not Found - Worldwide FM",
+      description: "The requested host could not be found.",
+      noIndex: true,
+    });
+  }
+}
 
 // Generate static params for all hosts
 export async function generateStaticParams() {
