@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState, useMemo } from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { PageHeader } from "@/components/shared/page-header";
-import { ShowsGrid } from "../../components/shows-grid";
-import { Loader, X } from "lucide-react";
-import { useInView } from "react-intersection-observer";
-import { getEpisodesForShows } from "@/lib/episode-service";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import type { CanonicalGenre } from "@/lib/get-canonical-genres";
-import { Combobox } from "@/components/ui/combobox";
-import { Button } from "@/components/ui/button";
-import { AvailableFilters as AvailableFiltersType } from "@/lib/filter-types";
+import React, { useEffect, useState, useMemo } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { PageHeader } from '@/components/shared/page-header';
+import { ShowsGrid } from '../../components/shows-grid';
+import { Loader, X } from 'lucide-react';
+import { useInView } from 'react-intersection-observer';
+import { getEpisodesForShows, getRegularHosts, getTakeovers } from '@/lib/episode-service';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import type { CanonicalGenre } from '@/lib/get-canonical-genres';
+import { Combobox } from '@/components/ui/combobox';
+import { Button } from '@/components/ui/button';
+import { AvailableFilters as AvailableFiltersType } from '@/lib/filter-types';
 
 interface ShowsClientProps {
   canonicalGenres: CanonicalGenre[];
@@ -31,16 +31,22 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   const PAGE_SIZE = 20;
 
   // Parse filter params
-  const genreParam = searchParams.get("genre") ?? undefined;
-  const locationParam = searchParams.get("location") ?? undefined;
-  const typeParam = searchParams.get("type") ?? undefined; // New type parameter for host/takeover filtering
-  const searchTerm = searchParams.get("searchTerm") ?? undefined;
+  const genreParam = searchParams.get('genre') ?? undefined;
+  const locationParam = searchParams.get('location') ?? undefined;
+  const typeParam = searchParams.get('type') ?? undefined; // New type parameter for host/takeover filtering
+  const searchTerm = searchParams.get('searchTerm') ?? undefined;
 
-  const selectedGenres = useMemo(() => (genreParam ? genreParam.split("|").filter(Boolean) : []), [genreParam]);
-  const selectedLocations = useMemo(() => (locationParam ? locationParam.split("|").filter(Boolean) : []), [locationParam]);
+  const selectedGenres = useMemo(
+    () => (genreParam ? genreParam.split('|').filter(Boolean) : []),
+    [genreParam]
+  );
+  const selectedLocations = useMemo(
+    () => (locationParam ? locationParam.split('|').filter(Boolean) : []),
+    [locationParam]
+  );
 
   // Determine which filter type is active based on the type parameter
-  const activeType = typeParam || "all";
+  const activeType = typeParam || 'all';
 
   // Load initial data and whenever filters/search change
   useEffect(() => {
@@ -48,42 +54,53 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     setIsLoadingMore(true);
 
     // Add a small delay to prevent rapid API calls
-    const timeoutId = setTimeout(() => {
-      // Build params inside useEffect to get current filter values
-      const episodeParams: any = {
-        searchTerm,
-        limit: PAGE_SIZE,
-        offset: 0,
-      };
+    const timeoutId = setTimeout(async () => {
+      try {
+        let response;
 
-      // Only add filters if they're selected
-      if (selectedGenres.length > 0) {
-        episodeParams.genre = selectedGenres;
+        // Use different data sources based on the active type
+        if (activeType === 'hosts-series') {
+          // Fetch regular hosts objects
+          response = await getRegularHosts({
+            limit: PAGE_SIZE,
+            offset: 0,
+          });
+        } else if (activeType === 'takeovers') {
+          // Fetch takeovers objects
+          response = await getTakeovers({
+            limit: PAGE_SIZE,
+            offset: 0,
+          });
+        } else {
+          // Fetch episodes with filters
+          const episodeParams: any = {
+            searchTerm,
+            limit: PAGE_SIZE,
+            offset: 0,
+          };
+
+          // Only add filters if they're selected
+          if (selectedGenres.length > 0) {
+            episodeParams.genre = selectedGenres;
+          }
+
+          if (selectedLocations.length > 0) {
+            episodeParams.location = selectedLocations;
+          }
+
+          response = await getEpisodesForShows(episodeParams);
+        }
+
+        if (!isMounted) return;
+        setShows(response.shows);
+        setHasNext(response.hasNext);
+        setIsLoadingMore(false);
+        setPage(1);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setIsLoadingMore(false);
+        // Don't clear existing shows on error, just show loading state
       }
-
-      if (selectedLocations.length > 0) {
-        episodeParams.location = selectedLocations;
-      }
-
-      // Handle type-specific filtering at the backend level
-      if (activeType === "takeovers") {
-        // Filter for episodes that have takeovers
-        episodeParams.takeover = "*"; // Use a wildcard to indicate we want episodes with any takeovers
-      }
-
-      getEpisodesForShows(episodeParams)
-        .then((response) => {
-          if (!isMounted) return;
-          setShows(response.shows);
-          setHasNext(response.hasNext);
-          setIsLoadingMore(false);
-          setPage(1);
-        })
-        .catch((error) => {
-          console.error("Error fetching episodes:", error);
-          setIsLoadingMore(false);
-          // Don't clear existing shows on error, just show loading state
-        });
     }, 1000); // 1000ms delay to match debounce
 
     return () => {
@@ -97,47 +114,68 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   useEffect(() => {
     if (inView && hasNext && !isLoadingMore) {
       // Add a small delay to prevent rapid API calls
-      const timeoutId = setTimeout(() => {
+      const timeoutId = setTimeout(async () => {
         setIsLoadingMore(true);
         const nextOffset = page * PAGE_SIZE;
 
-        // Build params for infinite scroll (same logic as initial fetch)
-        const episodeParams: any = {
-          searchTerm,
-          limit: PAGE_SIZE,
-          offset: nextOffset,
-        };
+        try {
+          let response;
 
-        // Only add filters if they're selected
-        if (selectedGenres.length > 0) {
-          episodeParams.genre = selectedGenres;
+          // Use different data sources based on the active type
+          if (activeType === 'hosts-series') {
+            // Fetch more regular hosts objects
+            response = await getRegularHosts({
+              limit: PAGE_SIZE,
+              offset: nextOffset,
+            });
+          } else if (activeType === 'takeovers') {
+            // Fetch more takeovers objects
+            response = await getTakeovers({
+              limit: PAGE_SIZE,
+              offset: nextOffset,
+            });
+          } else {
+            // Fetch more episodes with filters
+            const episodeParams: any = {
+              searchTerm,
+              limit: PAGE_SIZE,
+              offset: nextOffset,
+            };
+
+            // Only add filters if they're selected
+            if (selectedGenres.length > 0) {
+              episodeParams.genre = selectedGenres;
+            }
+
+            if (selectedLocations.length > 0) {
+              episodeParams.location = selectedLocations;
+            }
+
+            response = await getEpisodesForShows(episodeParams);
+          }
+
+          setShows((prev) => [...prev, ...response.shows]);
+          setHasNext(response.hasNext);
+          setIsLoadingMore(false);
+          setPage((prev) => prev + 1);
+        } catch (error) {
+          console.error('Error loading more data:', error);
+          setIsLoadingMore(false);
+          // Don't increment page on error to allow retry
         }
-
-        if (selectedLocations.length > 0) {
-          episodeParams.location = selectedLocations;
-        }
-
-        // Handle type-specific filtering at the backend level
-        if (activeType === "takeovers") {
-          episodeParams.takeover = "*";
-        }
-
-        getEpisodesForShows(episodeParams)
-          .then((response) => {
-            setShows((prev) => [...prev, ...response.shows]);
-            setHasNext(response.hasNext);
-            setIsLoadingMore(false);
-            setPage((prev) => prev + 1);
-          })
-          .catch((error) => {
-            console.error("Error loading more episodes:", error);
-            setIsLoadingMore(false);
-            // Don't increment page on error to allow retry
-          });
       }, 1000); // 1000ms delay to match debounce
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inView, hasNext, isLoadingMore, page, selectedGenres, selectedLocations, typeParam, searchTerm]);
+  }, [
+    inView,
+    hasNext,
+    isLoadingMore,
+    page,
+    selectedGenres,
+    selectedLocations,
+    typeParam,
+    searchTerm,
+  ]);
 
   // Map episode genres to canonical genres (by slug or title, case-insensitive)
   function mapShowToCanonicalGenres(show: any): string[] {
@@ -145,7 +183,11 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     return canonicalGenres
       .filter((genre) =>
         genres.some((showGenre: any) => {
-          const genreName = showGenre.title?.toLowerCase() || showGenre.slug?.toLowerCase() || showGenre.name?.toLowerCase() || "";
+          const genreName =
+            showGenre.title?.toLowerCase() ||
+            showGenre.slug?.toLowerCase() ||
+            showGenre.name?.toLowerCase() ||
+            '';
           return genre.slug.toLowerCase() === genreName || genre.title.toLowerCase() === genreName;
         })
       )
@@ -158,11 +200,17 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     return availableFilters.hosts
       .filter((availableHost) =>
         hosts.some((showHost: any) => {
-          const showHostName = showHost.name?.toLowerCase() || showHost.title?.toLowerCase() || "";
-          const showHostSlug = showHost.username?.toLowerCase() || showHost.slug?.toLowerCase() || "";
+          const showHostName = showHost.name?.toLowerCase() || showHost.title?.toLowerCase() || '';
+          const showHostSlug =
+            showHost.username?.toLowerCase() || showHost.slug?.toLowerCase() || '';
           const availableHostTitle = availableHost.title.toLowerCase();
           const availableHostSlug = availableHost.slug.toLowerCase();
-          return showHostName === availableHostTitle || showHostSlug === availableHostSlug || showHostName.includes(availableHostTitle) || availableHostTitle.includes(showHostName);
+          return (
+            showHostName === availableHostTitle ||
+            showHostSlug === availableHostSlug ||
+            showHostName.includes(availableHostTitle) ||
+            availableHostTitle.includes(showHostName)
+          );
         })
       )
       .map((host) => host.slug);
@@ -174,44 +222,28 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     return availableFilters.locations
       .filter((availableLocation) =>
         locations.some((showLocation: any) => {
-          const showLocationName = showLocation.name?.toLowerCase() || showLocation.title?.toLowerCase() || "";
-          const showLocationSlug = showLocation.slug?.toLowerCase() || "";
+          const showLocationName =
+            showLocation.name?.toLowerCase() || showLocation.title?.toLowerCase() || '';
+          const showLocationSlug = showLocation.slug?.toLowerCase() || '';
           const availableLocationTitle = availableLocation.title.toLowerCase();
           const availableLocationSlug = availableLocation.slug.toLowerCase();
-          return showLocationName === availableLocationTitle || showLocationSlug === availableLocationSlug;
+          return (
+            showLocationName === availableLocationTitle ||
+            showLocationSlug === availableLocationSlug
+          );
         })
       )
       .map((location) => location.slug);
-  }
-
-  // Check if show matches the selected type filter
-  function matchesTypeFilter(show: any): boolean {
-    switch (activeType) {
-      case "hosts-series":
-        // For hosts & series, check if the show has any hosts that match our available hosts
-        const mappedHosts = mapShowToAvailableHosts(show);
-        return mappedHosts.length > 0;
-
-      case "takeovers":
-        // For takeovers, check if this is an episode with takeover metadata
-        const showTakeovers = show.takeovers || show.enhanced_takeovers || [];
-        return showTakeovers.length > 0;
-
-      case "all":
-      default:
-        // For "all", always return true - show everything
-        return true;
-    }
   }
 
   // Handle navigation to different filter types
   const handleTypeNavigation = (type: string) => {
     const params = new URLSearchParams(searchParams.toString());
 
-    if (type === "all") {
-      params.delete("type");
+    if (type === 'all') {
+      params.delete('type');
     } else {
-      params.set("type", type);
+      params.set('type', type);
     }
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -222,9 +254,9 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     const params = new URLSearchParams(searchParams.toString());
 
     if (values.length === 0) {
-      params.delete("genre");
+      params.delete('genre');
     } else {
-      params.set("genre", values.join("|"));
+      params.set('genre', values.join('|'));
     }
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -235,9 +267,9 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     const params = new URLSearchParams(searchParams.toString());
 
     if (values.length === 0) {
-      params.delete("location");
+      params.delete('location');
     } else {
-      params.set("location", values.join("|"));
+      params.set('location', values.join('|'));
     }
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -249,9 +281,9 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     const params = new URLSearchParams(searchParams.toString());
 
     if (newGenres.length === 0) {
-      params.delete("genre");
+      params.delete('genre');
     } else {
-      params.set("genre", newGenres.join("|"));
+      params.set('genre', newGenres.join('|'));
     }
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -263,83 +295,114 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     const params = new URLSearchParams(searchParams.toString());
 
     if (newLocations.length === 0) {
-      params.delete("location");
+      params.delete('location');
     } else {
-      params.set("location", newLocations.join("|"));
+      params.set('location', newLocations.join('|'));
     }
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Filter shows by type only (server handles genre/location filtering)
-  const filteredShows = shows.filter((show) => {
-    // Only check type filter - genres and locations are filtered server-side
-    return matchesTypeFilter(show);
-  });
+  // No need for client-side filtering since we fetch the correct data based on type
+  const filteredShows = shows;
 
-  const hasActiveFilters = selectedGenres.length > 0 || selectedLocations.length > 0;
+  const hasActiveFilters =
+    activeType === 'all' && (selectedGenres.length > 0 || selectedLocations.length > 0);
 
   return (
-    <div className="mx-auto lg:px-4 py-16">
-      <div className="flex flex-col gap-4 w-full">
+    <div className='mx-auto lg:px-4 py-16'>
+      <div className='flex flex-col gap-4 w-full'>
         <div>
-          <PageHeader title="Shows" />
+          <PageHeader title='Shows' />
         </div>
 
         {/* Filter Controls */}
-        <div className="flex flex-wrap gap-2">
+        <div className='flex flex-wrap gap-2'>
           {/* Type Navigation Buttons */}
-          <Button variant="outline" className={cn("border-almostblack dark:border-white", activeType === "all" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleTypeNavigation("all")}>
-            All
+          <Button
+            variant='outline'
+            className={cn(
+              'border-almostblack dark:border-white',
+              activeType === 'all' &&
+                'bg-almostblack text-white dark:bg-white dark:text-almostblack'
+            )}
+            onClick={() => handleTypeNavigation('all')}
+          >
+            Episodes
           </Button>
 
-          <Button variant="outline" className={cn("border-almostblack dark:border-white", activeType === "hosts-series" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleTypeNavigation("hosts-series")}>
+          <Button
+            variant='outline'
+            className={cn(
+              'border-almostblack dark:border-white',
+              activeType === 'hosts-series' &&
+                'bg-almostblack text-white dark:bg-white dark:text-almostblack'
+            )}
+            onClick={() => handleTypeNavigation('hosts-series')}
+          >
             Hosts & Series
           </Button>
 
-          <Button variant="outline" className={cn("border-almostblack dark:border-white", activeType === "takeovers" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => handleTypeNavigation("takeovers")}>
+          <Button
+            variant='outline'
+            className={cn(
+              'border-almostblack dark:border-white',
+              activeType === 'takeovers' &&
+                'bg-almostblack text-white dark:bg-white dark:text-almostblack'
+            )}
+            onClick={() => handleTypeNavigation('takeovers')}
+          >
             Takeovers
           </Button>
 
-          {/* Genres Dropdown */}
-          <Combobox
-            options={canonicalGenres.map((genre) => ({
-              value: genre.id,
-              label: genre.title.toUpperCase(),
-            }))}
-            value={selectedGenres}
-            onValueChange={handleGenreSelectionChange}
-            placeholder="Genres"
-            searchPlaceholder="Search genres..."
-            emptyMessage="No genres found."
-            className="w-fit"
-          />
+          {/* Only show genre and location filters for "All" episodes */}
+          {activeType === 'all' && (
+            <>
+              {/* Genres Dropdown */}
+              <Combobox
+                options={canonicalGenres.map((genre) => ({
+                  value: genre.id,
+                  label: genre.title.toUpperCase(),
+                }))}
+                value={selectedGenres}
+                onValueChange={handleGenreSelectionChange}
+                placeholder='Genres'
+                searchPlaceholder='Search genres...'
+                emptyMessage='No genres found.'
+                className='w-fit'
+              />
 
-          {/* Locations Dropdown */}
-          <Combobox
-            options={availableFilters.locations.map((location) => ({
-              value: location.id,
-              label: location.title.toUpperCase(),
-            }))}
-            value={selectedLocations}
-            onValueChange={handleLocationSelectionChange}
-            placeholder="Locations"
-            searchPlaceholder="Search locations..."
-            emptyMessage="No locations found."
-            className="w-fit"
-          />
+              {/* Locations Dropdown */}
+              <Combobox
+                options={availableFilters.locations.map((location) => ({
+                  value: location.id,
+                  label: location.title.toUpperCase(),
+                }))}
+                value={selectedLocations}
+                onValueChange={handleLocationSelectionChange}
+                placeholder='Locations'
+                searchPlaceholder='Search locations...'
+                emptyMessage='No locations found.'
+                className='w-fit'
+              />
+            </>
+          )}
         </div>
 
         {/* Active Filter Chips */}
         {hasActiveFilters && (
-          <div className="flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700">
+          <div className='flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700'>
             {selectedGenres.map((genreId, index) => {
               const genre = canonicalGenres.find((g) => g.id === genreId);
               return (
-                <Badge key={`genre-${genreId}-${index}`} variant="default" className="uppercase font-mono text-m6 cursor-pointer whitespace-nowrap bg-accent text-accent-foreground flex items-center gap-1">
+                <Badge
+                  key={`genre-${genreId}-${index}`}
+                  variant='default'
+                  className='uppercase font-mono text-m6 cursor-pointer whitespace-nowrap bg-accent text-accent-foreground flex items-center gap-1'
+                >
                   {genre?.title.toUpperCase() || genreId}
                   <X
-                    className="h-3 w-3"
+                    className='h-3 w-3'
                     onClick={(e) => {
                       e.stopPropagation();
                       handleClearGenre(genreId);
@@ -351,10 +414,14 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
             {selectedLocations.map((locationId, index) => {
               const location = availableFilters.locations.find((l) => l.id === locationId);
               return (
-                <Badge key={`location-${locationId}-${index}`} variant="default" className="uppercase font-mono text-m6 cursor-pointer whitespace-nowrap bg-accent text-accent-foreground flex items-center gap-1">
+                <Badge
+                  key={`location-${locationId}-${index}`}
+                  variant='default'
+                  className='uppercase font-mono text-m6 cursor-pointer whitespace-nowrap bg-accent text-accent-foreground flex items-center gap-1'
+                >
                   {location?.title.toUpperCase() || locationId}
                   <X
-                    className="h-3 w-3"
+                    className='h-3 w-3'
                     onClick={(e) => {
                       e.stopPropagation();
                       handleClearLocation(locationId);
@@ -367,12 +434,15 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
         )}
       </div>
 
-      <div className="flex flex-col gap-8 mt-8">
-        <main className="lg:col-span-3">
-          <ShowsGrid shows={filteredShows} sentinelRef={ref} />
+      <div className='flex flex-col gap-8 mt-8'>
+        <main className='lg:col-span-3'>
+          <ShowsGrid
+            shows={filteredShows}
+            sentinelRef={ref}
+          />
           {isLoadingMore && (
-            <div className="h-4 flex items-center justify-center mt-8">
-              <Loader className="h-4 w-4 animate-spin" />
+            <div className='h-4 flex items-center justify-center mt-8'>
+              <Loader className='h-4 w-4 animate-spin' />
             </div>
           )}
         </main>
