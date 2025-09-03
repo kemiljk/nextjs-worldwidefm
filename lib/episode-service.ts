@@ -12,6 +12,7 @@ export interface EpisodeParams {
   host?: string | string[] | '*'; // "*" means any regular hosts
   takeover?: string | string[] | '*'; // "*" means any takeovers
   location?: string | string[];
+  showType?: string | string[]; // Filter by show type IDs
 }
 
 export interface EpisodeResponse {
@@ -83,6 +84,12 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       query['metadata.locations.id'] = { $in: locations };
     }
 
+    // Filter by show type
+    if (params.showType) {
+      const showTypes = Array.isArray(params.showType) ? params.showType : [params.showType];
+      query['metadata.type.id'] = { $in: showTypes };
+    }
+
     // Filter by search term
     if (params.searchTerm) {
       query.title = { $regex: params.searchTerm, $options: 'i' };
@@ -102,7 +109,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         .find(query)
         .props('slug,title,metadata,type,created_at,published_at')
         .limit(Math.min(limit * 5, 200)) // Get more for better randomization
-        .depth(1);
+        .depth(2);
 
       const episodes = response.objects || [];
 
@@ -126,7 +133,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         .limit(limit)
         .skip(offset)
         .sort('-metadata.broadcast_date,-created_at') // Sort by broadcast date, then creation date
-        .depth(1);
+        .depth(2);
     } catch (error) {
       console.log('Server-side filtering failed, using client-side filtering...');
 
@@ -139,7 +146,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         .props('slug,title,metadata,type,created_at,published_at')
         .limit(1000) // Get more episodes for client-side filtering
         .sort('-metadata.broadcast_date,-created_at')
-        .depth(1);
+        .depth(2);
 
       let allEpisodes = allResponse.objects || [];
 
@@ -207,6 +214,18 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         );
       }
 
+      if (params.showType) {
+        const showTypes = Array.isArray(params.showType) ? params.showType : [params.showType];
+        allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
+          const episodeType = episode.metadata?.type;
+          return episodeType && showTypes.includes(episodeType.id);
+        });
+        console.log(
+          `Client-side filtered ${allEpisodes.length} episodes by show types:`,
+          params.showType
+        );
+      }
+
       // Apply pagination
       const startIndex = offset;
       const endIndex = startIndex + limit;
@@ -254,7 +273,7 @@ export async function getEpisodeBySlug(slug: string): Promise<EpisodeObject | nu
         // Removed player requirement to match the main getEpisodes function
       })
       .props('slug,title,metadata,type,created_at,published_at')
-      .depth(1);
+      .depth(2);
 
     return response?.object || null;
   } catch (error) {
@@ -277,7 +296,7 @@ export async function getAllEpisodes(): Promise<EpisodeObject[]> {
       .props('slug,title,metadata,type,created_at,published_at')
       .limit(1000)
       .sort('-metadata.broadcast_date,-created_at')
-      .depth(1);
+      .depth(2);
 
     return response.objects || [];
   } catch (error) {
@@ -404,7 +423,7 @@ export async function getRegularHosts(params: { limit?: number; offset?: number 
       .limit(limit)
       .skip(offset)
       .sort('title') // Sort alphabetically by title
-      .depth(1);
+      .depth(2);
 
     const hosts = response.objects || [];
     const total = response.total || hosts.length;
@@ -441,7 +460,7 @@ export async function getTakeovers(params: { limit?: number; offset?: number } =
       .limit(limit)
       .skip(offset)
       .sort('title') // Sort alphabetically by title
-      .depth(1);
+      .depth(2);
 
     const takeovers = response.objects || [];
     const total = response.total || takeovers.length;
@@ -773,7 +792,7 @@ export async function getRelatedEpisodes(
         .props('slug,title,metadata,type,created_at,published_at')
         .limit(poolSize)
         .sort('-metadata.broadcast_date,-created_at')
-        .depth(1);
+        .depth(2);
 
       const allEpisodes = response.objects || [];
       return scoreAndRankEpisodes(allEpisodes, currentEpisode, limit);
@@ -791,7 +810,7 @@ export async function getRelatedEpisodes(
       .props('slug,title,metadata,type,created_at,published_at')
       .limit(poolSize)
       .sort('-metadata.broadcast_date,-created_at')
-      .depth(1);
+      .depth(2);
 
     const candidates = response.objects || [];
 
@@ -855,4 +874,35 @@ function scoreAndRankEpisodes(
     .filter((item) => item.score > 0) // Only return episodes with some relevance
     .slice(0, limit)
     .map((item) => item.episode);
+}
+
+/**
+ * Get episodes filtered by show type IDs - dedicated function for homepage sections
+ */
+export async function getEpisodesByShowType(
+  showTypeIds: string[],
+  limit: number = 8
+): Promise<EpisodeObject[]> {
+  try {
+    console.log('Fetching episodes by show type IDs:', showTypeIds);
+
+    const response = await cosmic.objects
+      .find({
+        type: 'episode',
+        status: 'published',
+        'metadata.type.id': { $in: showTypeIds },
+      })
+      .props('slug,title,metadata,type,created_at,published_at')
+      .limit(limit)
+      .sort('-metadata.broadcast_date,-created_at')
+      .depth(2);
+
+    const episodes = response.objects || [];
+    console.log(`Found ${episodes.length} episodes for show types:`, showTypeIds);
+
+    return episodes;
+  } catch (error) {
+    console.error('Error in getEpisodesByShowType:', error);
+    return [];
+  }
 }

@@ -1,4 +1,4 @@
-import { createBucketClient } from "@cosmicjs/sdk";
+import { createBucketClient } from '@cosmicjs/sdk';
 
 // Initialize Cosmic client
 export const cosmic = createBucketClient({
@@ -118,6 +118,23 @@ export interface TakeoverObject {
   } | null;
 }
 
+export interface ShowTypeObject {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  bucket: string;
+  created_at: string;
+  modified_at: string;
+  published_at: string;
+  status: string;
+  type: string;
+  metadata: {
+    description: string | null;
+    image: CosmicImage | null;
+  } | null;
+}
+
 export interface ScheduleObject {
   slug: string;
   title: string;
@@ -145,7 +162,7 @@ export interface AuthorObject {
   id: string;
   slug: string;
   title: string;
-  type: "authors";
+  type: 'authors';
   metadata: any;
 }
 
@@ -231,7 +248,7 @@ export interface PostObject {
 export interface EditorialHomepageObject {
   slug: string;
   title: string;
-  type: "editorial-homepage";
+  type: 'editorial-homepage';
   metadata: {
     featured_posts: PostObject[];
     hero_section?: {
@@ -247,7 +264,7 @@ export interface VideoObject {
   id: string;
   slug: string;
   title: string;
-  type: "videos";
+  type: 'videos';
   metadata: {
     image?: CosmicImage;
     description?: string;
@@ -275,7 +292,7 @@ export interface AboutObject {
   id: string;
   slug: string;
   title: string;
-  type: "about";
+  type: 'about';
   metadata: {
     hero_image: CosmicImage;
     hero_title: string;
