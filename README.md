@@ -25,7 +25,7 @@ A global music radio platform founded by Gilles Peterson, connecting people thro
    ```
 
 3. **Set up environment variables**
-   Create a `.env.local` file in the root directory with the following variables:
+   Create a `.env.local` file in the root directory with the following variables, or simply paste in a shared `.env.local` file if you have one:
 
    ```env
    # Cosmic CMS Configuration
