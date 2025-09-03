@@ -20,7 +20,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
 
   // Colors are now assigned sequentially in the parent component
   // Fallback to orange if no color is provided
-  const sectionColor = section.color || '#F8971D';
+  const sectionColor = section.color || 'bg-sunset';
 
   // Convert Cosmic items to show format for ShowCard
   const convertToShowFormat = (item: CosmicItem) => {

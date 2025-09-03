@@ -1428,7 +1428,12 @@ export async function createColouredSections(
     return colouredSections;
   }
 
-  const colors = ['#F8971D', '#88CA4F', '#A97AFF', '#1DA0F8'];
+  const colors = [
+    '#f8971d', // sunset
+    '#88ca4f', // electric
+    '#e661a4', // hyperpop
+    '#1da0f8', // hyperblue
+  ];
 
   for (let i = 0; i < homepageData.metadata.coloured_sections.length; i++) {
     const colouredSection = homepageData.metadata.coloured_sections[i];

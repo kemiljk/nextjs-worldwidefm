@@ -69,10 +69,6 @@ The project includes a comprehensive color system defined in `app/globals.css`:
 --color-sunset: #f8971d;
 --color-electric: #88ca4f;
 --color-hyperpop: #e661a4;
-
-/* Extended Palette */
---color-crimson-*: Warm red tones --color-bronze- *: Golden yellow tones --color-cornflower- *: Blue
-  tones --color-sky- *: Light blue tones --color-green- *: Natural green tones;
 ```
 
 ### Typography Scale
