@@ -1,28 +1,68 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Dropzone } from "@/components/ui/dropzone";
-import { toast } from "sonner";
-import { RadioCultArtist } from "@/lib/radiocult-service";
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Dropzone } from '@/components/ui/dropzone';
+import { toast } from 'sonner';
+import { RadioCultArtist } from '@/lib/radiocult-service';
 
 // Form schema using zod
 const artistFormSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().optional(),
-  instagram: z.string().optional(),
-  twitter: z.string().optional(),
-  facebook: z.string().optional(),
-  website: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
-  mixcloud: z.string().optional(),
-  soundcloud: z.string().optional(),
+  instagram: z
+    .string()
+    .optional()
+    .refine((val) => !val || !val.includes('instagram.com'), {
+      message: "Please enter just the handle (e.g., 'username'), not the full URL",
+    }),
+  twitter: z
+    .string()
+    .optional()
+    .refine((val) => !val || (!val.includes('twitter.com') && !val.includes('x.com')), {
+      message: "Please enter just the handle (e.g., 'username'), not the full URL",
+    }),
+  facebook: z
+    .string()
+    .optional()
+    .refine((val) => !val || !val.includes('facebook.com'), {
+      message: "Please enter just the handle (e.g., 'username'), not the full URL",
+    }),
+  website: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  mixcloud: z
+    .string()
+    .optional()
+    .refine((val) => !val || !val.includes('mixcloud.com'), {
+      message: "Please enter just the handle (e.g., 'username'), not the full URL",
+    }),
+  soundcloud: z
+    .string()
+    .optional()
+    .refine((val) => !val || !val.includes('soundcloud.com'), {
+      message: "Please enter just the handle (e.g., 'username'), not the full URL",
+    }),
 });
 
 type ArtistFormValues = z.infer<typeof artistFormSchema>;
@@ -35,10 +75,10 @@ interface AddNewArtistProps {
 async function uploadToCosmicOnly(file: File): Promise<string | null> {
   try {
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append('image', file);
 
-    const response = await fetch("/api/upload-image", {
-      method: "POST",
+    const response = await fetch('/api/upload-image', {
+      method: 'POST',
       body: formData,
     });
 
@@ -49,7 +89,7 @@ async function uploadToCosmicOnly(file: File): Promise<string | null> {
     const data = await response.json();
     return data.url || null;
   } catch (error) {
-    console.error("Error uploading to Cosmic:", error);
+    console.error('Error uploading to Cosmic:', error);
     return null;
   }
 }
@@ -63,14 +103,14 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
   const form = useForm<ArtistFormValues>({
     resolver: zodResolver(artistFormSchema),
     defaultValues: {
-      name: "",
-      description: "",
-      instagram: "",
-      twitter: "",
-      facebook: "",
-      website: "",
-      mixcloud: "",
-      soundcloud: "",
+      name: '',
+      description: '',
+      instagram: '',
+      twitter: '',
+      facebook: '',
+      website: '',
+      mixcloud: '',
+      soundcloud: '',
     },
   });
 
@@ -84,7 +124,7 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
       if (imageFile) {
         const uploadedUrl = await uploadToCosmicOnly(imageFile);
         if (!uploadedUrl) {
-          throw new Error("Failed to upload image");
+          throw new Error('Failed to upload image');
         }
         imageUrl = uploadedUrl;
       }
@@ -100,10 +140,10 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
       if (values.soundcloud) socialLinks.soundcloud = values.soundcloud;
 
       // Send request to create artist
-      const response = await fetch("/api/artists/create", {
-        method: "POST",
+      const response = await fetch('/api/artists/create', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           name: values.name,
@@ -115,12 +155,12 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to create artist");
+        throw new Error(error.message || 'Failed to create artist');
       }
 
       const data = await response.json();
 
-      toast.success("Artist created successfully!");
+      toast.success('Artist created successfully!');
 
       // Close the dialog and reset form
       setOpen(false);
@@ -130,9 +170,9 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
       // Notify parent component
       onArtistCreated(data.artist);
     } catch (error) {
-      console.error("Error creating artist:", error);
-      toast.error("Failed to create artist", {
-        description: error instanceof Error ? error.message : "Unknown error occurred",
+      console.error('Error creating artist:', error);
+      toast.error('Failed to create artist', {
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
       });
     } finally {
       setIsLoading(false);
@@ -140,27 +180,39 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={setOpen}
+    >
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button
+          variant='outline'
+          size='sm'
+        >
           Add New Artist
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className='sm:max-w-[500px]'>
         <DialogHeader>
           <DialogTitle>Add a New Artist</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className='space-y-4'
+          >
             <FormField
               control={form.control}
-              name="name"
+              name='name'
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Name *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Artist name" {...field} />
+                    <Input
+                      placeholder='Artist name'
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -169,12 +221,17 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
 
             <FormField
               control={form.control}
-              name="description"
+              name='description'
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Artist description" rows={3} {...field} value={field.value || ""} />
+                    <Textarea
+                      placeholder='Artist description'
+                      rows={3}
+                      {...field}
+                      value={field.value || ''}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -184,25 +241,31 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
             <FormItem>
               <FormLabel>Artist Image</FormLabel>
               <Dropzone
-                accept="image/*"
+                accept='image/*'
                 disabled={isLoading}
                 onFileSelect={setImageFile}
                 selectedFile={imageFile}
                 maxSize={10 * 1024 * 1024} // 10MB limit for images
-                className="cursor-pointer"
+                className='cursor-pointer'
               />
-              <FormDescription>Upload an image of the artist. Maximum file size is 10MB.</FormDescription>
+              <FormDescription>
+                Upload an image of the artist. Maximum file size is 10MB.
+              </FormDescription>
             </FormItem>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className='grid grid-cols-2 gap-4'>
               <FormField
                 control={form.control}
-                name="instagram"
+                name='instagram'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Instagram</FormLabel>
                     <FormControl>
-                      <Input placeholder="Instagram handle" {...field} value={field.value || ""} />
+                      <Input
+                        placeholder='Instagram handle'
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -211,12 +274,16 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
 
               <FormField
                 control={form.control}
-                name="twitter"
+                name='twitter'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Twitter</FormLabel>
                     <FormControl>
-                      <Input placeholder="Twitter handle" {...field} value={field.value || ""} />
+                      <Input
+                        placeholder='Twitter handle'
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -224,15 +291,19 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className='grid grid-cols-2 gap-4'>
               <FormField
                 control={form.control}
-                name="facebook"
+                name='facebook'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Facebook</FormLabel>
                     <FormControl>
-                      <Input placeholder="Facebook page" {...field} value={field.value || ""} />
+                      <Input
+                        placeholder='Facebook page'
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -241,12 +312,16 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
 
               <FormField
                 control={form.control}
-                name="website"
+                name='website'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Website</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://example.com" {...field} value={field.value || ""} />
+                      <Input
+                        placeholder='https://example.com'
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -254,15 +329,19 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className='grid grid-cols-2 gap-4'>
               <FormField
                 control={form.control}
-                name="mixcloud"
+                name='mixcloud'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Mixcloud</FormLabel>
                     <FormControl>
-                      <Input placeholder="Mixcloud handle" {...field} value={field.value || ""} />
+                      <Input
+                        placeholder='Mixcloud handle'
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -271,12 +350,16 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
 
               <FormField
                 control={form.control}
-                name="soundcloud"
+                name='soundcloud'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Soundcloud</FormLabel>
                     <FormControl>
-                      <Input placeholder="Soundcloud handle" {...field} value={field.value || ""} />
+                      <Input
+                        placeholder='Soundcloud handle'
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -285,8 +368,11 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
             </div>
 
             <DialogFooter>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Creating..." : "Create Artist"}
+              <Button
+                type='submit'
+                disabled={isLoading}
+              >
+                {isLoading ? 'Creating...' : 'Create Artist'}
               </Button>
             </DialogFooter>
           </form>
