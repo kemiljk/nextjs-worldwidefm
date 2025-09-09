@@ -1,14 +1,14 @@
-import { Metadata } from "next";
-import Image from "next/image";
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
-import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/shared/page-header";
-import { Card, CardContent } from "@/components/ui/card";
-import { getRadioShows } from "@/lib/cosmic-service";
-import { cosmic } from "@/lib/cosmic-config";
-import { PlayButton } from "@/components/play-button";
-import { generateBaseMetadata } from "@/lib/metadata-utils";
+import { Metadata } from 'next';
+import Image from 'next/image';
+import Link from 'next/link';
+import { ChevronRight } from 'lucide-react';
+import { notFound } from 'next/navigation';
+import { PageHeader } from '@/components/shared/page-header';
+import { getRadioShows } from '@/lib/cosmic-service';
+import { cosmic } from '@/lib/cosmic-config';
+import { generateBaseMetadata } from '@/lib/metadata-utils';
+import { transformShowToViewData } from '@/lib/cosmic-service';
+import HostClient from './host-client';
 
 // Add consistent revalidation time
 export const revalidate = 900; // 15 minutes
@@ -25,22 +25,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (host) {
       return generateBaseMetadata({
         title: `${host.title} - Host - Worldwide FM`,
-        description: host.metadata?.description || `Listen to shows hosted by ${host.title} on Worldwide FM.`,
+        description:
+          host.metadata?.description || `Listen to shows hosted by ${host.title} on Worldwide FM.`,
         image: host.metadata?.image?.imgix_url,
-        keywords: ["host", "dj", "presenter", "radio", "worldwide fm", host.title.toLowerCase()],
+        keywords: ['host', 'dj', 'presenter', 'radio', 'worldwide fm', host.title.toLowerCase()],
       });
     }
 
     return generateBaseMetadata({
-      title: "Host Not Found - Worldwide FM",
-      description: "The requested host could not be found.",
+      title: 'Host Not Found - Worldwide FM',
+      description: 'The requested host could not be found.',
       noIndex: true,
     });
   } catch (error) {
-    console.error("Error generating host metadata:", error);
+    console.error('Error generating host metadata:', error);
     return generateBaseMetadata({
-      title: "Host Not Found - Worldwide FM",
-      description: "The requested host could not be found.",
+      title: 'Host Not Found - Worldwide FM',
+      description: 'The requested host could not be found.',
       noIndex: true,
     });
   }
@@ -48,91 +49,64 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // Generate static params for all hosts
 export async function generateStaticParams() {
-  console.log("🔍 generateStaticParams: Starting host static params generation");
-  console.log("Environment check:", {
-    bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG ? "✅ Set" : "❌ Missing",
-    readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY ? "✅ Set" : "❌ Missing",
-  });
-
   try {
     // Get all hosts from Cosmic CMS
     const response = await cosmic.objects
       .find({
-        type: "regular-hosts",
-        status: "published",
+        type: 'regular-hosts',
+        status: 'published',
       })
-      .props("slug")
+      .props('slug')
       .limit(1000);
-
-    console.log("🔍 generateStaticParams: Cosmic response:", {
-      totalObjects: response.objects?.length || 0,
-      hasObjects: !!response.objects,
-      firstFewSlugs: response.objects?.slice(0, 5).map((h: any) => h.slug) || [],
-    });
 
     const params =
       response.objects?.map((host: any) => ({
         slug: host.slug,
       })) || [];
 
-    console.log("🔍 generateStaticParams: Generated params:", params);
     return params;
   } catch (error) {
-    console.error("❌ Error generating static params for hosts:", error);
-    if (error instanceof Error) {
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      });
-    }
+    console.error('Error generating static params for hosts:', error);
     return [];
   }
 }
 
 async function getHostBySlug(slug: string) {
-  console.log(`🔍 getHostBySlug: Fetching host with slug: ${slug}`);
-
   try {
     const response = await cosmic.objects
       .findOne({
-        type: "regular-hosts",
+        type: 'regular-hosts',
         slug: slug,
       })
-      .props("id,slug,title,content,metadata")
+      .props('id,slug,title,content,metadata')
       .depth(1);
-
-    console.log(`🔍 getHostBySlug: Response for ${slug}:`, {
-      hasObject: !!response?.object,
-      objectId: response?.object?.id,
-      objectTitle: response?.object?.title,
-    });
 
     return response?.object || null;
   } catch (error) {
-    console.error(`❌ Error fetching host by slug ${slug}:`, error);
-    if (error instanceof Error) {
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      });
-    }
+    console.error(`Error fetching host by slug ${slug}:`, error);
     return null;
   }
 }
 
-async function getShowsByHost(hostId: string) {
+async function getInitialShows(hostId: string) {
   try {
+    console.log(`🔍 getInitialShows: Loading initial episodes for host ID: ${hostId}`);
+
     const response = await getRadioShows({
       filters: { host: hostId },
-      limit: 50,
-      sort: "-metadata.broadcast_date",
+      limit: 20, // Load initial batch of 20
+      sort: '-metadata.broadcast_date',
     });
 
-    return response.objects || [];
+    console.log(
+      `🔍 getInitialShows: Found ${response.objects?.length || 0} episodes for host ID ${hostId}`
+    );
+
+    // Transform episodes to show format for ShowCard compatibility
+    const transformedShows = (response.objects || []).map(transformShowToViewData);
+    return transformedShows;
   } catch (error) {
-    console.error(`Error fetching shows for host ${hostId}:`, error);
+    console.error(`Error fetching initial shows for host ${hostId}:`, error);
     return [];
   }
 }
@@ -147,6 +121,9 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
     hostFound: !!host,
     hostId: host?.id,
     hostTitle: host?.title,
+    hostSlug: host?.slug,
+    hostType: host?.type,
+    hostMetadata: host?.metadata,
   });
 
   if (!host) {
@@ -154,72 +131,58 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
     notFound();
   }
 
-  // Get shows hosted by this person
-  const hostedShows = await getShowsByHost(host.id);
-  console.log(`🔍 HostPage: Found ${hostedShows.length} hosted shows for ${host.title}`);
+  // Get initial shows hosted by this person
+  const initialShows = await getInitialShows(host.id);
+  console.log(
+    `🔍 HostPage: Found ${initialShows.length} initial shows for ${host.title} (ID: ${host.id})`
+  );
 
-  const hostImage = host.metadata?.image?.imgix_url || "/image-placeholder.svg";
-  const hostDescription = host.metadata?.description || host.content || "";
+  const hostImage = host.metadata?.image?.imgix_url || '/image-placeholder.svg';
+  const hostDescription = host.metadata?.description || host.content || '';
 
   return (
-    <div className="space-y-8">
-      <Link href="/shows" className="text-foreground flex items-center gap-1">
-        <ChevronRight className="w-4 h-4 rotate-180" />
+    <div className='space-y-8'>
+      <Link
+        href='/shows'
+        className='text-foreground flex items-center gap-1'
+      >
+        <ChevronRight className='w-4 h-4 rotate-180' />
         Back to Shows
       </Link>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="aspect-square relative overflow-hidden">
-          <Image src={hostImage} alt={host.title} fill className="object-cover rounded-none" />
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
+        <div className='aspect-square relative overflow-hidden'>
+          <Image
+            src={hostImage}
+            alt={host.title}
+            fill
+            className='object-cover rounded-none'
+          />
         </div>
 
         <div>
-          <PageHeader title={host.title} description={hostDescription} />
+          <PageHeader
+            title={host.title}
+            description={hostDescription}
+          />
 
-          {hostedShows.length > 0 && (
-            <div className="mt-8">
-              <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-4">Shows ({hostedShows.length})</h3>
-              <p className="text-muted-foreground mb-4">Recent shows hosted by {host.title}</p>
+          {initialShows.length > 0 && (
+            <div className='mt-8'>
+              <h3 className='text-m5 font-mono font-normal text-almostblack dark:text-white mb-4'>
+                Shows
+              </h3>
+              <p className='text-muted-foreground mb-4'>Recent shows hosted by {host.title}</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Hosted Shows */}
-      {hostedShows.length > 0 && (
-        <section className="space-y-6">
-          <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">Recent Shows</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {hostedShows.slice(0, 9).map((show) => {
-              const showImage = show.metadata?.image?.imgix_url || "/image-placeholder.svg";
-              const broadcastDate = show.metadata?.broadcast_date ? new Date(show.metadata.broadcast_date).toLocaleDateString() : "";
-
-              return (
-                <Link key={show.id} href={`/episode${show.slug}`}>
-                  <Card className="overflow-hidden h-full hover:shadow-lg transition-all">
-                    <div className="aspect-square relative overflow-hidden">
-                      <Image src={showImage} alt={show.title} fill className="object-cover" />
-                      <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end">
-                        <div className="p-4 w-full">
-                          <h3 className="text-m7 font-mono font-normal text-almostblack dark:text-white line-clamp-2">{show.title}</h3>
-                          {broadcastDate && <p className="text-white/70 text-sm mt-1">{broadcastDate}</p>}
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {hostedShows.length === 0 && (
-        <div className="text-center py-12">
-          <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-2">No Shows Found</h3>
-          <p className="text-muted-foreground">This host doesn't have any shows yet.</p>
-        </div>
-      )}
+      {/* Hosted Shows with Infinite Scroll */}
+      <HostClient
+        hostId={host.id}
+        hostTitle={host.title}
+        initialShows={initialShows}
+      />
     </div>
   );
 }

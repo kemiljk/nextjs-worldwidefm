@@ -1,5 +1,11 @@
-import { createBucketClient } from "@cosmicjs/sdk";
-import { CosmicResponse, RadioShowObject, CategoryObject, PostObject, AboutObject } from "./cosmic-config";
+import { createBucketClient } from '@cosmicjs/sdk';
+import {
+  CosmicResponse,
+  RadioShowObject,
+  CategoryObject,
+  PostObject,
+  AboutObject,
+} from './cosmic-config';
 
 const cosmic = createBucketClient({
   bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG as string,
@@ -93,8 +99,8 @@ export async function getRadioShows(
   try {
     // Start building the query
     let query: any = {
-      type: "episodes",
-      status: params.status || "published",
+      type: 'episode',
+      status: params.status || 'published',
     };
 
     // If we have IDs to exclude, add them as a "not" condition
@@ -116,7 +122,7 @@ export async function getRadioShows(
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         query = {
           ...query,
-          "metadata.broadcast_date": {
+          'metadata.broadcast_date': {
             $gte: thirtyDaysAgo.toISOString(),
           },
         };
@@ -125,32 +131,34 @@ export async function getRadioShows(
       if (genre) {
         query = {
           ...query,
-          "metadata.genres.id": genre,
+          'metadata.genres.id': genre,
         };
       }
 
       if (host) {
+        const hosts = Array.isArray(host) ? host : [host];
+        // Try a simpler approach - match any host ID in the regular_hosts array
         query = {
           ...query,
-          "metadata.regular_hosts.id": host,
+          'metadata.regular_hosts.id': { $in: hosts },
         };
       }
 
       if (takeover) {
         query = {
           ...query,
-          "metadata.takeovers.id": takeover,
+          'metadata.takeovers.id': takeover,
         };
       }
     }
 
     const response = await cosmic.objects
       .find(query)
-      .props("slug,title,metadata,type")
+      .props('slug,title,metadata,type')
       .limit(params.limit || 10)
       .skip(params.skip || 0)
-      .sort(params.sort || "-created_at")
-      .depth(1);
+      .sort(params.sort || '-created_at')
+      .depth(3);
 
     return {
       objects: response.objects || [],
@@ -158,7 +166,7 @@ export async function getRadioShows(
     };
   } catch (error) {
     if (error instanceof Error) {
-      console.error("Error details:", {
+      console.error('Error details:', {
         message: error.message,
         stack: error.stack,
         name: error.name,
@@ -173,12 +181,15 @@ export async function getRadioShows(
  */
 export async function getRadioShowBySlug(slug: string): Promise<CosmicResponse<RadioShowObject>> {
   try {
-    const response = await cosmic.objects.findOne({ type: "episodes", slug }).props("id,slug,title,metadata,type,created_at,updated_at").depth(1);
+    const response = await cosmic.objects
+      .findOne({ type: 'episode', slug })
+      .props('id,slug,title,metadata,type,created_at,updated_at')
+      .depth(1);
     return response;
   } catch (error) {
     console.error(`Error fetching radio show by slug ${slug}:`, error);
     if (error instanceof Error) {
-      console.error("Error details:", {
+      console.error('Error details:', {
         message: error.message,
         stack: error.stack,
         name: error.name,
@@ -193,11 +204,14 @@ export async function getRadioShowBySlug(slug: string): Promise<CosmicResponse<R
  */
 export async function getCategories(): Promise<CosmicResponse<CategoryObject>> {
   try {
-    const response = await cosmic.objects.find({ type: "categories" }).props("slug,title,metadata,type").depth(1);
+    const response = await cosmic.objects
+      .find({ type: 'categories' })
+      .props('slug,title,metadata,type')
+      .depth(1);
     return response;
   } catch (error) {
     if (error instanceof Error) {
-      console.error("Error details:", {
+      console.error('Error details:', {
         message: error.message,
         stack: error.stack,
         name: error.name,
@@ -212,11 +226,14 @@ export async function getCategories(): Promise<CosmicResponse<CategoryObject>> {
  */
 export async function getCategoryBySlug(slug: string): Promise<CosmicResponse<CategoryObject>> {
   try {
-    const response = await cosmic.objects.find({ type: "categories", slug }).props("slug,title,metadata,type").depth(1);
+    const response = await cosmic.objects
+      .find({ type: 'categories', slug })
+      .props('slug,title,metadata,type')
+      .depth(1);
     return response;
   } catch (error) {
     if (error instanceof Error) {
-      console.error("Error details:", {
+      console.error('Error details:', {
         message: error.message,
         stack: error.stack,
         name: error.name,
@@ -258,14 +275,14 @@ export async function getSchedule(): Promise<CosmicResponse<Schedule> | null> {
   try {
     const response = await cosmic.objects
       .findOne({
-        type: "schedule",
-        slug: "schedule",
+        type: 'schedule',
+        slug: 'schedule',
       })
-      .props("id,title,slug,metadata");
+      .props('id,title,slug,metadata');
 
     return response;
   } catch (error) {
-    console.error("Error fetching schedule:", error);
+    console.error('Error fetching schedule:', error);
     return null;
   }
 }
@@ -274,32 +291,32 @@ export async function getSchedule(): Promise<CosmicResponse<Schedule> | null> {
  * Helper function to transform Cosmic data to the format used in the mock data
  */
 export function transformShowToViewData(show: RadioShowObject) {
-  const imageUrl = show.metadata?.image?.imgix_url || "/image-placeholder.svg";
+  const imageUrl = show.metadata?.image?.imgix_url || '/image-placeholder.svg';
   const transformed = {
     id: show.id,
     title: show.title,
     type: show.type,
-    subtitle: show.metadata?.subtitle || "",
-    description: show.metadata?.description || "",
+    subtitle: show.metadata?.subtitle || '',
+    description: show.metadata?.description || '',
     featured_on_homepage: show.metadata?.featured_on_homepage || false,
     image: imageUrl,
-    thumbnail: imageUrl ? `${imageUrl}?w=100&h=100&fit=crop` : "/image-placeholder.svg",
+    thumbnail: imageUrl ? `${imageUrl}?w=100&h=100&fit=crop` : '/image-placeholder.svg',
     slug: show.slug,
-    broadcast_date: show.metadata?.broadcast_date || "",
-    broadcast_time: show.metadata?.broadcast_time || "",
-    broadcast_day: show.metadata?.broadcast_day || "",
-    duration: show.metadata?.duration || "",
-    player: show.metadata?.player || "",
-    tracklist: show.metadata?.tracklist || "",
-    body_text: show.metadata?.body_text || "",
-    page_link: show.metadata?.page_link || "",
-    source: show.metadata?.source || "",
+    broadcast_date: show.metadata?.broadcast_date || '',
+    broadcast_time: show.metadata?.broadcast_time || '',
+    broadcast_day: show.metadata?.broadcast_day || '',
+    duration: show.metadata?.duration || '',
+    player: show.metadata?.player || '',
+    tracklist: show.metadata?.tracklist || '',
+    body_text: show.metadata?.body_text || '',
+    page_link: show.metadata?.page_link || '',
+    source: show.metadata?.source || '',
     // Map all metadata fields with their full object structure
     genres: (show.metadata?.genres || []).map((genre) => ({
       id: genre.id,
       slug: genre.slug,
       title: genre.title,
-      content: genre.content || "",
+      content: genre.content || '',
       type: genre.type,
       status: genre.status,
       metadata: genre.metadata || null,
@@ -307,11 +324,27 @@ export function transformShowToViewData(show: RadioShowObject) {
       modified_at: genre.modified_at,
       published_at: genre.published_at,
     })),
+    
+    // Tags format for ShowCard compatibility
+    tags: (show.metadata?.genres || []).map((genre) => ({
+      name: genre.title,
+      title: genre.title,
+    })),
+    
+    // Additional properties for ShowCard compatibility
+    name: show.title,
+    created_time: show.metadata?.broadcast_date || show.created_at,
+    created_at: show.created_at,
+    broadcast_date: show.metadata?.broadcast_date,
+    user: {
+      name: show.metadata?.regular_hosts?.[0]?.title || '',
+    },
+    host: show.metadata?.regular_hosts?.[0]?.title || '',
     locations: (show.metadata?.locations || []).map((location) => ({
       id: location.id,
       slug: location.slug,
       title: location.title,
-      content: location.content || "",
+      content: location.content || '',
       type: location.type,
       status: location.status,
       metadata: location.metadata || null,
@@ -323,7 +356,7 @@ export function transformShowToViewData(show: RadioShowObject) {
       id: host.id,
       slug: host.slug,
       title: host.title,
-      content: host.content || "",
+      content: host.content || '',
       type: host.type,
       status: host.status,
       metadata: host.metadata || null,
@@ -335,7 +368,7 @@ export function transformShowToViewData(show: RadioShowObject) {
       id: takeover.id,
       slug: takeover.slug,
       title: takeover.title,
-      content: takeover.content || "",
+      content: takeover.content || '',
       type: takeover.type,
       status: takeover.status,
       metadata: takeover.metadata || null,
@@ -350,20 +383,20 @@ export function transformShowToViewData(show: RadioShowObject) {
 /**
  * Get navigation data
  */
-export async function getNavigation(slug: string = "navigation"): Promise<any> {
+export async function getNavigation(slug: string = 'navigation'): Promise<any> {
   try {
     const response = await cosmic.objects
       .findOne({
-        type: "navigation",
+        type: 'navigation',
         slug,
       })
-      .props("slug,title,metadata")
+      .props('slug,title,metadata')
       .depth(1);
 
     return response;
   } catch (error) {
     if (error instanceof Error) {
-      console.error("Error details:", {
+      console.error('Error details:', {
         message: error.message,
         stack: error.stack,
         name: error.name,
@@ -380,16 +413,16 @@ export async function getEditorialHomepage(): Promise<any> {
   try {
     const response = await cosmic.objects
       .findOne({
-        type: "editorial-homepage",
-        slug: "editorial",
+        type: 'editorial-homepage',
+        slug: 'editorial',
       })
-      .props("slug,title,metadata")
+      .props('slug,title,metadata')
       .depth(2); // Increased depth to get nested objects
 
     return response;
   } catch (error) {
     if (error instanceof Error) {
-      console.error("Error details:", {
+      console.error('Error details:', {
         message: error.message,
         stack: error.stack,
         name: error.name,
@@ -410,38 +443,38 @@ export async function getPosts(
     sort?: string;
     status?: string;
     featured?: boolean;
-    post_type?: "article" | "video" | "event";
+    post_type?: 'article' | 'video' | 'event';
   } = {}
 ): Promise<CosmicResponse<PostObject>> {
   try {
     // Build the query
     let query: any = {
-      type: "posts",
-      status: params.status || "published",
+      type: 'posts',
+      status: params.status || 'published',
     };
 
     // If featured flag is provided, add it to the query
     if (params.featured) {
-      query["metadata.featured_on_homepage"] = true;
+      query['metadata.featured_on_homepage'] = true;
     }
 
     // If post type is provided, add it to the query
     if (params.post_type) {
-      query["metadata.post_type"] = params.post_type;
+      query['metadata.post_type'] = params.post_type;
     }
 
     const response = await cosmic.objects
       .find(query)
-      .props("id,slug,title,metadata,type")
+      .props('id,slug,title,metadata,type')
       .limit(params.limit || 10)
       .skip(params.skip || 0)
-      .sort(params.sort || "-created_at")
+      .sort(params.sort || '-created_at')
       .depth(1);
 
     return response;
   } catch (error) {
     if (error instanceof Error) {
-      console.error("Error details:", {
+      console.error('Error details:', {
         message: error.message,
         stack: error.stack,
         name: error.name,
@@ -457,10 +490,10 @@ export async function getPosts(
 export async function getAboutPage(): Promise<AboutPage> {
   const { object } = await cosmic.objects
     .findOne({
-      type: "about",
-      slug: "about",
+      type: 'about',
+      slug: 'about',
     })
-    .props("metadata")
+    .props('metadata')
     .depth(2);
 
   return object;
@@ -480,13 +513,13 @@ export async function getHosts(
   try {
     const response = await cosmic.objects
       .find({
-        type: "hosts",
-        status: params.status || "published",
+        type: 'hosts',
+        status: params.status || 'published',
       })
-      .props("id,slug,title,content,metadata")
+      .props('id,slug,title,content,metadata')
       .limit(params.limit || 50)
       .skip(params.skip || 0)
-      .sort(params.sort || "title")
+      .sort(params.sort || 'title')
       .depth(1);
 
     return {
@@ -494,7 +527,7 @@ export async function getHosts(
       total: response.total || 0,
     };
   } catch (error) {
-    console.error("Error fetching hosts:", error);
+    console.error('Error fetching hosts:', error);
     throw error;
   }
 }
@@ -504,7 +537,10 @@ export async function getHosts(
  */
 export async function getHostBySlug(slug: string): Promise<CosmicResponse<any>> {
   try {
-    const response = await cosmic.objects.findOne({ type: "hosts", slug }).props("id,slug,title,content,metadata").depth(1);
+    const response = await cosmic.objects
+      .findOne({ type: 'hosts', slug })
+      .props('id,slug,title,content,metadata')
+      .depth(1);
     return response;
   } catch (error) {
     console.error(`Error fetching host by slug ${slug}:`, error);
@@ -519,10 +555,10 @@ export async function getHostByName(name: string): Promise<any | null> {
   try {
     const response = await cosmic.objects
       .find({
-        type: "hosts",
-        title: { $regex: name, $options: "i" },
+        type: 'hosts',
+        title: { $regex: name, $options: 'i' },
       })
-      .props("id,slug,title,content,metadata")
+      .props('id,slug,title,content,metadata')
       .limit(1)
       .depth(1);
 

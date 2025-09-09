@@ -439,6 +439,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
           <ShowsGrid
             shows={filteredShows}
             sentinelRef={ref}
+            contentType={activeType as 'episodes' | 'hosts-series' | 'takeovers'}
           />
           {isLoadingMore && (
             <div className='h-4 flex items-center justify-center mt-8'>
