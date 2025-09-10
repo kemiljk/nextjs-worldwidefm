@@ -11,7 +11,7 @@ export function ShowsGrid({ shows, sentinelRef, contentType = 'episodes' }: Show
   if (shows.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-foreground font-mono text-almostblack text-m8 uppercase">Fetching shows...</p>
+        <p className="font-mono text-almostblack text-m8 uppercase">Fetching shows...</p>
       </div>
     );
   }
