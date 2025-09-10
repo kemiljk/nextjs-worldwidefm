@@ -11,7 +11,7 @@ interface GenreDropdownProps {
 export function GenreDropdown({ genres, onSelect, selectedGenre }: GenreDropdownProps) {
   return (
     <Select onValueChange={(value) => onSelect(value === "all" ? null : value)} value={selectedGenre || "all"}>
-      <SelectTrigger className="w-[180px] bg-almostblack text-white border-almostblack">
+      <SelectTrigger className="w-auto hover:bg-almostblack">
         <SelectValue placeholder="Select genre" />
       </SelectTrigger>
       <SelectContent>

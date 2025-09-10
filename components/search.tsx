@@ -14,8 +14,8 @@ interface SearchProps {
 export function Search({ value, onChange, placeholder = "Search...", className }: SearchProps) {
   return (
     <div className={cn("relative", className)}>
-      <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input type="search" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} className="pl-10" />
+      <SearchIcon className="absolute h-4 w-4 text-muted-foreground" />
+      <Input type="search" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} className="" />
     </div>
   );
 }

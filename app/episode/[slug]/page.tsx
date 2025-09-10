@@ -6,9 +6,10 @@ import { findHostSlug, displayNameToSlug } from "@/lib/host-matcher";
 import { ShowCard } from "@/components/ui/show-card";
 import { EpisodeHero } from "@/components/homepage-hero";
 import { SafeHtml } from "@/components/ui/safe-html";
-import { Tracklist } from "@/components/ui/tracklist";
 import { GenreTag } from "@/components/ui/genre-tag";
 import { generateShowMetadata } from "@/lib/metadata-utils";
+import { TracklistToggle } from "@/components/ui/tracklisttoggle";
+
 // stripUrlsFromText removed as we now render HTML content directly
 
 export const revalidate = 900; // 15 minutes
@@ -21,11 +22,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const { slug } = await params;
     const episode = await getEpisodeBySlug(slug);
-    
+
     if (episode) {
       return generateShowMetadata(episode);
     }
-    
+
     return generateShowMetadata({ title: "Episode Not Found" });
   } catch (error) {
     console.error("Error generating episode metadata:", error);
@@ -102,7 +103,7 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
   const relatedShows = relatedEpisodes.map(transformEpisodeToShowFormat);
 
   const displayName = episode.title || "Untitled Episode";
-  const displayImage = metadata.image?.imgix_url || "/image-placeholder.svg";
+  const displayImage = metadata.image?.imgix_url || "/image-placeholder.png";
 
   // Format date for overlay (e.g., SAT 14/06)
   const showDate = startTime
@@ -115,58 +116,53 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
     .toUpperCase();
 
   return (
-    <div className="pb-8 -mx-4 md:-mx-8 lg:-mx-16">
+    <div className="pb-50">
       <EpisodeHero displayName={displayName} displayImage={displayImage} showDate={showDate} show={show} />
 
       {/* Main Content Container */}
-      <div className="mx-auto px-4 lg:px-8 mt-8">
-        <div className="flex gap-8">
-          <div className="max-w-3xl mx-auto">
-            {/* Episode Description */}
-            {(metadata.body_text || metadata.description) && (
-              <div className="mb-4">
-                <div className="prose dark:prose-invert max-w-none">
-                  <SafeHtml content={metadata.body_text || metadata.description || ""} type="editorial" className="text-b2 text-muted-foreground leading-tight" />
-                </div>
-              </div>
-            )}
 
-            {/* Episode Details */}
-            <div className="space-y-6">
+
+        <div className="w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-3">
+          {/*LEFT CONTAINER*/}
+          <div className="w-full md:w-[40%] flex flex-col gap-1">
+
+              {/* Episode Description */}
+              {(metadata.body_text || metadata.description) && (
+                <div className="prose dark:prose-invert max-w-none">
+                  <SafeHtml content={metadata.body_text || metadata.description || ""} type="editorial" className="text-b3 sm:text-[18px] leading-tight text-almostblack" />
+                </div>
+              )}
+
               {/* Genres Section */}
               {metadata.genres?.length > 0 && (
                 <div>
-                  <div className="flex flex-wrap select-none cursor-default">
+                  <div className="flex flex-wrap select-none cursor-default my-3">
                     {metadata.genres.map((genre: any) => (
                       <GenreTag key={genre.id || genre.slug}>{genre.title || genre.name}</GenreTag>
                     ))}
                   </div>
                 </div>
               )}
-
               {/* Hosts Section */}
               {metadata.regular_hosts?.length > 0 && (
-                <div>
-                  <h3 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white mb-4">Hosts</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {metadata.regular_hosts.map((host: any) => (
-                      <HostLink key={host.id || host.slug} host={host} className="text-b3 text-muted-foreground hover:text-foreground transition-colors" />
-                    ))}
-                  </div>
+                <div className="flex flex-wrap gap-1 pl-1">
+                  {metadata.regular_hosts.map((host: any) => (
+                    <HostLink key={host.id || host.slug} host={host} className="text-m7 font-mono uppercase text-muted-foreground hover:text-foreground transition-colors" />
+                  ))}
                 </div>
               )}
 
               {/* Duration */}
               {metadata.duration && (
                 <div>
-                  <span className="text-sm text-muted-foreground">Duration: {metadata.duration}</span>
+                  <span className="text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors">Duration: {metadata.duration}</span>
                 </div>
               )}
 
               {/* Broadcast Info */}
               {metadata.broadcast_date && (
                 <div>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors">
                     Broadcast: {new Date(metadata.broadcast_date).toLocaleDateString()}
                     {metadata.broadcast_time && ` at ${metadata.broadcast_time}`}
                   </span>
@@ -174,28 +170,22 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
               )}
 
               {/* Tracklist Section */}
+              <div className="my-4">
               {metadata.tracklist && (
-                <div className="mt-12">
-                  <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white mb-6">
-                    Tracklist
-                    <span className="ml-2 text-sm font-normal text-muted-foreground">({metadata.tracklist.split("\n").filter((line) => line.trim()).length} tracks)</span>
-                  </h2>
-                  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-none p-6 shadow-sm">
-                    <Tracklist content={metadata.tracklist} className="text-b4" />
-                  </div>
-                </div>
+                <TracklistToggle tracklist={metadata.tracklist}/>
               )}
-            </div>
+              </div>
           </div>
 
-          <div>
-            {/* Related Episodes Section */}
+          {/*RIGHT CONTAINER*/}
+          <div className="w-full md:w-[60%] flex flex-col mt-2 gap-2 h-auto">
+
             {relatedShows.length > 0 && (
               <div>
-                <h2 className="font-aircompressed text-[40px] uppercase tracking-tight leading-[0.9] text-black mb-6 w-full" style={{ fontFamily: "AirCompressed-Black, sans-serif" }}>
+                <h2 className="text-h8 md:text-h7 font-bold tracking-tight">
                   RELATED EPISODES
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-x-auto pb-2">
+                <div className="grid grid-cols-2 lg:grid-cols-3 lg:grid-cols-3 gap-3 justify-between pt-3">
                   {relatedShows.map((relatedShow) => {
                     const slug = `/episode/${relatedShow.slug}`;
                     return <ShowCard key={relatedShow.id || relatedShow.slug} show={relatedShow} slug={slug} playable />;
@@ -204,8 +194,18 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
               </div>
             )}
           </div>
+
         </div>
-      </div>
+
+
+
+
+
+
+
+
+
+
     </div>
   );
 }

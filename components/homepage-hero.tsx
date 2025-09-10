@@ -139,7 +139,7 @@ export const EpisodeHero = ({
   const hasAudioContent = show?.url || show?.player || show?.metadata?.player;
 
   return (
-    <div className='relative w-full h-[calc(100dvh-112px)] aspect-[2/1]'>
+    <div className='relative w-full h-[calc(100dvh-50px)] aspect-[2/1]'>
       <Image
         src={displayImage}
         alt={displayName}
@@ -152,7 +152,7 @@ export const EpisodeHero = ({
       <div className='absolute inset-0 flex flex-col justify-end'>
         <div className='flex flex-col p-4 sm:p-8 max-w-full'>
           {showDate && (
-            <span className='inline-block bg-almostblack text-white font-display text-h8 leading-none uppercase w-fit pt-1 px-1 text-left shadow-lg border border-almostblack'>
+            <span className='inline-block bg-almostblack text-white font-display text-h8 leading-none uppercase w-fit px-1 text-left shadow-lg border border-almostblack'>
               {showDate}
             </span>
           )}

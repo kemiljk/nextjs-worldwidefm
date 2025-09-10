@@ -19,62 +19,80 @@ export default async function AboutPage() {
 
   return (
     <main>
-      <PageHeader title={about.metadata.hero_title} description={about.metadata.hero_subtitle} breadcrumbs={[{ href: "/", label: "Home" }, { label: "About" }]} />
+      <div className="relative w-full h-[25vh] sm:h-[35vh] overflow-hidden">
+        <div className="absolute inset-0 bg-jazz" />
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-white via-white/0 to-white"
+          style={{ mixBlendMode: 'hue' }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+            backgroundSize: '50px 50px',
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div className="absolute bottom-0 left-0 w-full px-5  z-10">
+          <PageHeader title="ABOUT" />
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 py-16">
-        <div className="md:col-span-5">
-          <div className="prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: about.metadata.mission_content }} />
+      <div className="pt-5 px-5 flex flex-col md:flex-row gap-10 justify-between">
+        {/* Mission Content */}
+        <div className="w-[90vw] md:w-[50vw] lg:w-[30vw]">
+          <div className="font-sans text-b2 tracking-tight dark:prose-invert" dangerouslySetInnerHTML={{ __html: about.metadata.mission_content }} />
         </div>
 
-        <div className="md:col-span-7">
-          <div className="border-l-2 border-bronze-500 pl-6">
-            <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">{about.metadata.connect_title}</h2>
-            <div className="prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: about.metadata.connect_content }} />
+        {/* Other Sections in One Column */}
+        <div className="flex flex-col w-[90vw] md:w-[50vw] gap-10">
+          {/* Connect, Contact, Social wrapper */}
+          <div className="flex flex-col gap-10">
+            {/* Connect */}
+            <div>
+              <h2 className="text-m7 font-mono uppercase text-almostblack dark:text-white pb-2">{about.metadata.connect_title}</h2>
+              <div className="w-70 prose dark:prose-invert text-b3" dangerouslySetInnerHTML={{ __html: about.metadata.connect_content }} />
+            </div>
 
-            <div className="mt-8 space-y-4">
-              <div>
-                <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white">Contact</h3>
-                <p className="text-muted-foreground mt-1">
-                  {about.metadata.contact_info.metadata.email}
-                  <br />
-                  {about.metadata.contact_info.metadata.phone}
-                  <br />
-                  {about.metadata.contact_info.metadata.location}
-                </p>
-              </div>
+            {/* Contact */}
+            <div>
+              <h2 className="text-m7 font-mono uppercase text-almostblack dark:text-white pb-2">Contact</h2>
+              <p className="w-70 prose dark:prose-invert text-b3">
+                {about.metadata.contact_info.metadata.email}
+                <br />
+                {about.metadata.contact_info.metadata.phone}
+                <br />
+                {about.metadata.contact_info.metadata.location}
+              </p>
+            </div>
 
-              <div>
-                <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white">Social</h3>
-                <div className="flex gap-4 mt-2">
-                  <a href={about.metadata.social_links.metadata.instagram} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-                    Instagram
-                  </a>
-                  <a href={about.metadata.social_links.metadata.twitter} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-                    Twitter
-                  </a>
-                  <a href={about.metadata.social_links.metadata.facebook} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground transition-colors">
-                    Facebook
-                  </a>
-                </div>
+            {/* Social */}
+            <div>
+              <h3 className="text-m7 font-mono uppercase text-almostblack dark:text-white pb-2">Social</h3>
+              <div className="flex gap-4">
+                <a href={about.metadata.social_links.metadata.instagram} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:underline transition-colors text-sm">Instagram</a>
+                <a href={about.metadata.social_links.metadata.twitter} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:underline transition-colors text-sm">Twitter</a>
+                <a href={about.metadata.social_links.metadata.facebook} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:underline transition-colors text-sm">Facebook</a>
               </div>
             </div>
           </div>
-        </div>
-        <div className="md:col-span-5">
-          <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">{about.metadata.partner_with_us_title}</h2>
-          <div className="prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: about.metadata.partner_with_us_description }} />
-        </div>
-        <div className="md:col-span-7">
-          <div className="border-l-2 border-bronze-500 pl-6">
-            <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-4">Partners</h3>
-            <div className="flex flex-wrap gap-4">
-              {about.metadata.partner_with_us.map((partner) => (
-                <div key={partner.name}>
-                  <img src={partner.logo.url} alt={partner.name} className="size-24" />
-                </div>
-              ))}
+
+          {/* Partner */}
+          <div className="space-y-2 pb-20">
+            <h2 className="text-m7 font-mono uppercase text-almostblack dark:text-white pb-2">{about.metadata.partner_with_us_title}</h2>
+            <div className="w-100 prose dark:prose-invert text-b3" dangerouslySetInnerHTML={{ __html: about.metadata.partner_with_us_description }} />
+            <div className="mt-2">
+              <h3 className="pt-4 text-m7 font-mono uppercase text-almostblack dark:text-white mb-2">Partners</h3>
+              <div className="flex flex-wrap gap-2">
+                {about.metadata.partner_with_us.map((partner) => (
+                  <div key={partner.name}>
+                    <img src={partner.logo.url} alt={partner.name} className="size-24" />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+
         </div>
       </div>
     </main>

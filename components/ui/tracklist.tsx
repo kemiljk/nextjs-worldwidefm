@@ -8,8 +8,6 @@ interface TracklistProps {
 interface Track {
   artist: string;
   title: string;
-  isDivider?: boolean;
-  dividerText?: string;
 }
 
 export function Tracklist({ content, className = "" }: TracklistProps) {
@@ -78,14 +76,9 @@ export function Tracklist({ content, className = "" }: TracklistProps) {
           title = parts.slice(1).join(" | ").trim();
         }
       }
-      // If no separator found, check if it's a divider line
+      // If no separator found, treat whole line as title
       else {
-        // Check for common divider patterns (dashes, asterisks, etc.)
-        if (trimmedLine.match(/^[-=_*~]{3,}$/) || trimmedLine.includes("---")) {
-          tracks.push({ artist: "", title: "", isDivider: true });
-        } else {
-          title = trimmedLine;
-        }
+        title = trimmedLine;
       }
 
       if (artist || title) {
@@ -109,24 +102,15 @@ export function Tracklist({ content, className = "" }: TracklistProps) {
   }
 
   return (
-    <div className={`space-y-0 ${className}`}>
+    <div className={`space-y-0 pl-1 ${className}`}>
       {tracks.map((track, index) => (
-        <div key={index} className={`${track.isDivider ? "py-2 bg-gray-100 dark:bg-gray-800" : "py-3 border-b border-gray-300 dark:border-gray-600 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800"} transition-colors duration-150`}>
-          {track.isDivider ? (
-            <div className="flex items-center justify-center">
-              <span className="text-xs text-gray-500 dark:text-gray-400 font-mono tracking-wider" />
-            </div>
-          ) : (
-            <>
-              <div className="flex-1 min-w-0 pr-4">
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block leading-tight">{track.artist || "Unknown Artist"}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-sm text-gray-700 dark:text-gray-300 block leading-tight">{track.title}</span>
-              </div>
-            </>
-          )}
+        <div key={index} className="py-4 border-b border-0.5 border-almostblack dark:border-white w-full flex flex-row gap-10">
+          <div className="w-[30%] font-mono text-m8 uppercase text-almostblack dark:text-white">{track.artist || "Unknown Artist"}
+          </div>
+          <div className="w-[70%] font-mono text-m8 uppercase text-almostblack dark:text-white">{track.title}
+          </div>
         </div>
+        
       ))}
     </div>
   );
@@ -193,14 +177,9 @@ export function TracklistServer({ content, className = "" }: TracklistProps) {
           title = parts.slice(1).join(" | ").trim();
         }
       }
-      // If no separator found, check if it's a divider line
+      // If no separator found, treat whole line as title
       else {
-        // Check for common divider patterns (dashes, asterisks, etc.)
-        if (trimmedLine.match(/^[-=_*~]{3,}$/) || trimmedLine.includes("---")) {
-          tracks.push({ artist: "", title: "", isDivider: true });
-        } else {
-          title = trimmedLine;
-        }
+        title = trimmedLine;
       }
 
       if (artist || title) {
@@ -225,21 +204,11 @@ export function TracklistServer({ content, className = "" }: TracklistProps) {
   return (
     <div className={`space-y-0 ${className}`}>
       {tracks.map((track, index) => (
-        <div key={index} className={`${track.isDivider ? "py-2 bg-gray-100 dark:bg-gray-800" : "py-3 border-b border-gray-300 dark:border-gray-600 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800"} transition-colors duration-150`}>
-          {track.isDivider ? (
-            <div className="flex items-center justify-center">
-              <span className="text-xs text-gray-500 dark:text-gray-400 font-mono tracking-wider">—</span>
-            </div>
-          ) : (
-            <>
-              <div className="flex-1 min-w-0 pr-4">
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block leading-tight">{track.artist || "Unknown Artist"}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-sm text-gray-700 dark:text-gray-300 block leading-tight">{track.title}</span>
-              </div>
-            </>
-          )}
+        <div key={index} className="py-4 border-b border-0.5 border-almostblack dark:border-white w-full flex flex-row gap-10">
+          <div className="w-[30%] font-mono text-m8 uppercase text-almostblack dark:text-white">{track.artist || "Unknown Artist"}
+          </div>
+          <div className="w-[70%] font-mono text-m8 uppercase text-almostblack dark:text-white">{track.title}
+          </div>
         </div>
       ))}
     </div>

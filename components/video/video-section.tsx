@@ -6,9 +6,8 @@ import { ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { VideoObject } from "@/lib/cosmic-config";
-import Marquee from "@/components/ui/marquee";
 
-interface Video extends VideoObject {}
+interface Video extends VideoObject { }
 
 interface VideoSectionProps {
   videos: Video[];
@@ -40,39 +39,78 @@ function getVimeoThumbnail(url: string) {
 }
 
 export default function VideoSection({ videos, className }: VideoSectionProps) {
+  const latestVideos = videos.slice(-3);
+  const firstVideo = latestVideos[0];
+  const otherVideos = latestVideos.slice(1);
+
   return (
-    <section className={cn("", className)}>
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">VIDEO</h2>
-        <Link href="/videos" className="text-sm text-crimson-50 flex items-center group">
-          View All <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-0.5 transition-transform" />
+    <section className={cn("", "bg-black mt-30 h-auto px-5 text-white pb-20", className)}>
+      <div className="flex items-end justify-between pt-10 pb-4">
+        <h2 className="text-h8 md:text-h7 font-bold">VIDEO</h2>
+        <Link
+          href="/videos"
+          className="inline-flex items-center font-mono text-m8 sm:text-m7 uppercase whitespace-nowrap hover:underline transition-all"
+        >
+          View All
+          <ChevronRight className="h-4 w-4 ml-1 transition-transform" />
         </Link>
       </div>
-      <Marquee className="-mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24" speed="slow" pauseOnHover>
-        {videos.map((video) => {
-          const youtubeId = video.metadata?.video_url ? getYouTubeThumbnail(video.metadata.video_url) : "";
-          const vimeoId = video.metadata?.video_url ? getVimeoThumbnail(video.metadata.video_url) : "";
-          const thumbnailUrl = video.metadata?.image?.imgix_url || youtubeId || vimeoId || "/image-placeholder.svg";
+      <div className="flex flex-col sm:flex-row gap-3 h-[70vh] w-full">
+        {/* First video card - 65% width */}
+        {firstVideo && (
+          <div className="w-full sm:w-[65%] h-full">
+            <Link href={`/videos/${firstVideo.slug}`} className="w-full h-full">
+              <Card className="overflow-hidden transition-shadow border border-white group hover:bg-white hover:text-almostblack h-full">
+                <CardContent className="p-0 flex flex-col h-full w-full">
+                  {/* Image takes remaining space */}
+                  <div className="relative flex-1">
+                    <Image
+                      src={
+                        firstVideo.metadata?.image?.imgix_url ||
+                        (firstVideo.metadata?.video_url ? getYouTubeThumbnail(firstVideo.metadata.video_url) : null) ||
+                        (firstVideo.metadata?.video_url ? getVimeoThumbnail(firstVideo.metadata.video_url) : null) ||
+                        "/image-placeholder.svg"
+                      }
+                      alt={firstVideo.title}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
 
-          return (
-            <Link key={video.id} href={`/videos/${video.slug}`} className="flex-none w-[440px]">
-              <Card className="overflow-hidden border-none hover:shadow-lg transition-shadow">
-                <CardContent className="p-0">
-                  <div className="relative aspect-video">
-                    <Image src={thumbnailUrl} alt={video.title} fill className="object-cover" />
-                    <div className="absolute inset-0 bg-linear-to-t from-black/90 via-transparent to-transparent">
-                      <div className="absolute bottom-4 left-4 right-4">
-                        <p className="text-xs text-white/60 mb-2">{video.metadata?.date ? new Date(video.metadata.date).toLocaleDateString() : ""}</p>
-                        <h3 className="text-m5 font-mono font-normal text-white line-clamp-2">{video.title}</h3>
-                      </div>
-                    </div>
+                  {/* Title & border */}
+                  <div className="relative border-t border-white flex-row flex justify-between pl-2 h-auto w-full bg-almostblack text-white items-center group-hover:bg-white group-hover:text-almostblack group-hover:border-black">
+                    <h3 className="text-[25px] font-bold line-clamp-1 group-hover:text-almostblack">{firstVideo.title}</h3>
+                    <div className="border-l border-white text-[25px] px-3 pt-2 group-hover:border-almostblack group-hover:text-almostblack"> ▶ </div>
                   </div>
                 </CardContent>
               </Card>
             </Link>
-          );
-        })}
-      </Marquee>
+          </div>
+        )}
+        <div className="w-full h-full sm:w-[35%] flex flex-row sm:flex-col gap-3 justify-between">
+          {otherVideos.map((video) => {
+            const youtubeId = video.metadata?.video_url ? getYouTubeThumbnail(video.metadata.video_url) : "";
+            const vimeoId = video.metadata?.video_url ? getVimeoThumbnail(video.metadata.video_url) : "";
+            const thumbnailUrl = video.metadata?.image?.imgix_url || youtubeId || vimeoId || "/image-placeholder.svg";
+
+            return (
+              <Link key={video.id} href={`/videos/${video.slug}`} className="w-full flex-1">
+                <Card className="overflow-hidden transition-shadow border border-white group hover:bg-white hover:text-almostblack h-full">
+                  <CardContent className="p-0 flex flex-col h-full w-full">
+                    <div className="relative flex-1">
+                      <Image src={thumbnailUrl} alt={video.title} fill className="object-cover" />
+                    </div>
+                    <div className="relative border-t border-white flex-row flex justify-between pl-2 h-auto w-auto bg-almostblack text-white items-center group-hover:bg-white group-hover:text-almostblack group-hover:border-black">
+                      <h3 className="text-[25px] font-bold line-clamp-1 group-hover:text-almostblack">{video.title}</h3>
+                      <div className="border-l border-white text-[25px] px-3 pt-2 group-hover:border-almostblack group-hover:text-almostblack"> ▶ </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
     </section>
   );
 }

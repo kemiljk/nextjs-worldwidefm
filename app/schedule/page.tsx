@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { getEvents, transformRadioCultEvent } from '@/lib/radiocult-service';
 import { generateScheduleMetadata } from '@/lib/metadata-utils';
+import { PageHeader } from '@/components/shared/page-header';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateScheduleMetadata();
@@ -130,21 +131,22 @@ export default async function SchedulePage() {
 
   return (
     <div className='min-h-screen bg-white dark:bg-black'>
-      <div className='mx-auto px-4 py-16'>
-        {/* Centered title */}
-        <div className='text-center mb-8'>
-          <h1 className='text-4xl font-bold text-black dark:text-white'>SCHEDULE</h1>
-        </div>
 
+      <div className=''>
+        <div className="relative w-full h-[25vh] sm:h-[35vh] overflow-hidden">
+          <div className="absolute bottom-0 left-0 w-full px-5 z-10">
+            <PageHeader title="schedule" />
+          </div>
+        </div>
         {/* Times note at top-left */}
-        <div className='mb-8'>
+        <div className='mb-3 pl-5 '>
           <p className='text-sm font-mono text-black dark:text-white'>
             *TIMES ARE DISPLAYED IN [BST]
           </p>
         </div>
 
         {/* Schedule list */}
-        <div className='space-y-0'>
+        <div className='space-y-0 px-5'>
           {isActive && scheduleItems.length > 0 ? (
             <>
               {daysOrder.map((day) => {
@@ -164,8 +166,8 @@ export default async function SchedulePage() {
                 return (
                   <div key={day}>
                     {/* Black day header */}
-                    <div className='bg-almostblack dark:bg-white px-2 pt-1'>
-                      <h2 className='text-white dark:text-black font-display text-m4'>
+                    <div className='bg-almostblack dark:bg-white pl-1'>
+                      <h2 className='text-white dark:text-black font-display text-[25px]'>
                         {dayHeader}
                       </h2>
                     </div>
@@ -195,13 +197,13 @@ export default async function SchedulePage() {
                           <Link
                             href={`/episode${showPath}`}
                             key={`${show.show_day}-${show.show_time}-${show.name}`}
-                            className='block py-4'
+                            className='flex-row flex py-4'
                           >
                             <div className='flex items-center'>
-                              <span className='text-sm font-mono text-black dark:text-white pr-8'>
+                              <span className='w-[15vw] text-m6 font-mono text-black dark:text-white pr-8'>
                                 {timeRange}
                               </span>
-                              <span className='uppercase font-mono text-m8 text-black dark:text-white flex-1 pl-8'>
+                              <span className='w-[50vw] uppercase font-mono text-m6 text-almostblack dark:text-white flex-1 pl-8'>
                                 {showName}
                               </span>
                             </div>

@@ -23,7 +23,7 @@ const sans = Nimbus({
 });
 
 const display = AirCompressed({
-  src: "./fonts/AirCompressed.woff2",
+  src: "./fonts/AirCompressed-Black-WWFM.woff",
   weight: "900",
   style: "normal",
   display: "swap",
@@ -53,14 +53,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${sans.variable} ${display.variable} ${mono.variable} min-h-screen bg-background font-sans`}>
+      <body className={`${sans.variable} ${display.variable} ${mono.variable} min-h-screen w-full bg-background font-sans`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange storageKey="worldwidefm-theme">
           <AuthProvider>
             <SearchProvider>
               <MediaPlayerProvider>
                 <LivePlayer />
                 <NavWrapper />
-                <main className="px-4 md:px-8 lg:px-16 mx-auto pt-24 overflow-x-hidden">{children}</main>
+                <main className="w-full pt-14 overflow-x-hidden">{children}</main>
                 <ArchivePlayer />
                 <Footer />
                 <DiscordButton />

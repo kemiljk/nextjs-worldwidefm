@@ -33,7 +33,7 @@ export function PlayButton({ label = false, show, variant = "default", size = "d
 
   return (
     <Button variant={variant} size={size} onClick={handleClick} className={cn(className)} aria-label={isCurrentlyPlaying ? `Pause ${show.name}` : `Play ${show.name}`}>
-      {isCurrentlyPlaying ? <Pause className={size === "lg" ? "h-6 w-6" : "h-4 w-4"} /> : <Play className={size === "lg" ? "h-6 w-6" : "h-4 w-4"} />}
+      {isCurrentlyPlaying ? <Pause fill="white" className={size === "lg" ? "h-6 w-6" : "h-4 w-4"} /> : <Play fill="white" className={size === "lg" ? "h-6 w-6" : "h-4 w-4"} />}
       {size !== "icon" && label && <span className="ml-2">{isCurrentlyPlaying ? "Pause" : "Play"}</span>}
     </Button>
   );
