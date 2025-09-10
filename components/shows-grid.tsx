@@ -1,5 +1,5 @@
 // Removed MixcloudShow import - using any type for show format compatibility
-import { ShowCard } from './ui/show-card';
+import { ShowCard } from "./ui/show-card";
 
 interface ShowsGridProps {
   shows: any[]; // Using any for show format compatibility
@@ -10,8 +10,8 @@ interface ShowsGridProps {
 export function ShowsGrid({ shows, sentinelRef, contentType = 'episodes' }: ShowsGridProps) {
   if (shows.length === 0) {
     return (
-      <div className='text-center py-8'>
-        <p className='text-foreground'>Fetching shows...</p>
+      <div className="text-center py-8">
+        <p className="text-foreground font-mono text-almostblack text-m8 uppercase">Fetching shows...</p>
       </div>
     );
   }
@@ -32,23 +32,14 @@ export function ShowsGrid({ shows, sentinelRef, contentType = 'episodes' }: Show
   };
 
   return (
-    <div className='grid grid-cols-1 md:grid-cols-2  lg:grid-cols-4 gap-4'>
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 w-full h-auto">
       {shows.filter(Boolean).map((show: any, index: number) => {
         const uniqueKey = `${show.id || show.slug}-${index}`;
         const slug = getSlugForShow(show);
-        return (
-          <ShowCard
-            key={uniqueKey}
-            show={show}
-            slug={slug}
-          />
-        );
+        return <ShowCard className="w-full" key={uniqueKey} show={show} slug={slug} />;
       })}
       {/* Infinite scroll sentinel at the end of the grid */}
-      <div
-        ref={sentinelRef}
-        className='h-4 col-span-full'
-      />
+      <div ref={sentinelRef} className="h-4 col-span-full" />
     </div>
   );
 }

@@ -166,14 +166,14 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
 
   return (
     <>
-      <div className="mt-8">
+      <div className="pb-5">
         <VideoFilterToolbar availableCategories={availableCategories} activeFilter={activeFilter} selectedFilters={selectedFilters} onFilterChange={handleFilterChange} searchTerm={searchTerm} onSearchChange={setSearchTerm} />
       </div>
 
       {filteredVideos.length > 0 ? (
         <VideoGrid videos={filteredVideos} availableCategories={availableCategories} />
       ) : (
-        <div className="py-16 text-center">
+        <div className="text-center">
           <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white">No videos found</h3>
           <p className="text-gray-500 mt-2">Try adjusting your filters or search term.</p>
         </div>

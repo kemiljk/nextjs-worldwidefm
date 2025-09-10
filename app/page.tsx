@@ -13,6 +13,7 @@ import { HomepageSectionItem, ProcessedHomepageSection, ColouredSection } from "
 import HomepageHero from "@/components/homepage-hero";
 import InsertedSection from "@/components/inserted-section";
 import LatestEpisodes from "@/components/latest-episodes";
+import ColouredSectionGallery from "@/components/coloured-section-gallery";
 
 // Add consistent revalidation time for episode content
 export const revalidate = 900; // 15 minutes
@@ -78,42 +79,10 @@ export default async function Home() {
       })
   );
 
-  // Create alternating sections: coloured, static, coloured, static, etc.
-  const allSections: Array<{ section: ProcessedHomepageSection; colouredSection?: ColouredSection; isColoured: boolean }> = [];
-
-  // Create a proper alternating pattern starting with coloured sections
-  const staticSections = [...processedDynamicSections];
-  const colouredSectionsArray = [...colouredSections];
-
-  let staticIndex = 0;
-  let colouredIndex = 0;
-
-  // Start with coloured section if available, then alternate
-  while (staticIndex < staticSections.length || colouredIndex < colouredSectionsArray.length) {
-    // Add coloured section if available
-    if (colouredIndex < colouredSectionsArray.length) {
-      allSections.push({
-        section: colouredSectionsArray[colouredIndex],
-        colouredSection: homepageData?.metadata?.coloured_sections?.[colouredIndex],
-        isColoured: true,
-      });
-      colouredIndex++;
-    }
-
-    // Add static section if available
-    if (staticIndex < staticSections.length) {
-      allSections.push({
-        section: staticSections[staticIndex],
-        isColoured: false,
-      });
-      staticIndex++;
-    }
-  }
-
   return (
-    <div className="min-h-screen -mx-4 md:-mx-8 lg:-mx-16">
+    <div className="w-full min-h-screen">
       {/* Main content */}
-      <div className="mx-auto mt-4 mb-8">
+      <div className="mt-4">
         {/* Hero Section: Conditionally render based on Cosmic data or fallback */}
         <Suspense>{heroLayout && <HomepageHero heroLayout={heroLayout} heroItems={heroItems} />}</Suspense>
         <Suspense>
@@ -124,21 +93,26 @@ export default async function Home() {
           <LatestEpisodes />
         </Suspense>
 
-        {/* All Sections (static and coloured) rendered in order */}
-        {allSections.map(({ section, colouredSection, isColoured }, index) => (
-          <Suspense key={`${isColoured ? "coloured" : "static"}-${section.title}-${index}`} fallback={<div>Loading...</div>}>
-            <InsertedSection section={section} colouredSection={colouredSection} />
+        {/* Coloured Sections: horizontal swipe gallery (CSS-only, no client hooks) */}
+        <Suspense>
+          <ColouredSectionGallery colouredSections={colouredSections} homepageData={homepageData} />
+        </Suspense>
+
+        {/* Static sections stacked below */}
+        {processedDynamicSections.map((section, index) => (
+          <Suspense key={`static-${section.title}-${index}`} fallback={<div>Loading...</div>}>
+            <InsertedSection section={section} />
           </Suspense>
         ))}
-
+        {/* From The Archive Section */}
+        {archiveShows.length > 0 && <ArchiveSection shows={archiveShows} className="pt-8" />}
         {/* Genre Selector Section */}
         <Suspense>
           <GenreSelector shows={shows} />
         </Suspense>
-        {/* From The Archive Section */}
-        {archiveShows.length > 0 && <ArchiveSection shows={archiveShows} className="px-5 pt-8" />}
+
         {/* Video Section */}
-        {videosData.videos.length > 0 && <VideoSection videos={videosData.videos} className="px-5 pt-8" />}
+        {videosData.videos.length > 0 && <VideoSection videos={videosData.videos} className="pt-8" />}
         {/* Editorial section */}
         {postsData.posts.length > 0 && <EditorialSection title="POSTS" posts={postsData.posts} className="px-5 pt-8" isHomepage={true} />}
       </div>

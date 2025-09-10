@@ -56,7 +56,8 @@
   --color-sunset: #f8971d;
   --color-electric: #88ca4f;
   --color-hyperpop: #e661a4;
-  --color-hyperblue: #1da0f8;
+  --color-soul: #1da0f8;
+  --color-jazz: #AC98EC;
 
   --tracking-tight: -0.02em;
   --tracking-wide: 0.02em;
@@ -77,12 +78,15 @@
   --text-h5: 70px;
   --text-h5--line-height: 0.9;
   --text-h5--font-weight: 400;
-  --text-h7: 50px;
+  --text-h7: 40px;
   --text-h7--line-height: 0.9;
   --text-h7--font-weight: 400;
-  --text-h8: 40px;
+  --text-h8: 24px;
   --text-h8--line-height: 0.9;
   --text-h8--font-weight: 400;
+  --text-h9: 18px;
+  --text-h9--line-height: 0.9;
+  --text-h9--font-weight: 400;
   --text-m4: 25px;
   --text-m4--line-height: 1;
   --text-m4--font-weight: 400;
@@ -104,14 +108,18 @@
   --text-b2: 20px;
   --text-b2--line-height: 1;
   --text-b2--font-weight: 400;
-  --text-b4: 14px;
-  --text-b4--line-height: 1.1;
+  --text-b3: 14px;
+  --text-b3--line-height: 1.2;
+  --text-b3--font-weight: 400;
+  --text-b4: 12px;
+  --text-b4--line-height: 1.2;
   --text-b4--font-weight: 400;
 
   @keyframes marquee-move-text {
     from {
       transform: translateX(0);
     }
+
     to {
       transform: translateX(-50%);
     }
@@ -121,10 +129,12 @@
 @utility container {
   margin-inline: auto;
   padding-inline: 2rem;
-  @media (width >= --theme(--breakpoint-sm)) {
+
+  @media (width >=--theme(--breakpoint-sm)) {
     max-width: none;
   }
-  @media (width >= 1400px) {
+
+  @media (width >=1400px) {
     max-width: 1400px;
   }
 }
@@ -138,6 +148,7 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+
   *,
   ::after,
   ::before,
@@ -151,12 +162,16 @@
 @utility text-balance {
   text-wrap: balance;
 }
+
 @utility hide-scrollbar {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 
   &::-webkit-scrollbar {
-    display: none; /* Chrome, Safari and Opera */
+    display: none;
+    /* Chrome, Safari and Opera */
   }
 }
 
@@ -164,32 +179,42 @@
   :root {
     /* Mapping to match our Figma color system */
     --background: 0 0% 100%;
-    --foreground: 0 0% 0%; /* Black text in light mode */
+    --foreground: 0 0% 0%;
+    /* Black text in light mode */
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%; /* Black text in light mode */
+    --card-foreground: 0 0% 0%;
+    /* Black text in light mode */
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%; /* Black text in light mode */
+    --popover-foreground: 0 0% 0%;
+    /* Black text in light mode */
 
-    --primary: 0 0% 0%; /* Black text in light mode */
-    --primary-foreground: 0 0% 100%; /* White background for primary */
+    --primary: 0 0% 0%;
+    /* Black text in light mode */
+    --primary-foreground: 0 0% 100%;
+    /* White background for primary */
 
     --secondary: 210 40% 96.1%;
-    --secondary-foreground: 0 0% 0%; /* Black text in light mode */
+    --secondary-foreground: 0 0% 0%;
+    /* Black text in light mode */
 
     --muted: 210 40% 96.1%;
-    --muted-foreground: 0 0% 0%; /* Black text in light mode */
+    --muted-foreground: 0 0% 0%;
+    /* Black text in light mode */
 
     --accent: 345 6% 13%;
-    --accent-foreground: 0 0% 100%; /* White text in light mode */
+    --accent-foreground: 0 0% 100%;
+    /* White text in light mode */
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 0%; /* Black text in light mode */
+    --destructive-foreground: 0 0% 0%;
+    /* Black text in light mode */
 
     --border: 0 0% 0%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 0 0% 0%; /* Black ring in light mode */
+    --ring: 0 0% 0%;
+    /* Black ring in light mode */
 
     --radius: 0.5rem;
   }
@@ -197,32 +222,42 @@
   @media (prefers-color-scheme: dark) {
     :root {
       --background: 0 0% 0%;
-      --foreground: 0 0% 100%; /* White text in dark mode */
+      --foreground: 0 0% 100%;
+      /* White text in dark mode */
 
       --card: 0 0% 0%;
-      --card-foreground: 0 0% 100%; /* White text in dark mode */
+      --card-foreground: 0 0% 100%;
+      /* White text in dark mode */
 
       --popover: 0 0% 0%;
-      --popover-foreground: 0 0% 100%; /* White text in dark mode */
+      --popover-foreground: 0 0% 100%;
+      /* White text in dark mode */
 
-      --primary: 0 0% 100%; /* White text in dark mode */
-      --primary-foreground: 0 0% 0%; /* Black background for primary */
+      --primary: 0 0% 100%;
+      /* White text in dark mode */
+      --primary-foreground: 0 0% 0%;
+      /* Black background for primary */
 
       --secondary: 217.2 32.6% 17.5%;
-      --secondary-foreground: 0 0% 100%; /* White text in dark mode */
+      --secondary-foreground: 0 0% 100%;
+      /* White text in dark mode */
 
       --muted: 217.2 32.6% 17.5%;
-      --muted-foreground: 0 0% 100%; /* White text in dark mode */
+      --muted-foreground: 0 0% 100%;
+      /* White text in dark mode */
 
       --accent: 217.2 32.6% 17.5%;
-      --accent-foreground: 0 0% 100%; /* White text in dark mode */
+      --accent-foreground: 0 0% 100%;
+      /* White text in dark mode */
 
       --destructive: 0 62.8% 30.6%;
-      --destructive-foreground: 0 0% 100%; /* White text in dark mode */
+      --destructive-foreground: 0 0% 100%;
+      /* White text in dark mode */
 
       --border: 217.2 32.6% 17.5%;
       --input: 217.2 32.6% 17.5%;
-      --ring: 0 0% 100%; /* White ring in dark mode */
+      --ring: 0 0% 100%;
+      /* White ring in dark mode */
     }
   }
 }
@@ -231,6 +266,7 @@
   * {
     @apply border-almostblack dark:border-white;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -249,7 +285,7 @@
   .prose h4,
   .prose h5,
   .prose h6 {
-    @apply font-normal font-display uppercase;
+    @apply font-normal font-display uppercase leading-tight;
   }
 
   code,
@@ -280,6 +316,7 @@
   from {
     transform: translateY(100%);
   }
+
   to {
     transform: translateY(0);
   }
@@ -294,6 +331,7 @@
   from {
     transform: translateY(0);
   }
+
   to {
     transform: translateY(100%);
   }
@@ -327,4 +365,26 @@
 .highlight-text-custom {
   display: inline;
   padding: 0.25em 0;
+}
+
+
+.showcard {
+  aspect-ratio: 4 / 5;
+  /* default */
+}
+
+@media (min-width: 640px) {
+
+  /* sm+ screens */
+  .showcard {
+    aspect-ratio: 5 / 4;
+  }
+}
+
+@media (min-width: 1024px) {
+
+  /* lg+ screens */
+  .showcard {
+    aspect-ratio: 5 / 8;
+  }
 }

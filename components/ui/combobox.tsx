@@ -22,7 +22,7 @@ interface ComboboxProps {
   className?: string;
 }
 
-export function Combobox({ options, value = [], onValueChange, placeholder = "Select options...", searchPlaceholder = "Search...", emptyMessage = "No options found.", className }: ComboboxProps) {
+export function Combobox({ options, value = [], onValueChange, placeholder = "SELECT", searchPlaceholder = "SEARCH", emptyMessage = "No options found.", className }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
 
   // Sort options alphabetically
@@ -49,9 +49,9 @@ export function Combobox({ options, value = [], onValueChange, placeholder = "Se
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent className="w-full p-0 font-mono uppercase" align="start">
         <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+          <CommandInput className="font-mono uppercase" placeholder={searchPlaceholder} />
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>

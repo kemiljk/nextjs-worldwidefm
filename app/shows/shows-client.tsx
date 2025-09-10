@@ -104,7 +104,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     }, 1000); // 1000ms delay to match debounce
 
     return () => {
-      isMounted = false;
+      isMounted = false;``
       clearTimeout(timeoutId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -310,49 +310,49 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     activeType === 'all' && (selectedGenres.length > 0 || selectedLocations.length > 0);
 
   return (
-    <div className='mx-auto lg:px-4 py-16'>
-      <div className='flex flex-col gap-4 w-full'>
-        <div>
-          <PageHeader title='Shows' />
+    <div className='w-full overflow-x-hidden'>
+
+      <div className="relative w-full h-[25vh] sm:h-[35vh] overflow-hidden">
+        {/* Hyperpop background */}
+        <div className="absolute inset-0 bg-hyperpop" />
+
+        {/* Linear white gradient */}
+        <div
+          className="absolute inset-0 bg-gradient-to-b from-white via-white/0 to-white"
+          style={{ mixBlendMode: 'hue' }}
+        />
+
+        {/* Noise Overlay */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+            backgroundSize: '50px 50px',
+            mixBlendMode: 'screen',
+          }}
+        />
+        <div className="absolute bottom-0 left-0 w-full px-5  z-10">
+          <PageHeader title="Shows" />
         </div>
 
+      </div>
+
+      <div className='px-5 flex flex-col gap-1 w-full'>
+
+
         {/* Filter Controls */}
-        <div className='flex flex-wrap gap-2'>
+        <div className='flex flex-wrap gap-2 text-m7 pt-4 pb-2'>
           {/* Type Navigation Buttons */}
           <Button
             variant='outline'
             className={cn(
               'border-almostblack dark:border-white',
               activeType === 'all' &&
-                'bg-almostblack text-white dark:bg-white dark:text-almostblack'
+              'bg-almostblack text-white dark:bg-white dark:text-almostblack'
             )}
             onClick={() => handleTypeNavigation('all')}
           >
             Episodes
-          </Button>
-
-          <Button
-            variant='outline'
-            className={cn(
-              'border-almostblack dark:border-white',
-              activeType === 'hosts-series' &&
-                'bg-almostblack text-white dark:bg-white dark:text-almostblack'
-            )}
-            onClick={() => handleTypeNavigation('hosts-series')}
-          >
-            Hosts & Series
-          </Button>
-
-          <Button
-            variant='outline'
-            className={cn(
-              'border-almostblack dark:border-white',
-              activeType === 'takeovers' &&
-                'bg-almostblack text-white dark:bg-white dark:text-almostblack'
-            )}
-            onClick={() => handleTypeNavigation('takeovers')}
-          >
-            Takeovers
           </Button>
 
           {/* Only show genre and location filters for "All" episodes */}
@@ -387,18 +387,42 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
               />
             </>
           )}
+
+          <Button
+            variant='outline'
+            className={cn(
+              'border-almostblack dark:border-white',
+              activeType === 'hosts-series' &&
+              'bg-almostblack text-white dark:bg-white dark:text-almostblack'
+            )}
+            onClick={() => handleTypeNavigation('hosts-series')}
+          >
+            Hosts & Series
+          </Button>
+
+          <Button
+            variant='outline'
+            className={cn(
+              'border-almostblack dark:border-white',
+              activeType === 'takeovers' &&
+              'bg-almostblack text-white dark:bg-white dark:text-almostblack'
+            )}
+            onClick={() => handleTypeNavigation('takeovers')}
+          >
+            Takeovers
+          </Button>
         </div>
 
         {/* Active Filter Chips */}
         {hasActiveFilters && (
-          <div className='flex gap-2 overflow-x-auto pb-2 pt-1 scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700'>
+          <div className='w-full border-t border-almostblack flex gap-2 pt-4 pb-2 text-m7 overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700'>
             {selectedGenres.map((genreId, index) => {
               const genre = canonicalGenres.find((g) => g.id === genreId);
               return (
                 <Badge
                   key={`genre-${genreId}-${index}`}
                   variant='default'
-                  className='uppercase font-mono text-m6 cursor-pointer whitespace-nowrap bg-accent text-accent-foreground flex items-center gap-1'
+                  className='font-mono cursor-pointer border border-almostblack hover:bg-white whitespace-nowrap bg-white text-almostblack flex items-center gap-1'
                 >
                   {genre?.title.toUpperCase() || genreId}
                   <X
@@ -417,7 +441,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
                 <Badge
                   key={`location-${locationId}-${index}`}
                   variant='default'
-                  className='uppercase font-mono text-m6 cursor-pointer whitespace-nowrap bg-accent text-accent-foreground flex items-center gap-1'
+                  className='uppercase font-mono border border-almostblack cursor-pointer hover:bg-white whitespace-nowrap bg-white text-almostblack flex items-center gap-1'
                 >
                   {location?.title.toUpperCase() || locationId}
                   <X
@@ -434,19 +458,19 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
         )}
       </div>
 
-      <div className='flex flex-col gap-8 mt-8'>
-        <main className='lg:col-span-3'>
+      <div className="pt-2 w-full px-5 flex-col pb-20">
+        <main className=''>
           <ShowsGrid
             shows={filteredShows}
             sentinelRef={ref}
             contentType={activeType as 'episodes' | 'hosts-series' | 'takeovers'}
           />
-          {isLoadingMore && (
-            <div className='h-4 flex items-center justify-center mt-8'>
-              <Loader className='h-4 w-4 animate-spin' />
-            </div>
-          )}
         </main>
+        {isLoadingMore && (
+          <div className='h-4 w-full flex items-center justify-center mt-8'>
+            <Loader className='h-4 w-4 animate-spin' />
+          </div>
+        )}
       </div>
     </div>
   );

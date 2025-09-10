@@ -41,29 +41,33 @@ export default async function VideoPage({ params }: { params: Promise<{ slug: st
   const formattedDate = videoDate ? format(videoDate, "dd-MM-yyyy") : "";
 
   return (
-    <article className="min-h-dvh">
+    <article className="bg-almostblack text-white min-h-dvh px-5 pt-10 pb-20">
+      {/* Video Player Section */}
+      <div className="aspect-video">
+        <VideoPlayer video={video} />
+      </div>
+
       {/* Header Section */}
-      <div className="max-w-4xl text-balance mx-auto px-4">
-        <div className="mb-8">
-          <div className="text-[12px] leading-none uppercase tracking-wider text-muted-foreground mb-4">{formattedDate}</div>
-          <PageHeader title={video.title} description={video.metadata?.description} />
+      <div className="max-w-[80vh] h-auto">
+        <div className="pb-4">
+          <div className="font-mono uppercase text-m8 leading-none text-white mb-4">{formattedDate}</div>
+          <PageHeader
+            title={video.title}
+            description={video.metadata?.description}
+            className="text-white"
+          />
         </div>
 
         {/* Video Categories */}
         {video.metadata?.categories && (
           <div className="flex flex-wrap gap-3 mb-8">
             {video.metadata.categories.map((category: { slug: string; title: string }) => (
-              <span key={category.slug + category.title} className="text-[10px] leading-none uppercase tracking-wider px-2 py-1 rounded-full border border-almostblack dark:border-white">
+              <span key={category.slug + category.title} className="text-m8 font-mono leading-none uppercase px-2 py-1 rounded-full border border-white dark:border-almostblack">
                 {category.title}
               </span>
             ))}
           </div>
         )}
-      </div>
-
-      {/* Video Player Section */}
-      <div className="w-[90%] mx-auto aspect-video">
-        <VideoPlayer video={video} />
       </div>
     </article>
   );

@@ -142,22 +142,22 @@ const ArchivePlayer: React.FC = () => {
       <iframe ref={iframeRef} className="hidden" width="100%" height="120" frameBorder="0" allow="autoplay" title="Mixcloud Player" />
 
       {/* Visible player UI */}
-      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white z-50">
-        <div className="flex items-center justify-between mx-auto p-4">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-almostblack z-50">
+        <div className="flex items-center justify-between mx-auto">
           <div className="flex items-center space-x-4 flex-1 min-w-0">
             <div className="w-10 h-10 overflow-hidden shrink-0 relative">
               <Image src={selectedShow.pictures.large || "/image-placeholder.svg"} alt={selectedShow.name} width={48} height={48} className="object-cover" />
-              <button onClick={handlePlayPause} className="absolute inset-0 p-2 hover:bg-white/10 rounded-full transition-colors" disabled={!isWidgetReady} aria-label={isPlaying ? `Pause ${selectedShow.name}` : `Play ${selectedShow.name}`}>
-                {isPlaying ? <Pause fill="white" className="w-5 h-5" /> : <Play fill="white" className="w-5 h-5" />}
+              <button onClick={handlePlayPause} className="absolute inset-0 p-2 hover:bg-white/10 hover:cursor-pointer rounded-full transition-colors" disabled={!isWidgetReady} aria-label={isPlaying ? `Pause ${selectedShow.name}` : `Play ${selectedShow.name}`}>
+                {isPlaying ? <Pause fill="white" stroke="none" className="w-5 h-5" /> : <Play fill="white" stroke="none" className="w-5 h-5" />}
               </button>
             </div>
 
-            <h3 className="text-white font-mono text-m7 truncate">{selectedShow.name}</h3>
+            <h3 className="text-almostblack font-mono text-m7 truncate">{selectedShow.name}</h3>
           </div>
 
           <div className="flex items-center space-x-4">
-            <button onClick={handleClose} className="p-2 text-gray-400 hover:text-white transition-colors">
-              <X className="w-5 h-5" />
+            <button onClick={handleClose} className="p-2 text-almostblack hover:cursor-pointer hover:text-almostblack/20 transition-colors">
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>

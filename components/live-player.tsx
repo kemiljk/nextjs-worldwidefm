@@ -301,40 +301,40 @@ export default function LivePlayer() {
     liveMetadata.content?.title || currentLiveEvent?.showName || 'Nothing currently live';
 
   return (
-    <div className='fixed top-0 bg-almostblack text-white z-50 flex items-center transition-all duration-300 h-12 left-0 right-0 max-w-full'>
+    <div className='fixed top-0 bg-almostblack text-white dark:bg-black dark:text-white z-50 flex items-center transition-all duration-300 h-7 left-0 right-0 max-w-full'>
       <div
-        className={`${isActuallyLive ? 'border-l border-white/20 pl-4' : ''} ml-4 flex items-center shrink-0 transition-opacity duration-200`}
+        className={`${isActuallyLive ? 'border-l border-white/20' : ''} ml-4 flex items-center shrink-0 transition-opacity duration-200`}
       >
         <button
-          className={`rounded-full transition-colors disabled:opacity-20 ${isLivePlaying ? 'text-red-500' : 'text-white'}`}
+          className={`rounded-full transition-colors disabled:opacity-100 ${isLivePlaying ? 'text-red-500' : 'text-white'}`}
           disabled={!isActuallyLive}
           onClick={handlePlayPause}
         >
           {isLivePlaying ? (
             <Pause
               fill='white'
-              className='h-5 w-5'
+              className='h-3 w-3'
             />
           ) : isActuallyLive ? (
             <Circle
               fill='#ef4444'
-              className='h-5 w-5 animate-pulse text-red-500'
+              className='h-3 w-3 animate-pulse text-red-500'
             />
           ) : (
             <Play
               fill='white'
-              className='h-5 w-5'
+              className='h-3 w-3'
             />
           )}
         </button>
       </div>
-      <div className='flex items-center mx-2 gap-3 overflow-hidden'>
+      <div className='flex items-center mx-2 gap-2 overflow-hidden'>
         <div>
-          <div className='text-m7 font-mono uppercase whitespace-nowrap'>{displayName}</div>
+          <div className='text-m8 font-mono uppercase whitespace-nowrap'>{displayName}</div>
           {isActuallyLive && (
             <div className='flex items-center gap-1.5'>
               <div className='w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse' />
-              <span className='text-xs text-white/90 uppercase'>
+              <span className='text-m8 text-white/90 uppercase'>
                 {streamState.loading ? 'Connecting...' : streamState.error ? 'Error' : 'Live'}
               </span>
             </div>

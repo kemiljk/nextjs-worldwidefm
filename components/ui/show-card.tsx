@@ -90,42 +90,63 @@ export const ShowCard: React.FC<ShowCardProps> = ({ show, slug, className = "", 
   const subtitle = restTitle.length > 0 ? restTitle.join(":").trim() : showHost;
 
   return (
-    <Link href={slug} className={`border border-almostblack dark:border-white rounded-none overflow-hidden flex flex-col p-4 h-full w-full max-w-[440px] ${className}`}>
-      {/* Image */}
-      <div className="relative w-full">
-        <div className="relative aspect-square w-full overflow-hidden">
-          <Image src={showImage} alt={showName} fill className="object-cover border border-almostblack dark:border-white" sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw" priority={false} />
-        </div>
+<Link
+  href={slug}
+  className={`border border-almostblack dark:border-white rounded-none overflow-hidden flex flex-col p-2 h-full w-auto showcard cursor-default ${className}`}
+>
+  {/* Image */}
+  <div className="relative flex-2">
+    <Image
+      src={showImage}
+      alt={showName}
+      fill
+      className="object-cover border border-almostblack dark:border-white hover:cursor-pointer"
+      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
+      priority={false}
+    />
+  </div>
+
+  {/* Details */}
+  <div className="flex flex-col justify-between gap-1 flex-1 pt-3 pb-1">
+    {/* Title */}
+    <div className="w-auto h-auto flex-1 gap-1 flex flex-col">
+      <div className="font-mono text-m8 sm:text-m6 text-almostblack dark:text-white uppercase w-full line-clamp-2 break-words pr-10">
+        {mainTitle}: {subtitle}
       </div>
-      {/* Details */}
-      <div className="flex flex-col justify-between h-full pt-4 pb-1 relative grow">
-        {/* Title */}
-        <div className="h-full flex-1 flex flex-col">
-          <div className="font-mono text-2xl leading-none text-almostblack dark:text-white uppercase w-full break-none line-clamp-2">{mainTitle}</div>
-          {subtitle && <div className="font-mono text-xl leading-none text-almostblack/75 dark:text-white/75 uppercase w-full break-words line-clamp-2">{subtitle}</div>}
+
+      {(formattedTime || show.location?.name) && (
+        <div className="flex flex-row items-center gap-2.5 font-mono text-xs text-almostblack dark:text-white uppercase pt-1">
+          {formattedTime && <span>{formattedTime}</span>}
+          {formattedTime && show.location?.name && <span>|</span>}
+          {show.location?.name && <span>{show.location?.name}</span>}
         </div>
-        {/* Show Info */}
-        {(formattedTime || show.location?.name) && (
-          <div className="flex flex-row items-center gap-2.5 font-mono text-xs text-almostblack dark:text-white uppercase pl-1 pt-1">
-            {formattedTime && <span>{formattedTime}</span>}
-            {formattedTime && show.location?.name && <span>|</span>}
-            {show.location?.name && <span>{show.location?.name}</span>}
-          </div>
-        )}
-        {/* Tags and Play Button */}
-        <div className="flex flex-row items-end justify-between w-full mt-4">
-          <div className="flex flex-row flex-wrap">
-            {showTags.map((tag, idx) => (
-              <GenreTag key={tag + idx}>{tag}</GenreTag>
-            ))}
-          </div>
-          {shouldShowPlayButton && (
-            <button className="bg-almostblack rounded-full w-10 h-10 flex items-center justify-center ml-2 transition-colors hover:bg-gray-800 border border-almostblack dark:border-white" style={{ minWidth: 40, minHeight: 40 }} onClick={handlePlayPause} aria-label={isCurrentlyPlaying ? "Pause show" : "Play show"}>
-              {isCurrentlyPlaying ? <Pause fill="white" className="w-5 h-5 text-white" /> : <Play fill="white" className="w-5 h-5 text-white pl-0.5" />}
-            </button>
+      )}
+    </div>
+
+    {/* Tags and Play Button */}
+    <div className="flex flex-row items-end justify-between w-full pr-1">
+      <div className="flex flex-row flex-wrap">
+        {showTags.map((tag, idx) => (
+          <GenreTag key={tag + idx}>{tag}</GenreTag>
+        ))}
+      </div>
+
+      {shouldShowPlayButton && (
+        <button
+          className="bg-almostblack rounded-full w-10 h-10 flex items-center justify-center ml-2 transition-colors hover:bg-almostblack/80 dark:border-white cursor-pointer"
+          style={{ minWidth: 40, minHeight: 40 }}
+          onClick={handlePlayPause}
+          aria-label={isCurrentlyPlaying ? "Pause show" : "Play show"}
+        >
+          {isCurrentlyPlaying ? (
+            <Pause fill="white" className="w-4 h-4 text-white" />
+          ) : (
+            <Play fill="white" className="w-4 h-4 text-white pl-0.5" />
           )}
-        </div>
-      </div>
-    </Link>
+        </button>
+      )}
+    </div>
+  </div>
+</Link>
   );
 };
