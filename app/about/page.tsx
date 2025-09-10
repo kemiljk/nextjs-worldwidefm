@@ -83,7 +83,7 @@ export default async function AboutPage() {
           {/* Partner */}
           <div className="space-y-2 pb-20">
             <h2 className="text-m7 font-mono uppercase text-almostblack dark:text-white pb-2">{about.metadata.partner_with_us_title}</h2>
-            <div className="w-100 prose-mono prose dark:prose-invert text-b3" dangerouslySetInnerHTML={{ __html: about.metadata.partner_with_us_description }} />
+            <div className="w-100 prose dark:prose-invert text-b3 prose-mono" dangerouslySetInnerHTML={{ __html: about.metadata.partner_with_us_description }} />
             <div className="mt-2">
               <h3 className="pt-4 text-m7 font-mono uppercase text-almostblack dark:text-white mb-2">Partners</h3>
               <div className="flex flex-wrap gap-2">

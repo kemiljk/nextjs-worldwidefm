@@ -4,10 +4,10 @@ import { ShowCard } from "./ui/show-card";
 interface ShowsGridProps {
   shows: any[]; // Using any for show format compatibility
   sentinelRef?: React.Ref<HTMLDivElement>;
-  contentType?: 'episodes' | 'hosts-series' | 'takeovers';
+  contentType?: "episodes" | "hosts-series" | "takeovers";
 }
 
-export function ShowsGrid({ shows, sentinelRef, contentType = 'episodes' }: ShowsGridProps) {
+export function ShowsGrid({ shows, sentinelRef, contentType = "episodes" }: ShowsGridProps) {
   if (shows.length === 0) {
     return (
       <div className="text-center py-8">
@@ -21,11 +21,11 @@ export function ShowsGrid({ shows, sentinelRef, contentType = 'episodes' }: Show
     const source = show.__source || contentType;
 
     switch (source) {
-      case 'host':
+      case "host":
         return `/hosts/${show.slug}`;
-      case 'takeover':
+      case "takeover":
         return `/takeovers/${show.slug}`;
-      case 'episode':
+      case "episode":
       default:
         return `/episode/${show.slug}`;
     }

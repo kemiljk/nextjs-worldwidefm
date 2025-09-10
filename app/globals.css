@@ -57,7 +57,7 @@
   --color-electric: #88ca4f;
   --color-hyperpop: #e661a4;
   --color-soul: #1da0f8;
-  --color-jazz: #AC98EC;
+  --color-jazz: #ac98ec;
 
   --tracking-tight: -0.02em;
   --tracking-wide: 0.02em;
@@ -148,7 +148,6 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
-
   *,
   ::after,
   ::before,
@@ -293,16 +292,8 @@
     font-family: var(--font-mono);
   }
 
-  /* Custom prose overrides for specific sections */
-  .prose-mono h1,
-  .prose-mono h2,
-  .prose-mono h3,
-  .prose-mono h4,
-  .prose-mono h5,
-  .prose-mono h6,
-  .prose-mono strong,
-  .prose-mono b {
-    font-family: var(--font-mono) !important;
+  .prose.prose-mono h3 {
+    @apply !text-b3 !font-mono;
   }
 }
 
@@ -367,14 +358,12 @@
   padding: 0.25em 0;
 }
 
-
 .showcard {
   aspect-ratio: 4 / 5;
   /* default */
 }
 
 @media (min-width: 640px) {
-
   /* sm+ screens */
   .showcard {
     aspect-ratio: 5 / 4;
@@ -382,7 +371,6 @@
 }
 
 @media (min-width: 1024px) {
-
   /* lg+ screens */
   .showcard {
     aspect-ratio: 5 / 8;
