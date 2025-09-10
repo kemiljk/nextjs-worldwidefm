@@ -27,7 +27,7 @@ export default async function AboutPage() {
         </div>
 
         <div className="md:col-span-7">
-          <div className="border-l-2 border-bronze-500 pl-6">
+          <div className="border-l-2 border-almostblack dark:border-white pl-6">
             <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">{about.metadata.connect_title}</h2>
             <div className="prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: about.metadata.connect_content }} />
 
@@ -62,10 +62,10 @@ export default async function AboutPage() {
         </div>
         <div className="md:col-span-5">
           <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">{about.metadata.partner_with_us_title}</h2>
-          <div className="prose dark:prose-invert" dangerouslySetInnerHTML={{ __html: about.metadata.partner_with_us_description }} />
+          <div className="prose prose-mono dark:prose-invert flex flex-col gap-2 mt-4" dangerouslySetInnerHTML={{ __html: about.metadata.partner_with_us_description }} />
         </div>
         <div className="md:col-span-7">
-          <div className="border-l-2 border-bronze-500 pl-6">
+          <div className="border-l-2 border-almostblack dark:border-white pl-6">
             <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white mb-4">Partners</h3>
             <div className="flex flex-wrap gap-4">
               {about.metadata.partner_with_us.map((partner) => (
