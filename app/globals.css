@@ -1,4 +1,5 @@
-@import 'tailwindcss';
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @source '../*.{js,ts,jsx,tsxmdx}';
 
@@ -37,6 +38,18 @@
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
 
+  --color-gray-50: #e4e7e7;
+  --color-gray-100: #cdd1d1;
+  --color-gray-200: #b5baba;
+  --color-gray-300: #9ea5a5;
+  --color-gray-400: #8690a0;
+  --color-gray-500: #6f7979;
+  --color-gray-600: #5a6161;
+  --color-gray-700: #444a4a;
+  --color-gray-800: #2e3232;
+  --color-gray-900: #181b1b;
+  --color-gray-950: #000000;
+
   --color-almostblack: #231f20;
   --color-black: #000000;
   --color-white: #ffffff;
@@ -44,7 +57,7 @@
   --color-electric: #88ca4f;
   --color-hyperpop: #e661a4;
   --color-soul: #1da0f8;
-  --color-jazz: #AC98EC;
+  --color-jazz: #ac98ec;
 
   --tracking-tight: -0.02em;
   --tracking-wide: 0.02em;
@@ -135,7 +148,6 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
-
   *,
   ::after,
   ::before,
@@ -269,7 +281,6 @@
 
   .prose h1,
   .prose h2,
-  .prose h3,
   .prose h4,
   .prose h5,
   .prose h6 {
@@ -279,6 +290,10 @@
   code,
   pre {
     font-family: var(--font-mono);
+  }
+
+  .prose.prose-mono h3 {
+    @apply !text-b3 !font-mono;
   }
 }
 
@@ -343,14 +358,12 @@
   padding: 0.25em 0;
 }
 
-
 .showcard {
   aspect-ratio: 4 / 5;
   /* default */
 }
 
 @media (min-width: 640px) {
-
   /* sm+ screens */
   .showcard {
     aspect-ratio: 5 / 4;
@@ -358,7 +371,6 @@
 }
 
 @media (min-width: 1024px) {
-
   /* lg+ screens */
   .showcard {
     aspect-ratio: 5 / 8;

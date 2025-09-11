@@ -4,22 +4,39 @@ import { ShowCard } from "./ui/show-card";
 interface ShowsGridProps {
   shows: any[]; // Using any for show format compatibility
   sentinelRef?: React.Ref<HTMLDivElement>;
+  contentType?: "episodes" | "hosts-series" | "takeovers";
 }
 
-export function ShowsGrid({ shows, sentinelRef }: ShowsGridProps) {
+export function ShowsGrid({ shows, sentinelRef, contentType = "episodes" }: ShowsGridProps) {
   if (shows.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-foreground font-mono text-almostblack text-m8 uppercase">Fetching shows...</p>
+        <p className="font-mono text-almostblack text-m8 uppercase">Fetching shows...</p>
       </div>
     );
   }
+
+  const getSlugForShow = (show: any) => {
+    // Use __source if available, otherwise fall back to contentType
+    const source = show.__source || contentType;
+
+    switch (source) {
+      case "host":
+        return `/hosts/${show.slug}`;
+      case "takeover":
+        return `/takeovers/${show.slug}`;
+      case "episode":
+      default:
+        return `/episode/${show.slug}`;
+    }
+  };
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 w-full h-auto">
       {shows.filter(Boolean).map((show: any, index: number) => {
         const uniqueKey = `${show.id || show.slug}-${index}`;
-        return <ShowCard className="w-full " key={uniqueKey} show={show} slug={`/episode/${show.slug}`} />;
+        const slug = getSlugForShow(show);
+        return <ShowCard className="w-full" key={uniqueKey} show={show} slug={slug} />;
       })}
       {/* Infinite scroll sentinel at the end of the grid */}
       <div ref={sentinelRef} className="h-4 col-span-full" />

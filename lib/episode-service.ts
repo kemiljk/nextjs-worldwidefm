@@ -127,6 +127,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     // Regular query with pagination
     let response;
     try {
+      console.log('🔍 getEpisodes: Executing query:', JSON.stringify(query, null, 2));
       response = await cosmic.objects
         .find(query)
         .props('slug,title,metadata,type,created_at,published_at')
@@ -134,8 +135,14 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         .skip(offset)
         .sort('-metadata.broadcast_date,-created_at') // Sort by broadcast date, then creation date
         .depth(2);
+      console.log(
+        '🔍 getEpisodes: Query successful, got',
+        response.objects?.length || 0,
+        'episodes'
+      );
     } catch (error) {
       console.log('Server-side filtering failed, using client-side filtering...');
+      console.error('Server-side filtering error:', error);
 
       // Fallback: Get all episodes and filter client-side
       const allResponse = await cosmic.objects
@@ -256,6 +263,11 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     };
   } catch (error) {
     console.error('Error fetching episodes:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : typeof error,
+    });
     return { episodes: [], total: 0, hasNext: false };
   }
 }
