@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getVideos } from "@/lib/actions";
+import { getVideoBySlug } from "@/lib/actions";
 import { format } from "date-fns";
 import { VideoPlayer } from "@/components/video/video-player";
 import { PageHeader } from "@/components/shared/page-header";
@@ -13,13 +13,12 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const { slug } = await params;
-    const allVideos = await getVideos({ limit: 50 });
-    const video = allVideos.videos.find((v) => v.slug === slug);
-    
+    const video = await getVideoBySlug(slug);
+
     if (video) {
       return generateVideoMetadata(video);
     }
-    
+
     return generateVideoMetadata({ title: "Video Not Found" });
   } catch (error) {
     console.error("Error generating video metadata:", error);
@@ -29,15 +28,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function VideoPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const allVideos = await getVideos({ limit: 50 });
-  const video = allVideos.videos.find((v) => v.slug === slug);
+  const video = await getVideoBySlug(slug);
 
   if (!video) {
     notFound();
   }
 
-  // Format the date
-  const videoDate = video.metadata?.date ? new Date(video.metadata.date) : null;
+  // Format the date - use created_at if date is not available
+  const videoDate = video.metadata?.date ? new Date(video.metadata.date) : new Date(video.created_at);
   const formattedDate = videoDate ? format(videoDate, "dd-MM-yyyy") : "";
 
   return (
@@ -51,11 +49,7 @@ export default async function VideoPage({ params }: { params: Promise<{ slug: st
       <div className="max-w-[80vh] h-auto">
         <div className="pb-4">
           <div className="font-mono uppercase text-m8 leading-none text-white mb-4">{formattedDate}</div>
-          <PageHeader
-            title={video.title}
-            description={video.metadata?.description}
-            className="text-white"
-          />
+          <PageHeader title={video.title} description={video.metadata?.description} className="text-white" />
         </div>
 
         {/* Video Categories */}

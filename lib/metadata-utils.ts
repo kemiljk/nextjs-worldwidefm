@@ -227,7 +227,7 @@ export function generatePostMetadata(postData: any): Metadata {
 
 // Template for individual video metadata
 export function generateVideoMetadata(videoData: any): Metadata {
-  const title = videoData?.metadata?.seo.title || "Video - Worldwide FM";
+  const title = videoData?.title || "Video - Worldwide FM";
   const description = videoData?.metadata?.description || `Watch ${title} on Worldwide FM`;
 
   return generateBaseMetadata({
