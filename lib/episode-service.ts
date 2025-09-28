@@ -25,8 +25,21 @@ export interface EpisodeResponse {
  * Get episodes from Cosmic CMS with filtering and pagination
  */
 export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeResponse> {
-  const limit = params.limit || 20;
+  const baseLimit = params.limit || 20;
   const offset = params.offset || 0;
+
+  // Check if filters are active
+  const hasFilters = !!(params.genre || params.location || params.host || params.takeover || params.showType || params.searchTerm);
+
+  // For filtered results, we need a different approach:
+  // - First load: fetch more data to get a good sample of filtered results
+  // - Subsequent loads: use normal pagination with the filtered dataset
+  const isFirstLoad = offset === 0;
+  const limit = hasFilters && isFirstLoad ? Math.max(baseLimit * 5, 200) : baseLimit;
+
+  if (hasFilters && isFirstLoad) {
+    console.log(`🔍 Filtering active (first load) - fetching ${limit} episodes (base limit: ${baseLimit})`);
+  }
 
   // Build query object - include all published episodes
   let query: any = {
@@ -147,7 +160,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
           status: "published",
         })
         .props("slug,title,metadata,type,created_at,published_at")
-        .limit(1000) // Get more episodes for client-side filtering
+        .limit(hasFilters && isFirstLoad ? 1000 : limit) // Get more episodes on first filtered load
         .sort("-metadata.broadcast_date,-created_at")
         .depth(2);
 
@@ -225,7 +238,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
 
       // Apply pagination
       const startIndex = offset;
-      const endIndex = startIndex + limit;
+      const endIndex = startIndex + baseLimit;
       const paginatedEpisodes = allEpisodes.slice(startIndex, endIndex);
 
       // Ensure episodes are still sorted by broadcast date after filtering
@@ -235,19 +248,34 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         return dateB.getTime() - dateA.getTime();
       });
 
+      // Handle hasNext for client-side filtering
+      const hasNext = hasFilters && isFirstLoad ? allEpisodes.length > baseLimit : endIndex < allEpisodes.length;
+
       return {
         episodes: paginatedEpisodes,
         total: allEpisodes.length,
-        hasNext: endIndex < allEpisodes.length,
+        hasNext,
       };
     }
 
     const episodes = response.objects || [];
     const total = response.total || episodes.length;
-    const hasNext = episodes.length === limit && offset + limit < total;
+
+    // Handle different scenarios for filtered vs non-filtered results
+    let finalEpisodes, hasNext;
+
+    if (hasFilters && isFirstLoad) {
+      // First load with filters: return first batch, enable pagination if we got more data
+      finalEpisodes = episodes.slice(0, baseLimit);
+      hasNext = episodes.length > baseLimit;
+    } else {
+      // Normal pagination or subsequent filtered loads
+      finalEpisodes = episodes;
+      hasNext = episodes.length === limit && offset + limit < total;
+    }
 
     return {
-      episodes,
+      episodes: finalEpisodes,
       total,
       hasNext,
     };
