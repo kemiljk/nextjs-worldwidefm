@@ -37,9 +37,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
   const isFirstLoad = offset === 0;
   const limit = hasFilters && isFirstLoad ? Math.max(baseLimit * 5, 200) : baseLimit;
 
-  if (hasFilters && isFirstLoad) {
-    console.log(`🔍 Filtering active (first load) - fetching ${limit} episodes (base limit: ${baseLimit})`);
-  }
 
   // Build query object - include all published episodes
   let query: any = {
@@ -140,7 +137,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     // Regular query with pagination
     let response;
     try {
-      console.log("🔍 getEpisodes: Executing query:", JSON.stringify(query, null, 2));
       response = await cosmic.objects
         .find(query)
         .props("slug,title,metadata,type,created_at,published_at")
@@ -148,7 +144,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         .skip(offset)
         .sort("-metadata.broadcast_date,-created_at") // Sort by broadcast date, then creation date
         .depth(2);
-      console.log("🔍 getEpisodes: Query successful, got", response.objects?.length || 0, "episodes");
     } catch (error) {
       console.log("Server-side filtering failed, using client-side filtering...");
       console.error("Server-side filtering error:", error);

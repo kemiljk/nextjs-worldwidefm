@@ -38,7 +38,6 @@ export default async function Home() {
   // Get recent episodes from Cosmic
   const response = await getEpisodesForShows({ limit: 20 });
   const shows = response?.shows || [];
-  console.log("Recent episodes:", shows.length);
 
   // Sort all shows by broadcast date, most recent first
   const sortedShows = [...shows].sort((a: any, b: any) => {

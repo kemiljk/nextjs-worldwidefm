@@ -100,7 +100,9 @@ async function getInitialShows(hostId: string) {
     const transformedShows = (response.objects || []).map(transformShowToViewData);
     return transformedShows;
   } catch (error) {
-    console.error(`Error fetching initial shows for host ${hostId}:`, error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`Error fetching initial shows for host ${hostId}:`, error);
+    }
     return [];
   }
 }

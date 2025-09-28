@@ -156,7 +156,6 @@ async function fetchFromRadioCult<T>(endpoint: string, options: RequestInit = {}
   }
 
   const url = `${RADIOCULT_API_BASE_URL}${endpoint}`;
-  console.log(`Fetching from RadioCult: ${url}`);
 
   const headers = {
     ...options.headers,
@@ -344,8 +343,6 @@ export async function getEvents(params: RadioCultEventsParams = {}, forceRefresh
     let events: RadioCultEvent[] = [];
     let total = 0;
 
-    console.log("Schedule response:", JSON.stringify(data, null, 2).substring(0, 500) + "...");
-
     // Handle the schedules array format
     if (data.schedules && Array.isArray(data.schedules)) {
       events = data.schedules.map((item: RadioCultScheduleItem) => ({
@@ -525,8 +522,6 @@ export async function getScheduleData(): Promise<{
         upcomingEvents: [],
       };
     }
-
-    console.log(`Retrieved ${events.length} events for schedule data`);
 
     // Sort events by start time
     const sortedEvents = [...events].sort((a, b) => {
