@@ -5,7 +5,6 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { PageHeader } from "@/components/shared/page-header";
 import { ShowsGrid } from "../../components/shows-grid";
 import { Loader, X } from "lucide-react";
-import { useInView } from "react-intersection-observer";
 import { getEpisodesForShows, getRegularHosts, getTakeovers } from "@/lib/episode-service";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -27,7 +26,6 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   const [hasNext, setHasNext] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
-  const { ref, inView } = useInView();
   const PAGE_SIZE = 20;
 
   // Parse filter params
@@ -105,63 +103,58 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGenres, selectedLocations, typeParam, searchTerm]);
 
-  // Infinite scroll: load more when sentinel is in view
-  useEffect(() => {
-    if (inView && hasNext && !isLoadingMore) {
-      // Add a small delay to prevent rapid API calls
-      const timeoutId = setTimeout(async () => {
-        setIsLoadingMore(true);
-        const nextOffset = page * PAGE_SIZE;
+  // Load more data function
+  const loadMore = async () => {
+    if (!hasNext || isLoadingMore) return;
 
-        try {
-          let response;
+    setIsLoadingMore(true);
+    const nextOffset = page * PAGE_SIZE;
 
-          // Use different data sources based on the active type
-          if (activeType === "hosts-series") {
-            // Fetch more regular hosts objects
-            response = await getRegularHosts({
-              limit: PAGE_SIZE,
-              offset: nextOffset,
-            });
-          } else if (activeType === "takeovers") {
-            // Fetch more takeovers objects
-            response = await getTakeovers({
-              limit: PAGE_SIZE,
-              offset: nextOffset,
-            });
-          } else {
-            // Fetch more episodes with filters
-            const episodeParams: any = {
-              searchTerm,
-              limit: PAGE_SIZE,
-              offset: nextOffset,
-            };
+    try {
+      let response;
 
-            // Only add filters if they're selected
-            if (selectedGenres.length > 0) {
-              episodeParams.genre = selectedGenres;
-            }
+      // Use different data sources based on the active type
+      if (activeType === "hosts-series") {
+        // Fetch more regular hosts objects
+        response = await getRegularHosts({
+          limit: PAGE_SIZE,
+          offset: nextOffset,
+        });
+      } else if (activeType === "takeovers") {
+        // Fetch more takeovers objects
+        response = await getTakeovers({
+          limit: PAGE_SIZE,
+          offset: nextOffset,
+        });
+      } else {
+        // Fetch more episodes with filters
+        const episodeParams: any = {
+          searchTerm,
+          limit: PAGE_SIZE,
+          offset: nextOffset,
+        };
 
-            if (selectedLocations.length > 0) {
-              episodeParams.location = selectedLocations;
-            }
-
-            response = await getEpisodesForShows(episodeParams);
-          }
-
-          setShows((prev) => [...prev, ...response.shows]);
-          setHasNext(response.hasNext);
-          setIsLoadingMore(false);
-          setPage((prev) => prev + 1);
-        } catch (error) {
-          console.error("Error loading more data:", error);
-          setIsLoadingMore(false);
-          // Don't increment page on error to allow retry
+        // Only add filters if they're selected
+        if (selectedGenres.length > 0) {
+          episodeParams.genre = selectedGenres;
         }
-      }, 1000); // 1000ms delay to match debounce
+
+        if (selectedLocations.length > 0) {
+          episodeParams.location = selectedLocations;
+        }
+
+        response = await getEpisodesForShows(episodeParams);
+      }
+
+      setShows((prev) => [...prev, ...response.shows]);
+      setHasNext(response.hasNext);
+      setPage((prev) => prev + 1);
+    } catch (error) {
+      console.error("Error loading more data:", error);
+    } finally {
+      setIsLoadingMore(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inView, hasNext, isLoadingMore, page, selectedGenres, selectedLocations, typeParam, searchTerm]);
+  };
 
   // Map episode genres to canonical genres (by slug or title, case-insensitive)
   function mapShowToCanonicalGenres(show: any): string[] {
@@ -392,11 +385,22 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
 
       <div className="pt-2 w-full px-5 flex-col pb-20">
         <main className="">
-          <ShowsGrid shows={filteredShows} sentinelRef={ref} contentType={activeType as "episodes" | "hosts-series" | "takeovers"} />
+          <ShowsGrid shows={filteredShows} contentType={activeType as "episodes" | "hosts-series" | "takeovers"} />
         </main>
-        {isLoadingMore && (
-          <div className="h-4 w-full flex items-center justify-center mt-8">
-            <Loader className="h-4 w-4 animate-spin" />
+
+        {/* Load More Button */}
+        {hasNext && (
+          <div className="w-full flex items-center justify-center mt-8">
+            <Button onClick={loadMore} disabled={isLoadingMore} variant="outline" className="border-almostblack dark:border-white hover:bg-almostblack hover:text-white dark:hover:bg-white dark:hover:text-almostblack">
+              {isLoadingMore ? (
+                <>
+                  <Loader className="h-4 w-4 animate-spin mr-2" />
+                  Loading...
+                </>
+              ) : (
+                "Load More"
+              )}
+            </Button>
           </div>
         )}
       </div>

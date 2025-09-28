@@ -3,11 +3,10 @@ import { ShowCard } from "./ui/show-card";
 
 interface ShowsGridProps {
   shows: any[]; // Using any for show format compatibility
-  sentinelRef?: React.Ref<HTMLDivElement>;
   contentType?: "episodes" | "hosts-series" | "takeovers";
 }
 
-export function ShowsGrid({ shows, sentinelRef, contentType = "episodes" }: ShowsGridProps) {
+export function ShowsGrid({ shows, contentType = "episodes" }: ShowsGridProps) {
   if (shows.length === 0) {
     return (
       <div className="text-center py-8">
@@ -38,8 +37,6 @@ export function ShowsGrid({ shows, sentinelRef, contentType = "episodes" }: Show
         const slug = getSlugForShow(show);
         return <ShowCard className="w-full" key={uniqueKey} show={show} slug={slug} />;
       })}
-      {/* Infinite scroll sentinel at the end of the grid */}
-      <div ref={sentinelRef} className="h-4 col-span-full" />
     </div>
   );
 }
