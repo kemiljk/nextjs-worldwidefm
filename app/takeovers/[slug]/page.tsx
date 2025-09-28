@@ -161,7 +161,7 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
   const takeoverDescription = takeover.metadata?.description || takeover.content || "";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 mt-8">
       <Link href="/shows" className="text-foreground flex items-center gap-1">
         <ChevronRight className="w-4 h-4 rotate-180" />
         Back to Shows
