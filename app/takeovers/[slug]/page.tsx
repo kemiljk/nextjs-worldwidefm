@@ -47,12 +47,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 // Generate static params for all takeovers
 export async function generateStaticParams() {
-  console.log("🔍 generateStaticParams: Starting takeover static params generation");
-  console.log("Environment check:", {
-    bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG ? "✅ Set" : "❌ Missing",
-    readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY ? "✅ Set" : "❌ Missing",
-  });
-
   try {
     // Get all takeovers from Cosmic CMS
     const response = await cosmic.objects
@@ -63,35 +57,19 @@ export async function generateStaticParams() {
       .props("slug")
       .limit(1000);
 
-    console.log("🔍 generateStaticParams: Cosmic response:", {
-      totalObjects: response.objects?.length || 0,
-      hasObjects: !!response.objects,
-      firstFewSlugs: response.objects?.slice(0, 5).map((t: any) => t.slug) || [],
-    });
-
     const params =
       response.objects?.map((takeover: any) => ({
         slug: takeover.slug,
       })) || [];
 
-    console.log("🔍 generateStaticParams: Generated params:", params);
     return params;
   } catch (error) {
-    console.error("❌ Error generating static params for takeovers:", error);
-    if (error instanceof Error) {
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      });
-    }
+    console.error("Error generating static params for takeovers:", error);
     return [];
   }
 }
 
 async function getTakeoverBySlug(slug: string) {
-  console.log(`🔍 getTakeoverBySlug: Fetching takeover with slug: ${slug}`);
-
   try {
     const response = await cosmic.objects
       .findOne({
@@ -101,22 +79,9 @@ async function getTakeoverBySlug(slug: string) {
       .props("id,slug,title,content,metadata")
       .depth(1);
 
-    console.log(`🔍 getTakeoverBySlug: Response for ${slug}:`, {
-      hasObject: !!response?.object,
-      objectId: response?.object?.id,
-      objectTitle: response?.object?.title,
-    });
-
     return response?.object || null;
   } catch (error) {
-    console.error(`❌ Error fetching takeover by slug ${slug}:`, error);
-    if (error instanceof Error) {
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        name: error.name,
-      });
-    }
+    console.error(`Error fetching takeover by slug ${slug}:`, error);
     return null;
   }
 }
@@ -138,24 +103,15 @@ async function getEpisodesByTakeover(takeoverId: string) {
 
 export default async function TakeoverPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  console.log(`🔍 TakeoverPage: Starting render for slug: ${slug}`);
 
   const takeover = await getTakeoverBySlug(slug);
 
-  console.log(`🔍 TakeoverPage: Takeover fetch result for ${slug}:`, {
-    takeoverFound: !!takeover,
-    takeoverId: takeover?.id,
-    takeoverTitle: takeover?.title,
-  });
-
   if (!takeover) {
-    console.log(`❌ TakeoverPage: No takeover found for slug ${slug}, calling notFound()`);
     notFound();
   }
 
   // Get episodes with this takeover
   const takeoverEpisodes = await getEpisodesByTakeover(takeover.id);
-  console.log(`🔍 TakeoverPage: Found ${takeoverEpisodes.length} episodes for takeover ${takeover.title}`);
 
   const takeoverImage = takeover.metadata?.image?.imgix_url || "/image-placeholder.svg";
   const takeoverDescription = takeover.metadata?.description || takeover.content || "";

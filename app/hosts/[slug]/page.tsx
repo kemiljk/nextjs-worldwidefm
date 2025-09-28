@@ -90,17 +90,11 @@ async function getHostBySlug(slug: string) {
 
 async function getInitialShows(hostId: string) {
   try {
-    console.log(`🔍 getInitialShows: Loading initial episodes for host ID: ${hostId}`);
-
     const response = await getRadioShows({
       filters: { host: hostId },
       limit: 20, // Load initial batch of 20
       sort: '-metadata.broadcast_date',
     });
-
-    console.log(
-      `🔍 getInitialShows: Found ${response.objects?.length || 0} episodes for host ID ${hostId}`
-    );
 
     // Transform episodes to show format for ShowCard compatibility
     const transformedShows = (response.objects || []).map(transformShowToViewData);
@@ -113,29 +107,15 @@ async function getInitialShows(hostId: string) {
 
 export default async function HostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  console.log(`🔍 HostPage: Starting render for slug: ${slug}`);
 
   const host = await getHostBySlug(slug);
 
-  console.log(`🔍 HostPage: Host fetch result for ${slug}:`, {
-    hostFound: !!host,
-    hostId: host?.id,
-    hostTitle: host?.title,
-    hostSlug: host?.slug,
-    hostType: host?.type,
-    hostMetadata: host?.metadata,
-  });
-
   if (!host) {
-    console.log(`❌ HostPage: No host found for slug ${slug}, calling notFound()`);
     notFound();
   }
 
   // Get initial shows hosted by this person
   const initialShows = await getInitialShows(host.id);
-  console.log(
-    `🔍 HostPage: Found ${initialShows.length} initial shows for ${host.title} (ID: ${host.id})`
-  );
 
   const hostImage = host.metadata?.image?.imgix_url || '/image-placeholder.svg';
   const hostDescription = host.metadata?.description || host.content || '';
