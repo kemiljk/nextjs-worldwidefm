@@ -12,6 +12,7 @@ import Footer from "@/components/footer";
 import LivePlayer from "@/components/live-player";
 import ArchivePlayer from "@/components/archive-player";
 import DiscordButton from "@/components/discord-button";
+import PlausibleProvider from "next-plausible";
 import "./globals.css";
 
 const sans = Nimbus({
@@ -54,6 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${sans.variable} ${display.variable} ${mono.variable} min-h-screen w-full bg-background font-sans`}>
+        {/* <PlausibleProvider domain="worldwidefm.net"> */}
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange storageKey="worldwidefm-theme">
           <AuthProvider>
             <SearchProvider>
@@ -68,6 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </SearchProvider>
           </AuthProvider>
         </ThemeProvider>
+        {/* </PlausibleProvider> */}
       </body>
     </html>
   );
