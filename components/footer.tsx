@@ -1,34 +1,52 @@
 import Link from "next/link";
-import { siInstagram, siX, siFacebook, siDiscord } from "simple-icons";
+import * as SimpleIcons from "simple-icons";
 import { Button } from "@/components/ui/button";
+import { cosmic } from "@/cosmic/client";
 
-export default function Footer() {
+// Helper function to get icon by name
+const getIcon = (iconName: string) => {
+  return (SimpleIcons as any)[iconName];
+};
+
+export default async function Footer() {
+  const socialLinks = await cosmic.objects
+    .findOne({
+      type: "social-links",
+      slug: "social-links",
+    })
+    .props("slug,title,metadata,type")
+    .depth(1);
+
   return (
     <footer className="bg-white dark:bg-gray-900 text-almostblack pt-8 border-t border-almostblack w-full">
       <div className="mx-auto px-5">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:w-full gap-10">
-
-          <div className="w-full sm:w-[30vw] sm:pr-10 flex flex-col gap-10" >
+          <div className="w-full sm:w-[30vw] sm:pr-10 flex flex-col gap-10">
             {/* About section */}
             <div>
               <p className="font-sans text-b3 leading-5">Worldwide FM is a global music radio platform founded by Gilles Peterson, connecting people through music that transcends borders and cultures.</p>
             </div>
             {/* Connect section */}
             <div className="w-auto pr-10">
-              <h3 className="text-m7 font-mono uppercase  uppercase font-normal text-almostblack dark:text-white pb-4">Connect</h3>
+              <h3 className="text-m7 font-mono uppercase font-normal text-almostblack dark:text-white pb-4">Connect</h3>
               <div className="flex gap-4">
-                <Link href="https://discord.gg/worldwidefm" target="_blank" rel="noopener noreferrer">
-                  <div dangerouslySetInnerHTML={{ __html: siDiscord.svg }} className="h-5 w-5" />
-                </Link>
-                <Link href="https://instagram.com/worldwide.fm" target="_blank" rel="noopener noreferrer">
-                  <div dangerouslySetInnerHTML={{ __html: siInstagram.svg }} className="h-5 w-5" />
-                </Link>
-                <Link href="https://twitter.com/worldwidefm" target="_blank" rel="noopener noreferrer">
-                  <div dangerouslySetInnerHTML={{ __html: siX.svg }} className="h-5 w-5" />
-                </Link>
-                <Link href="https://facebook.com/worldwidefm" target="_blank" rel="noopener noreferrer">
-                  <div dangerouslySetInnerHTML={{ __html: siFacebook.svg }} className="h-5 w-5" />
-                </Link>
+                {socialLinks.object?.metadata?.social_link?.map((link: any, index: number) => {
+                  const icon = getIcon(link.icon);
+
+                  if (!icon) {
+                    return (
+                      <span key={index} className="text-red-500">
+                        ❌ {link.icon}
+                      </span>
+                    );
+                  }
+
+                  return (
+                    <Link key={index} href={link.link} target="_blank" rel="noopener noreferrer">
+                      <div dangerouslySetInnerHTML={{ __html: icon.svg }} className="h-5 w-5 fill-current" style={{ color: `#${icon.hex}` }} />
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -76,7 +94,6 @@ export default function Footer() {
               </Button>
             </div>
           </div>
-
         </div>
 
         {/* Copyright */}
