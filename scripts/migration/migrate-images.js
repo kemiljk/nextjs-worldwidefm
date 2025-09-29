@@ -6,7 +6,7 @@ const fs = require("fs");
 const fsp = require("fs").promises;
 const axios = require("axios");
 const cheerio = require("cheerio");
-const { URL } = require("url");
+// Using global URL constructor (WHATWG URL API) instead of deprecated url.parse()
 const puppeteer = require("puppeteer");
 
 // Configuration

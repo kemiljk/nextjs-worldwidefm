@@ -6,7 +6,6 @@ import { ChevronRight, Loader2 } from "lucide-react";
 import { PostObject } from "@/lib/cosmic-config";
 import { formatDate } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import { useInView } from "react-intersection-observer";
 import { getAllPosts } from "@/lib/actions";
 import { Badge } from "@/components/ui/badge";
 import { subDays } from "date-fns";
@@ -25,19 +24,12 @@ export default function PostsGrid({ initialPosts, activeFilter = "", activeSubfi
   const [posts, setPosts] = useState<PostObject[]>(initialPosts);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const { ref, inView } = useInView();
 
   // Reset posts when filters change
   useEffect(() => {
     setPosts(initialPosts);
     setHasMore(true);
   }, [initialPosts, activeFilter, activeSubfilter]);
-
-  useEffect(() => {
-    if (inView && !isLoading && hasMore) {
-      loadMorePosts();
-    }
-  }, [inView, activeFilter, activeSubfilter]);
 
   async function loadMorePosts() {
     try {
@@ -115,15 +107,21 @@ export default function PostsGrid({ initialPosts, activeFilter = "", activeSubfi
         })}
       </div>
 
-      {/* Loading indicator */}
-      <div ref={ref} className="mt-8 flex justify-center">
-        {isLoading && (
-          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm">Loading more posts...</span>
-          </div>
-        )}
-      </div>
+      {/* Load More Button */}
+      {hasMore && (
+        <div className="w-full flex items-center justify-center mt-8">
+          <Button onClick={loadMorePosts} disabled={isLoading} variant="outline" className="border-almostblack dark:border-white hover:bg-almostblack hover:text-white dark:hover:bg-white dark:hover:text-almostblack">
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Loading...
+              </>
+            ) : (
+              "Load More"
+            )}
+          </Button>
+        </div>
+      )}
     </>
   );
 }

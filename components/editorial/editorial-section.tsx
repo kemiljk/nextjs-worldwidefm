@@ -6,7 +6,7 @@ import { getAllPosts } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 import { PostObject } from "@/lib/cosmic-config";
 import { useEffect, useState } from "react";
-import { useInView } from "react-intersection-observer";
+import { Button } from "@/components/ui/button";
 import Marquee from "@/components/ui/marquee";
 
 import Link from "next/link";
@@ -25,13 +25,6 @@ export default function EditorialSection({ title, posts, className, isHomepage =
   const [displayedPosts, setDisplayedPosts] = useState<Post[]>(posts);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const { ref, inView } = useInView();
-
-  useEffect(() => {
-    if (inView && !isLoading && hasMore && !isHomepage) {
-      loadMorePosts();
-    }
-  }, [inView, isLoading, hasMore, isHomepage]);
 
   async function loadMorePosts() {
     try {
@@ -141,15 +134,21 @@ export default function EditorialSection({ title, posts, className, isHomepage =
               );
             })}
           </div>
-          {/* Loading indicator */}
-          <div ref={ref} className="mt-8 flex justify-center">
-            {isLoading && (
-              <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Loading more posts...</span>
-              </div>
-            )}
-          </div>
+          {/* Load More Button */}
+          {hasMore && (
+            <div className="w-full flex items-center justify-center mt-8">
+              <Button onClick={loadMorePosts} disabled={isLoading} variant="outline" className="border-almostblack dark:border-white hover:bg-almostblack hover:text-white dark:hover:bg-white dark:hover:text-almostblack">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Loading...
+                  </>
+                ) : (
+                  "Load More"
+                )}
+              </Button>
+            </div>
+          )}
         </>
       )}
     </section>

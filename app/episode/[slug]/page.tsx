@@ -121,91 +121,71 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
 
       {/* Main Content Container */}
 
+      <div className="w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-3">
+        {/*LEFT CONTAINER*/}
+        <div className="w-full md:w-[40%] flex flex-col gap-1">
+          {/* Episode Description */}
+          {(metadata.body_text || metadata.description) && (
+            <div className="prose dark:prose-invert max-w-none">
+              <SafeHtml content={metadata.body_text || metadata.description || ""} type="editorial" className="text-b3 sm:text-[18px] leading-tight text-almostblack" />
+            </div>
+          )}
 
-        <div className="w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-3">
-          {/*LEFT CONTAINER*/}
-          <div className="w-full md:w-[40%] flex flex-col gap-1">
-
-              {/* Episode Description */}
-              {(metadata.body_text || metadata.description) && (
-                <div className="prose dark:prose-invert max-w-none">
-                  <SafeHtml content={metadata.body_text || metadata.description || ""} type="editorial" className="text-b3 sm:text-[18px] leading-tight text-almostblack" />
-                </div>
-              )}
-
-              {/* Genres Section */}
-              {metadata.genres?.length > 0 && (
-                <div>
-                  <div className="flex flex-wrap select-none cursor-default my-3">
-                    {metadata.genres.map((genre: any) => (
-                      <GenreTag key={genre.id || genre.slug}>{genre.title || genre.name}</GenreTag>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {/* Hosts Section */}
-              {metadata.regular_hosts?.length > 0 && (
-                <div className="flex flex-wrap gap-1 pl-1">
-                  {metadata.regular_hosts.map((host: any) => (
-                    <HostLink key={host.id || host.slug} host={host} className="text-m7 font-mono uppercase text-muted-foreground hover:text-foreground transition-colors" />
-                  ))}
-                </div>
-              )}
-
-              {/* Duration */}
-              {metadata.duration && (
-                <div>
-                  <span className="text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors">Duration: {metadata.duration}</span>
-                </div>
-              )}
-
-              {/* Broadcast Info */}
-              {metadata.broadcast_date && (
-                <div>
-                  <span className="text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors">
-                    Broadcast: {new Date(metadata.broadcast_date).toLocaleDateString()}
-                    {metadata.broadcast_time && ` at ${metadata.broadcast_time}`}
-                  </span>
-                </div>
-              )}
-
-              {/* Tracklist Section */}
-              <div className="my-4">
-              {metadata.tracklist && (
-                <TracklistToggle tracklist={metadata.tracklist}/>
-              )}
+          {/* Genres Section */}
+          {metadata.genres?.length > 0 && (
+            <div>
+              <div className="flex flex-wrap select-none cursor-default my-3">
+                {metadata.genres.map((genre: any) => (
+                  <GenreTag key={genre.id || genre.slug}>{genre.title || genre.name}</GenreTag>
+                ))}
               </div>
-          </div>
+            </div>
+          )}
+          {/* Hosts Section */}
+          {metadata.regular_hosts?.length > 0 && (
+            <div className="flex flex-wrap gap-1 pl-1">
+              {metadata.regular_hosts.map((host: any) => (
+                <HostLink key={host.id || host.slug} host={host} className="text-m7 font-mono uppercase text-muted-foreground hover:text-foreground transition-colors" />
+              ))}
+            </div>
+          )}
 
-          {/*RIGHT CONTAINER*/}
-          <div className="w-full md:w-[60%] flex flex-col mt-2 gap-2 h-auto">
+          {/* Duration */}
+          {metadata.duration && (
+            <div>
+              <span className="text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors">Duration: {metadata.duration}</span>
+            </div>
+          )}
 
-            {relatedShows.length > 0 && (
-              <div>
-                <h2 className="text-h8 md:text-h7 font-bold tracking-tight">
-                  RELATED EPISODES
-                </h2>
-                <div className="grid grid-cols-2 lg:grid-cols-3 lg:grid-cols-3 gap-3 justify-between pt-3">
-                  {relatedShows.map((relatedShow) => {
-                    const slug = `/episode/${relatedShow.slug}`;
-                    return <ShowCard key={relatedShow.id || relatedShow.slug} show={relatedShow} slug={slug} playable />;
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
+          {/* Broadcast Info */}
+          {metadata.broadcast_date && (
+            <div>
+              <span className="text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors">
+                Broadcast: {new Date(metadata.broadcast_date).toLocaleDateString()}
+                {metadata.broadcast_time && ` at ${metadata.broadcast_time}`}
+              </span>
+            </div>
+          )}
 
+          {/* Tracklist Section */}
+          <div className="my-4">{metadata.tracklist && <TracklistToggle tracklist={metadata.tracklist} />}</div>
         </div>
 
-
-
-
-
-
-
-
-
-
+        {/*RIGHT CONTAINER*/}
+        <div className="w-full md:w-[60%] flex flex-col mt-2 gap-2 h-auto">
+          {relatedShows.length > 0 && (
+            <div>
+              <h2 className="text-h8 md:text-h7 font-bold tracking-tight">RELATED EPISODES</h2>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 justify-between pt-3">
+                {relatedShows.map((relatedShow) => {
+                  const slug = `/episode/${relatedShow.slug}`;
+                  return <ShowCard key={relatedShow.id || relatedShow.slug} show={relatedShow} slug={slug} playable />;
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

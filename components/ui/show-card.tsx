@@ -120,6 +120,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   const genreTagVariant = variant === "light" ? "light" : undefined;
 
   return (
+<<<<<<< HEAD
     <Link
       href={slug}
       className={`border ${borderClass} rounded-none overflow-hidden flex flex-col p-2 h-full w-auto showcard cursor-default ${className}`}
@@ -134,12 +135,19 @@ export const ShowCard: React.FC<ShowCardProps> = ({
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
           priority={false}
         />
+=======
+    <Link href={slug} className={`border border-almostblack dark:border-white rounded-none overflow-hidden flex flex-col p-2 h-full w-auto showcard cursor-default ${className}`}>
+      {/* Image */}
+      <div className="relative flex-2">
+        <Image src={showImage} alt={showName} fill className="object-cover border border-almostblack dark:border-white hover:cursor-pointer" sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw" priority={false} />
+>>>>>>> ac5a7eb7ddd071ac1ac884ba77ca4efd3058dac6
       </div>
 
       {/* Details */}
       <div className="flex flex-col justify-between gap-1 flex-1 pt-3 pb-1">
         {/* Title */}
         <div className="w-auto h-auto flex-1 gap-1 flex flex-col">
+<<<<<<< HEAD
           <div
             className={`font-mono text-m8 sm:text-m6 uppercase w-full line-clamp-2 break-words pr-10 ${textClass}`}
           >
@@ -150,6 +158,15 @@ export const ShowCard: React.FC<ShowCardProps> = ({
             <div
               className={`flex flex-row items-center gap-2.5 font-mono text-xs uppercase pt-1 ${textClass}`}
             >
+=======
+          <div className="font-mono text-m8 sm:text-m6 text-almostblack dark:text-white uppercase w-full line-clamp-2 break-words pr-10">
+            {mainTitle}
+            {subtitle ? ": " : ""} {subtitle}
+          </div>
+
+          {(formattedTime || show.location?.name) && (
+            <div className="flex flex-row items-center gap-2.5 font-mono text-xs text-almostblack dark:text-white uppercase pt-1">
+>>>>>>> ac5a7eb7ddd071ac1ac884ba77ca4efd3058dac6
               {formattedTime && <span>{formattedTime}</span>}
               {formattedTime && show.location?.name && <span>|</span>}
               {show.location?.name && <span>{show.location?.name}</span>}
@@ -161,13 +178,18 @@ export const ShowCard: React.FC<ShowCardProps> = ({
         <div className="flex flex-row items-end justify-between w-full pr-1">
           <div className="flex flex-row flex-wrap">
             {showTags.map((tag, idx) => (
+<<<<<<< HEAD
               <GenreTag key={tag + idx} variant={genreTagVariant}>
                 {tag}
               </GenreTag>
+=======
+              <GenreTag key={tag + idx}>{tag}</GenreTag>
+>>>>>>> ac5a7eb7ddd071ac1ac884ba77ca4efd3058dac6
             ))}
           </div>
 
           {shouldShowPlayButton && (
+<<<<<<< HEAD
             <button
               className={`${playButtonBgClass} rounded-full w-10 h-10 flex items-center justify-center ml-2 transition-colors cursor-pointer`}
               style={{ minWidth: 40, minHeight: 40 }}
@@ -179,6 +201,10 @@ export const ShowCard: React.FC<ShowCardProps> = ({
               ) : (
                 <Play fill="white" className={`w-4 h-4 ${playButtonIconClass} pl-0.5`} />
               )}
+=======
+            <button className="bg-almostblack rounded-full w-10 h-10 flex items-center justify-center ml-2 transition-colors hover:bg-almostblack/80 dark:border-white cursor-pointer" style={{ minWidth: 40, minHeight: 40 }} onClick={handlePlayPause} aria-label={isCurrentlyPlaying ? "Pause show" : "Play show"}>
+              {isCurrentlyPlaying ? <Pause fill="white" className="w-4 h-4 text-white" /> : <Play fill="white" className="w-4 h-4 text-white pl-0.5" />}
+>>>>>>> ac5a7eb7ddd071ac1ac884ba77ca4efd3058dac6
             </button>
           )}
         </div>

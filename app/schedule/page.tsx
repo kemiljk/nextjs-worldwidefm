@@ -47,11 +47,8 @@ async function getWeeklySchedule(): Promise<{
       limit: 100, // High limit to ensure we get all events
     });
 
-    console.log(`Retrieved ${events?.length || 0} events from RadioCult`);
-
     // Check if events is valid and not empty
     if (!events || events.length === 0) {
-      console.log('No events returned from RadioCult');
       return {
         scheduleItems: [],
         isActive: false,
