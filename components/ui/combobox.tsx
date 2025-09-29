@@ -49,15 +49,19 @@ export function Combobox({ options, value = [], onValueChange, placeholder = "SE
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0 font-mono uppercase" align="start">
+      <PopoverContent className="max-w-50 w-full p-0 font-mono uppercase" align="start">
         <Command>
           <CommandInput className="font-mono uppercase" placeholder={searchPlaceholder} />
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {sortedOptions.map((option) => (
-                <CommandItem key={option.value} value={option.label} onSelect={() => handleSelect(option.value)}>
-                  <Check className={cn("mr-2 h-4 w-4", value.includes(option.value) ? "opacity-100" : "opacity-0")} />
+                <CommandItem
+                  key={option.value}
+                  value={option.label}
+                  onSelect={() => handleSelect(option.value)}
+                  className="rounded-[90px] cursor-pointer"
+                >
                   {option.label}
                 </CommandItem>
               ))}

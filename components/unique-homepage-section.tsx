@@ -125,6 +125,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
                 slug={show.url}
                 playable
                 className='w-full !text-white border-almostblack cursor-default'
+                variant="light"
               />
             </div>
           ))}

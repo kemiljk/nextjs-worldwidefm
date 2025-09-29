@@ -168,7 +168,7 @@ export function FilterToolbar({ onFilterChange, onSearchChange, searchTerm = "",
         {getActiveChips().length > 0 && (
           <div className='w-full border-t border-almostblack flex gap-2 pt-4 pb-2 text-[15px] overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700'>
             {getActiveChips().map((chip, index) => (
-              <Badge key={`${chip.type}-${chip.value}-${index}`} variant="default" className="ont-mono cursor-pointer border border-almostblack hover:bg-white whitespace-nowrap bg-white text-almostblack flex items-center gap-1">
+              <Badge key={`${chip.type}-${chip.value}-${index}`} variant="default" className="font-mono cursor-pointer border border-almostblack hover:bg-white whitespace-nowrap bg-white text-almostblack flex items-center gap-1">
                 {chip.label}
                 <X
                   className="h-3 w-3"

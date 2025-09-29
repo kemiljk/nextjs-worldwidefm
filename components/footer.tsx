@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export default function Footer() {
   return (
-    <footer className="bg-white dark:bg-gray-900 text-almostblack pt-8 border-t border-almostblack w-full">
+    <footer className="bg-white dark:bg-gray-900 text-almostblack dark:text-white pt-8 border-t border-almostblack w-full">
       <div className="mx-auto px-5">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:w-full gap-10">
 
@@ -18,16 +18,16 @@ export default function Footer() {
               <h3 className="text-m7 font-mono uppercase  uppercase font-normal text-almostblack dark:text-white pb-4">Connect</h3>
               <div className="flex gap-4">
                 <Link href="https://discord.gg/worldwidefm" target="_blank" rel="noopener noreferrer">
-                  <div dangerouslySetInnerHTML={{ __html: siDiscord.svg }} className="h-5 w-5" />
+                  <div dangerouslySetInnerHTML={{ __html: siDiscord.svg }} className="h-5 w-5 fill-black dark:fill-white" />
                 </Link>
                 <Link href="https://instagram.com/worldwide.fm" target="_blank" rel="noopener noreferrer">
-                  <div dangerouslySetInnerHTML={{ __html: siInstagram.svg }} className="h-5 w-5" />
+                  <div dangerouslySetInnerHTML={{ __html: siInstagram.svg }} className="h-5 w-5 fill-black dark:fill-white" />
                 </Link>
                 <Link href="https://twitter.com/worldwidefm" target="_blank" rel="noopener noreferrer">
-                  <div dangerouslySetInnerHTML={{ __html: siX.svg }} className="h-5 w-5" />
+                  <div dangerouslySetInnerHTML={{ __html: siX.svg }} className="h-5 w-5 fill-black dark:fill-white" />
                 </Link>
                 <Link href="https://facebook.com/worldwidefm" target="_blank" rel="noopener noreferrer">
-                  <div dangerouslySetInnerHTML={{ __html: siFacebook.svg }} className="h-5 w-5" />
+                  <div dangerouslySetInnerHTML={{ __html: siFacebook.svg }} className="h-5 w-5 fill-black dark:fill-white" />
                 </Link>
               </div>
             </div>

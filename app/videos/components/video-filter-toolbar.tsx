@@ -139,7 +139,7 @@ export function VideoFilterToolbar({ onFilterChange, onSearchChange, searchTerm 
               <Badge
                 key={`${chip.type}-${chip.value}-${index}`}
                 variant="default"
-                className="ont-mono cursor-pointer border border-almostblack hover:bg-white whitespace-nowrap bg-white text-almostblack flex items-center gap-1"
+                className="font-mono uppercase cursor-pointer border border-almostblack hover:bg-white whitespace-nowrap bg-white text-almostblack flex items-center gap-1"
               >
                 {chip.label}
                 <X

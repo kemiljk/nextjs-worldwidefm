@@ -36,12 +36,19 @@ export function MultiSelectDropdown({ options, selectedValues, onSelectionChange
           <ChevronDown className={cn("h-4 w-4", selectedValues.length > 0 ? "text-white dark:text-almostblack" : "opacity-50 text-almostblack dark:text-white")} />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56 max-h-60 overflow-y-auto">
+      <DropdownMenuContent align="start" className="w-56 max-h-60 overflow-y-auto">
         {options.map((option) => {
           const isSelected = selectedValues.includes(option.slug || option.title);
           return (
-            <div key={option.id} className={cn("flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-almostblack/20 dark:hover:bg-white/20 rounded-none", isSelected && "bg-almostblack dark:bg-white hover:bg-almostblack/80 dark:hover:bg-white/80 text-white dark:text-almostblack")} onClick={() => handleToggleSelection(option.slug || option.title)}>
-              <div className={cn("w-4 h-4 border rounded-none flex items-center justify-center", isSelected && "bg-almostblack dark:bg-white")}>{isSelected && <Check className="h-3 w-3 text-white dark:text-almostblack" />}</div>
+            <div
+              key={option.id}
+              className={cn(
+                "flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer uppercase rounded-xl font-mono",
+                "hover:bg-almostblack hover:text-white dark:hover:bg-white",
+                isSelected ? "bg-almostblack text-white dark:bg-white dark:text-almostblack" : ""
+              )}
+              onClick={() => handleToggleSelection(option.slug || option.title)}
+            >
               {option.title}
             </div>
           );

@@ -4,6 +4,7 @@ import { PostObject } from "@/lib/cosmic-config";
 import { GenreTag } from "@/components/ui/genre-tag";
 import { HighlightedText } from "@/components/ui/highlighted-text";
 import { format } from "date-fns";
+import { ArticleCard } from "@/components/ui/article-card";
 
 interface FeaturedContentProps {
   posts: PostObject[];
@@ -20,38 +21,19 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
   });
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {sortedPosts.map((post) => {
-        const postDate = post.metadata?.date ? new Date(post.metadata.date) : null;
-        const formattedDate = postDate ? format(postDate, "dd-MM-yyyy") : "";
-        const isLarge = post.metadata.featured_size?.key === "large";
-        const isMedium = post.metadata.featured_size?.key === "medium";
-
-        return (
-          <Link href={`/editorial/${post.slug}`} key={post.slug} className={`group relative ${isLarge ? "lg:col-span-2 lg:row-span-2" : isMedium ? "lg:col-span-2" : ""}`}>
-            <div className="relative">
-              <div className={`relative aspect-square w-full overflow-hidden`}>
-                <Image src={post.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={post.title} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 flex bg-linear-to-t from-almostblack to-transparent h-1/2 flex-col p-4 flex-1 justify-end">
-                <div className="bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-1 px-1 text-left">{formattedDate}</div>
-                <h3 className="text-h7 max-w-2xl leading-none font-display w-fit">
-                  <HighlightedText variant="white">{post.title}</HighlightedText>
-                </h3>
-                {isLarge && <p className="mt-2 text-sm line-clamp-2 text-white opacity-90">{post.metadata.excerpt}</p>}
-                <div className="flex flex-wrap mt-3">
-                  {post.metadata.categories?.map((category) => (
-                    <GenreTag key={category.slug} variant="white">
-                      {category.title}
-                    </GenreTag>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </Link>
-        );
-      })}
+    <div className="my-15 w-full px-5 items-center justify-center flex bg-almostblack/10">
+    <div className="">
+      <ArticleCard
+        key={sortedPosts[0].slug}
+        slug={sortedPosts[0].slug}
+        title={sortedPosts[0].title}
+        date={sortedPosts[0].metadata?.date}
+        excerpt={sortedPosts[0].metadata?.excerpt}
+        image={sortedPosts[0].metadata?.image?.imgix_url || "/image-placeholder.svg"}
+        tags={sortedPosts[0].metadata.categories?.map((c) => c.title)}
+        size={sortedPosts[0].metadata.featured_size?.key}
+        variant="featured"
+      />
     </div>
-  );
+  </div>);
 }

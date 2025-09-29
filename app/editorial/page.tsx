@@ -273,7 +273,7 @@ function EditorialContent() {
   }, [posts, activeFilter, selectedFilters, debouncedSearchTerm]);
 
   return (
-    <div className="w-full overflow-x-hidden">
+    <div className="w-full overflow-x-hidden mb-20">
             <div className="relative w-full h-[25vh] sm:h-[35vh] overflow-hidden">
   
               <div className="absolute inset-0 bg-sunset" />
@@ -305,8 +305,8 @@ function EditorialContent() {
 
       {filteredPosts.length > 0 ? (
         <>
-          <FeaturedContent posts={filteredPosts.slice(0, 3)} />
-          <EditorialSection title="All Editorial" posts={filteredPosts} />
+          <FeaturedContent posts={filteredPosts.slice(0, 1)} />
+          <EditorialSection posts={filteredPosts.slice(filteredPosts[0] ? 1 : 0)} />
         </>
       ) : (
         <div className="py-16 text-center">

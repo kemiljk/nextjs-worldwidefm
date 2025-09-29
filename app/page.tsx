@@ -82,7 +82,7 @@ export default async function Home() {
   return (
     <div className="w-full min-h-screen">
       {/* Main content */}
-      <div className="mt-4">
+      <div className="mt-4 mb-12">
         {/* Hero Section: Conditionally render based on Cosmic data or fallback */}
         <Suspense>{heroLayout && <HomepageHero heroLayout={heroLayout} heroItems={heroItems} />}</Suspense>
         <Suspense>
@@ -113,8 +113,9 @@ export default async function Home() {
 
         {/* Video Section */}
         {videosData.videos.length > 0 && <VideoSection videos={videosData.videos} className="pt-8" />}
+
         {/* Editorial section */}
-        {postsData.posts.length > 0 && <EditorialSection title="POSTS" posts={postsData.posts} className="px-5 pt-8" isHomepage={true} />}
+        {postsData.posts.length > 0 && <EditorialSection posts={postsData.posts} className="pt-8" isHomepage={true} />}
       </div>
     </div>
   );

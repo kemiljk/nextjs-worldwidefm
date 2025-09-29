@@ -1,7 +1,7 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import { ShowCard } from "@/components/ui/show-card";
+import { Loader2, ChevronRight } from "lucide-react";
+import { ArticleCard } from "@/components/ui/article-card";
 import { getAllPosts } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 import { PostObject } from "@/lib/cosmic-config";
@@ -9,7 +9,9 @@ import { useEffect, useState } from "react";
 import { useInView } from "react-intersection-observer";
 import Marquee from "@/components/ui/marquee";
 
-interface Post extends PostObject {}
+import Link from "next/link";
+
+interface Post extends PostObject { }
 
 interface EditorialSectionProps {
   title: string;
@@ -50,13 +52,25 @@ export default function EditorialSection({ title, posts, className, isHomepage =
 
   return (
     <section className={cn("", className)}>
-      <div className={`flex items-center justify-between mb-8 ${!isHomepage && "mt-12"}`}>
-        <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">{title}</h2>
+      <div className={`flex items-center justify-between mb-4 ${!isHomepage && "mt-4"}`}>
+        <h2 className="px-5 text-[40px] tracking-tight font-display uppercase font-normal text-almostblack dark:text-white">{title}</h2>
       </div>
       {isHomepage ? (
-        <Marquee className="-mx-4 md:-mx-8 lg:-mx-24 px-4 md:px-8 lg:px-24 h-full" speed="slow" pauseOnHover>
-          <div className="grid grid-flow-col auto-cols-[440px] gap-4 h-full">
-            {posts.map((post: Post) => {
+        <div className="px-5">
+          <div className="flex w-full justify-between items-end mb-2">
+            <h2 className="text-h8 md:text-h7 font-bold tracking-tight">
+              EDITORIAL
+            </h2>
+            <Link
+              href="/editorial"
+              className="inline-flex items-center font-mono uppercase hover:underline transition-all text-sm"
+            >
+              See All
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {posts.slice(0, 3).map((post: Post) => {
               const tags = (post.metadata?.categories || [])
                 .map((cat: any) => {
                   if (typeof cat === "string") return cat;
@@ -64,6 +78,7 @@ export default function EditorialSection({ title, posts, className, isHomepage =
                   return "";
                 })
                 .filter((tag: string) => !!tag);
+
               const article = {
                 key: post.slug,
                 name: post.title,
@@ -76,13 +91,24 @@ export default function EditorialSection({ title, posts, className, isHomepage =
                 tags,
                 excerpt: post.metadata?.excerpt || "",
               };
-              return <ShowCard key={post.id} show={article} slug={article.url} playable={false} />;
+
+              return (
+                <ArticleCard
+                  key={post.id}
+                  title={article.name}
+                  slug={article.slug}
+                  image={article.pictures.large}
+                  excerpt={article.excerpt}
+                  date={article.created_time}
+                  tags={tags}
+                />
+              );
             })}
           </div>
-        </Marquee>
+        </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="px-25 grid grid-cols-1 md:grid-cols-3 gap-10">
             {displayedPosts.map((post) => {
               const tags = (post.metadata?.categories || [])
                 .map((cat: any) => {
@@ -103,7 +129,16 @@ export default function EditorialSection({ title, posts, className, isHomepage =
                 tags,
                 excerpt: post.metadata?.excerpt || "",
               };
-              return <ShowCard key={post.id} show={article} slug={article.url} playable={false} />;
+              return (
+                <ArticleCard
+                  key={post.id}
+                  title={article.name}
+                  slug={article.slug}
+                  image={article.pictures.large}
+                  date={article.created_time}
+                  tags={tags}
+                />
+              );
             })}
           </div>
           {/* Loading indicator */}
