@@ -161,7 +161,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
             {showTags.map((tag, idx) => (
               <GenreTag
                 key={tag + idx}
-                variant={genreTagVariant}
+                variant={genreTagVariant as 'default' | 'transparent' | 'white'}
               >
                 {tag}
               </GenreTag>
