@@ -484,6 +484,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
             <ShowsGrid
               shows={filteredShows}
               contentType={activeType as 'episodes' | 'hosts-series' | 'takeovers'}
+              canonicalGenres={canonicalGenres}
             />
           ) : (
             <div className='flex flex-col items-center justify-center py-16 text-center'>

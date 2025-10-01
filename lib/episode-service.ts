@@ -52,15 +52,21 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
   };
 
   try {
-    // Filter by genre - try $elemMatch approach for nested arrays
-    // Filter by genre
+    // Filter by genre - use dot-notation equality or $or of equals on nested id
     if (params.genre) {
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
       console.log('Filtering by genres:', genres);
 
-      // Filter by genre ID (more reliable than slug matching)
-      query['metadata.genres.id'] = { $in: genres };
+      // Filter out undefined/null values
+      const validGenres = genres.filter((g) => g && typeof g === 'string' && g.trim() !== '');
 
+      if (validGenres.length === 0) {
+        console.warn('No valid genre IDs provided, skipping genre filter');
+      } else if (validGenres.length === 1) {
+        query['metadata.genres.id'] = validGenres[0];
+      } else {
+        query.$or = validGenres.map((id) => ({ 'metadata.genres.id': id }));
+      }
       console.log('Genre query:', JSON.stringify(query, null, 2));
     }
 
@@ -153,6 +159,12 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     } catch (error) {
       console.log('Server-side filtering failed, using client-side filtering...');
       console.error('Server-side filtering error:', error);
+      console.error('Query that failed:', JSON.stringify(query, null, 2));
+      console.error('Error details:', {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name,
+      });
 
       // Fallback: Get all episodes and filter client-side
       const allResponse = await cosmic.objects
@@ -491,7 +503,12 @@ export async function getRegularHosts(
     // Apply genre filter to episodes
     if (params.genre) {
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
-      episodeQuery['metadata.genres.id'] = { $in: genres };
+      const validGenres = genres.filter(Boolean);
+      if (validGenres.length === 1) {
+        episodeQuery['metadata.genres.id'] = validGenres[0];
+      } else if (validGenres.length > 1) {
+        episodeQuery.$or = validGenres.map((id) => ({ 'metadata.genres.id': id }));
+      }
     }
 
     // Apply location filter to episodes
@@ -508,7 +525,7 @@ export async function getRegularHosts(
       .depth(2);
 
     const episodes = episodesResponse.objects || [];
-    
+
     // Extract unique hosts from episodes
     const hostMap = new Map();
     episodes.forEach((episode: any) => {
@@ -521,7 +538,7 @@ export async function getRegularHosts(
     });
 
     const uniqueHosts = Array.from(hostMap.values());
-    
+
     // Apply pagination to the unique hosts
     const paginatedHosts = uniqueHosts.slice(offset, offset + limit);
     const hasNext = offset + limit < uniqueHosts.length;
@@ -529,10 +546,10 @@ export async function getRegularHosts(
     // Transform hosts to show format
     const shows = paginatedHosts.map(transformHostToShowFormat);
 
-    return { 
-      shows, 
-      total: uniqueHosts.length, 
-      hasNext 
+    return {
+      shows,
+      total: uniqueHosts.length,
+      hasNext,
     };
   } catch (error) {
     console.error('Error fetching regular hosts:', error);
@@ -591,7 +608,12 @@ export async function getTakeovers(
     // Apply genre filter to episodes
     if (params.genre) {
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
-      episodeQuery['metadata.genres.id'] = { $in: genres };
+      const validGenres = genres.filter(Boolean);
+      if (validGenres.length === 1) {
+        episodeQuery['metadata.genres.id'] = validGenres[0];
+      } else if (validGenres.length > 1) {
+        episodeQuery.$or = validGenres.map((id) => ({ 'metadata.genres.id': id }));
+      }
     }
 
     // Apply location filter to episodes
@@ -608,7 +630,7 @@ export async function getTakeovers(
       .depth(2);
 
     const episodes = episodesResponse.objects || [];
-    
+
     // Extract unique takeovers from episodes
     const takeoverMap = new Map();
     episodes.forEach((episode: any) => {
@@ -621,7 +643,7 @@ export async function getTakeovers(
     });
 
     const uniqueTakeovers = Array.from(takeoverMap.values());
-    
+
     // Apply pagination to the unique takeovers
     const paginatedTakeovers = uniqueTakeovers.slice(offset, offset + limit);
     const hasNext = offset + limit < uniqueTakeovers.length;
@@ -629,10 +651,10 @@ export async function getTakeovers(
     // Transform takeovers to show format
     const shows = paginatedTakeovers.map(transformTakeoverToShowFormat);
 
-    return { 
-      shows, 
-      total: uniqueTakeovers.length, 
-      hasNext 
+    return {
+      shows,
+      total: uniqueTakeovers.length,
+      hasNext,
     };
   } catch (error) {
     console.error('Error fetching takeovers:', error);
@@ -932,7 +954,14 @@ export async function getRelatedEpisodes(
     // Add genre matching
     if (genres.length > 0) {
       orConditions.push({
-        'metadata.genres.id': { $in: genres.map((g: any) => g.id) },
+        'metadata.genres': {
+          $elemMatch: {
+            $or: [
+              { id: { $in: genres.map((g: any) => g.id) } },
+              { slug: { $in: genres.map((g: any) => g.slug) } },
+            ],
+          },
+        },
       });
     }
 

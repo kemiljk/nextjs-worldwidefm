@@ -1,16 +1,22 @@
 // Removed MixcloudShow import - using any type for show format compatibility
-import { ShowCard } from "./ui/show-card";
+import { ShowCard } from './ui/show-card';
+import type { CanonicalGenre } from '@/lib/get-canonical-genres';
 
 interface ShowsGridProps {
   shows: any[]; // Using any for show format compatibility
-  contentType?: "episodes" | "hosts-series" | "takeovers";
+  contentType?: 'episodes' | 'hosts-series' | 'takeovers';
+  canonicalGenres?: CanonicalGenre[];
 }
 
-export function ShowsGrid({ shows, contentType = "episodes" }: ShowsGridProps) {
+export function ShowsGrid({
+  shows,
+  contentType = 'episodes',
+  canonicalGenres = [],
+}: ShowsGridProps) {
   if (shows.length === 0) {
     return (
-      <div className="text-center py-8">
-        <p className="font-mono text-almostblack text-m8 uppercase">Fetching shows...</p>
+      <div className='text-center py-8'>
+        <p className='font-mono text-almostblack text-m8 uppercase'>Fetching shows...</p>
       </div>
     );
   }
@@ -20,22 +26,30 @@ export function ShowsGrid({ shows, contentType = "episodes" }: ShowsGridProps) {
     const source = show.__source || contentType;
 
     switch (source) {
-      case "host":
+      case 'host':
         return `/hosts/${show.slug}`;
-      case "takeover":
+      case 'takeover':
         return `/takeovers/${show.slug}`;
-      case "episode":
+      case 'episode':
       default:
         return `/episode/${show.slug}`;
     }
   };
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 w-full h-auto">
+    <div className='grid grid-cols-2 lg:grid-cols-5 gap-3 w-full h-auto'>
       {shows.filter(Boolean).map((show: any, index: number) => {
         const uniqueKey = `${show.id || show.slug}-${index}`;
         const slug = getSlugForShow(show);
-        return <ShowCard className="w-full" key={uniqueKey} show={show} slug={slug} />;
+        return (
+          <ShowCard
+            className='w-full'
+            key={uniqueKey}
+            show={show}
+            slug={slug}
+            canonicalGenres={canonicalGenres}
+          />
+        );
       })}
     </div>
   );
