@@ -58,9 +58,9 @@ export default async function Footer() {
                     >
                       <div
                         dangerouslySetInnerHTML={{
-                          __html: icon.svg.replace(/<path /g, '<path fill="currentColor" ')
+                          __html: icon.svg.replace(/<path /g, '<path fill="currentColor" '),
                         }}
-                        className="h-5 w-5 text-black dark:text-white"
+                        className='h-5 w-5 text-black dark:text-white'
                       />
                     </Link>
                   );
@@ -126,14 +126,15 @@ export default async function Footer() {
                 Stay Updated
               </h3>
               <p className='font-sans text-b3 pb-4'>
-                Subscribe to our newsletter for the latest updates and exclusive content.
+                Become a member for exclusive content, ad-free listening, and early access to new
+                shows.
               </p>
               <Button
                 variant='outline'
                 className='w-auto border-black font-mono text-[12px] dark:border-white text-foreground'
                 asChild
               >
-                <Link href='/newsletter'>Subscribe</Link>
+                <Link href='/membership'>Subscribe</Link>
               </Button>
             </div>
           </div>
