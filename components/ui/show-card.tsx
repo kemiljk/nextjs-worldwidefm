@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useMediaPlayer } from '../providers/media-player-provider';
 import { GenreTag } from './genre-tag';
+import type { CanonicalGenre } from '@/lib/get-canonical-genres';
 
 interface ShowCardProps {
   show: any; // Using any to work with both episode and legacy show formats
@@ -12,6 +13,7 @@ interface ShowCardProps {
   className?: string;
   playable?: boolean;
   variant?: 'default' | 'light';
+  canonicalGenres?: CanonicalGenre[];
 }
 
 export const ShowCard: React.FC<ShowCardProps> = ({
@@ -20,6 +22,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   className = '',
   playable = true,
   variant = 'default',
+  canonicalGenres = [],
 }) => {
   // Since we now filter episodes at fetch level, all episodes have audio content
   // For other content, check if there's actual audio content
@@ -61,23 +64,46 @@ export const ShowCard: React.FC<ShowCardProps> = ({
     );
   };
 
-  const getShowTags = (show: any): string[] => {
+  const getShowTags = (show: any): Array<{ id: string; title: string }> => {
+    // Try to get genre objects with IDs first
+    if (show.metadata?.genres && Array.isArray(show.metadata.genres)) {
+      return show.metadata.genres
+        .filter((genre: any) => genre.id && genre.title)
+        .slice(0, 3)
+        .map((genre: any) => ({ id: genre.id, title: genre.title }));
+    }
+    if (show.enhanced_genres && Array.isArray(show.enhanced_genres)) {
+      return show.enhanced_genres
+        .filter((genre: any) => genre.id && genre.title)
+        .slice(0, 3)
+        .map((genre: any) => ({ id: genre.id, title: genre.title }));
+    }
+    if (show.genres && Array.isArray(show.genres)) {
+      return show.genres
+        .filter((genre: any) => genre.id && genre.title)
+        .slice(0, 3)
+        .map((genre: any) => ({ id: genre.id, title: genre.title }));
+    }
+    // Fallback to legacy tags format
     if (show.tags && Array.isArray(show.tags)) {
       return show.tags
         .filter((tag: any) => tag.name?.toLowerCase() !== 'worldwide fm')
         .slice(0, 3)
-        .map((tag: any) => tag.name || tag.title || tag);
-    }
-    if (show.enhanced_genres && Array.isArray(show.enhanced_genres)) {
-      return show.enhanced_genres.slice(0, 3);
-    }
-    if (show.metadata?.genres && Array.isArray(show.metadata.genres)) {
-      return show.metadata.genres.slice(0, 3);
-    }
-    if (show.genres && Array.isArray(show.genres)) {
-      return show.genres.slice(0, 3);
+        .map((tag: any) => ({
+          id: tag.key || tag.slug || tag.name || tag.title || tag,
+          title: tag.name || tag.title || tag,
+        }));
     }
     return [];
+  };
+
+  // Map genre IDs to canonical genre slugs for linking
+  const getGenreLink = (genreId: string): string | undefined => {
+    if (!canonicalGenres.length) return undefined;
+
+    const canonicalGenre = canonicalGenres.find((genre) => genre.id === genreId);
+
+    return canonicalGenre ? `/genre/${canonicalGenre.slug}` : undefined;
   };
 
   const formatShowTime = (dateString: string | undefined): string | null => {
@@ -176,14 +202,25 @@ export const ShowCard: React.FC<ShowCardProps> = ({
         {/* Tags and Play Button */}
         <div className='flex flex-row w-full pr-1'>
           <div className='flex flex-row flex-wrap'>
-            {showTags.map((tag, idx) => (
-              <GenreTag
-                key={tag + idx}
-                variant={genreTagVariant as 'default' | 'transparent' | 'white'}
-              >
-                {tag}
-              </GenreTag>
-            ))}
+            {showTags.map((tag, idx) => {
+              const genreLink = getGenreLink(tag.id);
+              return (
+                <GenreTag
+                  key={tag.id + idx}
+                  variant={genreTagVariant as 'default' | 'transparent' | 'white' | 'light'}
+                  href={genreLink}
+                  onClick={(e) => {
+                    if (genreLink) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      window.location.href = genreLink;
+                    }
+                  }}
+                >
+                  {tag.title}
+                </GenreTag>
+              );
+            })}
           </div>
         </div>
       </div>
