@@ -139,7 +139,7 @@ export const EpisodeHero = ({
   const hasAudioContent = show?.url || show?.player || show?.metadata?.player;
 
   return (
-    <div className='relative w-full h-[calc(100dvh-50px)] aspect-[2/1]'>
+    <div className='relative w-full h-[calc(100dvh-80px)] aspect-[2/1]'>
       <Image
         src={displayImage}
         alt={displayName}
@@ -148,27 +148,25 @@ export const EpisodeHero = ({
         className='object-cover object-center w-full h-full select-none pointer-events-none'
         sizes='100vw'
       />
-      {/* Overlay: Date, Title, Genres */}
-      <div className='absolute inset-0 flex flex-col justify-end'>
-        <div className='flex flex-col p-4 sm:p-8 max-w-full'>
-          {showDate && (
-            <span className='inline-block bg-almostblack text-white font-display text-h8 leading-none uppercase w-fit px-1 text-left shadow-lg border border-almostblack'>
-              {showDate}
-            </span>
-          )}
-          <span className='text-h7 max-w-2xl leading-none font-display w-fit uppercase font-bold shadow-lg'>
-            <HighlightedText variant='white'>{displayName}</HighlightedText>
-          </span>
-        </div>
-      </div>
-      {/* Overlay: Play Button - Always show for episodes or if audio content exists */}
+      {/* Overlay: Play Button and Text - Always show for episodes or if audio content exists */}
       {(isEpisode || hasAudioContent) && show && (
-        <div className='absolute bottom-8 right-8'>
+        <div className='absolute bottom-0 left-0 flex flex-row justify-between items-end w-full p-8'>
+
+          <div className='flex flex-col max-w-full pb-2'>
+            {showDate && (
+              <span className='inline-block bg-almostblack text-white font-display text-h8 leading-none uppercase w-fit px-1 text-left shadow-lg border border-almostblack'>
+                {showDate}
+              </span>
+            )}
+            <span className='text-h7 max-w-2xl leading-none font-display w-fit uppercase font-bold '>
+              <HighlightedText variant='white'>{displayName}</HighlightedText>
+            </span>
+          </div>
+
           <PlayButton
             show={show}
             variant='default'
-            size='lg'
-            className='rounded-full shadow-xl w-16 h-16 flex items-center justify-center text-white bg-almostblack/90 hover:bg-almostblack'
+            className='ml-5 rounded-full shadow-xl h-13 aspect-square flex items-center justify-center text-white bg-almostblack/90 hover:bg-almostblack'
             label={false}
           />
         </div>

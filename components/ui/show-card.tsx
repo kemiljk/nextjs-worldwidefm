@@ -119,10 +119,12 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   return (
     <Link
       href={slug}
-      className={`border ${borderClass} rounded-none overflow-hidden flex flex-col p-2 h-full w-auto showcard cursor-default ${className}`}
+      className={`${borderClass} border p-2 cursor-default ${className}`}
     >
-      {/* Image */}
-      <div className='relative flex-2'>
+      {/* Image and Play Button (hover group) */}
+      <div className="group relative aspect-square">
+        {/* Overlay for dimming on hover */}
+        <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-50 transition-opacity pointer-events-none z-10" />
         <Image
           src={showImage}
           alt={showName}
@@ -131,10 +133,26 @@ export const ShowCard: React.FC<ShowCardProps> = ({
           sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
           priority={false}
         />
+        {shouldShowPlayButton && (
+          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+            <button
+              className={`${playButtonBgClass} rounded-full w-10 h-10 flex items-center justify-center transition-colors cursor-pointer`}
+              style={{ minWidth: 40, minHeight: 40 }}
+              onClick={handlePlayPause}
+              aria-label={isCurrentlyPlaying ? 'Pause show' : 'Play show'}
+            >
+              {isCurrentlyPlaying ? (
+                <Pause fill='white' className={`w-4 h-4 ${playButtonIconClass}`} />
+              ) : (
+                <Play fill='white' className={`w-4 h-4 ${playButtonIconClass} pl-0.5`} />
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Details */}
-      <div className='flex flex-col justify-between gap-1 flex-1 pt-3 pb-1'>
+      <div className='flex flex-col justify-between pt-3 pb-1 h-30'>
         {/* Title */}
         <div className='w-auto h-auto flex-1 gap-1 flex flex-col'>
           <div
@@ -156,7 +174,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
         </div>
 
         {/* Tags and Play Button */}
-        <div className='flex flex-row items-end justify-between w-full pr-1'>
+        <div className='flex flex-row w-full pr-1'>
           <div className='flex flex-row flex-wrap'>
             {showTags.map((tag, idx) => (
               <GenreTag
@@ -167,27 +185,6 @@ export const ShowCard: React.FC<ShowCardProps> = ({
               </GenreTag>
             ))}
           </div>
-
-          {shouldShowPlayButton && (
-            <button
-              className={`${playButtonBgClass} rounded-full w-10 h-10 flex items-center justify-center ml-2 transition-colors cursor-pointer`}
-              style={{ minWidth: 40, minHeight: 40 }}
-              onClick={handlePlayPause}
-              aria-label={isCurrentlyPlaying ? 'Pause show' : 'Play show'}
-            >
-              {isCurrentlyPlaying ? (
-                <Pause
-                  fill='white'
-                  className={`w-4 h-4 ${playButtonIconClass}`}
-                />
-              ) : (
-                <Play
-                  fill='white'
-                  className={`w-4 h-4 ${playButtonIconClass} pl-0.5`}
-                />
-              )}
-            </button>
-          )}
         </div>
       </div>
     </Link>

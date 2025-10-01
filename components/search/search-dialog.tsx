@@ -5,7 +5,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Search, X, Music2, Newspaper, Calendar, Video, Loader, AlertCircle, FileQuestion, FolderSearch, MicVocal } from "lucide-react";
+import { X, Search, Minus, Music2, Newspaper, Calendar, Video, Loader, AlertCircle, FileQuestion, FolderSearch, MicVocal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
@@ -42,6 +42,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [videoCategories, setVideoCategories] = useState<any[]>([]);
+  // On mobile: showFilters = false means show results, true means show filters overlay.
+  const [showFilters, setShowFilters] = useState(false); // For mobile toggle: start with results list
   const { ref: observerTarget, inView } = useInView({
     threshold: 0.1,
     rootMargin: "100px",
@@ -294,320 +296,245 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[90vw] h-[90vh] p-0 gap-0 overflow-hidden">
-        <div className="flex h-full overflow-hidden">
-          {/* Mobile Filter Button */}
-          <div className="sm:hidden absolute left-2 top-2 z-50">
-            <Button variant="ghost" size="icon" onClick={clearAllFilters}>
-              <FolderSearch className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Filters Section */}
-          <div className={cn("w-64 border-r bg-background", "fixed inset-y-0 left-0 z-50 sm:relative sm:block", "transition-transform duration-200 ease-in-out")}>
-            <div className="flex flex-col h-full">
-              <div className="px-4 border-b">
-                <div className="flex h-20 items-center justify-between">
-                  <h3 className="font-mono uppercase text-m6">Filters</h3>
-                  <div className="flex items-center gap-2">
-                    {activeFilters.length > 0 && (
-                      <Button variant="ghost" size="sm" className="rounded-full" onClick={clearAllFilters}>
-                        Clear all
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="icon" className="sm:hidden" onClick={clearAllFilters}>
-                      <X className="h-4 w-4" />
+      <DialogContent className="max-w-[90vw] h-[80vh] p-0 gap-0 overflow-hidden">
+        <div className="flex h-full overflow-hidden relative flex-col sm:flex-row">
+          {/* --- Mobile: Search bar always at top, toggle below it --- */}
+          <div className="sm:hidden w-full z-40 bg-background border-b shrink-0">
+            {/* Search Input and Edit filters button always at top */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setPage(1);
+                setHasNext(true);
+                setResults([]);
+              }}
+              className="flex gap-2"
+            >
+              <div className="px-4 h-12 items-center flex flex-1">
+                <Search className="h-6 w-6 text-muted-foreground" />
+                <Input
+                  ref={searchInputRef}
+                  placeholder="Search"
+                  className="border-none pl-4 font-mono text-m8 uppercase bg-background"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                {/* Edit filters button always visible on mobile, to right of input */}
+                <div className="w-auto flex justify-left py-2 bg-background">
+                  {!showFilters ? (
+                    <Button
+                      variant="none"
+                      size="sm"
+                      className="border py-1 px-2 font-mono text-center uppercase text-m8"
+                      onClick={() => {
+                        setShowFilters(true); // Show filters overlay
+                      }}
+                      type="button"
+                    >
+                      Edit filters
                     </Button>
-                  </div>
+                  ) : (
+                    <Button
+                      variant="none"
+                      size="sm"
+                      className="border py-1 px-2 font-mono text-center uppercase text-m8"
+                      onClick={() => {
+                        // Apply filters: hide overlay and refresh results
+                        setShowFilters(false);
+                        setPage(1);
+                        setResults([]);
+                        setHasNext(true);
+                        setActiveFilters((prev) => [...prev]);
+                      }}
+                      type="button"
+                    >
+                      Apply filters
+                    </Button>
+                  )}
                 </div>
               </div>
-
-              <div className="overflow-y-auto h-full bg-background">
-                <div className="p-4 space-y-4">
-                  {/* Content Type Section */}
-                  <div className="border-b border-almostblack dark:border-white py-4">
-                    <div className="space-y-1">
-                      {availableTypes.map((type) => {
-                        const { label, icon: Icon } = typeLabels[type as ContentType];
-                        return (
-                          <button key={type} onClick={() => handleFilterToggle({ type: "types", slug: type })} className={cn("uppercase font-mono text-m6 gap-2 rounded-full flex items-center w-fit px-3 py-2 text-sm", activeFilters.includes(type) ? "bg-accent text-accent-foreground" : "hover:bg-accent/5")}>
-                            <Icon className="h-4 w-4" />
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                  {/* Tags Section */}
-                  <div className="border-b border-almostblack dark:border-white py-4">
-                    <div className="space-y-1">
-                      {tags.map((tag) => (
-                        <button key={tag} onClick={() => handleFilterToggle({ type: "tags", slug: tag })} className={cn("uppercase font-mono text-m6 gap-2 rounded-full flex items-center w-fit px-3 py-2 text-sm", activeFilters.includes(tag) ? "bg-accent text-accent-foreground" : "hover:bg-accent/5")}>
-                          {tag}
-                          {activeFilters.includes(tag) && <X className="h-4 w-4" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            </form>
           </div>
 
-          {/* Main Content Section */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* Search Input */}
-            <div className="border-b shrink-0">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  setPage(1);
-                  setHasNext(true);
-                  setResults([]);
-                }}
-                className="flex gap-2"
-              >
-                <div className="px-4 h-20 items-center flex flex-1">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  <Input ref={searchInputRef} placeholder="Search" className="border-none pl-4 font-mono text-m6 uppercase focus-visible:ring-0" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          {/* Main flex: Filters and Results (desktop: row, mobile: overlays below search bar) */}
+          <div className="flex flex-1 w-full h-full relative overflow-hidden">
+            {/* Filters Section */}
+            <div
+              className={cn(
+                "w-full md:w-[30%] lg:w-[25%] border-r bg-background relative inset-y-0 left-0 z-30 sm:relative sm:block transition-transform duration-200 ease-in-out",
+                "sm:static absolute h-full",
+                // On mobile: overlay left, show/hide with showFilters, always block on desktop
+                showFilters ? "translate-x-0" : "-translate-x-full",
+                "sm:translate-x-0"
+              )}
+              style={{
+                display: (typeof window !== "undefined" && window.innerWidth >= 640) ? "block" : (showFilters ? "block" : "none"),
+              }}
+            >
+              {/* On mobile, add top margin for search bar and toggle */}
+              <div className={cn("flex flex-col h-full", "sm:mt-0", "mt-0")}>
+                <div className="px-4 py-3 sm:border-b">
+                  <div className="flex h-4 items-center justify-between">
+                    <h3 className="font-mono uppercase text-m8">Filters</h3>
+                    <div className="flex items-center gap-2">
+                      {activeFilters.length > 0 && (
+                        <Button variant="outline" size="sm" className="hidden sm:block rounded-full text-[12px]" onClick={clearAllFilters}>
+                          Clear all
+                        </Button>
+                      )}
+                      {activeFilters.length > 0 && (
+                        <Button variant="none" size="icon" className="sm:hidden" onClick={clearAllFilters}>
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </form>
+                <div className="overflow-y-auto h-full bg-background hide-scrollbar">
+                  <div>
+                    {/* Content Type Section */}
+                    <div className="border-b border-almostblack dark:border-white sm:py-2 pb-4">
+                      <div className="pl-2 space-y-2">
+                        {availableTypes.map((type) => {
+                          const { label, icon: Icon } = typeLabels[type as ContentType];
+                          return (
+                            <button key={type} onClick={() => handleFilterToggle({ type: "types", slug: type })} className={cn("uppercase font-mono gap-3 rounded-full flex items-center px-3 py-2", activeFilters.includes(type) ? "bg-accent text-accent-foreground" : "hover:bg-accent/100 hover:text-white hover:cursor-pointer")}>
+                              <Icon className="h-4 w-4" />
+                              <span className="text-m8 leading-none">{label} </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {/* Tags Section */}
+                    <div className="border-b border-almostblack dark:border-white py-3">
+                      <div className="pl-2 space-y-1">
+                        {tags.map((tag) => (
+                          <button key={tag} onClick={() => handleFilterToggle({ type: "tags", slug: tag })} className={cn("uppercase font-mono text-m8 gap-2 rounded-full flex text-left items-start w-fit px-3 py-2", activeFilters.includes(tag) ? "bg-accent text-accent-foreground" : "hover:bg-accent/100 hover:text-white hover:cursor-pointer")}>
+                            <span className="text-m8 leading-none">{tag}</span>
+                            {activeFilters.includes(tag) && <X className="h-3 w-3" />}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Results Section */}
-            <ScrollArea className="flex-1" ref={scrollAreaRef}>
-              <div className="p-4 space-y-4">
-                {results.length > 0 ? (
-                  <>
-                    {results.map((result, idx) => (
-                      <>
-                        {selectedType === "episodes" ? (
-                          <Link key={`${result.key}-${result.slug}-${idx}`} href={`/episodes/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
-                            <div className="flex items-start gap-4">
-                              <div className="size-32 relative shrink-0 overflow-hidden ">
-                                <Image src={result.pictures?.large || result.pictures?.extra_large || "/image-placeholder.svg"} alt={result.name || "Radio Show Cover"} fill className="object-cover" />
-                              </div>
-                              <div className="flex-1 flex flex-col font-mono uppercase min-w-0 gap-2">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                                  <Music2 className="w-4 h-4 text-foreground" />
-                                  <span>Radio Shows</span>
-                                </div>
-                                <h3 className="text-m5 font-mono truncate line-clamp-1">{result.name}</h3>
-                                {result.created_time && (
-                                  <>
-                                    <span>{format(new Date(result.created_time), "MMM d, yyyy")}</span>
-                                  </>
-                                )}
-                                {Array.isArray(result.tags) && result.tags.filter((tag: any) => tag.name && tag.name.toUpperCase() !== "WORLDWIDE FM").length > 0 && (
-                                  <div className="flex flex-wrap">
-                                    {result.tags
-                                      .filter((tag: any) => tag.name && tag.name.toUpperCase() !== "WORLDWIDE FM")
-                                      .map((tag: any) => (
-                                        <Badge key={tag.name} variant="outline" className="text-xs uppercase">
-                                          {tag.name}
-                                        </Badge>
-                                      ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </Link>
-                        ) : selectedType === "posts" ? (
-                          <Link key={`${result.id}-${result.slug}-${idx}`} href={`/posts/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
-                            <div className="flex items-start gap-4">
-                              <div className="size-32 relative shrink-0 overflow-hidden ">
-                                <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Post Cover"} fill className="object-cover" />
-                              </div>
-                              <div className="flex-1 flex flex-col font-mono uppercase min-w-0 gap-2">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                                  <Newspaper className="w-4 h-4 text-foreground" />
-                                  <span>Posts</span>
-                                </div>
-                                <h3 className="text-m5 font-mono truncate line-clamp-1">{result.title}</h3>
-                                {result.metadata?.date && (
-                                  <>
-                                    <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
-                                  </>
-                                )}
-                                {Array.isArray(result.metadata?.categories) && result.metadata.categories.length > 0 && (
-                                  <div className="flex flex-wrap">
-                                    {result.metadata.categories.map((cat: any) => (
-                                      <Badge key={cat.title} variant="outline" className="text-xs uppercase">
-                                        {cat.title}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </Link>
-                        ) : selectedType === "videos" ? (
-                          <Link key={`${result.id}-${result.slug}-${idx}`} href={`/videos/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
-                            <div className="flex items-start gap-4">
-                              <div className="size-32 relative shrink-0 overflow-hidden ">
+            {/* Main Content Section */}
+            <div
+              className={cn(
+                "flex-1 w-full justify-left flex-col min-w-0 overflow-hidden transition-all duration-200",
+                "sm:static absolute h-full left-0",
+                // On mobile: hide results if showFilters is true, always show on desktop
+                (!showFilters ? "translate-x-0" : "translate-x-full"),
+                "sm:translate-x-0"
+              )}
+              style={{
+                display: (typeof window !== "undefined" && window.innerWidth >= 640) ? "block" : (!showFilters ? "block" : "none"),
+              }}
+            >
+              {/* Desktop search bar (mobile: already at top) */}
+              <div className="hidden sm:block border-b shrink-0 w-full z-10">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setPage(1);
+                    setHasNext(true);
+                    setResults([]);
+                  }}
+                  className="flex gap-2"
+                >
+                  <div className="px-4 h-10 items-center flex flex-1">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input ref={searchInputRef} placeholder="Search" className="border-none pl-4 font-mono text-m8 uppercase focus-visible:ring-0" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                  </div>
+                </form>
+              </div>
+
+              {/* Results Section */}
+              <ScrollArea className="flex-1 w-full hide-scrollbar" ref={scrollAreaRef}>
+                <div className="p-8 space-y-6">
+                  {results.length > 0 ? (
+                    <>
+                      {results.map((result, idx) => (
+                        selectedType === "episodes" && (
+                          <Link
+                            key={`${result.key}-${result.slug}-${idx}`}
+                            href={`/episodes/${result.slug}`}
+                            onClick={() => onOpenChange(false)}
+                            className="group block w-full"
+                          >
+                            <div className="flex items-start gap-6 w-full pb-6 ">
+                              <div className="size-32 relative shrink-0 overflow-hidden">
                                 <Image
-                                  src={(() => {
-                                    // Get YouTube thumbnail if available
-                                    const getYouTubeThumbnail = (url: string): string => {
-                                      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-                                      const match = url.match(regExp);
-                                      if (match && match[2].length === 11) {
-                                        return `https://img.youtube.com/vi/${match[2]}/maxresdefault.jpg`;
-                                      }
-                                      return "";
-                                    };
-
-                                    // Get Vimeo thumbnail if available
-                                    const getVimeoThumbnail = (url: string): string => {
-                                      const regExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
-                                      const match = url.match(regExp);
-                                      if (match && match[1]) {
-                                        return `https://vumbnail.com/${match[1]}.jpg`;
-                                      }
-                                      return "";
-                                    };
-
-                                    const youtubeId = result.metadata?.video_url ? getYouTubeThumbnail(result.metadata.video_url) : "";
-                                    const vimeoId = result.metadata?.video_url ? getVimeoThumbnail(result.metadata.video_url) : "";
-                                    return result.metadata?.image?.imgix_url || youtubeId || vimeoId || "/image-placeholder.svg";
-                                  })()}
-                                  alt={result.title || "Video Cover"}
+                                  src={result.pictures?.large || result.pictures?.extra_large || "/image-placeholder.svg"}
+                                  alt={result.name || "Radio Show Cover"}
                                   fill
-                                  className="object-cover"
+                                  className="object-cover transition-opacity duration-200 group-hover:opacity-70"
                                 />
                               </div>
-                              <div className="flex-1 flex flex-col font-mono uppercase min-w-0 gap-2">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                                  <Video className="w-4 h-4 text-foreground" />
-                                  <span>Videos</span>
-                                </div>
-                                <h3 className="text-m5 font-mono truncate line-clamp-1">{result.title}</h3>
-                                {result.metadata?.date && (
-                                  <>
-                                    <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
-                                  </>
-                                )}
-                                {Array.isArray(result.metadata?.categories) && result.metadata.categories.length > 0 && (
-                                  <div className="flex flex-wrap">
-                                    {result.metadata.categories.map((cat: any) => {
-                                      // Handle both full objects (if depth is sufficient) and IDs (if we need to map them)
-                                      let categoryTitle = "";
-                                      let categoryId = "";
-
-                                      if (typeof cat === "string") {
-                                        // It's an ID string
-                                        const categoryObj = videoCategories.find((c) => c.id === cat);
-                                        categoryTitle = categoryObj?.title || "";
-                                        categoryId = cat;
-                                      } else if (cat && typeof cat === "object") {
-                                        // It's a full object
-                                        categoryTitle = cat.title || "";
-                                        categoryId = cat.id || "";
-                                      }
-
-                                      return categoryTitle ? (
-                                        <Badge key={categoryId} variant="outline" className="text-xs uppercase">
-                                          {categoryTitle}
-                                        </Badge>
-                                      ) : null;
-                                    })}
+                              <div className="flex-1 flex flex-col font-mono uppercase min-w-0 h-32 pb-1 justify-between gap-2">
+                                <div className="flex flex-col gap-.5">
+                                  <div className="flex items-center gap-2 text-m8 text-muted-foreground mb-1">
+                                    <Music2 className="w-3 h-3 text-foreground" />
+                                    <span>Radio Shows</span>
                                   </div>
-                                )}
+                                  <h3 className="max-w-[90%] pl-1 text-[18px] font-mono line-clamp-2">{result.name}</h3></div>
+                                <div className="flex flex-col gap-2">
+                                  {result.created_time && (
+                                    <span className="pl-1 text-m8">{format(new Date(result.created_time), "MMM d, yyyy")}</span>
+                                  )}
+                                  {Array.isArray(result.tags) && result.tags.filter((tag: any) => tag.name && tag.name.toUpperCase() !== "WORLDWIDE FM").length > 0 && (
+                                    <div className="flex flex-wrap">
+                                      {result.tags
+                                        .filter((tag: any) => tag.name && tag.name.toUpperCase() !== "WORLDWIDE FM")
+                                        .map((tag: any) => (
+                                          <Badge key={tag.name} variant="outline" className="text-m8 uppercase">
+                                            {tag.name}
+                                          </Badge>
+                                        ))}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
+                            {idx < results.length - 1 && <div className="border-b border-default w-full" />}
                           </Link>
-                        ) : selectedType === "events" ? (
-                          <Link key={`${result.id}-${result.slug}-${idx}`} href={`/events/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
-                            <div className="flex items-start gap-4">
-                              <div className="size-32 relative shrink-0 overflow-hidden ">
-                                <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Event Cover"} fill className="object-cover" />
-                              </div>
-                              <div className="flex-1 flex flex-col font-mono uppercase min-w-0 gap-2">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                                  <Calendar className="w-4 h-4 text-foreground" />
-                                  <span>Events</span>
-                                </div>
-                                <h3 className="text-m5 font-mono truncate line-clamp-1">{result.title}</h3>
-                                {result.metadata?.date && (
-                                  <>
-                                    <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
-                                  </>
-                                )}
-                                {Array.isArray(result.metadata?.categories) && result.metadata.categories.length > 0 && (
-                                  <div className="flex flex-wrap">
-                                    {result.metadata.categories.map((cat: any) => (
-                                      <Badge key={cat.title} variant="outline" className="text-xs uppercase">
-                                        {cat.title}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </Link>
-                        ) : selectedType === "takeovers" ? (
-                          <Link key={`${result.id}-${result.slug}-${idx}`} href={`/takeovers/${result.slug}`} onClick={() => onOpenChange(false)} className="block p-4 hover:bg-accent/5 transition-colors">
-                            <div className="flex items-start gap-4">
-                              <div className="size-32 relative shrink-0 overflow-hidden ">
-                                <Image src={result.metadata?.image?.imgix_url || "/image-placeholder.svg"} alt={result.title || "Takeover Cover"} fill className="object-cover" />
-                              </div>
-                              <div className="flex-1 flex flex-col font-mono uppercase min-w-0 gap-2">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                                  <MicVocal className="w-4 h-4 text-foreground" />
-                                  <span>Takeovers</span>
-                                </div>
-                                <h3 className="text-m5 font-mono truncate line-clamp-1">{result.title}</h3>
-                                {result.metadata?.date && (
-                                  <>
-                                    <span>{format(new Date(result.metadata.date), "MMM d, yyyy")}</span>
-                                  </>
-                                )}
-                                {Array.isArray(result.metadata?.categories) && result.metadata.categories.length > 0 && (
-                                  <div className="flex flex-wrap">
-                                    {result.metadata.categories.map((cat: any) => (
-                                      <Badge key={cat.title} variant="outline" className="text-xs uppercase">
-                                        {cat.title}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </Link>
-                        ) : null}
-                        {idx < results.length - 1 && <div className="border-b border-default my-2 w-full" />}
-                      </>
-                    ))}
-                    {/* Sentinel for Intersection Observer infinite scroll */}
-                    <div ref={observerTarget} className="h-8 w-full flex items-center justify-center py-4">
-                      {isLoadingMore && <Loader className="h-4 w-4 animate-spin" />}
+                        )
+                      ))}
+                      {/* Sentinel for Intersection Observer infinite scroll */}
+                      <div ref={observerTarget} className="h-8 w-full flex items-center justify-center py-4">
+                        {isLoadingMore && <Loader className="h-4 w-4 animate-spin" />}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center uppercase py-12 text-center">
+                      {isLoading ? (
+                        <>
+                          <Loader className="h-6 w-6 animate-spin mb-4" />
+                          <p className="text-muted-foregroun font-mono text-m8">Searching...</p>
+                        </>
+                      ) : searchTerm ? (
+                        <>
+                          <AlertCircle className="h-6 w-6 mb-4 text-muted-foreground" />
+                          <p className="text-muted-foreground font-mono text-m8">No results found</p>
+                        </>
+                      ) : (
+                        <>
+                          <FileQuestion className="h-6 w-6 mb-4 text-muted-foreground" />
+                          <p className="text-muted-foreground font-mono text-m8">Start typing to search</p>
+                        </>
+                      )}
                     </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    {isLoading ? (
-                      <>
-                        <Loader className="h-8 w-8 animate-spin mb-4" />
-                        <p className="text-muted-foreground">Searching...</p>
-                      </>
-                    ) : searchTerm ? (
-                      <>
-                        <AlertCircle className="h-8 w-8 mb-4 text-muted-foreground" />
-                        <p className="text-muted-foreground">No results found</p>
-                      </>
-                    ) : (
-                      <>
-                        <FileQuestion className="h-8 w-8 mb-4 text-muted-foreground" />
-                        <p className="text-muted-foreground">Start typing to search</p>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </DialogContent >
+    </Dialog >
   );
 }

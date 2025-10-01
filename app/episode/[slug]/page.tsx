@@ -123,7 +123,7 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
 
       <div className="w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-3">
         {/*LEFT CONTAINER*/}
-        <div className="w-full md:w-[40%] flex flex-col gap-1">
+        <div className="w-full md:w-[40%] flex flex-col gap-1 pt-2">
           {/* Episode Description */}
           {(metadata.body_text || metadata.description) && (
             <div className="prose dark:prose-invert max-w-none">

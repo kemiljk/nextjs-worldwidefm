@@ -309,7 +309,7 @@ function EditorialContent() {
           <EditorialSection posts={filteredPosts.slice(filteredPosts[0] ? 1 : 0)} />
         </>
       ) : (
-        <div className="py-16 text-center">
+        <div className="py-5 text-center">
           <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white">No posts found</h3>
           <p className="text-gray-500 mt-2">Try adjusting your filters or search term.</p>
         </div>

@@ -57,9 +57,10 @@ export default async function Footer() {
                       rel='noopener noreferrer'
                     >
                       <div
-                        dangerouslySetInnerHTML={{ __html: icon.svg }}
-                        className='h-5 w-5 fill-current'
-                        style={{ color: `#${icon.hex}` }}
+                        dangerouslySetInnerHTML={{
+                          __html: icon.svg.replace(/<path /g, '<path fill="currentColor" ')
+                        }}
+                        className="h-5 w-5 text-black dark:text-white"
                       />
                     </Link>
                   );

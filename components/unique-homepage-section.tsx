@@ -108,9 +108,9 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
       />
 
       {/* Content Container */}
-      <div className='relative flex flex-col gap-6 h-auto p-5'>
+      <div className='relative flex flex-col gap-6 p-5'>
         {/* Shows Grid */}
-        <div className='grid grid-cols-2 md:grid-cols-4 gap-3 h-full min-h-50 overflow-hidden'>
+        <div className='grid grid-cols-2 md:grid-cols-4 gap-3 overflow-hidden'>
           {shows.map((show, index) => (
             <div
               key={show.key || index}
@@ -118,13 +118,13 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
              flex 
               ${index >= 4 ? 'hidden md:flex' : ''}  /* hide 6+ on md and below */
               ${index >= 8 ? 'hidden xl:flex' : ''}  /* hide 8+ on xl and below */
-            h-[30vh] `}
+            `}
             >
               <ShowCard
                 show={show}
                 slug={show.url}
                 playable
-                className='w-full !text-white border-almostblack cursor-default'
+                className='w-full border-almostblack cursor-default'
                 variant="light"
               />
             </div>

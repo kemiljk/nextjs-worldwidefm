@@ -114,20 +114,20 @@ export default function GenreSelector({ shows, title = "LISTEN BY GENRE" }: Genr
             </a>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full h-auto">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full h-auto">
         {uniqueShows.map((episode: any, index: number) => (
           <div
             key={`${episode.id || episode.slug}-${index}`}
             className={`
             flex
-            ${index >= 4 ? 'hidden md:flex' : ''} h-[40vh]  /* show first 4 on sm, reveal 4+ on md+ */
+            ${index >= 4 ? 'hidden md:flex' : ''}  /* show first 4 on sm, reveal 4+ on md+ */
           `}
           >
             <ShowCard
               show={episode}
               slug={`/episode/${episode.slug}`}
               playable
-              className="w-full flex-1 cursor-default"
+              className="w-full h-auto cursor-default"
             />
           </div>
         ))}

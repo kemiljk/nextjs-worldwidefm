@@ -30,19 +30,19 @@ export default async function AboutPage() {
             mixBlendMode: "screen",
           }}
         />
-        <div className="absolute bottom-0 left-0 w-full px-5  z-10">
+        <div className="absolute bottom-0 left-0 w-full px-5 z-10">
           <PageHeader title="ABOUT" />
         </div>
       </div>
 
       <div className="pt-5 px-5 flex flex-col md:flex-row gap-10 justify-between">
         {/* Mission Content */}
-        <div className="w-[90vw] md:w-[50vw] lg:w-[30vw]">
-          <div className="font-sans text-b2 tracking-tight dark:prose-invert" dangerouslySetInnerHTML={{ __html: about.metadata.mission_content }} />
+        <div className="w-[90vw] md:w-[50vw] lg:w-[40vw]">
+          <div className="font-sans text-[16px] leading-5 dark:prose-invert" dangerouslySetInnerHTML={{ __html: about.metadata.mission_content }} />
         </div>
 
         {/* Other Sections in One Column */}
-        <div className="flex flex-col w-[90vw] md:w-[50vw] gap-10">
+        <div className="flex flex-col w-[90vw] md:w-[40vw] gap-10 mr-10">
           {/* Connect, Contact, Social wrapper */}
           <div className="flex flex-col gap-10">
             {/* Connect */}

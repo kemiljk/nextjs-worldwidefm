@@ -8,7 +8,7 @@ interface ArchiveSectionProps {
 
 export default function ArchiveSection({ shows, className }: ArchiveSectionProps) {
   const firstShow = shows[0];            // index 0
-  const nextTwoShows = shows.slice(1, 3); // indexes 1, 2, 3
+  const nextFourShows = shows.slice(1, 5); // indexes 1, 2, 3
   return (
     <section className=" w-full relative flex flex-col gap-6 h-auto p-5">
       <div className="">
@@ -22,24 +22,23 @@ export default function ArchiveSection({ shows, className }: ArchiveSectionProps
           </a>
         </div>
 
-        <div className="flex sm:flex-row w-full h-[80vh] gap-3 flex-col">
+        <div className="flex md:flex-row w-full gap-3 flex-col md:items-stretch">
           {/* First show in its own container */}
           {firstShow && (
-            <div className="flex h-[60%] sm:h-full w-full sm:w-[70%]">
+            <div className="flex w-full h-100 md:h-auto md:w-[60%]">
               <FeaturedCard show={firstShow} slug={`/episode${firstShow.key}`} playable className="w-full h-full" />
             </div>
           )}
-
-          {/* Next two shows in a separate column */}
-          {nextTwoShows.length > 0 && (
-            <div className="flex flex-row w-full sm:flex-col gap-3 sm:w-[30%] sm:h-full h-[40%] column-layout">
-              {nextTwoShows.map((show, index) => (
+          {/* four shows in a separate grid */}
+          {nextFourShows.length > 0 && (
+            <div className="flex flex-row md:grid md:grid-cols-2 gap-3 w-full md:w-[40%]">
+              {nextFourShows.map((show, index) => (
                 <ShowCard
                   key={`archive-show-${show.key}-${show.created_time}-${index}`}
                   show={show}
                   slug={`/episode${show.key}`}
                   playable
-                  className="w-full flex-1" // <-- stretch to fill evenly
+                  className={`w-full h-auto ${index >= 2 ? "hidden md:block" : ""}`}
                 />
               ))}
             </div>
