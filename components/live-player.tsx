@@ -53,6 +53,41 @@ export default function LivePlayer() {
   const stationId = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
   const apiKey = process.env.NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY;
 
+  // Poll for current live event from schedule
+  const checkSchedule = useCallback(async () => {
+    try {
+      const response = await fetch('/api/live/current');
+      const data = await response.json();
+
+      if (data.success && data.currentEvent) {
+        // Update live metadata with schedule data
+        setLiveMetadata({
+          status: 'live',
+          content: {
+            title: data.currentEvent.showName,
+            artist: data.currentEvent.artists?.[0]?.name,
+            image: data.currentEvent.imageUrl,
+          },
+        });
+      } else if (!data.isLive) {
+        // No live event, mark as offline
+        setLiveMetadata({
+          status: 'offline',
+        });
+      }
+    } catch (error) {
+      console.error('Error checking schedule:', error);
+    }
+  }, []);
+
+  // Check schedule on mount and every 30 seconds
+  useEffect(() => {
+    checkSchedule();
+    const interval = setInterval(checkSchedule, 30000); // Poll every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [checkSchedule]);
+
   // Initialize audio element ONLY when we have a live event
   useEffect(() => {
     // Only initialize audio if we have a live event
@@ -276,7 +311,18 @@ export default function LivePlayer() {
   }, [isLivePlaying, currentLiveEvent, streamUrl, pauseLive]);
 
   const handlePlayPause = () => {
-    if (!currentLiveEvent) return;
+    // If we don't have a currentLiveEvent but we detected something live via WebSocket,
+    // create a temporary event object from the metadata
+    let eventToPlay = currentLiveEvent;
+
+    if (!eventToPlay && liveMetadata.status === 'live') {
+      eventToPlay = {
+        showName: liveMetadata.content?.title || 'Live Show',
+        ...liveMetadata.content,
+      };
+    }
+
+    if (!eventToPlay) return;
 
     if (streamState.error) {
       // Retry on error
@@ -289,7 +335,7 @@ export default function LivePlayer() {
     if (isLivePlaying) {
       pauseLive();
     } else {
-      playLive(currentLiveEvent);
+      playLive(eventToPlay);
     }
   };
 
@@ -302,11 +348,9 @@ export default function LivePlayer() {
 
   return (
     <div className='fixed top-0 bg-almostblack text-white dark:bg-black dark:text-white z-50 flex items-center transition-all duration-300 h-7 left-0 right-0 max-w-full'>
-      <div
-        className={`${isActuallyLive ? 'border-l border-white/20' : ''} ml-4 flex items-center shrink-0 transition-opacity duration-200`}
-      >
+      <div className='ml-4 flex items-center shrink-0 transition-opacity duration-200'>
         <button
-          className={`rounded-full transition-colors disabled:opacity-100 ${isLivePlaying ? 'text-red-500' : 'text-white'}`}
+          className='rounded-full transition-colors disabled:opacity-100 text-white'
           disabled={!isActuallyLive}
           onClick={handlePlayPause}
         >
@@ -314,11 +358,6 @@ export default function LivePlayer() {
             <Pause
               fill='white'
               className='h-3 w-3'
-            />
-          ) : isActuallyLive ? (
-            <Circle
-              fill='#ef4444'
-              className='h-3 w-3 animate-pulse text-red-500'
             />
           ) : (
             <Play
@@ -329,17 +368,7 @@ export default function LivePlayer() {
         </button>
       </div>
       <div className='flex items-center mx-2 gap-2 overflow-hidden'>
-        <div>
-          <div className='text-m8 font-mono uppercase whitespace-nowrap'>{displayName}</div>
-          {isActuallyLive && (
-            <div className='flex items-center gap-1.5'>
-              <div className='w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse' />
-              <span className='text-m8 text-white/90 uppercase'>
-                {streamState.loading ? 'Connecting...' : streamState.error ? 'Error' : 'Live'}
-              </span>
-            </div>
-          )}
-        </div>
+        <div className='text-m8 font-mono uppercase whitespace-nowrap'>{displayName}</div>
       </div>
     </div>
   );
