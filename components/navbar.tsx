@@ -27,7 +27,6 @@ export default function Navbar({ navItems }: NavbarProps) {
   const { user } = useAuth();
 
   useEffect(() => {
-
     if (user) {
       getUserData(user.id)
         .then((response) => {
@@ -44,7 +43,8 @@ export default function Navbar({ navItems }: NavbarProps) {
   // Close mobile Sheet if resizing to desktop
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 768) { // md breakpoint
+      if (window.innerWidth >= 768) {
+        // md breakpoint
         setIsOpen(false);
       }
     };
@@ -125,7 +125,7 @@ export default function Navbar({ navItems }: NavbarProps) {
           </nav>
         </div>
 
-        <div className="flex items-center flex-wrap inline">
+        <div className="flex items-center flex-wrap">
           <div className="hidden md:block">
             <SearchButton />
           </div>
@@ -136,14 +136,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                 <SearchButton />
               </div>
               <SheetTrigger asChild>
-                <Button
-                  className={clsx(
-                    "h-10 w-10 p-0 transition-colors text-almostblack hover:text-white dark:hover:text-black",
-                    isOpen
-                      ? "bg-almostblack text-white dark:bg-white dark:text-black"
-                      : "bg-white text-almostblack dark:bg-black dark:text-white"
-                  )}
-                >
+                <Button className={clsx("h-10 w-10 p-0 transition-colors text-almostblack hover:text-white dark:hover:text-black", isOpen ? "bg-almostblack text-white dark:bg-white dark:text-black" : "bg-white text-almostblack dark:bg-black dark:text-white")}>
                   {isOpen ? <X className="size-3" /> : <Menu className="size-3" />}
                   <span className="sr-only">{isOpen ? "Close menu" : "Open menu"}</span>
                 </Button>
@@ -154,7 +147,7 @@ export default function Navbar({ navItems }: NavbarProps) {
                 <ul className="flex flex-col gap-0">
                   {processedNavItems.map((item) => (
                     <li key={item.name}>
-                      <Link href={item.link} className="block text-m8 py-2.5 px-2 border-b border-almostblack text-almostblack dark:text-white hover:text-white hover:bg-almostblack dark:hover:text-almostblack dark:hover:text-white transition-colors font-mono uppercase" onClick={() => setIsOpen(false)}>
+                      <Link href={item.link} className="block text-m8 py-2.5 px-2 border-b border-almostblack text-almostblack dark:text-white hover:text-white hover:bg-almostblack dark:hover:text-white transition-colors font-mono uppercase" onClick={() => setIsOpen(false)}>
                         {(item as any).showAsAvatar && user ? (
                           <div className="flex items-center gap-3">
                             <Avatar className="h-6 w-6 border border-almostblack dark:border-white">
