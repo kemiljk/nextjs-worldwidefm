@@ -5,8 +5,12 @@
       "schedule": "0 0 * * *"
     },
     {
-      "path": "/api/cron/migrate-episodes",
+      "path": "/api/cron/migrate-episodes-with-images",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/migrate-episode-images",
+      "schedule": "30 2 * * *"
     }
   ]
 }
