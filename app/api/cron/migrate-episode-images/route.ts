@@ -5,8 +5,8 @@ export async function GET(request: NextRequest) {
     console.log("🚀 Starting episode image migration via Vercel cron...");
 
     // Import the migration function dynamically
-    const { migrateEpisodeImages } = await import("../../../scripts/migrate-episode-images.js");
-    
+    const { migrateEpisodeImages } = await import("./migrate-episode-images.js");
+
     // Run the migration
     await migrateEpisodeImages(false); // false = not a dry run
 
