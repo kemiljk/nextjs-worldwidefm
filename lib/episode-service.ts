@@ -1,5 +1,5 @@
-import { cosmic } from './cosmic-config';
-import { EpisodeObject } from './cosmic-types';
+import { cosmic } from "./cosmic-config";
+import { EpisodeObject } from "./cosmic-types";
 
 export interface EpisodeParams {
   limit?: number;
@@ -9,8 +9,8 @@ export interface EpisodeParams {
   searchTerm?: string;
   isNew?: boolean;
   genre?: string | string[];
-  host?: string | string[] | '*'; // "*" means any regular hosts
-  takeover?: string | string[] | '*'; // "*" means any takeovers
+  host?: string | string[] | "*"; // "*" means any regular hosts
+  takeover?: string | string[] | "*"; // "*" means any takeovers
   location?: string | string[];
   showType?: string | string[]; // Filter by show type IDs
 }
@@ -29,14 +29,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
   const offset = params.offset || 0;
 
   // Check if filters are active
-  const hasFilters = !!(
-    params.genre ||
-    params.location ||
-    params.host ||
-    params.takeover ||
-    params.showType ||
-    params.searchTerm
-  );
+  const hasFilters = !!(params.genre || params.location || params.host || params.takeover || params.showType || params.searchTerm);
 
   // For filtered results, we need a different approach:
   // - First load: fetch more data to get a good sample of filtered results
@@ -46,8 +39,8 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
 
   // Build query object - include all published episodes
   let query: any = {
-    type: 'episode',
-    status: 'published',
+    type: "episode",
+    status: "published",
     // Temporarily removed player requirement to debug - we were getting 0 episodes
   };
 
@@ -55,29 +48,29 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     // Filter by genre - use dot-notation equality or $or of equals on nested id
     if (params.genre) {
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
-      console.log('Filtering by genres:', genres);
+      console.log("Filtering by genres:", genres);
 
       // Filter out undefined/null values
-      const validGenres = genres.filter((g) => g && typeof g === 'string' && g.trim() !== '');
+      const validGenres = genres.filter((g) => g && typeof g === "string" && g.trim() !== "");
 
       if (validGenres.length === 0) {
-        console.warn('No valid genre IDs provided, skipping genre filter');
+        console.warn("No valid genre IDs provided, skipping genre filter");
       } else if (validGenres.length === 1) {
-        query['metadata.genres.id'] = validGenres[0];
+        query["metadata.genres.id"] = validGenres[0];
       } else {
-        query.$or = validGenres.map((id) => ({ 'metadata.genres.id': id }));
+        query.$or = validGenres.map((id) => ({ "metadata.genres.id": id }));
       }
-      console.log('Genre query:', JSON.stringify(query, null, 2));
+      console.log("Genre query:", JSON.stringify(query, null, 2));
     }
 
     // Filter by host - match against nested array of objects
     if (params.host) {
-      if (params.host === '*') {
+      if (params.host === "*") {
         // Special case: find episodes with ANY regular hosts
-        query['metadata.regular_hosts'] = { $exists: true, $ne: [] };
+        query["metadata.regular_hosts"] = { $exists: true, $ne: [] };
       } else {
         const hosts = Array.isArray(params.host) ? params.host : [params.host];
-        query['metadata.regular_hosts'] = {
+        query["metadata.regular_hosts"] = {
           $elemMatch: {
             slug: { $in: hosts },
           },
@@ -87,41 +80,38 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
 
     // Filter by takeover - match against nested array of objects
     if (params.takeover) {
-      if (params.takeover === '*') {
+      if (params.takeover === "*") {
         // Special case: find episodes with ANY takeovers
-        query['metadata.takeovers'] = { $exists: true, $ne: [] };
+        query["metadata.takeovers"] = { $exists: true, $ne: [] };
       } else {
         const takeovers = Array.isArray(params.takeover) ? params.takeover : [params.takeover];
-        query['metadata.takeovers'] = {
-          $elemMatch: {
-            $or: [{ id: { $in: takeovers } }, { slug: { $in: takeovers } }],
-          },
-        };
+        // Use simpler approach that works reliably with Cosmic CMS
+        query["metadata.takeovers.id"] = { $in: takeovers };
       }
     }
 
     // Filter by location
     if (params.location) {
       const locations = Array.isArray(params.location) ? params.location : [params.location];
-      query['metadata.locations.id'] = { $in: locations };
+      query["metadata.locations.id"] = { $in: locations };
     }
 
     // Filter by show type
     if (params.showType) {
       const showTypes = Array.isArray(params.showType) ? params.showType : [params.showType];
-      query['metadata.type.id'] = { $in: showTypes };
+      query["metadata.type.id"] = { $in: showTypes };
     }
 
     // Filter by search term
     if (params.searchTerm) {
-      query.title = { $regex: params.searchTerm, $options: 'i' };
+      query.title = { $regex: params.searchTerm, $options: "i" };
     }
 
     // Filter by new (last 30 days)
     if (params.isNew) {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      query['metadata.broadcast_date'] = { $gte: thirtyDaysAgo.toISOString() };
+      query["metadata.broadcast_date"] = { $gte: thirtyDaysAgo.toISOString() };
     }
 
     // Handle random episodes
@@ -129,7 +119,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       // For random, get a larger set and then randomize client-side
       const response = await cosmic.objects
         .find(query)
-        .props('slug,title,metadata,type,created_at,published_at')
+        .props("slug,title,metadata,type,created_at,published_at")
         .limit(Math.min(limit * 5, 200)) // Get more for better randomization
         .depth(2);
 
@@ -151,30 +141,30 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     try {
       response = await cosmic.objects
         .find(query)
-        .props('slug,title,metadata,type,created_at,published_at')
+        .props("slug,title,metadata,type,created_at,published_at")
         .limit(limit)
         .skip(offset)
-        .sort('-metadata.broadcast_date,-created_at') // Sort by broadcast date, then creation date
+        .sort("-metadata.broadcast_date,-created_at") // Sort by broadcast date, then creation date
         .depth(2);
     } catch (error) {
-      console.log('Server-side filtering failed, using client-side filtering...');
-      console.error('Server-side filtering error:', error);
-      console.error('Query that failed:', JSON.stringify(query, null, 2));
-      console.error('Error details:', {
-        message: error?.message,
-        stack: error?.stack,
-        name: error?.name,
+      console.log("Server-side filtering failed, using client-side filtering...");
+      console.error("Server-side filtering error:", error);
+      console.error("Query that failed:", JSON.stringify(query, null, 2));
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : typeof error,
       });
 
       // Fallback: Get all episodes and filter client-side
       const allResponse = await cosmic.objects
         .find({
-          type: 'episode',
-          status: 'published',
+          type: "episode",
+          status: "published",
         })
-        .props('slug,title,metadata,type,created_at,published_at')
+        .props("slug,title,metadata,type,created_at,published_at")
         .limit(hasFilters && isFirstLoad ? 1000 : limit) // Get more episodes on first filtered load
-        .sort('-metadata.broadcast_date,-created_at')
+        .sort("-metadata.broadcast_date,-created_at")
         .depth(2);
 
       let allEpisodes = allResponse.objects || [];
@@ -203,7 +193,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       }
 
       if (params.host) {
-        if (params.host === '*') {
+        if (params.host === "*") {
           // Filter for episodes with any regular hosts
           allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
             const episodeHosts = episode.metadata?.regular_hosts || [];
@@ -222,7 +212,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       }
 
       if (params.takeover) {
-        if (params.takeover === '*') {
+        if (params.takeover === "*") {
           // Filter for episodes with any takeovers
           allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
             const episodeTakeovers = episode.metadata?.takeovers || [];
@@ -233,14 +223,11 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
           allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
             const episodeTakeovers = episode.metadata?.takeovers || [];
             return episodeTakeovers.some((takeover: any) => {
-              return takeovers.includes(takeover.id) || takeovers.includes(takeover.slug);
+              return takeovers.includes(takeover.id);
             });
           });
         }
-        console.log(
-          `Client-side filtered ${allEpisodes.length} episodes by takeovers:`,
-          params.takeover
-        );
+        console.log(`Client-side filtered ${allEpisodes.length} episodes by takeovers:`, params.takeover);
       }
 
       if (params.showType) {
@@ -249,10 +236,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
           const episodeType = episode.metadata?.type;
           return episodeType && showTypes.includes(episodeType.id);
         });
-        console.log(
-          `Client-side filtered ${allEpisodes.length} episodes by show types:`,
-          params.showType
-        );
+        console.log(`Client-side filtered ${allEpisodes.length} episodes by show types:`, params.showType);
       }
 
       // Apply pagination
@@ -268,8 +252,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       });
 
       // Handle hasNext for client-side filtering
-      const hasNext =
-        hasFilters && isFirstLoad ? allEpisodes.length > baseLimit : endIndex < allEpisodes.length;
+      const hasNext = hasFilters && isFirstLoad ? allEpisodes.length > baseLimit : endIndex < allEpisodes.length;
 
       return {
         episodes: paginatedEpisodes,
@@ -300,9 +283,9 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       hasNext,
     };
   } catch (error) {
-    console.error('Error fetching episodes:', error);
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
+    console.error("Error fetching episodes:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : "Unknown error",
       stack: error instanceof Error ? error.stack : undefined,
       name: error instanceof Error ? error.name : typeof error,
     });
@@ -317,17 +300,17 @@ export async function getEpisodeBySlug(slug: string): Promise<EpisodeObject | nu
   try {
     const response = await cosmic.objects
       .findOne({
-        type: 'episode',
+        type: "episode",
         slug: slug,
-        status: 'published',
+        status: "published",
         // Removed player requirement to match the main getEpisodes function
       })
-      .props('slug,title,metadata,type,created_at,published_at')
+      .props("slug,title,metadata,type,created_at,published_at")
       .depth(2);
 
     return response?.object || null;
   } catch (error) {
-    console.error('Error fetching episode by slug:', error);
+    console.error("Error fetching episode by slug:", error);
     return null;
   }
 }
@@ -339,18 +322,18 @@ export async function getAllEpisodes(): Promise<EpisodeObject[]> {
   try {
     const response = await cosmic.objects
       .find({
-        type: 'episode',
-        status: 'published',
+        type: "episode",
+        status: "published",
         // Removed player requirement for consistency
       })
-      .props('slug,title,metadata,type,created_at,published_at')
+      .props("slug,title,metadata,type,created_at,published_at")
       .limit(1000)
-      .sort('-metadata.broadcast_date,-created_at')
+      .sort("-metadata.broadcast_date,-created_at")
       .depth(2);
 
     return response.objects || [];
   } catch (error) {
-    console.error('Error fetching all episodes:', error);
+    console.error("Error fetching all episodes:", error);
     return [];
   }
 }
@@ -370,20 +353,20 @@ export function transformEpisodeToShowFormat(episode: EpisodeObject): any {
     name: episode.title, // For backward compatibility
 
     // URLs and links
-    url: metadata.player || '', // Audio player URL for media player
+    url: metadata.player || "", // Audio player URL for media player
 
     // Image handling
     pictures: {
-      small: metadata.image?.imgix_url || '/image-placeholder.svg',
-      thumbnail: metadata.image?.imgix_url || '/image-placeholder.svg',
-      medium_mobile: metadata.image?.imgix_url || '/image-placeholder.svg',
-      medium: metadata.image?.imgix_url || '/image-placeholder.svg',
-      large: metadata.image?.imgix_url || '/image-placeholder.svg',
-      '320wx320h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      extra_large: metadata.image?.imgix_url || '/image-placeholder.svg',
-      '640wx640h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      '768wx768h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      '1024wx1024h': metadata.image?.imgix_url || '/image-placeholder.svg',
+      small: metadata.image?.imgix_url || "/image-placeholder.svg",
+      thumbnail: metadata.image?.imgix_url || "/image-placeholder.svg",
+      medium_mobile: metadata.image?.imgix_url || "/image-placeholder.svg",
+      medium: metadata.image?.imgix_url || "/image-placeholder.svg",
+      large: metadata.image?.imgix_url || "/image-placeholder.svg",
+      "320wx320h": metadata.image?.imgix_url || "/image-placeholder.svg",
+      extra_large: metadata.image?.imgix_url || "/image-placeholder.svg",
+      "640wx640h": metadata.image?.imgix_url || "/image-placeholder.svg",
+      "768wx768h": metadata.image?.imgix_url || "/image-placeholder.svg",
+      "1024wx1024h": metadata.image?.imgix_url || "/image-placeholder.svg",
     },
 
     // Dates and times
@@ -393,7 +376,7 @@ export function transformEpisodeToShowFormat(episode: EpisodeObject): any {
     broadcast_time: metadata.broadcast_time,
 
     // Content
-    description: metadata.description || '',
+    description: metadata.description || "",
     body_text: metadata.body_text,
     tracklist: metadata.tracklist,
     duration: metadata.duration,
@@ -420,14 +403,14 @@ export function transformEpisodeToShowFormat(episode: EpisodeObject): any {
       name: host.title || host.id,
       username: host.slug || host.id,
       pictures: {
-        small: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        thumbnail: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        medium_mobile: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        medium: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        large: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        '320wx320h': host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        extra_large: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        '640wx640h': host.metadata?.image?.imgix_url || '/image-placeholder.svg',
+        small: host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        thumbnail: host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        medium_mobile: host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        medium: host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        large: host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        "320wx320h": host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        extra_large: host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        "640wx640h": host.metadata?.image?.imgix_url || "/image-placeholder.svg",
       },
     })),
 
@@ -439,8 +422,8 @@ export function transformEpisodeToShowFormat(episode: EpisodeObject): any {
     repost_count: 0,
 
     // Source tracking
-    __source: 'episode' as const,
-    source: metadata.source || 'cosmic',
+    __source: "episode" as const,
+    source: metadata.source || "cosmic",
 
     // Enhanced fields
     enhanced_image: metadata.image?.imgix_url,
@@ -476,13 +459,13 @@ export async function getRegularHosts(
     if (!params.genre && !params.location) {
       const response = await cosmic.objects
         .find({
-          type: 'regular-hosts',
-          status: 'published',
+          type: "regular-hosts",
+          status: "published",
         })
-        .props('slug,title,metadata,type')
+        .props("slug,title,metadata,type")
         .limit(limit)
         .skip(offset)
-        .sort('title')
+        .sort("title")
         .depth(2);
 
       const hosts = response.objects || [];
@@ -495,9 +478,9 @@ export async function getRegularHosts(
 
     // If filters are applied, find hosts through episodes
     let episodeQuery: any = {
-      type: 'episode',
-      status: 'published',
-      'metadata.regular_hosts': { $exists: true, $ne: [] }, // Only episodes with hosts
+      type: "episode",
+      status: "published",
+      "metadata.regular_hosts": { $exists: true, $ne: [] }, // Only episodes with hosts
     };
 
     // Apply genre filter to episodes
@@ -505,22 +488,22 @@ export async function getRegularHosts(
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
       const validGenres = genres.filter(Boolean);
       if (validGenres.length === 1) {
-        episodeQuery['metadata.genres.id'] = validGenres[0];
+        episodeQuery["metadata.genres.id"] = validGenres[0];
       } else if (validGenres.length > 1) {
-        episodeQuery.$or = validGenres.map((id) => ({ 'metadata.genres.id': id }));
+        episodeQuery.$or = validGenres.map((id) => ({ "metadata.genres.id": id }));
       }
     }
 
     // Apply location filter to episodes
     if (params.location) {
       const locations = Array.isArray(params.location) ? params.location : [params.location];
-      episodeQuery['metadata.locations.id'] = { $in: locations };
+      episodeQuery["metadata.locations.id"] = { $in: locations };
     }
 
     // Get episodes that match the criteria
     const episodesResponse = await cosmic.objects
       .find(episodeQuery)
-      .props('metadata.regular_hosts')
+      .props("metadata.regular_hosts")
       .limit(1000) // Get enough episodes to find unique hosts
       .depth(2);
 
@@ -552,7 +535,7 @@ export async function getRegularHosts(
       hasNext,
     };
   } catch (error) {
-    console.error('Error fetching regular hosts:', error);
+    console.error("Error fetching regular hosts:", error);
     return { shows: [], total: 0, hasNext: false };
   }
 }
@@ -581,13 +564,13 @@ export async function getTakeovers(
     if (!params.genre && !params.location) {
       const response = await cosmic.objects
         .find({
-          type: 'takeovers',
-          status: 'published',
+          type: "takeovers",
+          status: "published",
         })
-        .props('slug,title,metadata,type')
+        .props("slug,title,metadata,type")
         .limit(limit)
         .skip(offset)
-        .sort('title')
+        .sort("title")
         .depth(2);
 
       const takeovers = response.objects || [];
@@ -600,9 +583,9 @@ export async function getTakeovers(
 
     // If filters are applied, find takeovers through episodes
     let episodeQuery: any = {
-      type: 'episode',
-      status: 'published',
-      'metadata.takeovers': { $exists: true, $ne: [] }, // Only episodes with takeovers
+      type: "episode",
+      status: "published",
+      "metadata.takeovers": { $exists: true, $ne: [] }, // Only episodes with takeovers
     };
 
     // Apply genre filter to episodes
@@ -610,22 +593,22 @@ export async function getTakeovers(
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
       const validGenres = genres.filter(Boolean);
       if (validGenres.length === 1) {
-        episodeQuery['metadata.genres.id'] = validGenres[0];
+        episodeQuery["metadata.genres.id"] = validGenres[0];
       } else if (validGenres.length > 1) {
-        episodeQuery.$or = validGenres.map((id) => ({ 'metadata.genres.id': id }));
+        episodeQuery.$or = validGenres.map((id) => ({ "metadata.genres.id": id }));
       }
     }
 
     // Apply location filter to episodes
     if (params.location) {
       const locations = Array.isArray(params.location) ? params.location : [params.location];
-      episodeQuery['metadata.locations.id'] = { $in: locations };
+      episodeQuery["metadata.locations.id"] = { $in: locations };
     }
 
     // Get episodes that match the criteria
     const episodesResponse = await cosmic.objects
       .find(episodeQuery)
-      .props('metadata.takeovers')
+      .props("metadata.takeovers")
       .limit(1000) // Get enough episodes to find unique takeovers
       .depth(2);
 
@@ -657,7 +640,7 @@ export async function getTakeovers(
       hasNext,
     };
   } catch (error) {
-    console.error('Error fetching takeovers:', error);
+    console.error("Error fetching takeovers:", error);
     return { shows: [], total: 0, hasNext: false };
   }
 }
@@ -692,20 +675,20 @@ export function transformHostToShowFormat(host: any): any {
     name: host.title, // For backward compatibility
 
     // URLs and links
-    url: '', // Hosts don't have audio players
+    url: "", // Hosts don't have audio players
 
     // Image handling
     pictures: {
-      small: metadata.image?.imgix_url || '/image-placeholder.svg',
-      thumbnail: metadata.image?.imgix_url || '/image-placeholder.svg',
-      medium_mobile: metadata.image?.imgix_url || '/image-placeholder.svg',
-      medium: metadata.image?.imgix_url || '/image-placeholder.svg',
-      large: metadata.image?.imgix_url || '/image-placeholder.svg',
-      '320wx320h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      extra_large: metadata.image?.imgix_url || '/image-placeholder.svg',
-      '640wx640h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      '768wx768h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      '1024wx1024h': metadata.image?.imgix_url || '/image-placeholder.svg',
+      small: metadata.image?.imgix_url || "/image-placeholder.svg",
+      thumbnail: metadata.image?.imgix_url || "/image-placeholder.svg",
+      medium_mobile: metadata.image?.imgix_url || "/image-placeholder.svg",
+      medium: metadata.image?.imgix_url || "/image-placeholder.svg",
+      large: metadata.image?.imgix_url || "/image-placeholder.svg",
+      "320wx320h": metadata.image?.imgix_url || "/image-placeholder.svg",
+      extra_large: metadata.image?.imgix_url || "/image-placeholder.svg",
+      "640wx640h": metadata.image?.imgix_url || "/image-placeholder.svg",
+      "768wx768h": metadata.image?.imgix_url || "/image-placeholder.svg",
+      "1024wx1024h": metadata.image?.imgix_url || "/image-placeholder.svg",
     },
 
     // Dates and times
@@ -715,11 +698,11 @@ export function transformHostToShowFormat(host: any): any {
     broadcast_time: metadata.broadcast_time,
 
     // Content
-    description: metadata.description || metadata.bio || '',
+    description: metadata.description || metadata.bio || "",
     body_text: metadata.body_text,
     tracklist: metadata.tracklist,
     duration: metadata.duration,
-    player: '', // Hosts don't have audio players
+    player: "", // Hosts don't have audio players
 
     // Metadata
     genres: metadata.genres || [],
@@ -746,8 +729,8 @@ export function transformHostToShowFormat(host: any): any {
     repost_count: 0,
 
     // Source tracking
-    __source: 'host' as const,
-    source: metadata.source || 'cosmic',
+    __source: "host" as const,
+    source: metadata.source || "cosmic",
 
     // Enhanced fields
     enhanced_image: metadata.image?.imgix_url,
@@ -774,20 +757,20 @@ export function transformTakeoverToShowFormat(takeover: any): any {
     name: takeover.title, // For backward compatibility
 
     // URLs and links
-    url: metadata.player || '', // Audio player URL for media player
+    url: metadata.player || "", // Audio player URL for media player
 
     // Image handling
     pictures: {
-      small: metadata.image?.imgix_url || '/image-placeholder.svg',
-      thumbnail: metadata.image?.imgix_url || '/image-placeholder.svg',
-      medium_mobile: metadata.image?.imgix_url || '/image-placeholder.svg',
-      medium: metadata.image?.imgix_url || '/image-placeholder.svg',
-      large: metadata.image?.imgix_url || '/image-placeholder.svg',
-      '320wx320h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      extra_large: metadata.image?.imgix_url || '/image-placeholder.svg',
-      '640wx640h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      '768wx768h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      '1024wx1024h': metadata.image?.imgix_url || '/image-placeholder.svg',
+      small: metadata.image?.imgix_url || "/image-placeholder.svg",
+      thumbnail: metadata.image?.imgix_url || "/image-placeholder.svg",
+      medium_mobile: metadata.image?.imgix_url || "/image-placeholder.svg",
+      medium: metadata.image?.imgix_url || "/image-placeholder.svg",
+      large: metadata.image?.imgix_url || "/image-placeholder.svg",
+      "320wx320h": metadata.image?.imgix_url || "/image-placeholder.svg",
+      extra_large: metadata.image?.imgix_url || "/image-placeholder.svg",
+      "640wx640h": metadata.image?.imgix_url || "/image-placeholder.svg",
+      "768wx768h": metadata.image?.imgix_url || "/image-placeholder.svg",
+      "1024wx1024h": metadata.image?.imgix_url || "/image-placeholder.svg",
     },
 
     // Dates and times
@@ -797,7 +780,7 @@ export function transformTakeoverToShowFormat(takeover: any): any {
     broadcast_time: metadata.broadcast_time,
 
     // Content
-    description: metadata.description || '',
+    description: metadata.description || "",
     body_text: metadata.body_text,
     tracklist: metadata.tracklist,
     duration: metadata.duration,
@@ -824,14 +807,14 @@ export function transformTakeoverToShowFormat(takeover: any): any {
       name: host.title || host.id,
       username: host.slug || host.id,
       pictures: {
-        small: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        thumbnail: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        medium_mobile: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        medium: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        large: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        '320wx320h': host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        extra_large: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        '640wx640h': host.metadata?.image?.imgix_url || '/image-placeholder.svg',
+        small: host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        thumbnail: host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        medium_mobile: host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        medium: host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        large: host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        "320wx320h": host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        extra_large: host.metadata?.image?.imgix_url || "/image-placeholder.svg",
+        "640wx640h": host.metadata?.image?.imgix_url || "/image-placeholder.svg",
       },
     })),
 
@@ -843,8 +826,8 @@ export function transformTakeoverToShowFormat(takeover: any): any {
     repost_count: 0,
 
     // Source tracking
-    __source: 'takeover' as const,
-    source: metadata.source || 'cosmic',
+    __source: "takeover" as const,
+    source: metadata.source || "cosmic",
 
     // Enhanced fields
     enhanced_image: metadata.image?.imgix_url,
@@ -860,12 +843,12 @@ export function transformTakeoverToShowFormat(takeover: any): any {
  * Clean and format episode title (similar to Mixcloud's cleanShowTitle)
  */
 export function cleanEpisodeTitle(title: string): string {
-  if (!title) return '';
+  if (!title) return "";
 
   // Remove common prefixes
   const cleanedTitle = title
-    .replace(/^Worldwide FM[\s\-:]*/, '')
-    .replace(/^WWFM[\s\-:]*/, '')
+    .replace(/^Worldwide FM[\s\-:]*/, "")
+    .replace(/^WWFM[\s\-:]*/, "")
     .trim();
 
   return cleanedTitle || title;
@@ -875,7 +858,7 @@ export function cleanEpisodeTitle(title: string): string {
  * Extract show series name from episode title for intelligent matching
  */
 function extractShowSeries(title: string): string {
-  if (!title) return '';
+  if (!title) return "";
 
   // Clean the title first
   const cleaned = cleanEpisodeTitle(title);
@@ -936,10 +919,7 @@ function calculateTitleSimilarity(title1: string, title2: string): number {
 /**
  * Get intelligently related episodes based on title patterns, genres, and hosts
  */
-export async function getRelatedEpisodes(
-  currentEpisode: EpisodeObject,
-  limit: number = 3
-): Promise<EpisodeObject[]> {
+export async function getRelatedEpisodes(currentEpisode: EpisodeObject, limit: number = 3): Promise<EpisodeObject[]> {
   try {
     const metadata = currentEpisode.metadata || {};
     const genres = metadata.genres || [];
@@ -954,12 +934,9 @@ export async function getRelatedEpisodes(
     // Add genre matching
     if (genres.length > 0) {
       orConditions.push({
-        'metadata.genres': {
+        "metadata.genres": {
           $elemMatch: {
-            $or: [
-              { id: { $in: genres.map((g: any) => g.id) } },
-              { slug: { $in: genres.map((g: any) => g.slug) } },
-            ],
+            $or: [{ id: { $in: genres.map((g: any) => g.id) } }, { slug: { $in: genres.map((g: any) => g.slug) } }],
           },
         },
       });
@@ -968,49 +945,39 @@ export async function getRelatedEpisodes(
     // Add host matching
     if (hosts.length > 0) {
       orConditions.push({
-        'metadata.regular_hosts.id': { $in: hosts.map((h: any) => h.id) },
+        "metadata.regular_hosts.id": { $in: hosts.map((h: any) => h.id) },
       });
     }
 
     // If no genre or host matches possible, get recent episodes for title matching
     if (orConditions.length === 0) {
       const query = {
-        type: 'episode',
-        status: 'published',
+        type: "episode",
+        status: "published",
         id: { $ne: currentEpisode.id },
       };
 
-      const response = await cosmic.objects
-        .find(query)
-        .props('slug,title,metadata,type,created_at,published_at')
-        .limit(poolSize)
-        .sort('-metadata.broadcast_date,-created_at')
-        .depth(2);
+      const response = await cosmic.objects.find(query).props("slug,title,metadata,type,created_at,published_at").limit(poolSize).sort("-metadata.broadcast_date,-created_at").depth(2);
 
       const allEpisodes = response.objects || [];
       return scoreAndRankEpisodes(allEpisodes, currentEpisode, limit);
     }
 
     const query: any = {
-      type: 'episode',
-      status: 'published',
+      type: "episode",
+      status: "published",
       id: { $ne: currentEpisode.id },
       $or: orConditions,
     };
 
-    const response = await cosmic.objects
-      .find(query)
-      .props('slug,title,metadata,type,created_at,published_at')
-      .limit(poolSize)
-      .sort('-metadata.broadcast_date,-created_at')
-      .depth(2);
+    const response = await cosmic.objects.find(query).props("slug,title,metadata,type,created_at,published_at").limit(poolSize).sort("-metadata.broadcast_date,-created_at").depth(2);
 
     const candidates = response.objects || [];
 
     // Score and rank the candidates
     return scoreAndRankEpisodes(candidates, currentEpisode, limit);
   } catch (error) {
-    console.error('Error fetching related episodes:', error);
+    console.error("Error fetching related episodes:", error);
     return [];
   }
 }
@@ -1018,21 +985,17 @@ export async function getRelatedEpisodes(
 /**
  * Score and rank episodes based on multiple relevance factors
  */
-function scoreAndRankEpisodes(
-  candidates: EpisodeObject[],
-  currentEpisode: EpisodeObject,
-  limit: number
-): EpisodeObject[] {
+function scoreAndRankEpisodes(candidates: EpisodeObject[], currentEpisode: EpisodeObject, limit: number): EpisodeObject[] {
   const currentMetadata = currentEpisode.metadata || {};
   const currentGenres = currentMetadata.genres || [];
   const currentHosts = currentMetadata.regular_hosts || [];
-  const currentTitle = currentEpisode.title || '';
+  const currentTitle = currentEpisode.title || "";
 
   const scoredEpisodes = candidates.map((episode) => {
     const metadata = episode.metadata || {};
     const episodeGenres = metadata.genres || [];
     const episodeHosts = metadata.regular_hosts || [];
-    const episodeTitle = episode.title || '';
+    const episodeTitle = episode.title || "";
 
     let score = 0;
 
@@ -1041,15 +1004,11 @@ function scoreAndRankEpisodes(
     score += titleSimilarity * 10;
 
     // Genre matching
-    const genreMatches = episodeGenres.filter((genre: any) =>
-      currentGenres.some((currentGenre: any) => currentGenre.id === genre.id)
-    ).length;
+    const genreMatches = episodeGenres.filter((genre: any) => currentGenres.some((currentGenre: any) => currentGenre.id === genre.id)).length;
     score += genreMatches * 3;
 
     // Host matching
-    const hostMatches = episodeHosts.filter((host: any) =>
-      currentHosts.some((currentHost: any) => currentHost.id === host.id)
-    ).length;
+    const hostMatches = episodeHosts.filter((host: any) => currentHosts.some((currentHost: any) => currentHost.id === host.id)).length;
     score += hostMatches * 5;
 
     // Recency bonus (newer episodes get slight boost)
@@ -1072,22 +1031,19 @@ function scoreAndRankEpisodes(
 /**
  * Get episodes filtered by show type IDs - dedicated function for homepage sections
  */
-export async function getEpisodesByShowType(
-  showTypeIds: string[],
-  limit: number = 8
-): Promise<EpisodeObject[]> {
+export async function getEpisodesByShowType(showTypeIds: string[], limit: number = 8): Promise<EpisodeObject[]> {
   try {
-    console.log('Fetching episodes by show type IDs:', showTypeIds);
+    console.log("Fetching episodes by show type IDs:", showTypeIds);
 
     const response = await cosmic.objects
       .find({
-        type: 'episode',
-        status: 'published',
-        'metadata.type.id': { $in: showTypeIds },
+        type: "episode",
+        status: "published",
+        "metadata.type.id": { $in: showTypeIds },
       })
-      .props('slug,title,metadata,type,created_at,published_at')
+      .props("slug,title,metadata,type,created_at,published_at")
       .limit(limit)
-      .sort('-metadata.broadcast_date,-created_at')
+      .sort("-metadata.broadcast_date,-created_at")
       .depth(2);
 
     const episodes = response.objects || [];
@@ -1095,7 +1051,7 @@ export async function getEpisodesByShowType(
 
     return episodes;
   } catch (error) {
-    console.error('Error in getEpisodesByShowType:', error);
+    console.error("Error in getEpisodesByShowType:", error);
     return [];
   }
 }
