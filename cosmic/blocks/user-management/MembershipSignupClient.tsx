@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/cosmic/blocks/user-management/AuthContext";
 import { Button } from "@/cosmic/elements/Button";
+import { Input } from "@/cosmic/elements/Input";
+import { Label } from "@/cosmic/elements/Label";
 import { Loader2, CheckCircle } from "lucide-react";
 
 interface MembershipSignupClientProps {
@@ -18,12 +20,23 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
   const [isComplete, setIsComplete] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    email: "",
+    firstName: "",
+    lastName: "",
+  });
 
   useEffect(() => {
     if (!isLoading && user) {
-      // User is already logged in, they can proceed to subscription
+      const nameParts = user.name?.split(" ") || [];
+      setFormData({
+        email: user.email || "",
+        firstName: nameParts[0] || "",
+        lastName: nameParts.slice(1).join(" ") || "",
+      });
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading]);
 
   if (isLoading) {
     return (
@@ -59,20 +72,35 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
   }
 
   const handleJoinClick = async () => {
+    if (!user && !showForm) {
+      setShowForm(true);
+      return;
+    }
+
+    if (!formData.email || !formData.firstName || !formData.lastName) {
+      setError("Please fill in all required fields");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
     setIsProcessing(true);
     setError("");
 
     try {
-      // Create Stripe checkout session
       const response = await fetch("/api/stripe/create-checkout-session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: user?.email,
-          firstName: user?.name?.split(" ")[0] || "",
-          lastName: user?.name?.split(" ")[1] || "",
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
           userId: user?.id,
         }),
       });
@@ -85,7 +113,6 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
       }
 
       if (data.url) {
-        // Redirect to Stripe Checkout
         window.location.href = data.url;
       }
     } catch (err: any) {
@@ -116,6 +143,55 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
 
         {error && <div className="mb-6 p-4 bg-red-500/90 text-white text-sm rounded-lg max-w-md mx-auto">{error}</div>}
 
+        {showForm && !user ? (
+          <div className="max-w-md mx-auto mb-8">
+            <div className="space-y-4 text-left bg-white/10 backdrop-blur-sm p-6 rounded-lg">
+              <div>
+                <Label htmlFor="firstName" className="text-white mb-2">
+                  First Name *
+                </Label>
+                <Input
+                  id="firstName"
+                  type="text"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  placeholder="Enter your first name"
+                  className="bg-white/90 text-black"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName" className="text-white mb-2">
+                  Last Name *
+                </Label>
+                <Input
+                  id="lastName"
+                  type="text"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  placeholder="Enter your last name"
+                  className="bg-white/90 text-black"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="email" className="text-white mb-2">
+                  Email *
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Enter your email"
+                  className="bg-white/90 text-black"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <Button onClick={handleJoinClick} disabled={isProcessing} className="bg-almostblack text-white hover:bg-almostblack/90 px-12 py-6 text-lg font-mono uppercase tracking-wider">
           {isProcessing ? (
             <>
@@ -127,7 +203,7 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
           )}
         </Button>
 
-        {!user && (
+        {!user && !showForm && (
           <div className="mt-8 text-white/80 text-sm">
             Already have an account?{" "}
             <Link href="/login" className="text-white hover:underline font-medium">
