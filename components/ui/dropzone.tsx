@@ -9,9 +9,10 @@ interface DropzoneProps extends React.InputHTMLAttributes<HTMLInputElement> {
   selectedFile?: File | null;
   accept?: string;
   maxSize?: number; // in bytes
+  placeholder?: string;
 }
 
-export function Dropzone({ onFileSelect, selectedFile, accept, maxSize, className, ...props }: DropzoneProps) {
+export function Dropzone({ onFileSelect, selectedFile, accept, maxSize, placeholder = "Drag and drop your file here", className, ...props }: DropzoneProps) {
   const [isDragging, setIsDragging] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -43,9 +44,11 @@ export function Dropzone({ onFileSelect, selectedFile, accept, maxSize, classNam
       });
 
       if (!isValidType) {
-        // More user-friendly error message for audio files
+        // More user-friendly error messages
         if (acceptedTypes.some((type) => type.startsWith("audio"))) {
           setError(`Please select an audio file (MP3, WAV, M4A, AAC, or FLAC)`);
+        } else if (acceptedTypes.some((type) => type.startsWith("image"))) {
+          setError(`Please select an image file (JPG, PNG, or WebP)`);
         } else {
           setError(`File type not supported. Please upload: ${acceptedTypes.join(", ")}`);
         }
@@ -100,7 +103,7 @@ export function Dropzone({ onFileSelect, selectedFile, accept, maxSize, classNam
           </div>
         ) : (
           <>
-            <p className="text-sm font-medium">Drag and drop your audio file here</p>
+            <p className="text-sm font-medium">{placeholder}</p>
             <p className="text-xs text-muted-foreground mt-1">or click to browse</p>
           </>
         )}

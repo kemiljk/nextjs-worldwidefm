@@ -71,6 +71,10 @@ export function AddShowForm() {
   const [locationInput, setLocationInput] = useState<string>("");
   const [artistInput, setArtistInput] = useState<string>("");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isArtistListOpen, setIsArtistListOpen] = useState<boolean>(false);
+  const [isGenreListOpen, setIsGenreListOpen] = useState<boolean>(false);
+  const [isLocationListOpen, setIsLocationListOpen] = useState<boolean>(false);
 
   // Initialize the form
   const form = useForm<FormValues>({
@@ -120,11 +124,13 @@ export function AddShowForm() {
     setSelectedLocation(location);
     setLocationInput(location.title);
     form.setValue("location", location.slug);
+    setIsLocationListOpen(false);
   };
 
   // Handle location input change
   const handleLocationInputChange = (value: string) => {
     setLocationInput(value);
+    setIsLocationListOpen(true);
     if (selectedLocation && value !== selectedLocation.title) {
       setSelectedLocation(undefined);
       form.setValue("location", "");
@@ -135,12 +141,13 @@ export function AddShowForm() {
   const handleArtistSelect = (artist: RadioCultArtist) => {
     form.setValue("artistId", artist.id);
     setArtistInput(artist.name);
+    setIsArtistListOpen(false);
   };
 
   // Handle artist input change
   const handleArtistInputChange = (value: string) => {
     setArtistInput(value);
-    // Clear the selected artist if the input doesn't match the selected artist's name
+    setIsArtistListOpen(true);
     const selectedArtist = artists.find((a) => a.id === form.watch("artistId"));
     if (selectedArtist && value !== selectedArtist.name) {
       form.setValue("artistId", "");
@@ -179,6 +186,7 @@ export function AddShowForm() {
     if (!selectedGenres.includes(genreId)) {
       setSelectedGenres([...selectedGenres, genreId]);
       setSelectedGenreInput("");
+      setIsGenreListOpen(false);
     }
   };
 
@@ -212,6 +220,28 @@ export function AddShowForm() {
     try {
       let radiocultMediaId: string | undefined = undefined;
       let cosmicMedia: any = undefined;
+      let cosmicImage: any = undefined;
+
+      // Upload image file separately if provided
+      if (imageFile) {
+        const imageFormData = new FormData();
+        imageFormData.append("image", imageFile);
+
+        const imageUploadResponse = await fetch("/api/upload-image", {
+          method: "POST",
+          body: imageFormData,
+        });
+
+        if (!imageUploadResponse.ok) {
+          const imageError = await imageUploadResponse.json();
+          throw new Error(imageError.error || "Failed to upload image");
+        }
+
+        const imageResult = await imageUploadResponse.json();
+        cosmicImage = imageResult;
+
+        toast.success("Image uploaded successfully");
+      }
 
       // Upload media file separately if provided
       if (mediaFile) {
@@ -268,6 +298,7 @@ export function AddShowForm() {
           status: "draft", // Set as draft for approval
           radiocult_media_id: radiocultMediaId,
           media_file: cosmicMedia,
+          image: cosmicImage,
         }),
       });
 
@@ -289,6 +320,7 @@ export function AddShowForm() {
       setLocationInput("");
       setArtistInput("");
       setMediaFile(null);
+      setImageFile(null);
     } catch (error) {
       console.error("Error submitting form:", error);
       toast.error("Failed to submit show", {
@@ -308,7 +340,7 @@ export function AddShowForm() {
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-2xl font-semibold text-gray-900">Show Submitted Successfully!</h2>
+          <h2 className="text-2xl font-semibold text-almostblack dark:text-white">Show Submitted Successfully!</h2>
           <p className="text-gray-600 max-w-md">
             "<strong>{submittedShowTitle}</strong>" has been submitted for approval. Once approved, it will be published to RadioCult and appear on your station.
           </p>
@@ -330,6 +362,15 @@ export function AddShowForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="space-y-4">
+          <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">Show Image</h2>
+          <FormItem>
+            <FormLabel>Upload Show Image</FormLabel>
+            <Dropzone accept="image/jpeg,image/jpg,image/png,image/webp" disabled={isLoading} onFileSelect={setImageFile} selectedFile={imageFile} maxSize={10 * 1024 * 1024} placeholder="Drag and drop your show image here" />
+            <FormDescription>Upload a square image (1:1 aspect ratio recommended) for your show. Maximum file size is 10MB. Accepts JPG, PNG, or WebP.</FormDescription>
+          </FormItem>
+        </div>
+
         <div className="space-y-4">
           <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">Show Details</h2>
 
@@ -395,7 +436,7 @@ export function AddShowForm() {
                           const minute = (i % 4) * 15;
                           const timeString = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
                           return (
-                            <SelectItem key={timeString} value={timeString}>
+                            <SelectItem key={timeString} value={timeString} className="text-almostblack hover:bg-white hover:text-almostblack dark:hover:bg-almostblack dark:hover:text-white">
                               {timeString}
                             </SelectItem>
                           );
@@ -428,7 +469,7 @@ export function AddShowForm() {
                           const remainingMinutes = minutes % 60;
                           const displayText = hours > 0 ? `${hours}h ${remainingMinutes}m` : `${minutes}m`;
                           return (
-                            <SelectItem key={minutes.toString()} value={minutes.toString()}>
+                            <SelectItem key={minutes.toString()} value={minutes.toString()} className="text-almostblack hover:bg-white hover:text-almostblack dark:hover:bg-almostblack dark:hover:text-white">
                               {displayText}
                             </SelectItem>
                           );
@@ -455,7 +496,7 @@ export function AddShowForm() {
                   <FormLabel>Artist</FormLabel>
                   <AddNewArtist onArtistCreated={handleArtistCreated} />
                 </div>
-                <Command className="w-full border rounded-none relative" shouldFilter={false}>
+                <Command className="w-full border border-input rounded-none relative" shouldFilter={false}>
                   <div className="relative">
                     <CommandInput placeholder="Type to search for an artist" value={artistInput} onValueChange={handleArtistInputChange} disabled={isLoading || artists.length === 0} style={{ width: "100%" }} />
                     {field.value && (
@@ -473,8 +514,8 @@ export function AddShowForm() {
                       </button>
                     )}
                   </div>
-                  {artistInput && (
-                    <CommandList>
+                  {artistInput && isArtistListOpen && (
+                    <CommandList onClickOutside={() => setIsArtistListOpen(false)}>
                       {artists
                         .filter((artist) => artist.name.toLowerCase().includes(artistInput.toLowerCase()))
                         .map((artist) => (
@@ -503,12 +544,21 @@ export function AddShowForm() {
               <FormItem>
                 <FormLabel>Genres</FormLabel>
                 <div className="space-y-2">
-                  <Command className="w-full border rounded-none relative" shouldFilter={false}>
+                  <Command className="w-full border border-input rounded-none relative" shouldFilter={false}>
                     <div className="relative">
-                      <CommandInput placeholder="Type to search for genres" value={selectedGenreInput} onValueChange={setSelectedGenreInput} disabled={isLoading || genres.length === 0} style={{ width: "100%" }} />
+                      <CommandInput
+                        placeholder="Type to search for genres"
+                        value={selectedGenreInput}
+                        onValueChange={(value) => {
+                          setSelectedGenreInput(value);
+                          setIsGenreListOpen(true);
+                        }}
+                        disabled={isLoading || genres.length === 0}
+                        style={{ width: "100%" }}
+                      />
                     </div>
-                    {selectedGenreInput && (
-                      <CommandList>
+                    {selectedGenreInput && isGenreListOpen && (
+                      <CommandList onClickOutside={() => setIsGenreListOpen(false)}>
                         {genres
                           .filter((genre) => !selectedGenres.includes(genre.id) && genre.title.toLowerCase().includes(selectedGenreInput.toLowerCase()))
                           .map((genre) => (
@@ -577,7 +627,7 @@ export function AddShowForm() {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Location</FormLabel>
-                <Command className="w-full border rounded-none relative" shouldFilter={false}>
+                <Command className="w-full border border-input rounded-none relative" shouldFilter={false}>
                   <div className="relative">
                     <CommandInput placeholder="Type to search for a location" value={selectedLocation ? selectedLocation.title : locationInput} onValueChange={handleLocationInputChange} disabled={isLoading || locations.length === 0} style={{ width: "100%" }} />
                     {selectedLocation && (
@@ -596,8 +646,8 @@ export function AddShowForm() {
                       </button>
                     )}
                   </div>
-                  {locationInput && (
-                    <CommandList>
+                  {locationInput && isLocationListOpen && (
+                    <CommandList onClickOutside={() => setIsLocationListOpen(false)}>
                       {locations
                         .filter((location) => location.title.toLowerCase().includes(locationInput.toLowerCase()))
                         .map((location) => (
@@ -620,19 +670,13 @@ export function AddShowForm() {
           <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">Media File</h2>
           <FormItem>
             <FormLabel>Upload Audio File</FormLabel>
-            <Dropzone
-              accept="audio/mpeg,audio/mp3,audio/wav,audio/m4a,audio/aac,audio/flac"
-              disabled={isLoading}
-              onFileSelect={setMediaFile}
-              selectedFile={mediaFile}
-              maxSize={600 * 1024 * 1024} // 600MB limit
-            />
+            <Dropzone accept="audio/mpeg,audio/mp3,audio/wav,audio/m4a,audio/aac,audio/flac" disabled={isLoading} onFileSelect={setMediaFile} selectedFile={mediaFile} maxSize={600 * 1024 * 1024} placeholder="Drag and drop your audio file here" />
             <FormDescription>Upload your show as an audio file (MP3, WAV, M4A, AAC, FLAC). Maximum file size is 600MB.</FormDescription>
           </FormItem>
         </div>
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" className="px-2" disabled={isLoading}>
             {isLoading ? "Submitting..." : "Submit for Approval"}
           </Button>
         </div>
