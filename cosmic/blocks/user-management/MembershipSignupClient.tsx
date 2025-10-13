@@ -105,19 +105,30 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
         }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.error || `Server error: ${response.status}`);
+        setIsProcessing(false);
+        return;
+      }
+
       const data = await response.json();
 
       if (data.error) {
         setError(data.error);
+        setIsProcessing(false);
         return;
       }
 
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        setError("No checkout URL returned from server");
+        setIsProcessing(false);
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred");
-    } finally {
+      console.error("Membership signup error:", err);
+      setError(err.message || "Network error. Please check your connection and try again.");
       setIsProcessing(false);
     }
   };

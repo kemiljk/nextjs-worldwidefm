@@ -2,16 +2,25 @@
 
 ## Required Environment Variables
 
-Add these to your `.env.local` file:
+Add these to your `.env.local` file (development) and Vercel environment variables (production):
 
 ```bash
 # Stripe Configuration
-STRIPE_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_PRICE_ID=price_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-NEXT_PUBLIC_APP_URL=http://localhost:3000
+STRIPE_SECRET_KEY=sk_test_...                    # Required: Your Stripe secret key
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...  # Required: Your Stripe publishable key
+STRIPE_PRICE_ID=price_...                        # Required: The price ID for subscriptions
+STRIPE_WEBHOOK_SECRET=whsec_...                  # Required: Webhook signing secret
+NEXT_PUBLIC_APP_URL=http://localhost:3000        # Required: Your app's base URL
 ```
+
+### ⚠️ Important:
+
+All these environment variables **MUST** be set for the membership system to work. If any are missing, you'll see:
+
+- "Stripe not configured" error
+- "Stripe price not configured" error
+- "App URL not configured" error
+- Or the form will hang indefinitely
 
 ## Stripe Dashboard Setup
 
@@ -56,12 +65,35 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ## Database Schema
 
-The system adds these fields to user metadata:
+### Members Object Type
 
-- `stripe_customer_id`: Stripe customer ID
-- `stripe_subscription_id`: Stripe subscription ID
-- `subscription_status`: active, cancelled, past_due, etc.
-- `subscription_start_date`: When subscription began
-- `subscription_current_period_end`: When current period ends
-- `last_payment_date`: Last successful payment
-- `last_payment_failed_date`: Last failed payment (if any)
+When a checkout is completed, a new `members` object is created in Cosmic with:
+
+- `title`: Full name (First Last)
+- `slug`: Generated from name and timestamp
+- `type`: "members"
+- `metadata.first_name`: First name
+- `metadata.last_name`: Last name
+- `metadata.email`: Email address
+- `metadata.stripe_customer_id`: Stripe customer ID
+- `metadata.stripe_session_id`: Stripe checkout session ID
+- `metadata.stripe_subscription_id`: Stripe subscription ID (added on subscription.created)
+- `metadata.subscription_status`: active, cancelled, past_due, etc.
+- `metadata.subscription_start_date`: When subscription began
+- `metadata.subscription_current_period_end`: When current period ends
+- `metadata.last_payment_date`: Last successful payment
+- `metadata.last_payment_failed_date`: Last failed payment (if any)
+- `metadata.subscription_cancelled_at`: When subscription was cancelled (if applicable)
+
+### User Object Updates
+
+If the subscriber is a logged-in user, their user object is also updated with:
+
+- `metadata.stripe_customer_id`: Stripe customer ID
+- `metadata.stripe_subscription_id`: Stripe subscription ID
+- `metadata.subscription_status`: active, cancelled, past_due, etc.
+- `metadata.subscription_start_date`: When subscription began
+- `metadata.subscription_current_period_end`: When current period ends
+- `metadata.member_id`: Reference to the created member object
+- `metadata.last_payment_date`: Last successful payment
+- `metadata.last_payment_failed_date`: Last failed payment (if any)

@@ -1,4 +1,4 @@
-import { revalidateTag } from "next/cache";
+import { revalidateTag, revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -10,17 +10,58 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: "Invalid token" }, { status: 401 });
     }
 
-    // Revalidate the cached Mixcloud data
-    revalidateTag("mixcloud");
-    console.log("Revalidated mixcloud content at", new Date().toISOString());
+    // Get optional parameters from query or body
+    const tag = request.nextUrl.searchParams.get("tag");
+    const path = request.nextUrl.searchParams.get("path");
+    const type = request.nextUrl.searchParams.get("type"); // 'page' or 'layout'
+    
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      body = {};
+    }
+
+    const revalidatedItems: string[] = [];
+
+    // Revalidate by tag if specified
+    if (tag || body.tag) {
+      const tagToRevalidate = tag || body.tag;
+      revalidateTag(tagToRevalidate);
+      revalidatedItems.push(`tag:${tagToRevalidate}`);
+      console.log(`Revalidated tag: ${tagToRevalidate}`);
+    }
+
+    // Revalidate by path if specified
+    if (path || body.path) {
+      const pathToRevalidate = path || body.path;
+      const revalidationType = (type || body.type || 'page') as 'page' | 'layout';
+      revalidatePath(pathToRevalidate, revalidationType);
+      revalidatedItems.push(`path:${pathToRevalidate}(${revalidationType})`);
+      console.log(`Revalidated path: ${pathToRevalidate} (${revalidationType})`);
+    }
+
+    // If no specific tag or path, revalidate common show-related tags
+    if (!tag && !path && !body.tag && !body.path) {
+      // Default: revalidate shows and episodes
+      revalidateTag("episodes");
+      revalidateTag("shows");
+      revalidatePath("/", "page");
+      revalidatePath("/shows", "page");
+      revalidatedItems.push("tag:episodes", "tag:shows", "path:/(page)", "path:/shows(page)");
+      console.log("Revalidated default show content");
+    }
+
+    console.log(`Revalidation completed at ${new Date().toISOString()}`);
 
     return NextResponse.json({
       revalidated: true,
       now: Date.now(),
-      message: "Mixcloud content revalidated successfully",
+      items: revalidatedItems,
+      message: `Successfully revalidated: ${revalidatedItems.join(", ")}`,
     });
   } catch (error) {
-    console.error("Error revalidating Mixcloud content:", error);
+    console.error("Error revalidating content:", error);
     return NextResponse.json(
       {
         message: "Error revalidating content",

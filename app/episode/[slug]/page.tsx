@@ -12,7 +12,7 @@ import { TracklistToggle } from "@/components/ui/tracklisttoggle";
 
 // stripUrlsFromText removed as we now render HTML content directly
 
-export const revalidate = 900; // 15 minutes
+export const revalidate = 60; // 1 minute - shows update quickly
 
 interface Props {
   params: Promise<{ slug: string }>;
