@@ -200,6 +200,8 @@ export async function POST(request: NextRequest) {
       broadcast_time: broadcastTime,
       duration: `${validatedData.duration}:00`,
       source: "user-created-with-radiocult-sync",
+      // Store RadioCult artist ID for later syncing
+      radiocult_artist_id: validatedData.artistId,
     };
 
     // Only add optional fields if they have valid values

@@ -245,7 +245,7 @@ When ready for production:
 
 1. Switch to **live keys** in Vercel environment variables
 2. Update webhook URL in Stripe Dashboard to production URL:
-   - `https://new.worldwidefm.net/api/stripe/webhook`
+   - `https://worldwidefm.net/api/stripe/webhook`
 3. Use the **live webhook secret** from Stripe Dashboard
 4. Create a **live price** in Stripe (not test price)
 5. Test with real card (or test card if Stripe allows)
