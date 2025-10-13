@@ -362,16 +362,7 @@ export function AddShowForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-4">
-          <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">Show Image</h2>
-          <FormItem>
-            <FormLabel>Upload Show Image</FormLabel>
-            <Dropzone accept="image/jpeg,image/jpg,image/png,image/webp" disabled={isLoading} onFileSelect={setImageFile} selectedFile={imageFile} maxSize={10 * 1024 * 1024} placeholder="Drag and drop your show image here" />
-            <FormDescription>Upload a square image (1:1 aspect ratio recommended) for your show. Maximum file size is 10MB. Accepts JPG, PNG, or WebP.</FormDescription>
-          </FormItem>
-        </div>
-
-        <div className="space-y-4">
+        <div className="space-y-4 mb-12">
           <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">Show Details</h2>
 
           <FormField
@@ -482,6 +473,15 @@ export function AddShowForm() {
               )}
             />
           </div>
+        </div>
+
+        <div className="space-y-4">
+          <h2 className="text-h7 font-display uppercase font-normal text-almostblack dark:text-white">Show Image</h2>
+          <FormItem>
+            <FormLabel>Upload Show Image</FormLabel>
+            <Dropzone accept="image/jpeg,image/jpg,image/png,image/webp" disabled={isLoading} onFileSelect={setImageFile} selectedFile={imageFile} maxSize={10 * 1024 * 1024} placeholder="Drag and drop your show image here" />
+            <FormDescription>Upload a square image (1:1 aspect ratio recommended) for your show. Maximum file size is 10MB. Accepts JPG, PNG, or WebP.</FormDescription>
+          </FormItem>
         </div>
 
         <div className="space-y-4">
