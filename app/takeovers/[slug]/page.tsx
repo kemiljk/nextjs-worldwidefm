@@ -9,8 +9,8 @@ import { cosmic } from "@/lib/cosmic-config";
 import { getEpisodesForShows } from "@/lib/episode-service";
 import { generateBaseMetadata } from "@/lib/metadata-utils";
 
-// Add consistent revalidation time
-export const revalidate = 900; // 15 minutes
+// Revalidate frequently to show new shows quickly
+export const revalidate = 60; // 1 minute
 
 interface Props {
   params: Promise<{ slug: string }>;

@@ -559,8 +559,16 @@ export async function getScheduleData(): Promise<{
 
 /**
  * Transform RadioCult event to match the RadioShowObject format used in the app
+ * Note: RadioCult events should ideally be matched with their corresponding Cosmic shows
+ * to get accurate genre information from the Cosmic taxonomy.
+ * 
+ * @param event - RadioCult event
+ * @param cosmicShow - Optional Cosmic show to pull genres from
  */
-export function transformRadioCultEvent(event: RadioCultEvent): Partial<RadioShowObject> {
+export function transformRadioCultEvent(
+  event: RadioCultEvent,
+  cosmicShow?: any
+): Partial<RadioShowObject> {
   const now = new Date().toISOString();
 
   const cosmicImage: CosmicImage | null = event.imageUrl
@@ -570,20 +578,9 @@ export function transformRadioCultEvent(event: RadioCultEvent): Partial<RadioSho
       }
     : null;
 
-  // Create genre objects from tags
-  const genreObjects: GenreObject[] = event.tags.map((tag) => ({
-    id: tag.toLowerCase().replace(/\s+/g, "-"),
-    slug: tag.toLowerCase().replace(/\s+/g, "-"),
-    title: tag,
-    content: "",
-    bucket: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "",
-    created_at: now,
-    modified_at: now,
-    published_at: now,
-    status: "published",
-    type: "genres",
-    metadata: null,
-  }));
+  // Use genres from Cosmic show if available, otherwise leave empty
+  // Don't use RadioCult playlist tags as they don't match our genre taxonomy
+  const genreObjects: GenreObject[] = cosmicShow?.metadata?.genres || [];
 
   // Create host objects from artists
   const hostObjects: HostObject[] = event.artists.map((artist) => ({

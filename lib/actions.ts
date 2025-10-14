@@ -218,6 +218,7 @@ export async function getScheduleData(): Promise<{
 }
 
 // Helper to convert RadioCult event to Mixcloud format
+// Note: RadioCult tags are playlist tags, not genre tags from Cosmic
 function convertRadioCultEventToMixcloudFormat(event: RadioCultEvent): any {
   return {
     key: event.slug,
@@ -242,11 +243,7 @@ function convertRadioCultEventToMixcloudFormat(event: RadioCultEvent): any {
     comment_count: 0,
     listener_count: 0,
     repost_count: 0,
-    tags: event.tags.map((tag) => ({
-      key: tag.toLowerCase().replace(/\s+/g, "-"),
-      url: `/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`,
-      name: tag,
-    })),
+    tags: [], // Don't use RadioCult playlist tags - genres should come from Cosmic
     slug: event.slug,
     user: {
       key: "radiocult",
@@ -1041,7 +1038,7 @@ export async function searchContent(query?: string, source?: string, limit: numb
   }
 }
 
-// Server action to fetch tags
+// Server action to fetch tags (DEPRECATED - use fetchGenres instead)
 export async function fetchTags() {
   "use server";
 
@@ -1051,6 +1048,34 @@ export async function fetchTags() {
   } catch (error) {
     console.error("Error fetching tags:", error);
     return { success: false, error: "Failed to fetch tags" };
+  }
+}
+
+// Server action to fetch genres from Cosmic
+export async function fetchGenres() {
+  "use server";
+
+  try {
+    const response = await cosmic.objects.find({
+      type: "genres",
+      props: "id,slug,title,type,metadata",
+      depth: 1,
+      limit: 1000,
+      sort: "title",
+    });
+
+    const genres = (response.objects || []).map((genre: any) => ({
+      id: genre.id,
+      slug: genre.slug,
+      title: genre.title,
+      type: genre.type,
+      metadata: genre.metadata,
+    }));
+
+    return { success: true, genres };
+  } catch (error) {
+    console.error("Error fetching genres:", error);
+    return { success: false, error: "Failed to fetch genres", genres: [] };
   }
 }
 

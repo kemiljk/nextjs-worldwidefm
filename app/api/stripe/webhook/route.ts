@@ -1,0 +1,325 @@
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+import { cosmic } from '@/cosmic/client';
+
+export const runtime = 'nodejs';
+
+export async function POST(request: NextRequest) {
+  try {
+    // Check if Stripe is configured
+    if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+      return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
+    }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2024-12-18.acacia',
+    });
+
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const body = await request.text();
+    const signature = request.headers.get('stripe-signature')!;
+
+    let event: Stripe.Event;
+
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err);
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+    }
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+        break;
+      case 'customer.subscription.created':
+        await handleSubscriptionCreated(event.data.object as Stripe.Subscription);
+        break;
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+        break;
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+        break;
+      case 'invoice.payment_succeeded':
+        await handlePaymentSucceeded(event.data.object as Stripe.Invoice);
+        break;
+      case 'invoice.payment_failed':
+        await handlePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    return NextResponse.json({ received: true });
+  } catch (error) {
+    console.error('Error processing webhook:', error);
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+  }
+}
+
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  console.log('Checkout session completed:', session.id);
+
+  const { userId, firstName, lastName, email } = session.metadata || {};
+
+  if (!email || !firstName || !lastName) {
+    console.error('Missing required member information in session metadata');
+    return;
+  }
+
+  try {
+    const slug = `${firstName}-${lastName}-${Date.now()}`.toLowerCase().replace(/\s+/g, '-');
+
+    const memberData = {
+      title: `${firstName} ${lastName}`,
+      type: 'members',
+      slug,
+      metadata: {
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        stripe_customer_id: session.customer as string,
+        stripe_session_id: session.id,
+        subscription_status: 'active',
+        subscription_start_date: new Date().toISOString(),
+      },
+    };
+
+    const member = await cosmic.objects.insertOne(memberData);
+    console.log(`Created member ${member.object.id} for ${email}`);
+
+    if (userId) {
+      try {
+        await cosmic.objects.updateOne(userId, {
+          metadata: {
+            stripe_customer_id: session.customer,
+            subscription_status: 'active',
+            subscription_start_date: new Date().toISOString(),
+            member_id: member.object.id,
+          },
+        });
+        console.log(`Updated user ${userId} with subscription info`);
+      } catch (error) {
+        console.error('Error updating user:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Error creating member:', error);
+  }
+}
+
+async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
+  console.log('Subscription created:', subscription.id);
+
+  const customerId = subscription.customer as string;
+
+  try {
+    const members = await cosmic.objects.find({
+      type: 'members',
+      'metadata.stripe_customer_id': customerId,
+    });
+
+    if (members.objects && members.objects.length > 0) {
+      const member = members.objects[0];
+      await cosmic.objects.updateOne(member.id, {
+        metadata: {
+          stripe_subscription_id: subscription.id,
+          subscription_status: subscription.status,
+          subscription_current_period_end: new Date(
+            subscription.current_period_end * 1000
+          ).toISOString(),
+        },
+      });
+      console.log(`Updated member ${member.id} with subscription ${subscription.id}`);
+    }
+
+    const users = await cosmic.objects.find({
+      type: 'users',
+      'metadata.stripe_customer_id': customerId,
+    });
+
+    if (users.objects && users.objects.length > 0) {
+      const user = users.objects[0];
+      await cosmic.objects.updateOne(user.id, {
+        metadata: {
+          stripe_subscription_id: subscription.id,
+          subscription_status: subscription.status,
+          subscription_current_period_end: new Date(
+            subscription.current_period_end * 1000
+          ).toISOString(),
+        },
+      });
+      console.log(`Updated user ${user.id} with subscription ${subscription.id}`);
+    }
+  } catch (error) {
+    console.error('Error updating subscription:', error);
+  }
+}
+
+async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
+  console.log('Subscription updated:', subscription.id);
+
+  try {
+    const members = await cosmic.objects.find({
+      type: 'members',
+      'metadata.stripe_subscription_id': subscription.id,
+    });
+
+    if (members.objects && members.objects.length > 0) {
+      const member = members.objects[0];
+      await cosmic.objects.updateOne(member.id, {
+        metadata: {
+          subscription_status: subscription.status,
+          subscription_current_period_end: new Date(
+            subscription.current_period_end * 1000
+          ).toISOString(),
+        },
+      });
+      console.log(`Updated member ${member.id} subscription status to ${subscription.status}`);
+    }
+
+    const users = await cosmic.objects.find({
+      type: 'users',
+      'metadata.stripe_subscription_id': subscription.id,
+    });
+
+    if (users.objects && users.objects.length > 0) {
+      const user = users.objects[0];
+      await cosmic.objects.updateOne(user.id, {
+        metadata: {
+          subscription_status: subscription.status,
+          subscription_current_period_end: new Date(
+            subscription.current_period_end * 1000
+          ).toISOString(),
+        },
+      });
+      console.log(`Updated user ${user.id} subscription status to ${subscription.status}`);
+    }
+  } catch (error) {
+    console.error('Error updating subscription:', error);
+  }
+}
+
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  console.log('Subscription deleted:', subscription.id);
+
+  try {
+    const members = await cosmic.objects.find({
+      type: 'members',
+      'metadata.stripe_subscription_id': subscription.id,
+    });
+
+    if (members.objects && members.objects.length > 0) {
+      const member = members.objects[0];
+      await cosmic.objects.updateOne(member.id, {
+        metadata: {
+          subscription_status: 'cancelled',
+          subscription_cancelled_at: new Date().toISOString(),
+        },
+      });
+      console.log(`Cancelled subscription for member ${member.id}`);
+    }
+
+    const users = await cosmic.objects.find({
+      type: 'users',
+      'metadata.stripe_subscription_id': subscription.id,
+    });
+
+    if (users.objects && users.objects.length > 0) {
+      const user = users.objects[0];
+      await cosmic.objects.updateOne(user.id, {
+        metadata: {
+          subscription_status: 'cancelled',
+          subscription_cancelled_at: new Date().toISOString(),
+        },
+      });
+      console.log(`Cancelled subscription for user ${user.id}`);
+    }
+  } catch (error) {
+    console.error('Error cancelling subscription:', error);
+  }
+}
+
+async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
+  console.log('Payment succeeded:', invoice.id);
+
+  if (invoice.subscription) {
+    try {
+      const members = await cosmic.objects.find({
+        type: 'members',
+        'metadata.stripe_subscription_id': invoice.subscription as string,
+      });
+
+      if (members.objects && members.objects.length > 0) {
+        const member = members.objects[0];
+        await cosmic.objects.updateOne(member.id, {
+          metadata: {
+            subscription_status: 'active',
+            last_payment_date: new Date().toISOString(),
+          },
+        });
+        console.log(`Updated payment status for member ${member.id}`);
+      }
+
+      const users = await cosmic.objects.find({
+        type: 'users',
+        'metadata.stripe_subscription_id': invoice.subscription as string,
+      });
+
+      if (users.objects && users.objects.length > 0) {
+        const user = users.objects[0];
+        await cosmic.objects.updateOne(user.id, {
+          metadata: {
+            subscription_status: 'active',
+            last_payment_date: new Date().toISOString(),
+          },
+        });
+        console.log(`Updated payment status for user ${user.id}`);
+      }
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+    }
+  }
+}
+
+async function handlePaymentFailed(invoice: Stripe.Invoice) {
+  console.log('Payment failed:', invoice.id);
+
+  if (invoice.subscription) {
+    try {
+      const members = await cosmic.objects.find({
+        type: 'members',
+        'metadata.stripe_subscription_id': invoice.subscription as string,
+      });
+
+      if (members.objects && members.objects.length > 0) {
+        const member = members.objects[0];
+        await cosmic.objects.updateOne(member.id, {
+          metadata: {
+            subscription_status: 'past_due',
+            last_payment_failed_date: new Date().toISOString(),
+          },
+        });
+        console.log(`Updated payment failure status for member ${member.id}`);
+      }
+
+      const users = await cosmic.objects.find({
+        type: 'users',
+        'metadata.stripe_subscription_id': invoice.subscription as string,
+      });
+
+      if (users.objects && users.objects.length > 0) {
+        const user = users.objects[0];
+        await cosmic.objects.updateOne(user.id, {
+          metadata: {
+            subscription_status: 'past_due',
+            last_payment_failed_date: new Date().toISOString(),
+          },
+        });
+        console.log(`Updated payment failure status for user ${user.id}`);
+      }
+    } catch (error) {
+      console.error('Error updating payment failure status:', error);
+    }
+  }
+}

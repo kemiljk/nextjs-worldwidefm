@@ -247,10 +247,61 @@ async function findMatchingCosmicObject(items: any[], craftItem: any, type: stri
   return null;
 }
 
+// Simple image processing function that works in serverless
+async function processImageInServerless(imageUrl: string, filename: string): Promise<any | null> {
+  try {
+    console.log(`   📸 Attempting to process image in serverless: ${filename}`);
+
+    // Try to fetch the image directly and upload to Cosmic
+    const response = await fetch(imageUrl, {
+      method: "GET",
+      headers: {
+        "User-Agent": "WorldwideFM-Migration/1.0",
+      },
+    });
+
+    if (!response.ok) {
+      console.log(`   ⚠️ Could not fetch image: ${response.status}`);
+      return null;
+    }
+
+    const imageBuffer = await response.arrayBuffer();
+
+    // Check if image is too large for serverless processing
+    if (imageBuffer.byteLength > 10 * 1024 * 1024) {
+      // 10MB limit
+      console.log(`   ⚠️ Image too large for serverless processing: ${(imageBuffer.byteLength / 1024 / 1024).toFixed(1)}MB`);
+      return null;
+    }
+
+    // Upload directly to Cosmic
+    const file = {
+      originalname: filename,
+      buffer: Buffer.from(imageBuffer),
+    };
+
+    const mediaResponse = await cosmic.media.insertOne({
+      media: file,
+    });
+
+    if (mediaResponse && mediaResponse.media) {
+      console.log(`   ✅ Successfully processed image in serverless: ${filename}`);
+      return mediaResponse.media;
+    }
+
+    return null;
+  } catch (error) {
+    console.log(`   ⚠️ Serverless image processing failed: ${error instanceof Error ? error.message : String(error)}`);
+    return null;
+  }
+}
+
 async function migrateEpisodes(episodes: any[]) {
   try {
     let created = 0;
     let failed = 0;
+    let imagesProcessed = 0;
+    let imagesDeferred = 0;
 
     // Get reference objects from Cosmic for relationship mapping
     console.log("📋 Fetching existing genres, locations, hosts, and takeovers from Cosmic...");
@@ -279,13 +330,25 @@ async function migrateEpisodes(episodes: any[]) {
         // Episode doesn't exist, continue
       }
 
-      // Handle thumbnail - store URL for later image processing
+      // Try to process image in serverless (with fallback)
+      let mediaItem = null;
       let imageUrl = null;
+
       if (episode.thumbnail && Array.isArray(episode.thumbnail) && episode.thumbnail.length > 0) {
         const thumbnail = episode.thumbnail[0];
         if (thumbnail.url && thumbnail.filename) {
           imageUrl = thumbnail.url;
-          console.log(`   📸 Image URL stored for later processing: ${episode.title}`);
+
+          // Try serverless image processing
+          mediaItem = await processImageInServerless(thumbnail.url, thumbnail.filename);
+
+          if (mediaItem) {
+            imagesProcessed++;
+            console.log(`   ✅ Image processed successfully: ${episode.title}`);
+          } else {
+            imagesDeferred++;
+            console.log(`   📸 Image processing deferred for: ${episode.title}`);
+          }
         }
       }
 
@@ -329,11 +392,14 @@ async function migrateEpisodes(episodes: any[]) {
             source: "migrated_from_craft",
             radiocult_synced: false,
           },
-          thumbnail: null, // Will be updated later when images are processed
+          thumbnail: mediaItem ? mediaItem.name : null,
         };
 
-        // Store the original image URL for later processing
-        if (imageUrl) {
+        // Add image metadata if we have a media item
+        if (mediaItem) {
+          episodeData.metadata.image = mediaItem.name;
+        } else if (imageUrl) {
+          // Store the image URL for later processing
           episodeData.metadata.craft_image_url = imageUrl;
         }
 
@@ -392,16 +458,16 @@ async function migrateEpisodes(episodes: any[]) {
       }
     }
 
-    return { created, failed };
+    return { created, failed, imagesProcessed, imagesDeferred };
   } catch (error) {
     console.error("❌ Error in migration process:", error);
-    return { created: 0, failed: 0 };
+    return { created: 0, failed: 0, imagesProcessed: 0, imagesDeferred: 0 };
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("🚀 Starting automated episode migration...");
+    console.log("🚀 Starting automated episode migration with image processing...");
 
     // Get the most recent episode date from Cosmic
     const mostRecentDate = await getMostRecentEpisodeDate();
@@ -425,6 +491,7 @@ export async function GET(request: NextRequest) {
     const result = await migrateEpisodes(episodes);
 
     console.log(`🎉 Migration completed! Created: ${result.created}, Failed: ${result.failed}`);
+    console.log(`📸 Images processed: ${result.imagesProcessed}, Deferred: ${result.imagesDeferred}`);
 
     return NextResponse.json({
       success: true,
@@ -432,6 +499,8 @@ export async function GET(request: NextRequest) {
       episodesProcessed: episodes.length,
       created: result.created,
       failed: result.failed,
+      imagesProcessed: result.imagesProcessed,
+      imagesDeferred: result.imagesDeferred,
       mostRecentDate,
       timestamp: new Date().toISOString(),
     });

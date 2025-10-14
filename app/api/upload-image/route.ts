@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      url: media.media.url,
+      media: media.media,
     });
   } catch (error) {
     console.error("Error uploading image:", error);

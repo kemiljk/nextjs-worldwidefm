@@ -15,8 +15,8 @@ import InsertedSection from "@/components/inserted-section";
 import LatestEpisodes from "@/components/latest-episodes";
 import ColouredSectionGallery from "@/components/coloured-section-gallery";
 
-// Add consistent revalidation time for episode content
-export const revalidate = 900; // 15 minutes
+// Revalidate frequently to show new shows quickly
+export const revalidate = 60; // 1 minute
 
 // Generate metadata for the homepage
 export async function generateMetadata(): Promise<Metadata> {
@@ -114,7 +114,7 @@ export default async function Home() {
         {videosData.videos.length > 0 && <VideoSection videos={videosData.videos} className="pt-8" />}
 
         {/* Editorial section */}
-        {postsData.posts.length > 0 && <EditorialSection posts={postsData.posts} className="pt-8" isHomepage={true} />}
+        {postsData.posts.length > 0 && <EditorialSection posts={postsData.posts} title="Editorial" className="pt-8" isHomepage={true} />}
       </div>
     </div>
   );

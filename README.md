@@ -329,4 +329,4 @@ This project is private and proprietary to Worldwide FM.
 
 **Happy coding!** 🎵✨
 
-For questions about the codebase, reach out to the development team or create an issue in the repository.
+For questions about the codebase, reach out to the development team or create an issue in the repository or contact me.

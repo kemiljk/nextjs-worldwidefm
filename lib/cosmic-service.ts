@@ -78,6 +78,14 @@ export interface AboutPage {
   metadata: AboutMetadata;
 }
 
+export interface MembershipPage {
+  slug: string;
+  title: string;
+  content: string;
+  type: string;
+  metadata: any;
+}
+
 /**
  * Get all radio shows
  */
@@ -567,4 +575,19 @@ export async function getHostByName(name: string): Promise<any | null> {
     console.error(`Error fetching host by name ${name}:`, error);
     return null;
   }
+}
+
+/**
+ * Get Membership page data
+ */
+export async function getMembershipPage(): Promise<MembershipPage> {
+  const { object } = await cosmic.objects
+    .findOne({
+      type: 'memberships',
+      slug: 'membership',
+    })
+    .props('slug,title,content,metadata,type')
+    .depth(1);
+
+  return object;
 }

@@ -1,7 +1,7 @@
 import { cosmic } from "@/lib/cosmic-config";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getArtist, getTags } from "@/lib/radiocult-service";
+import { getArtist } from "@/lib/radiocult-service";
 
 // Input schema validation
 const createShowSchema = z.object({
@@ -18,16 +18,19 @@ const createShowSchema = z.object({
   status: z.string().default("draft"),
   radiocult_media_id: z.string().nullable().optional(),
   media_file: z.any().nullable().optional(),
-  locationId: z.string().optional(),
-  locationType: z.string().optional(),
+  image: z.any().nullable().optional(),
+  location: z.string().optional(),
 });
 
 // Helper function to remove null/undefined/empty values from metadata
 function cleanMetadata(metadata: any): any {
   const cleaned: any = {};
 
+  // Relationship fields should be preserved even if empty
+  const relationshipFields = ["genres", "locations", "regular_hosts", "takeovers"];
+
   for (const [key, value] of Object.entries(metadata)) {
-    // Skip null, undefined, or empty values
+    // Skip null, undefined values
     if (value === null || value === undefined) {
       continue;
     }
@@ -37,8 +40,12 @@ function cleanMetadata(metadata: any): any {
       continue;
     }
 
-    // For arrays, only include non-empty arrays
-    if (Array.isArray(value) && value.length === 0) {
+    // For arrays, preserve relationship fields even if empty, otherwise skip empty arrays
+    if (Array.isArray(value)) {
+      if (value.length === 0 && !relationshipFields.includes(key)) {
+        continue;
+      }
+      cleaned[key] = value;
       continue;
     }
 
@@ -71,6 +78,8 @@ export async function POST(request: NextRequest) {
       hasMediaFile: !!validatedData.media_file,
       mediaFileType: typeof validatedData.media_file,
       mediaFileStructure: validatedData.media_file ? Object.keys(validatedData.media_file) : null,
+      hasImage: !!validatedData.image,
+      imageStructure: validatedData.image ? Object.keys(validatedData.image) : null,
     });
 
     // Get artist details from RadioCult
@@ -80,10 +89,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Artist not found" }, { status: 404 });
     }
 
-    // Get all available tags from RadioCult
-    const allTags = await getTags(false, true);
+    // Get all available genres from Cosmic (tags field now contains genre IDs)
+    let allGenres: any[] = [];
+    try {
+      const genresResponse = await cosmic.objects.find({
+        type: "genres",
+        props: "id,slug,title",
+        limit: 1000,
+      });
+      allGenres = genresResponse.objects || [];
+    } catch (error) {
+      console.error("Error fetching genres:", error);
+    }
 
-    // Format tags for Cosmic
     // Current timestamp for created/modified/published dates
     const now = new Date().toISOString();
     const bucketSlug = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "";
@@ -148,58 +166,56 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Handle location if provided
+    // Handle location if provided (location is a slug from the form)
     let locationObjects: any[] = [];
-    if (validatedData.locationId) {
-      console.log(`📍 Processing location: ID="${validatedData.locationId}", type="${validatedData.locationType}"`);
+    if (validatedData.location) {
+      console.log(`📍 Processing location slug: "${validatedData.location}"`);
 
-      // For now, use the locationId as the location title
-      // In the future, you might want to map this to actual country/city names
-      let locationTitle = validatedData.locationId;
+      try {
+        // Try to find the existing location by slug
+        const locationResponse = await cosmic.objects
+          .find({
+            type: "locations",
+            slug: validatedData.location,
+          })
+          .limit(1);
 
-      // If it looks like an ID (contains hyphens), try to make it more readable
-      if (locationTitle.includes("-")) {
-        locationTitle = locationTitle.split("-").pop() || locationTitle;
-      }
-
-      console.log(`📍 Creating/finding location: "${locationTitle}"`);
-      const locationObj = await getOrCreateObject("locations", locationTitle);
-      if (locationObj) {
-        // For Cosmic object relationships, we need to send the ID, not the full object
-        locationObjects = [locationObj.id];
-        console.log(`✅ Location added: "${locationTitle}" (ID: ${locationObj.id})`);
-      } else {
-        console.log(`❌ Failed to create/find location: "${locationTitle}"`);
-      }
-    }
-
-    // Handle tags - map to Tags object type instead of genres
-    const tagObjects = [];
-    for (const tagId of validatedData.tags) {
-      const tag = allTags.find((t) => t.id === tagId);
-      if (tag) {
-        console.log(`🏷️ Creating/finding tag: "${tag.name}"`);
-        const tagObj = await getOrCreateObject("tags", tag.name);
-        if (tagObj) {
-          // For Cosmic object relationships, we need to send the ID, not the full object
-          tagObjects.push(tagObj.id);
-          console.log(`✅ Tag added: "${tag.name}" (ID: ${tagObj.id})`);
+        if (locationResponse.objects && locationResponse.objects.length > 0) {
+          const locationObj = locationResponse.objects[0];
+          locationObjects = [locationObj.id];
+          console.log(`✅ Location found: "${locationObj.title}" (ID: ${locationObj.id})`);
         } else {
-          console.log(`❌ Failed to create/find tag: "${tag.name}"`);
+          console.log(`❌ Location not found for slug: "${validatedData.location}"`);
         }
+      } catch (error) {
+        console.error(`❌ Error finding location: "${validatedData.location}"`, error);
       }
     }
-    console.log(`📊 Total tags processed: ${tagObjects.length}`);
+
+    // Handle genres - the tags field now contains Cosmic genre IDs
+    const genreObjects = [];
+    for (const genreId of validatedData.tags) {
+      const genre = allGenres.find((g) => g.id === genreId);
+      if (genre) {
+        console.log(`🎵 Adding genre: "${genre.title}" (ID: ${genre.id})`);
+        // For Cosmic object relationships, we need to send the ID
+        genreObjects.push(genre.id);
+        console.log(`✅ Genre added: "${genre.title}" (ID: ${genre.id})`);
+      } else {
+        console.log(`❌ Genre not found for ID: "${genreId}"`);
+      }
+    }
+    console.log(`📊 Total genres processed: ${genreObjects.length}`);
 
     // Create metadata for the Cosmic object - only including fields with valid values
     const rawMetadata: any = {
-      subtitle: validatedData.title,
       featured_on_homepage: validatedData.featuredOnHomepage,
-      // Store scheduling information
       broadcast_date: broadcastDate.toISOString().split("T")[0],
       broadcast_time: broadcastTime,
       duration: `${validatedData.duration}:00`,
       source: "user-created-with-radiocult-sync",
+      radiocult_artist_id: validatedData.artistId,
+      radiocult_synced: false,
     };
 
     // Only add optional fields if they have valid values
@@ -207,8 +223,8 @@ export async function POST(request: NextRequest) {
       rawMetadata.description = validatedData.description.trim();
     }
 
-    if (validatedData.tracklist && validatedData.tracklist.trim()) {
-      rawMetadata.tracklist = validatedData.tracklist.trim();
+    if (validatedData.tracklist) {
+      rawMetadata.tracklist = validatedData.tracklist;
     }
 
     if (validatedData.extraDetails && validatedData.extraDetails.trim()) {
@@ -228,6 +244,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Handle image - store the filename for Cosmic file metafield
+    let thumbnailName: string | undefined = undefined;
+    if (validatedData.image && validatedData.image.media) {
+      // For Cosmic file metafields, we need to send the filename
+      rawMetadata.image = validatedData.image.media.name;
+      thumbnailName = validatedData.image.media.name;
+      console.log(`🖼️ Image uploaded: "${thumbnailName}" (URL: ${validatedData.image.media.url})`);
+    }
+
     // Handle hosts - find or create host objects
     let hostObjects: any[] = [];
     if (artist) {
@@ -243,25 +268,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Add array fields only if they have content
-    if (tagObjects.length > 0) {
-      rawMetadata.tags = tagObjects;
-    }
-
-    if (locationObjects.length > 0) {
-      rawMetadata.locations = locationObjects;
-    }
-
-    if (hostObjects.length > 0) {
-      rawMetadata.regular_hosts = hostObjects;
-    }
+    // Add relationship arrays - include them even if empty so Cosmic knows they exist
+    rawMetadata.genres = genreObjects;
+    rawMetadata.locations = locationObjects;
+    rawMetadata.regular_hosts = hostObjects;
+    rawMetadata.takeovers = [];
 
     // Clean metadata to remove any null/undefined values
     const metadata = cleanMetadata(rawMetadata);
 
     // Log final summary
     console.log(`📋 Final show metadata summary:`);
-    console.log(`  - Tags: ${metadata.tags ? metadata.tags.length : 0}`);
+    console.log(`  - Genres: ${metadata.genres ? metadata.genres.length : 0}`);
     console.log(`  - Locations: ${metadata.locations ? metadata.locations.length : 0}`);
     console.log(`  - Hosts: ${metadata.regular_hosts ? metadata.regular_hosts.length : 0}`);
 
@@ -269,13 +287,20 @@ export async function POST(request: NextRequest) {
     console.log("Creating Cosmic object with metadata:", JSON.stringify(metadata, null, 2));
 
     try {
-      const cosmicResponse = await cosmic.objects.insertOne({
-        type: "episodes",
+      const objectData: any = {
+        type: "episode",
         title: validatedData.title,
         slug: `${validatedData.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(16)}`,
         status: validatedData.status,
         metadata,
-      });
+      };
+
+      // Set thumbnail if image was uploaded
+      if (thumbnailName) {
+        objectData.thumbnail = thumbnailName;
+      }
+
+      const cosmicResponse = await cosmic.objects.insertOne(objectData);
 
       return NextResponse.json({
         success: true,
@@ -289,12 +314,12 @@ export async function POST(request: NextRequest) {
         console.log("Retrying with minimal metadata...");
 
         const rawMinimalMetadata: any = {
-          subtitle: validatedData.title,
           featured_on_homepage: false,
           broadcast_date: broadcastDate.toISOString().split("T")[0],
           broadcast_time: broadcastTime,
           duration: `${validatedData.duration}:00`,
           source: "user-created",
+          radiocult_synced: false,
         };
 
         // Only add description if provided
@@ -319,13 +344,19 @@ export async function POST(request: NextRequest) {
         const minimalMetadata = cleanMetadata(rawMinimalMetadata);
 
         try {
-          const retryResponse = await cosmic.objects.insertOne({
-            type: "episodes",
+          const retryData: any = {
+            type: "episode",
             title: validatedData.title,
             slug: `${validatedData.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(16)}`,
             status: validatedData.status,
             metadata: minimalMetadata,
-          });
+          };
+
+          if (thumbnailName) {
+            retryData.thumbnail = thumbnailName;
+          }
+
+          const retryResponse = await cosmic.objects.insertOne(retryData);
 
           return NextResponse.json({
             success: true,
@@ -336,18 +367,24 @@ export async function POST(request: NextRequest) {
           console.error("Second retry failed, creating basic object:", secondError);
 
           // Last resort: create with no metadata
-          const basicResponse = await cosmic.objects.insertOne({
-            type: "episodes",
+          const basicData: any = {
+            type: "episode",
             title: validatedData.title,
             slug: `${validatedData.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now().toString(16)}`,
             status: validatedData.status,
-          });
+          };
+
+          if (thumbnailName) {
+            basicData.thumbnail = thumbnailName;
+          }
+
+          const basicResponse = await cosmic.objects.insertOne(basicData);
 
           return NextResponse.json({
             success: true,
             object: basicResponse.object,
             warning: "Show created with title only - Cosmic object type needs metafield configuration",
-            note: "To store full show data, please configure the 'episodes' object type in Cosmic with required metafields like: broadcast_date, broadcast_time, broadcast_day, duration, radiocult_artist_id, etc.",
+            note: "To store full show data, please configure the 'episode' object type in Cosmic with required metafields like: broadcast_date, broadcast_time, broadcast_day, duration, radiocult_artist_id, etc.",
           });
         }
       }
