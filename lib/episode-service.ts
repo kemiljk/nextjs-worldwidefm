@@ -1,5 +1,6 @@
 import { cosmic } from './cosmic-config';
 import { EpisodeObject } from './cosmic-types';
+import { broadcastToISOString } from './date-utils';
 
 export interface EpisodeParams {
   limit?: number;
@@ -68,7 +69,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     if (hasFilters) {
       // Use a reasonable limit to avoid timeouts (300 episodes is ~15 pages)
       const fetchLimit = Math.min(offset + baseLimit * 15, 300);
-      
+
       const allResponse = await cosmic.objects
         .find({
           type: 'episode',
@@ -282,7 +283,12 @@ export function transformEpisodeToShowFormat(episode: EpisodeObject): any {
     },
 
     // Dates and times
-    created_time: metadata.broadcast_date || episode.created_at,
+    created_time:
+      broadcastToISOString(
+        metadata.broadcast_date,
+        metadata.broadcast_time,
+        metadata.broadcast_date_old
+      ) || episode.created_at,
     updated_time: episode.modified_at || episode.created_at,
     broadcast_date: metadata.broadcast_date,
     broadcast_time: metadata.broadcast_time,

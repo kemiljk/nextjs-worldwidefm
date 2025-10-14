@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cosmic } from '@/lib/cosmic-config';
+import { broadcastToISOString } from '@/lib/date-utils';
 
 /**
  * Cron job to sync published Cosmic episodes to RadioCult
@@ -89,19 +90,21 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        // Parse broadcast date and time
-        const broadcastDate = metadata.broadcast_date;
-        const broadcastTime = metadata.broadcast_time || '00:00';
+        // Parse broadcast date and time using helper function
+        const startTimeISO = broadcastToISOString(
+          metadata.broadcast_date,
+          metadata.broadcast_time,
+          metadata.broadcast_date_old
+        );
 
-        if (!broadcastDate) {
-          console.log(`⚠️ [CRON] Skipping ${episode.title}: No broadcast date`);
-          results.errors.push(`${episode.title}: Missing broadcast date`);
+        if (!startTimeISO) {
+          console.log(`⚠️ [CRON] Skipping ${episode.title}: Invalid broadcast date`);
+          results.errors.push(`${episode.title}: Invalid broadcast date`);
           results.failed++;
           continue;
         }
 
-        // Combine date and time into ISO format
-        const startTime = new Date(`${broadcastDate}T${broadcastTime}`);
+        const startTime = new Date(startTimeISO);
 
         // Parse duration (format: "60:00" or "60")
         const durationStr = metadata.duration || '60';

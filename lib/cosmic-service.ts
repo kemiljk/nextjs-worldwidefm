@@ -6,6 +6,7 @@ import {
   PostObject,
   AboutObject,
 } from './cosmic-config';
+import { broadcastToISOString, extractDatePart } from './date-utils';
 
 const cosmic = createBucketClient({
   bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG as string,
@@ -131,7 +132,7 @@ export async function getRadioShows(
         query = {
           ...query,
           'metadata.broadcast_date': {
-            $gte: thirtyDaysAgo.toISOString(),
+            $gte: extractDatePart(thirtyDaysAgo.toISOString()),
           },
         };
       }
@@ -343,9 +344,13 @@ export function transformShowToViewData(show: RadioShowObject) {
 
     // Additional properties for ShowCard compatibility
     name: show.title,
-    created_time: show.metadata?.broadcast_date || show.created_at,
+    created_time:
+      broadcastToISOString(
+        show.metadata?.broadcast_date,
+        show.metadata?.broadcast_time,
+        (show.metadata as any)?.broadcast_date_old
+      ) || show.created_at,
     created_at: show.created_at,
-    broadcast_date: show.metadata?.broadcast_date,
     user: {
       name: show.metadata?.regular_hosts?.[0]?.title || '',
     },

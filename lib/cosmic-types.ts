@@ -314,7 +314,22 @@ export interface EpisodeObject {
     radiocult_artist_id: string | null;
     radiocult_synced: boolean;
     radiocult_synced_at: string | null;
+    /**
+     * Broadcast date in YYYY-MM-DD format (stored as Cosmic date field)
+     * Previously stored as full ISO string like "2025-09-04T07:00:00+00:00"
+     * Now stores date-only like "2025-09-04"
+     */
     broadcast_date: string | null;
+    /**
+     * Legacy field - old ISO string format during migration
+     * Example: "2025-09-04T07:00:00+00:00"
+     * Used as fallback until migration completes
+     */
+    broadcast_date_old?: string | null;
+    /**
+     * Broadcast time in HH:MM format (24-hour, UTC)
+     * Example: "13:30" for 1:30 PM
+     */
     broadcast_time: string | null;
     duration: string | null;
     description: string | null;

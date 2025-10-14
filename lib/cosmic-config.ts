@@ -1,4 +1,4 @@
-import { createBucketClient } from "@cosmicjs/sdk";
+import { createBucketClient } from '@cosmicjs/sdk';
 
 export const cosmic = createBucketClient({
   bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG as string,
@@ -33,6 +33,7 @@ export interface RadioShowObject {
     tracklist: string | null;
     body_text: string | null;
     broadcast_date: string | null;
+    broadcast_date_old?: string | null;
     broadcast_time: string | null;
     broadcast_day: string | null;
     duration: string | null;
@@ -161,7 +162,7 @@ export interface AuthorObject {
   id: string;
   slug: string;
   title: string;
-  type: "authors";
+  type: 'authors';
   metadata: any;
 }
 
@@ -247,7 +248,7 @@ export interface PostObject {
 export interface EditorialHomepageObject {
   slug: string;
   title: string;
-  type: "editorial-homepage";
+  type: 'editorial-homepage';
   metadata: {
     featured_posts: PostObject[];
     hero_section?: {
@@ -263,7 +264,7 @@ export interface VideoObject {
   id: string;
   slug: string;
   title: string;
-  type: "videos";
+  type: 'videos';
   created_at: string;
   metadata: {
     image?: CosmicImage;
@@ -292,7 +293,7 @@ export interface AboutObject {
   id: string;
   slug: string;
   title: string;
-  type: "about";
+  type: 'about';
   metadata: {
     hero_image: CosmicImage;
     hero_title: string;

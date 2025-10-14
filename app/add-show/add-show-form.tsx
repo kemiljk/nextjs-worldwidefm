@@ -253,29 +253,56 @@ export function AddShowForm() {
       let cosmicMedia: any = undefined;
       let cosmicImage: any = undefined;
 
+      console.log('🚀 Starting form submission:', {
+        title: values.title,
+        hasImageFile: !!imageFile,
+        hasMediaFile: !!mediaFile,
+        imageSize: imageFile ? `${(imageFile.size / 1024 / 1024).toFixed(2)}MB` : 'N/A',
+        mediaSize: mediaFile ? `${(mediaFile.size / 1024 / 1024).toFixed(2)}MB` : 'N/A',
+      });
+
       // Upload image file separately if provided
       if (imageFile) {
+        console.log('📸 Starting image upload...');
         const imageFormData = new FormData();
         imageFormData.append('image', imageFile);
 
-        const imageUploadResponse = await fetch('/api/upload-image', {
-          method: 'POST',
-          body: imageFormData,
-        });
+        try {
+          const imageUploadResponse = await fetch('/api/upload-image', {
+            method: 'POST',
+            body: imageFormData,
+          });
 
-        if (!imageUploadResponse.ok) {
-          const imageError = await imageUploadResponse.json();
-          throw new Error(imageError.error || 'Failed to upload image');
+          console.log('📸 Image upload response status:', imageUploadResponse.status);
+
+          if (!imageUploadResponse.ok) {
+            let errorMessage = 'Failed to upload image';
+            try {
+              const imageError = await imageUploadResponse.json();
+              errorMessage = imageError.error || errorMessage;
+            } catch (parseError) {
+              console.error('Failed to parse image error response:', parseError);
+              errorMessage = `Failed to upload image (HTTP ${imageUploadResponse.status})`;
+            }
+            throw new Error(errorMessage);
+          }
+
+          const imageResult = await imageUploadResponse.json();
+          cosmicImage = imageResult;
+
+          console.log('✅ Image uploaded successfully:', imageResult);
+          toast.success('Image uploaded successfully');
+        } catch (imageError) {
+          console.error('❌ Image upload failed:', imageError);
+          throw new Error(
+            `Image upload failed: ${imageError instanceof Error ? imageError.message : 'Unknown error'}`
+          );
         }
-
-        const imageResult = await imageUploadResponse.json();
-        cosmicImage = imageResult;
-
-        toast.success('Image uploaded successfully');
       }
 
       // Upload media file separately if provided
       if (mediaFile) {
+        console.log('🎵 Starting media upload...');
         const formData = new FormData();
         formData.append('media', mediaFile);
         formData.append(
@@ -286,35 +313,51 @@ export function AddShowForm() {
           })
         );
 
-        const uploadResponse = await fetch('/api/upload-media', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!uploadResponse.ok) {
-          const uploadError = await uploadResponse.json();
-          throw new Error(uploadError.error || 'Failed to upload media');
-        }
-
-        const uploadResult = await uploadResponse.json();
-        radiocultMediaId = uploadResult.radiocultMediaId;
-        cosmicMedia = uploadResult.cosmicMedia;
-
-        console.log('🎵 Media upload result:', {
-          radiocultMediaId: uploadResult.radiocultMediaId,
-          hasCosmicMedia: !!uploadResult.cosmicMedia,
-          message: uploadResult.message,
-        });
-
-        // Show info message if RadioCult upload was skipped
-        if (!uploadResult.radiocultMediaId && uploadResult.message) {
-          toast.info('Media Upload Info', {
-            description: uploadResult.message,
+        try {
+          const uploadResponse = await fetch('/api/upload-media', {
+            method: 'POST',
+            body: formData,
           });
-        } else if (uploadResult.radiocultMediaId) {
-          toast.success('Media Upload Success', {
-            description: `Successfully uploaded to both RadioCult (ID: ${uploadResult.radiocultMediaId}) and Cosmic`,
+
+          console.log('🎵 Media upload response status:', uploadResponse.status);
+
+          if (!uploadResponse.ok) {
+            let errorMessage = 'Failed to upload media';
+            try {
+              const uploadError = await uploadResponse.json();
+              errorMessage = uploadError.error || errorMessage;
+            } catch (parseError) {
+              console.error('Failed to parse media error response:', parseError);
+              errorMessage = `Failed to upload media (HTTP ${uploadResponse.status})`;
+            }
+            throw new Error(errorMessage);
+          }
+
+          const uploadResult = await uploadResponse.json();
+          radiocultMediaId = uploadResult.radiocultMediaId;
+          cosmicMedia = uploadResult.cosmicMedia;
+
+          console.log('✅ Media upload result:', {
+            radiocultMediaId: uploadResult.radiocultMediaId,
+            hasCosmicMedia: !!uploadResult.cosmicMedia,
+            message: uploadResult.message,
           });
+
+          // Show info message if RadioCult upload was skipped
+          if (!uploadResult.radiocultMediaId && uploadResult.message) {
+            toast.info('Media Upload Info', {
+              description: uploadResult.message,
+            });
+          } else if (uploadResult.radiocultMediaId) {
+            toast.success('Media Upload Success', {
+              description: `Successfully uploaded to both RadioCult (ID: ${uploadResult.radiocultMediaId}) and Cosmic`,
+            });
+          }
+        } catch (mediaError) {
+          console.error('❌ Media upload failed:', mediaError);
+          throw new Error(
+            `Media upload failed: ${mediaError instanceof Error ? mediaError.message : 'Unknown error'}`
+          );
         }
       }
 
@@ -324,44 +367,76 @@ export function AddShowForm() {
         : undefined;
 
       // Create the show in Cosmic
-      const response = await fetch('/api/shows/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...values,
-          tracklist: processedTracklist,
-          status: 'draft', // Set as draft for approval
-          radiocult_media_id: radiocultMediaId,
-          media_file: cosmicMedia,
-          image: cosmicImage,
-        }),
+      console.log('📝 Creating show in Cosmic...');
+      try {
+        const response = await fetch('/api/shows/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...values,
+            tracklist: processedTracklist,
+            status: 'draft',
+            radiocult_media_id: radiocultMediaId,
+            media_file: cosmicMedia,
+            image: cosmicImage,
+          }),
+        });
+
+        console.log('📝 Show creation response status:', response.status);
+
+        if (!response.ok) {
+          let errorMessage = 'Failed to create show';
+          try {
+            const error = await response.json();
+            errorMessage = error.message || error.error || errorMessage;
+          } catch (parseError) {
+            console.error('Failed to parse show creation error response:', parseError);
+            errorMessage = `Failed to create show (HTTP ${response.status})`;
+          }
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+        console.log('✅ Show created successfully:', data);
+
+        // Set success state
+        setSubmittedShowTitle(values.title);
+        setIsSubmitted(true);
+
+        toast.success('Show submitted successfully!');
+
+        // Reset the form for potential next submission
+        form.reset();
+        setSelectedGenres([]);
+        setSelectedLocation(undefined);
+        setLocationInput('');
+        setArtistInput('');
+        setMediaFile(null);
+        setImageFile(null);
+      } catch (createError) {
+        console.error('❌ Show creation failed:', createError);
+        throw new Error(
+          `Show creation failed: ${createError instanceof Error ? createError.message : 'Unknown error'}`
+        );
+      }
+    } catch (error) {
+      console.error('❌ Form submission failed:', error);
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+      toast.error('Failed to submit show', {
+        description: errorMessage,
+        duration: 10000,
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create show');
-      }
-
-      const data = await response.json();
-
-      // Set success state
-      setSubmittedShowTitle(values.title);
-      setIsSubmitted(true);
-
-      // Reset the form for potential next submission
-      form.reset();
-      setSelectedGenres([]);
-      setSelectedLocation(undefined);
-      setLocationInput('');
-      setArtistInput('');
-      setMediaFile(null);
-      setImageFile(null);
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      toast.error('Failed to submit show', {
-        description: error instanceof Error ? error.message : 'Unknown error occurred',
+      // Log to console for debugging
+      console.error('Full error details:', {
+        error,
+        errorType: error?.constructor?.name,
+        errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
       });
     } finally {
       setIsLoading(false);

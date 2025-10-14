@@ -13,6 +13,7 @@ import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
 import { generateShowMetadata } from '@/lib/metadata-utils';
 import { TracklistToggle } from '@/components/ui/tracklisttoggle';
+import { parseBroadcastDateTime } from '@/lib/date-utils';
 
 // stripUrlsFromText removed as we now render HTML content directly
 
@@ -108,10 +109,12 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
   const show = transformEpisodeToShowFormat(episode);
   const metadata = episode.metadata || {};
 
-  const now = new Date();
-  const startTime = new Date(metadata.broadcast_date || episode.created_at);
-  const endTime = addHours(startTime, 2); // Assume 2-hour episodes
-  const isLive = isWithinInterval(now, { start: startTime, end: endTime });
+  const startTime =
+    parseBroadcastDateTime(
+      metadata.broadcast_date,
+      metadata.broadcast_time,
+      metadata.broadcast_date_old
+    ) || new Date(episode.created_at);
 
   // Get related episodes based on genres and hosts
   const relatedEpisodes = await getRelatedEpisodes(episode, 3);
@@ -188,10 +191,15 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
           )}
 
           {/* Broadcast Info */}
-          {metadata.broadcast_date && (
+          {(metadata.broadcast_date || metadata.broadcast_date_old) && (
             <div>
               <span className='text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors'>
-                Broadcast: {new Date(metadata.broadcast_date).toLocaleDateString()}
+                Broadcast:{' '}
+                {parseBroadcastDateTime(
+                  metadata.broadcast_date,
+                  metadata.broadcast_time,
+                  metadata.broadcast_date_old
+                )?.toLocaleDateString()}
                 {metadata.broadcast_time && ` at ${metadata.broadcast_time}`}
               </span>
             </div>
@@ -199,13 +207,19 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
 
           {/* Tracklist Section */}
           {(() => {
-            if (!metadata.broadcast_date || !metadata.tracklist) return null;
+            if ((!metadata.broadcast_date && !metadata.broadcast_date_old) || !metadata.tracklist)
+              return null;
 
             const durationInMinutes = metadata.duration
               ? parseInt(metadata.duration.split(':')[0])
               : 120;
 
-            const broadcastStart = new Date(metadata.broadcast_date);
+            const broadcastStart =
+              parseBroadcastDateTime(
+                metadata.broadcast_date,
+                metadata.broadcast_time,
+                metadata.broadcast_date_old
+              ) || new Date();
             const broadcastEnd = addMinutes(broadcastStart, durationInMinutes);
             const now = new Date();
             const showTracklist = now >= broadcastEnd;

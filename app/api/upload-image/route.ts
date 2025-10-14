@@ -1,14 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createBucketClient } from '@cosmicjs/sdk';
 
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
+    console.log('📸 Image upload API called');
+    
     const formData = await request.formData();
     const file = formData.get('image') as File;
 
     if (!file) {
+      console.error('❌ No file provided in request');
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
+
+    console.log('📸 Image file received:', {
+      name: file.name,
+      size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+      type: file.type,
+    });
 
     // Create write-enabled Cosmic client
     const cosmic = createBucketClient({
@@ -18,10 +29,12 @@ export async function POST(request: NextRequest) {
     });
 
     // Convert File to Buffer
+    console.log('📸 Converting file to buffer...');
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
     // Upload to Cosmic
+    console.log('📸 Uploading to Cosmic...');
     const media = await cosmic.media.insertOne({
       media: {
         originalname: file.name,
@@ -29,12 +42,33 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    console.log('✅ Image uploaded successfully:', {
+      name: media.media.name,
+      url: media.media.url,
+    });
+
     return NextResponse.json({
       success: true,
       media: media.media,
     });
   } catch (error) {
-    console.error('Error uploading image:', error);
-    return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 });
+    console.error('❌ Error uploading image:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorDetails = {
+      message: errorMessage,
+      type: error?.constructor?.name,
+      stack: error instanceof Error ? error.stack : undefined,
+    };
+    
+    console.error('Full error details:', errorDetails);
+    
+    return NextResponse.json(
+      { 
+        error: 'Failed to upload image',
+        details: errorMessage,
+      },
+      { status: 500 }
+    );
   }
 }

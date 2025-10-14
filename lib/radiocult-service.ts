@@ -1,4 +1,5 @@
 import { RadioShowObject, CosmicImage, GenreObject, HostObject } from './cosmic-config';
+import { extractDatePart, extractTimePart } from './date-utils';
 
 // Define the RadioCult API base URL
 export const RADIOCULT_API_BASE_URL = 'https://api.radiocult.fm';
@@ -645,7 +646,7 @@ export function transformRadioCultEvent(
       subtitle: event.showName,
       description: event.description || null,
       image: cosmicImage,
-      broadcast_date: event.startTime,
+      broadcast_date: extractDatePart(event.startTime),
       duration,
       player: null,
       genres: genreObjects,
@@ -655,7 +656,9 @@ export function transformRadioCultEvent(
       featured_on_homepage: false,
       tracklist: null,
       body_text: null,
-      broadcast_time: new Date(event.startTime).toLocaleTimeString(),
+      broadcast_time:
+        extractTimePart(event.startTime) ||
+        new Date(event.startTime).toISOString().substring(11, 16),
       broadcast_day: new Date(event.startTime).toLocaleDateString(),
       page_link: null,
       source: 'radiocult',

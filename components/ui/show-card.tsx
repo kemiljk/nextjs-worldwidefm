@@ -214,7 +214,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
 
         {/* Tags and Play Button */}
         <div className='flex flex-row w-full pr-1'>
-          <div className='flex flex-row flex-wrap gap-1'>
+          <div className='flex flex-row flex-wrap'>
             {showTags.map((tag, idx) => {
               const genreLink = getGenreLink(tag.id);
               return (
