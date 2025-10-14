@@ -143,71 +143,78 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   const genreTagVariant = variant === 'light' ? 'light' : undefined;
 
   return (
-    <Link
-      href={slug}
-      className={`${borderClass} border p-2 cursor-default ${className}`}
-    >
+    <div className={`${borderClass} border p-2 ${className}`}>
       {/* Image and Play Button (hover group) */}
-      <div className='group relative aspect-square'>
-        {/* Overlay for dimming on hover */}
-        <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-50 transition-opacity pointer-events-none z-10' />
-        <Image
-          src={showImage}
-          alt={showName}
-          fill
-          className={`object-cover border ${imageBorderClass} hover:cursor-pointer`}
-          sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
-          priority={false}
-        />
-        {shouldShowPlayButton && (
-          <div className='absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20'>
-            <button
-              className={`${playButtonBgClass} rounded-full w-10 h-10 flex items-center justify-center transition-colors cursor-pointer`}
-              style={{ minWidth: 40, minHeight: 40 }}
-              onClick={handlePlayPause}
-              aria-label={isCurrentlyPlaying ? 'Pause show' : 'Play show'}
-            >
-              {isCurrentlyPlaying ? (
-                <Pause
-                  fill='white'
-                  className={`w-4 h-4 ${playButtonIconClass}`}
-                />
-              ) : (
-                <Play
-                  fill='white'
-                  className={`w-4 h-4 ${playButtonIconClass} pl-0.5`}
-                />
-              )}
-            </button>
-          </div>
-        )}
-      </div>
+      <Link
+        href={slug}
+        className='block'
+      >
+        <div className='group relative aspect-square cursor-pointer'>
+          {/* Overlay for dimming on hover */}
+          <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-50 transition-opacity pointer-events-none z-10' />
+          <Image
+            src={showImage}
+            alt={showName}
+            fill
+            className={`object-cover border ${imageBorderClass} hover:cursor-pointer`}
+            sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
+            priority={false}
+          />
+          {shouldShowPlayButton && (
+            <div className='absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20'>
+              <button
+                className={`${playButtonBgClass} rounded-full w-10 h-10 flex items-center justify-center transition-colors cursor-pointer`}
+                style={{ minWidth: 40, minHeight: 40 }}
+                onClick={handlePlayPause}
+                aria-label={isCurrentlyPlaying ? 'Pause show' : 'Play show'}
+              >
+                {isCurrentlyPlaying ? (
+                  <Pause
+                    fill='white'
+                    className={`w-4 h-4 ${playButtonIconClass}`}
+                  />
+                ) : (
+                  <Play
+                    fill='white'
+                    className={`w-4 h-4 ${playButtonIconClass} pl-0.5`}
+                  />
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      </Link>
 
       {/* Details */}
       <div className='flex flex-col justify-between pt-3 pb-1 h-30'>
         {/* Title */}
-        <div className='w-auto h-auto flex-1 gap-1 flex flex-col'>
-          <div
-            className={`font-mono text-m8 sm:text-m6 uppercase w-full line-clamp-2 break-words pr-10 ${textClass}`}
-          >
-            {mainTitle}
-            {subtitle ? ': ' : ''} {subtitle}
-          </div>
-
-          {(formattedTime || show.location?.name) && (
+        <Link
+          href={slug}
+          className='block'
+        >
+          <div className='w-auto h-auto flex-1 gap-1 flex flex-col cursor-pointer'>
             <div
-              className={`flex flex-row items-center gap-2.5 font-mono text-xs uppercase pt-1 ${textClass}`}
+              className={`font-mono text-m8 sm:text-m6 uppercase w-full line-clamp-2 break-words pr-10 ${textClass}`}
             >
-              {formattedTime && <span>{formattedTime}</span>}
-              {formattedTime && show.location?.name && <span>|</span>}
-              {show.location?.name && <span>{show.location?.name}</span>}
+              {mainTitle}
+              {subtitle ? ': ' : ''} {subtitle}
             </div>
-          )}
-        </div>
+
+            {(formattedTime || show.location?.name) && (
+              <div
+                className={`flex flex-row items-center gap-2.5 font-mono text-xs uppercase pt-1 ${textClass}`}
+              >
+                {formattedTime && <span>{formattedTime}</span>}
+                {formattedTime && show.location?.name && <span>|</span>}
+                {show.location?.name && <span>{show.location?.name}</span>}
+              </div>
+            )}
+          </div>
+        </Link>
 
         {/* Tags and Play Button */}
         <div className='flex flex-row w-full pr-1'>
-          <div className='flex flex-row flex-wrap'>
+          <div className='flex flex-row flex-wrap gap-1'>
             {showTags.map((tag, idx) => {
               const genreLink = getGenreLink(tag.id);
               return (
@@ -216,9 +223,9 @@ export const ShowCard: React.FC<ShowCardProps> = ({
                   variant={genreTagVariant as 'default' | 'transparent' | 'white' | 'light'}
                   onClick={(e) => {
                     if (genreLink) {
-                      e.preventDefault();
-                      e.stopPropagation();
                       router.push(genreLink);
+                    } else {
+                      console.warn('No genre link found for tag:', tag);
                     }
                   }}
                 >
@@ -229,6 +236,6 @@ export const ShowCard: React.FC<ShowCardProps> = ({
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   );
 };

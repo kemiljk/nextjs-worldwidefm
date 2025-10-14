@@ -66,17 +66,21 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     // For filtered queries, use client-side filtering for reliability
     // Cosmic CMS has limited support for complex nested queries
     if (hasFilters) {
+      // Use a reasonable limit to avoid timeouts (300 episodes is ~15 pages)
+      const fetchLimit = Math.min(offset + baseLimit * 15, 300);
+      
       const allResponse = await cosmic.objects
         .find({
           type: 'episode',
           status: 'published',
         })
         .props('slug,title,metadata,type,created_at,published_at')
-        .limit(1000)
+        .limit(fetchLimit)
         .sort('-metadata.broadcast_date,-created_at')
         .depth(2);
 
       let allEpisodes = allResponse.objects || [];
+      const originalFetchedCount = allEpisodes.length;
 
       // Apply filters client-side
       if (params.genre) {
@@ -159,7 +163,8 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       const endIndex = startIndex + baseLimit;
       const paginatedEpisodes = allEpisodes.slice(startIndex, endIndex);
 
-      const hasNext = endIndex < allEpisodes.length;
+      // If we have more filtered results, or hit the fetch limit (suggesting more episodes exist)
+      const hasNext = endIndex < allEpisodes.length || originalFetchedCount === fetchLimit;
 
       return {
         episodes: paginatedEpisodes,
@@ -422,11 +427,11 @@ export async function getRegularHosts(
       episodeQuery['metadata.locations.id'] = { $in: locations };
     }
 
-    // Get episodes that match the criteria
+    // Get episodes that match the criteria (limit to avoid timeouts)
     const episodesResponse = await cosmic.objects
       .find(episodeQuery)
       .props('metadata.regular_hosts')
-      .limit(1000) // Get enough episodes to find unique hosts
+      .limit(300)
       .depth(2);
 
     const episodes = episodesResponse.objects || [];
@@ -538,11 +543,11 @@ export async function getTakeovers(
       episodeQuery['metadata.locations.id'] = { $in: locations };
     }
 
-    // Get episodes that match the criteria
+    // Get episodes that match the criteria (limit to avoid timeouts)
     const episodesResponse = await cosmic.objects
       .find(episodeQuery)
       .props('metadata.takeovers')
-      .limit(1000) // Get enough episodes to find unique takeovers
+      .limit(300)
       .depth(2);
 
     const episodes = episodesResponse.objects || [];

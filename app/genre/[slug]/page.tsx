@@ -9,10 +9,11 @@ export default async function GenreDetailPage({
   params,
   searchParams,
 }: {
-  params: { slug: string };
-  searchParams?: { type?: string; page?: string };
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ type?: string; page?: string }>;
 }) {
-  const { slug } = params;
+  const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
 
   const canonicalGenres = await getCanonicalGenres();
   const genre = canonicalGenres.find((g) => g.slug === slug);
@@ -21,13 +22,13 @@ export default async function GenreDetailPage({
   }
 
   const activeType: ActiveType =
-    searchParams?.type === 'hosts-series'
+    resolvedSearchParams?.type === 'hosts-series'
       ? 'hosts-series'
-      : searchParams?.type === 'takeovers'
+      : resolvedSearchParams?.type === 'takeovers'
         ? 'takeovers'
         : 'all';
 
-  const currentPage = Math.max(parseInt(searchParams?.page || '1', 10) || 1, 1);
+  const currentPage = Math.max(parseInt(resolvedSearchParams?.page || '1', 10) || 1, 1);
   const PAGE_SIZE = 20;
   const offset = (currentPage - 1) * PAGE_SIZE;
 
