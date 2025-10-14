@@ -24,11 +24,9 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   variant = 'default',
   canonicalGenres = [],
 }) => {
-  // Since we now filter episodes at fetch level, all episodes have audio content
-  // For other content, check if there's actual audio content
   const isEpisode = show?.__source === 'episode' || show?.episodeData || show?.type === 'episode';
   const hasAudioContent = show?.url || show?.player || show?.metadata?.player;
-  const shouldShowPlayButton = playable && (isEpisode || hasAudioContent);
+  const shouldShowPlayButton = playable && show?.metadata?.player;
   const { playShow, pauseShow, selectedShow, isArchivePlaying } = useMediaPlayer();
 
   const isCurrentShow = selectedShow?.key === show.key;
@@ -148,9 +146,9 @@ export const ShowCard: React.FC<ShowCardProps> = ({
       className={`${borderClass} border p-2 cursor-default ${className}`}
     >
       {/* Image and Play Button (hover group) */}
-      <div className="group relative aspect-square">
+      <div className='group relative aspect-square'>
         {/* Overlay for dimming on hover */}
-        <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-50 transition-opacity pointer-events-none z-10" />
+        <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-50 transition-opacity pointer-events-none z-10' />
         <Image
           src={showImage}
           alt={showName}
@@ -160,7 +158,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
           priority={false}
         />
         {shouldShowPlayButton && (
-          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+          <div className='absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20'>
             <button
               className={`${playButtonBgClass} rounded-full w-10 h-10 flex items-center justify-center transition-colors cursor-pointer`}
               style={{ minWidth: 40, minHeight: 40 }}
@@ -168,9 +166,15 @@ export const ShowCard: React.FC<ShowCardProps> = ({
               aria-label={isCurrentlyPlaying ? 'Pause show' : 'Play show'}
             >
               {isCurrentlyPlaying ? (
-                <Pause fill='white' className={`w-4 h-4 ${playButtonIconClass}`} />
+                <Pause
+                  fill='white'
+                  className={`w-4 h-4 ${playButtonIconClass}`}
+                />
               ) : (
-                <Play fill='white' className={`w-4 h-4 ${playButtonIconClass} pl-0.5`} />
+                <Play
+                  fill='white'
+                  className={`w-4 h-4 ${playButtonIconClass} pl-0.5`}
+                />
               )}
             </button>
           </div>

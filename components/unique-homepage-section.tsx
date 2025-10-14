@@ -94,15 +94,17 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
       />
 
       {/*Linear white gradient*/}
-      <div className="absolute inset-0 w-full bg-gradient-to-b from-white via-white/0 to-white"
-        style={{ mixBlendMode: 'hue', }} />
+      <div
+        className='absolute inset-0 w-full bg-gradient-to-b from-white via-white/0 to-white'
+        style={{ mixBlendMode: 'hue' }}
+      />
 
       {/* Noise Overlay */}
       <div
         className='absolute inset-0'
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          backgroundSize: '50px 50px',
+          backgroundSize: '200px 200px',
           mixBlendMode: 'screen',
         }}
       />
@@ -125,7 +127,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
                 slug={show.url}
                 playable
                 className='w-full border-almostblack cursor-default'
-                variant="light"
+                variant='light'
               />
             </div>
           ))}
@@ -135,18 +137,18 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
         <div className='flex items-center'>
           {/* Main Title */}
           <div className='flex flex-col gap-4 w-full pb-5'>
-            <div className="flex flex-row justify-between w-full items-start">
-              <div className="flex flex-wrap items- gap-0 w-full pt-1 pr-3">
+            <div className='flex flex-row justify-between w-full items-start'>
+              <div className='flex flex-wrap items- gap-0 w-full pt-1 pr-3'>
                 <h2 className='font-display text-h8 sm:text-h7 leading-none uppercase tracking-tight'>
                   <HighlightedText variant='default'>{displayTitle}</HighlightedText>
                 </h2>
                 {/* Subtitle with color background */}
                 {displayTime && (
-                  <h3 className="font-display text-h8 sm:text-h7 leading-none uppercase tracking-tight break-words">
+                  <h3 className='font-display text-h8 sm:text-h7 leading-none uppercase tracking-tight break-words'>
                     <HighlightedText
-                      variant="custom"
+                      variant='custom'
                       backgroundColor={sectionColor}
-                      textColor="var(--color-almostblack)"
+                      textColor='var(--color-almostblack)'
                     >
                       {displayTime}
                     </HighlightedText>

@@ -1,14 +1,18 @@
-import { Metadata } from "next";
-import Link from "next/link";
-import { getEpisodeBySlug, getRelatedEpisodes, transformEpisodeToShowFormat } from "@/lib/episode-service";
-import { addHours, isWithinInterval } from "date-fns";
-import { findHostSlug, displayNameToSlug } from "@/lib/host-matcher";
-import { ShowCard } from "@/components/ui/show-card";
-import { EpisodeHero } from "@/components/homepage-hero";
-import { SafeHtml } from "@/components/ui/safe-html";
-import { GenreTag } from "@/components/ui/genre-tag";
-import { generateShowMetadata } from "@/lib/metadata-utils";
-import { TracklistToggle } from "@/components/ui/tracklisttoggle";
+import { Metadata } from 'next';
+import Link from 'next/link';
+import {
+  getEpisodeBySlug,
+  getRelatedEpisodes,
+  transformEpisodeToShowFormat,
+} from '@/lib/episode-service';
+import { addHours, isWithinInterval } from 'date-fns';
+import { findHostSlug, displayNameToSlug } from '@/lib/host-matcher';
+import { ShowCard } from '@/components/ui/show-card';
+import { EpisodeHero } from '@/components/homepage-hero';
+import { SafeHtml } from '@/components/ui/safe-html';
+import { GenreTag } from '@/components/ui/genre-tag';
+import { generateShowMetadata } from '@/lib/metadata-utils';
+import { TracklistToggle } from '@/components/ui/tracklisttoggle';
 
 // stripUrlsFromText removed as we now render HTML content directly
 
@@ -27,10 +31,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       return generateShowMetadata(episode);
     }
 
-    return generateShowMetadata({ title: "Episode Not Found" });
+    return generateShowMetadata({ title: 'Episode Not Found' });
   } catch (error) {
-    console.error("Error generating episode metadata:", error);
-    return generateShowMetadata({ title: "Episode Not Found" });
+    console.error('Error generating episode metadata:', error);
+    return generateShowMetadata({ title: 'Episode Not Found' });
   }
 }
 
@@ -40,16 +44,16 @@ export async function generateStaticParams() {
     // for episodes due to the large number of episodes
     return [];
   } catch (error) {
-    console.error("Error generating static params:", error);
+    console.error('Error generating static params:', error);
     return [];
   }
 }
 
 export const dynamicParams = true;
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 async function HostLink({ host, className }: { host: any; className: string }) {
-  let href = "#";
+  let href = '#';
   let displayName = host.title || host.name;
 
   if (host.slug) {
@@ -65,7 +69,10 @@ async function HostLink({ host, className }: { host: any; className: string }) {
   }
 
   return (
-    <Link href={href} className={className}>
+    <Link
+      href={href}
+      className={className}
+    >
       {displayName}
     </Link>
   );
@@ -79,10 +86,18 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
 
   if (!episode) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-dvh text-center">
-        <h1 className="text-h4 font-display uppercase font-normal text-almostblack dark:text-white mb-4">Episode Not Found</h1>
-        <p className="text-lg text-muted-foreground mb-6">Sorry, we couldn't find an episode for this link. It may have been removed or does not exist.</p>
-        <Link href="/shows" className="text-blue-600 hover:underline">
+      <div className='flex flex-col items-center justify-center min-h-dvh text-center'>
+        <h1 className='text-h4 font-display uppercase font-normal text-almostblack dark:text-white mb-4'>
+          Episode Not Found
+        </h1>
+        <p className='text-lg text-muted-foreground mb-6'>
+          Sorry, we couldn't find an episode for this link. It may have been removed or does not
+          exist.
+        </p>
+        <Link
+          href='/shows'
+          className='text-blue-600 hover:underline'
+        >
           Back to Shows
         </Link>
       </div>
@@ -102,39 +117,48 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
   const relatedEpisodes = await getRelatedEpisodes(episode, 3);
   const relatedShows = relatedEpisodes.map(transformEpisodeToShowFormat);
 
-  const displayName = episode.title || "Untitled Episode";
-  const displayImage = metadata.image?.imgix_url || "/image-placeholder.png";
+  const displayName = episode.title || 'Untitled Episode';
+  const displayImage = metadata.image?.imgix_url || '/image-placeholder.png';
 
   // Format date for overlay (e.g., SAT 14/06)
   const showDate = startTime
-    .toLocaleDateString("en-GB", {
-      weekday: "short",
-      day: "2-digit",
-      month: "2-digit",
+    .toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
     })
-    .replace(/\./g, "")
+    .replace(/\./g, '')
     .toUpperCase();
 
   return (
-    <div className="pb-50">
-      <EpisodeHero displayName={displayName} displayImage={displayImage} showDate={showDate} show={show} />
+    <div className='pb-50'>
+      <EpisodeHero
+        displayName={displayName}
+        displayImage={displayImage}
+        showDate={showDate}
+        show={show}
+      />
 
       {/* Main Content Container */}
 
-      <div className="w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-3">
+      <div className='w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-3'>
         {/*LEFT CONTAINER*/}
-        <div className="w-full md:w-[40%] flex flex-col gap-1 pt-2">
+        <div className='w-full md:w-[40%] flex flex-col gap-1 pt-2'>
           {/* Episode Description */}
           {(metadata.body_text || metadata.description) && (
-            <div className="prose dark:prose-invert max-w-none">
-              <SafeHtml content={metadata.body_text || metadata.description || ""} type="editorial" className="text-b3 sm:text-[18px] leading-tight text-almostblack" />
+            <div className='prose dark:prose-invert max-w-none'>
+              <SafeHtml
+                content={metadata.body_text || metadata.description || ''}
+                type='editorial'
+                className='text-b3 sm:text-[18px] leading-tight text-almostblack'
+              />
             </div>
           )}
 
           {/* Genres Section */}
           {metadata.genres?.length > 0 && (
             <div>
-              <div className="flex flex-wrap select-none cursor-default my-3">
+              <div className='flex flex-wrap select-none cursor-default my-3'>
                 {metadata.genres.map((genre: any) => (
                   <GenreTag key={genre.id || genre.slug}>{genre.title || genre.name}</GenreTag>
                 ))}
@@ -143,9 +167,13 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
           )}
           {/* Hosts Section */}
           {metadata.regular_hosts?.length > 0 && (
-            <div className="flex flex-wrap gap-1 pl-1">
+            <div className='flex flex-wrap gap-1 pl-1'>
               {metadata.regular_hosts.map((host: any) => (
-                <HostLink key={host.id || host.slug} host={host} className="text-m7 font-mono uppercase text-muted-foreground hover:text-foreground transition-colors" />
+                <HostLink
+                  key={host.id || host.slug}
+                  host={host}
+                  className='text-m7 font-mono uppercase text-muted-foreground hover:text-foreground transition-colors'
+                />
               ))}
             </div>
           )}
@@ -153,14 +181,16 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
           {/* Duration */}
           {metadata.duration && (
             <div>
-              <span className="text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors">Duration: {metadata.duration}</span>
+              <span className='text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors'>
+                Duration: {metadata.duration}
+              </span>
             </div>
           )}
 
           {/* Broadcast Info */}
           {metadata.broadcast_date && (
             <div>
-              <span className="text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors">
+              <span className='text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors'>
                 Broadcast: {new Date(metadata.broadcast_date).toLocaleDateString()}
                 {metadata.broadcast_time && ` at ${metadata.broadcast_time}`}
               </span>
@@ -168,18 +198,30 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
           )}
 
           {/* Tracklist Section */}
-          <div className="my-4">{metadata.tracklist && <TracklistToggle tracklist={metadata.tracklist} />}</div>
+          {metadata.broadcast_date &&
+            new Date(metadata.broadcast_date + metadata.duration) >= new Date() && (
+              <div className='my-4'>
+                {metadata.tracklist && <TracklistToggle tracklist={metadata.tracklist} />}
+              </div>
+            )}
         </div>
 
         {/*RIGHT CONTAINER*/}
-        <div className="w-full md:w-[60%] flex flex-col mt-2 gap-2 h-auto">
+        <div className='w-full md:w-[60%] flex flex-col mt-2 gap-2 h-auto'>
           {relatedShows.length > 0 && (
             <div>
-              <h2 className="text-h8 md:text-h7 font-bold tracking-tight">RELATED EPISODES</h2>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 justify-between pt-3">
+              <h2 className='text-h8 md:text-h7 font-bold tracking-tight'>RELATED EPISODES</h2>
+              <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 justify-between pt-3'>
                 {relatedShows.map((relatedShow) => {
                   const slug = `/episode/${relatedShow.slug}`;
-                  return <ShowCard key={relatedShow.id || relatedShow.slug} show={relatedShow} slug={slug} playable />;
+                  return (
+                    <ShowCard
+                      key={relatedShow.id || relatedShow.slug}
+                      show={relatedShow}
+                      slug={slug}
+                      playable
+                    />
+                  );
                 })}
               </div>
             </div>

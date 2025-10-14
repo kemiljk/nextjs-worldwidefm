@@ -319,6 +319,8 @@ export function transformShowToViewData(show: RadioShowObject) {
     body_text: show.metadata?.body_text || '',
     page_link: show.metadata?.page_link || '',
     source: show.metadata?.source || '',
+    // Preserve original metadata object
+    metadata: show.metadata || {},
     // Map all metadata fields with their full object structure
     genres: (show.metadata?.genres || []).map((genre) => ({
       id: genre.id,
@@ -332,13 +334,13 @@ export function transformShowToViewData(show: RadioShowObject) {
       modified_at: genre.modified_at,
       published_at: genre.published_at,
     })),
-    
+
     // Tags format for ShowCard compatibility
     tags: (show.metadata?.genres || []).map((genre) => ({
       name: genre.title,
       title: genre.title,
     })),
-    
+
     // Additional properties for ShowCard compatibility
     name: show.title,
     created_time: show.metadata?.broadcast_date || show.created_at,
