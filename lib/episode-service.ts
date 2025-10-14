@@ -35,106 +35,26 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     params.host ||
     params.takeover ||
     params.showType ||
-    params.searchTerm
+    params.searchTerm ||
+    params.isNew
   );
 
-  // For filtered results, we need a different approach:
-  // - First load: fetch more data to get a good sample of filtered results
-  // - Subsequent loads: use normal pagination with the filtered dataset
-  const isFirstLoad = offset === 0;
-  const limit = hasFilters && isFirstLoad ? Math.max(baseLimit * 5, 200) : baseLimit;
-
-  // Build query object - include all published episodes
-  let query: any = {
-    type: 'episode',
-    status: 'published',
-    // Temporarily removed player requirement to debug - we were getting 0 episodes
-  };
-
   try {
-    // Filter by genre - use dot-notation equality or $or of equals on nested id
-    if (params.genre) {
-      const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
-      console.log('Filtering by genres:', genres);
-
-      // Filter out undefined/null values
-      const validGenres = genres.filter((g) => g && typeof g === 'string' && g.trim() !== '');
-
-      if (validGenres.length === 0) {
-        console.warn('No valid genre IDs provided, skipping genre filter');
-      } else if (validGenres.length === 1) {
-        query['metadata.genres.id'] = validGenres[0];
-      } else {
-        query.$or = validGenres.map((id) => ({ 'metadata.genres.id': id }));
-      }
-      console.log('Genre query:', JSON.stringify(query, null, 2));
-    }
-
-    // Filter by host - match against nested array of objects
-    if (params.host) {
-      if (params.host === '*') {
-        // Special case: find episodes with ANY regular hosts
-        query['metadata.regular_hosts'] = { $exists: true, $ne: [] };
-      } else {
-        const hosts = Array.isArray(params.host) ? params.host : [params.host];
-        query['metadata.regular_hosts'] = {
-          $elemMatch: {
-            slug: { $in: hosts },
-          },
-        };
-      }
-    }
-
-    // Filter by takeover - match against nested array of objects
-    if (params.takeover) {
-      if (params.takeover === '*') {
-        // Special case: find episodes with ANY takeovers
-        query['metadata.takeovers'] = { $exists: true, $ne: [] };
-      } else {
-        const takeovers = Array.isArray(params.takeover) ? params.takeover : [params.takeover];
-        // Use simpler approach that works reliably with Cosmic CMS
-        query['metadata.takeovers.id'] = { $in: takeovers };
-      }
-    }
-
-    // Filter by location
-    if (params.location) {
-      const locations = Array.isArray(params.location) ? params.location : [params.location];
-      query['metadata.locations.id'] = { $in: locations };
-    }
-
-    // Filter by show type
-    if (params.showType) {
-      const showTypes = Array.isArray(params.showType) ? params.showType : [params.showType];
-      query['metadata.type.id'] = { $in: showTypes };
-    }
-
-    // Filter by search term
-    if (params.searchTerm) {
-      query.title = { $regex: params.searchTerm, $options: 'i' };
-    }
-
-    // Filter by new (last 30 days)
-    if (params.isNew) {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      query['metadata.broadcast_date'] = { $gte: thirtyDaysAgo.toISOString() };
-    }
-
     // Handle random episodes
     if (params.random) {
-      // For random, get a larger set and then randomize client-side
       const response = await cosmic.objects
-        .find(query)
+        .find({
+          type: 'episode',
+          status: 'published',
+        })
         .props('slug,title,metadata,type,created_at,published_at')
-        .limit(Math.min(limit * 5, 200)) // Get more for better randomization
+        .limit(Math.min(baseLimit * 5, 200))
         .depth(2);
 
       const episodes = response.objects || [];
 
-      // Shuffle episodes
       const shuffled = [...episodes].sort(() => Math.random() - 0.5);
-      const randomEpisodes = shuffled.slice(0, limit);
+      const randomEpisodes = shuffled.slice(0, baseLimit);
 
       return {
         episodes: randomEpisodes,
@@ -143,34 +63,16 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       };
     }
 
-    // Regular query with pagination
-    let response;
-    try {
-      response = await cosmic.objects
-        .find(query)
-        .props('slug,title,metadata,type,created_at,published_at')
-        .limit(limit)
-        .skip(offset)
-        .sort('-metadata.broadcast_date,-created_at') // Sort by broadcast date, then creation date
-        .depth(2);
-    } catch (error) {
-      console.log('Server-side filtering failed, using client-side filtering...');
-      console.error('Server-side filtering error:', error);
-      console.error('Query that failed:', JSON.stringify(query, null, 2));
-      console.error('Error details:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        name: error instanceof Error ? error.name : typeof error,
-      });
-
-      // Fallback: Get all episodes and filter client-side
+    // For filtered queries, use client-side filtering for reliability
+    // Cosmic CMS has limited support for complex nested queries
+    if (hasFilters) {
       const allResponse = await cosmic.objects
         .find({
           type: 'episode',
           status: 'published',
         })
         .props('slug,title,metadata,type,created_at,published_at')
-        .limit(hasFilters && isFirstLoad ? 1000 : limit) // Get more episodes on first filtered load
+        .limit(1000)
         .sort('-metadata.broadcast_date,-created_at')
         .depth(2);
 
@@ -179,29 +81,25 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       // Apply filters client-side
       if (params.genre) {
         const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
-        allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
-          const episodeGenres = episode.metadata?.genres || [];
-          return episodeGenres.some((genre: any) => {
-            return genres.includes(genre.id);
+        const validGenres = genres.filter((g) => g && typeof g === 'string' && g.trim() !== '');
+        if (validGenres.length > 0) {
+          allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
+            const episodeGenres = episode.metadata?.genres || [];
+            return episodeGenres.some((genre: any) => validGenres.includes(genre.id));
           });
-        });
-        console.log(`Client-side filtered ${allEpisodes.length} episodes by genres:`, genres);
+        }
       }
 
       if (params.location) {
         const locations = Array.isArray(params.location) ? params.location : [params.location];
         allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
           const episodeLocations = episode.metadata?.locations || [];
-          return episodeLocations.some((location: any) => {
-            return locations.includes(location.id);
-          });
+          return episodeLocations.some((location: any) => locations.includes(location.id));
         });
-        console.log(`Client-side filtered ${allEpisodes.length} episodes by locations:`, locations);
       }
 
       if (params.host) {
         if (params.host === '*') {
-          // Filter for episodes with any regular hosts
           allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
             const episodeHosts = episode.metadata?.regular_hosts || [];
             return episodeHosts.length > 0;
@@ -215,12 +113,10 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
             });
           });
         }
-        console.log(`Client-side filtered ${allEpisodes.length} episodes by hosts:`, params.host);
       }
 
       if (params.takeover) {
         if (params.takeover === '*') {
-          // Filter for episodes with any takeovers
           allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
             const episodeTakeovers = episode.metadata?.takeovers || [];
             return episodeTakeovers.length > 0;
@@ -229,15 +125,9 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
           const takeovers = Array.isArray(params.takeover) ? params.takeover : [params.takeover];
           allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
             const episodeTakeovers = episode.metadata?.takeovers || [];
-            return episodeTakeovers.some((takeover: any) => {
-              return takeovers.includes(takeover.id);
-            });
+            return episodeTakeovers.some((takeover: any) => takeovers.includes(takeover.id));
           });
         }
-        console.log(
-          `Client-side filtered ${allEpisodes.length} episodes by takeovers:`,
-          params.takeover
-        );
       }
 
       if (params.showType) {
@@ -246,10 +136,22 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
           const episodeType = episode.metadata?.type;
           return episodeType && showTypes.includes(episodeType.id);
         });
-        console.log(
-          `Client-side filtered ${allEpisodes.length} episodes by show types:`,
-          params.showType
-        );
+      }
+
+      if (params.searchTerm) {
+        const searchLower = params.searchTerm.toLowerCase();
+        allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
+          return episode.title.toLowerCase().includes(searchLower);
+        });
+      }
+
+      if (params.isNew) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
+          const broadcastDate = episode.metadata?.broadcast_date;
+          return broadcastDate && new Date(broadcastDate) >= thirtyDaysAgo;
+        });
       }
 
       // Apply pagination
@@ -257,16 +159,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       const endIndex = startIndex + baseLimit;
       const paginatedEpisodes = allEpisodes.slice(startIndex, endIndex);
 
-      // Ensure episodes are still sorted by broadcast date after filtering
-      paginatedEpisodes.sort((a: EpisodeObject, b: EpisodeObject) => {
-        const dateA = new Date(a.metadata?.broadcast_date || a.created_at);
-        const dateB = new Date(b.metadata?.broadcast_date || b.created_at);
-        return dateB.getTime() - dateA.getTime();
-      });
-
-      // Handle hasNext for client-side filtering
-      const hasNext =
-        hasFilters && isFirstLoad ? allEpisodes.length > baseLimit : endIndex < allEpisodes.length;
+      const hasNext = endIndex < allEpisodes.length;
 
       return {
         episodes: paginatedEpisodes,
@@ -275,24 +168,24 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       };
     }
 
+    // For unfiltered queries, use simple server-side query with pagination
+    const response = await cosmic.objects
+      .find({
+        type: 'episode',
+        status: 'published',
+      })
+      .props('slug,title,metadata,type,created_at,published_at')
+      .limit(baseLimit)
+      .skip(offset)
+      .sort('-metadata.broadcast_date,-created_at')
+      .depth(2);
+
     const episodes = response.objects || [];
     const total = response.total || episodes.length;
-
-    // Handle different scenarios for filtered vs non-filtered results
-    let finalEpisodes, hasNext;
-
-    if (hasFilters && isFirstLoad) {
-      // First load with filters: return first batch, enable pagination if we got more data
-      finalEpisodes = episodes.slice(0, baseLimit);
-      hasNext = episodes.length > baseLimit;
-    } else {
-      // Normal pagination or subsequent filtered loads
-      finalEpisodes = episodes;
-      hasNext = episodes.length === limit && offset + limit < total;
-    }
+    const hasNext = episodes.length === baseLimit && offset + baseLimit < total;
 
     return {
-      episodes: finalEpisodes,
+      episodes,
       total,
       hasNext,
     };

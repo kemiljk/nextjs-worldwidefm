@@ -46,9 +46,12 @@ export const GenreTag: React.FC<GenreTagProps> = ({
 
   return (
     <span
-      className={tagClasses}
+      className={cn(
+        tagClasses,
+        onClick &&
+          'hover:bg-almostblack hover:text-white dark:hover:bg-white dark:hover:text-almostblack transition-colors cursor-pointer'
+      )}
       onClick={onClick}
-      style={onClick ? { cursor: 'pointer' } : undefined}
     >
       {children}
     </span>

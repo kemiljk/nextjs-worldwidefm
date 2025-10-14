@@ -3,6 +3,7 @@
 import { Play, Pause } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMediaPlayer } from '../providers/media-player-provider';
 import { GenreTag } from './genre-tag';
 import type { CanonicalGenre } from '@/lib/get-canonical-genres';
@@ -24,6 +25,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   variant = 'default',
   canonicalGenres = [],
 }) => {
+  const router = useRouter();
   const isEpisode = show?.__source === 'episode' || show?.episodeData || show?.type === 'episode';
   const hasAudioContent = show?.url || show?.player || show?.metadata?.player;
   const shouldShowPlayButton = playable && show?.metadata?.player;
@@ -212,12 +214,11 @@ export const ShowCard: React.FC<ShowCardProps> = ({
                 <GenreTag
                   key={tag.id + idx}
                   variant={genreTagVariant as 'default' | 'transparent' | 'white' | 'light'}
-                  href={genreLink}
                   onClick={(e) => {
                     if (genreLink) {
                       e.preventDefault();
                       e.stopPropagation();
-                      window.location.href = genreLink;
+                      router.push(genreLink);
                     }
                   }}
                 >
