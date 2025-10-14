@@ -153,7 +153,7 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
               <SafeHtml
                 content={metadata.body_text || metadata.description || ''}
                 type='editorial'
-                className='text-b3 sm:text-[18px] leading-tight text-almostblack'
+                className='text-b3 sm:text-[18px] leading-tight text-almostblack dark:text-white'
               />
             </div>
           )}
