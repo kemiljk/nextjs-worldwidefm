@@ -140,6 +140,19 @@ export const EpisodeHero = ({
 
   return (
     <div className='relative w-full h-[calc(100dvh-80px)] aspect-[2/1]'>
+      {/* Overlay: soft blur + blend */}
+      <div className="absolute inset-0 w-full h-full z-10 bg-blend-multiply bg-white/10 backdrop-blur-[20px] pointer-events-none" />
+
+      <div className="absolute inset-0 w-full h-full z-20 pointer-events-none">
+        <div
+          className="w-full h-full"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+            backgroundSize: '50px 50px',
+            mixBlendMode: 'screen',
+          }}
+        />
+      </div>
       <Image
         src={displayImage}
         alt={displayName}
@@ -148,30 +161,41 @@ export const EpisodeHero = ({
         className='object-cover object-center w-full h-full select-none pointer-events-none'
         sizes='100vw'
       />
-      {/* Overlay: Play Button and Text - Always show for episodes or if audio content exists */}
-      {(isEpisode || hasAudioContent) && show && (
-        <div className='absolute bottom-0 left-0 flex flex-row justify-between items-end w-full p-8'>
-
-          <div className='flex flex-col max-w-full pb-2'>
-            {showDate && (
-              <span className='inline-block bg-almostblack text-white font-display text-h8 leading-none uppercase w-fit px-1 text-left shadow-lg border border-almostblack'>
-                {showDate}
-              </span>
-            )}
-            <span className='text-h7 max-w-2xl leading-none font-display w-fit uppercase font-bold '>
-              <HighlightedText variant='white'>{displayName}</HighlightedText>
-            </span>
+        {/* Overlay: Play Button and Text - Always show for episodes or if audio content exists */}
+        {(isEpisode || hasAudioContent) && show && (
+          <div className="absolute inset-0 flex justify-center items-center z-30">
+            <div className="flex flex-col lg:flex-row gap-10 px-4 items-start lg:items-center max-w-[90%] w-full">
+              <div className='relative w-full max-w-[500px] lg:max-w-[600px] aspect-square border border-almostblack z-30'>
+                <Image
+                  src={displayImage}
+                  alt={displayName}
+                  fill
+                  priority
+                  className='object-cover object-center w-full h-full select-none pointer-events-none'
+                  sizes='100vw'
+                />
+                <PlayButton
+                  show={show}
+                  variant='default'
+                  className='absolute bottom-0 right-0 m-5 rounded-full shadow-xl h-13 aspect-square flex items-center justify-center text-white bg-almostblack/90 hover:bg-almostblack'
+                  label={false}
+                />
+              </div>
+              <div className='flex flex-col max-w-full pb-2 lg:flex-1'>
+                {showDate && (
+                  <span className='inline-block bg-almostblack text-white font-display text-h8 leading-none uppercase w-fit px-1 text-left shadow-lg border border-almostblack'>
+                    {showDate}
+                  </span>
+                )}
+                <span className='text-h7 max-w-2xl leading-none font-display w-fit uppercase font-bold '>
+                  <HighlightedText variant='white'>{displayName}</HighlightedText>
+                </span>
+              </div>
+            </div>
           </div>
-
-          <PlayButton
-            show={show}
-            variant='default'
-            className='ml-5 rounded-full shadow-xl h-13 aspect-square flex items-center justify-center text-white bg-almostblack/90 hover:bg-almostblack'
-            label={false}
-          />
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    
   );
 };
 
