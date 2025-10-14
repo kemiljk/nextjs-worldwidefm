@@ -1,16 +1,27 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
-import { X, Play, Pause } from "lucide-react";
-import { useMediaPlayer } from "./providers/media-player-provider";
+import { useEffect, useRef, useState } from 'react';
+import { X } from 'lucide-react';
+import { useMediaPlayer } from './providers/media-player-provider';
 
 const ArchivePlayer: React.FC = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [hasError, setHasError] = useState(false);
   const [isWidgetReady, setIsWidgetReady] = useState(false);
 
-  const { selectedMixcloudUrl, setSelectedMixcloudUrl, selectedShow, setSelectedShow, isLivePlaying, playShow, pauseShow, stopAllPlayers, isArchivePlaying, setWidgetRef, widgetRef } = useMediaPlayer();
+  const {
+    selectedMixcloudUrl,
+    setSelectedMixcloudUrl,
+    selectedShow,
+    setSelectedShow,
+    isLivePlaying,
+    playShow,
+    pauseShow,
+    stopAllPlayers,
+    isArchivePlaying,
+    setWidgetRef,
+    widgetRef,
+  } = useMediaPlayer();
 
   const isPlaying = isArchivePlaying;
 
@@ -30,8 +41,8 @@ const ArchivePlayer: React.FC = () => {
 
     // Load Mixcloud widget script if not already loaded
     if (!window.Mixcloud) {
-      const script = document.createElement("script");
-      script.src = "https://widget.mixcloud.com/media/js/widgetApi.js";
+      const script = document.createElement('script');
+      script.src = 'https://widget.mixcloud.com/media/js/widgetApi.js';
       script.async = true;
       script.onload = () => {
         initializeWidget();
@@ -52,12 +63,10 @@ const ArchivePlayer: React.FC = () => {
       // Create widget URL
       const widgetParams = new URLSearchParams({
         feed: selectedMixcloudUrl,
-        hide_cover: "1",
-        mini: "1",
-        autoplay: "1",
-        hide_artwork: "0",
-        hide_tracklist: "1",
-        stylesheets: "",
+        hide_cover: '1',
+        autoplay: '1',
+        hide_artwork: '1',
+        light: '1',
       });
 
       const widgetUrl = `https://www.mixcloud.com/widget/iframe/?${widgetParams.toString()}`;
@@ -88,28 +97,14 @@ const ArchivePlayer: React.FC = () => {
             }
           } catch (err) {
             setIsWidgetReady(false);
-            console.log("Widget API not available, using iframe only");
+            console.log('Widget API not available, using iframe only');
           }
         }, 1000);
       }
     } catch (error) {
-      console.error("Failed to initialize Mixcloud widget:", error);
+      console.error('Failed to initialize Mixcloud widget:', error);
       setHasError(true);
       setIsWidgetReady(false);
-    }
-  };
-
-  const handlePlayPause = () => {
-    if (widgetRef && isWidgetReady) {
-      try {
-        if (isPlaying) {
-          widgetRef.pause();
-        } else {
-          widgetRef.play();
-        }
-      } catch (err) {
-        console.log("Widget control not available");
-      }
     }
   };
 
@@ -137,32 +132,31 @@ const ArchivePlayer: React.FC = () => {
   }
 
   return (
-    <>
-      {/* Hidden iframe for the actual player */}
-      <iframe ref={iframeRef} className="hidden" width="100%" height="120" frameBorder="0" allow="autoplay" title="Mixcloud Player" />
-
-      {/* Visible player UI */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-almostblack z-50">
-        <div className="flex items-center justify-between mx-auto">
-          <div className="flex items-center space-x-4 flex-1 min-w-0">
-            <div className="w-10 h-10 overflow-hidden shrink-0 relative">
-              <Image src={selectedShow.pictures.large || "/image-placeholder.svg"} alt={selectedShow.name} width={48} height={48} className="object-cover" />
-              <button onClick={handlePlayPause} className="absolute inset-0 p-2 hover:bg-white/10 hover:cursor-pointer rounded-full transition-colors" disabled={!isWidgetReady} aria-label={isPlaying ? `Pause ${selectedShow.name}` : `Play ${selectedShow.name}`}>
-                {isPlaying ? <Pause fill="white" stroke="none" className="w-5 h-5" /> : <Play fill="white" stroke="none" className="w-5 h-5" />}
-              </button>
-            </div>
-
-            <h3 className="text-almostblack font-mono text-m7 truncate">{selectedShow.name}</h3>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <button onClick={handleClose} className="p-2 text-almostblack hover:cursor-pointer hover:text-almostblack/20 transition-colors">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+    <div className='fixed bottom-0 left-0 right-0 z-50 overflow-hidden'>
+      <div className='relative'>
+        <button
+          onClick={handleClose}
+          className='absolute top-1.5 right-1 z-50 text-almostblack dark:text-white hover:opacity-50 transition-opacity bg-white/80 dark:bg-almostblack/80 rounded-full'
+          aria-label='Close player'
+        >
+          <X className='w-4 h-4' />
+        </button>
+        <iframe
+          ref={iframeRef}
+          width='100%'
+          height='60'
+          allow='autoplay'
+          title='Mixcloud Player'
+          style={{
+            display: 'block',
+            margin: 0,
+            padding: 0,
+            border: 'none',
+            verticalAlign: 'bottom',
+          }}
+        />
       </div>
-    </>
+    </div>
   );
 };
 

@@ -33,6 +33,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   const locationParam = searchParams.get('location') ?? undefined;
   const typeParam = searchParams.get('type') ?? undefined; // New type parameter for host/takeover filtering
   const searchTerm = searchParams.get('searchTerm') ?? undefined;
+  const letterParam = searchParams.get('letter') ?? undefined;
 
   const selectedGenres = useMemo(
     () => (genreParam ? genreParam.split('|').filter(Boolean) : []),
@@ -71,6 +72,10 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
 
           if (selectedLocations.length > 0) {
             hostParams.location = selectedLocations;
+          }
+
+          if (letterParam) {
+            hostParams.letter = letterParam;
           }
 
           response = await getRegularHosts(hostParams);
@@ -129,7 +134,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       clearTimeout(timeoutId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedGenres, selectedLocations, typeParam, searchTerm]);
+  }, [selectedGenres, selectedLocations, typeParam, searchTerm, letterParam]);
 
   // Load more data function
   const loadMore = async () => {
@@ -156,6 +161,10 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
 
         if (selectedLocations.length > 0) {
           hostParams.location = selectedLocations;
+        }
+
+        if (letterParam) {
+          hostParams.letter = letterParam;
         }
 
         response = await getRegularHosts(hostParams);
@@ -275,6 +284,11 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       params.set('type', type);
     }
 
+    // Clear letter filter when switching away from hosts-series
+    if (type !== 'hosts-series') {
+      params.delete('letter');
+    }
+
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
@@ -327,6 +341,19 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       params.delete('location');
     } else {
       params.set('location', newLocations.join('|'));
+    }
+
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  // Handle letter filter selection
+  const handleLetterSelect = (letter: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (letterParam === letter) {
+      params.delete('letter');
+    } else {
+      params.set('letter', letter);
     }
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
@@ -432,6 +459,55 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
             Takeovers
           </Button>
         </div>
+
+        {/* Alphabet Filter - Only visible for Hosts & Series */}
+        {activeType === 'hosts-series' && (
+          <div className='flex flex-wrap gap-2 text-m7 pt-2 pb-2 border-t border-almostblack/20'>
+            {[
+              '0',
+              'A',
+              'B',
+              'C',
+              'D',
+              'E',
+              'F',
+              'G',
+              'H',
+              'I',
+              'J',
+              'K',
+              'L',
+              'M',
+              'N',
+              'O',
+              'P',
+              'Q',
+              'R',
+              'S',
+              'T',
+              'U',
+              'V',
+              'W',
+              'X',
+              'Y',
+              'Z',
+            ].map((letter) => (
+              <Button
+                key={letter}
+                variant='outline'
+                size='sm'
+                className={cn(
+                  'border-almostblack dark:border-white h-8 w-8 p-0 font-mono',
+                  letterParam === letter &&
+                    'bg-almostblack text-white dark:bg-white dark:text-almostblack'
+                )}
+                onClick={() => handleLetterSelect(letter)}
+              >
+                {letter}
+              </Button>
+            ))}
+          </div>
+        )}
 
         {/* Active Filter Chips */}
         {hasActiveFilters && (

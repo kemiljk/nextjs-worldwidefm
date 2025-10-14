@@ -462,6 +462,7 @@ export async function getRegularHosts(
     offset?: number;
     genre?: string | string[];
     location?: string | string[];
+    letter?: string;
   } = {}
 ): Promise<{
   shows: any[];
@@ -474,11 +475,22 @@ export async function getRegularHosts(
   try {
     // If no filters, get all hosts directly
     if (!params.genre && !params.location) {
+      let query: any = {
+        type: 'regular-hosts',
+        status: 'published',
+      };
+
+      // Add letter filter if provided
+      if (params.letter) {
+        if (params.letter === '0') {
+          query.title = { $regex: '^[^a-zA-Z]', $options: 'i' };
+        } else {
+          query.title = { $regex: `^${params.letter}`, $options: 'i' };
+        }
+      }
+
       const response = await cosmic.objects
-        .find({
-          type: 'regular-hosts',
-          status: 'published',
-        })
+        .find(query)
         .props('slug,title,metadata,type')
         .limit(limit)
         .skip(offset)
@@ -537,7 +549,18 @@ export async function getRegularHosts(
       });
     });
 
-    const uniqueHosts = Array.from(hostMap.values());
+    let uniqueHosts = Array.from(hostMap.values());
+
+    // Apply letter filter if provided
+    if (params.letter) {
+      if (params.letter === '0') {
+        uniqueHosts = uniqueHosts.filter((host: any) => !/^[a-zA-Z]/.test(host.title));
+      } else {
+        uniqueHosts = uniqueHosts.filter((host: any) =>
+          host.title.toLowerCase().startsWith(params.letter!.toLowerCase())
+        );
+      }
+    }
 
     // Apply pagination to the unique hosts
     const paginatedHosts = uniqueHosts.slice(offset, offset + limit);

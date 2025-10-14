@@ -5,7 +5,7 @@ import {
   getRelatedEpisodes,
   transformEpisodeToShowFormat,
 } from '@/lib/episode-service';
-import { addHours, isWithinInterval } from 'date-fns';
+import { addHours, addMinutes, isWithinInterval } from 'date-fns';
 import { findHostSlug, displayNameToSlug } from '@/lib/host-matcher';
 import { ShowCard } from '@/components/ui/show-card';
 import { EpisodeHero } from '@/components/homepage-hero';
@@ -198,12 +198,26 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
           )}
 
           {/* Tracklist Section */}
-          {metadata.broadcast_date &&
-            new Date(metadata.broadcast_date + metadata.duration) >= new Date() && (
-              <div className='my-4'>
-                {metadata.tracklist && <TracklistToggle tracklist={metadata.tracklist} />}
-              </div>
-            )}
+          {(() => {
+            if (!metadata.broadcast_date || !metadata.tracklist) return null;
+
+            const durationInMinutes = metadata.duration
+              ? parseInt(metadata.duration.split(':')[0])
+              : 120;
+
+            const broadcastStart = new Date(metadata.broadcast_date);
+            const broadcastEnd = addMinutes(broadcastStart, durationInMinutes);
+            const now = new Date();
+            const showTracklist = now >= broadcastEnd;
+
+            return (
+              showTracklist && (
+                <div className='my-4'>
+                  <TracklistToggle tracklist={metadata.tracklist} />
+                </div>
+              )
+            );
+          })()}
         </div>
 
         {/*RIGHT CONTAINER*/}
