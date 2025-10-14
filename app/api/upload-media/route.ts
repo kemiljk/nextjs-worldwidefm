@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createBucketClient } from "@cosmicjs/sdk";
+import { NextRequest, NextResponse } from 'next/server';
+import { createBucketClient } from '@cosmicjs/sdk';
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const file = formData.get("media") as File;
-    const metadata = formData.get("metadata") as string;
+    const file = formData.get('media') as File;
+    const metadata = formData.get('metadata') as string;
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
     // Parse metadata
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       try {
         parsedMetadata = JSON.parse(metadata);
       } catch (error) {
-        console.error("Error parsing metadata:", error);
+        console.error('Error parsing metadata:', error);
       }
     }
 
@@ -30,13 +30,13 @@ export async function POST(request: NextRequest) {
       try {
         // Prepare form data for RadioCult
         const rcForm = new FormData();
-        rcForm.append("stationMedia", file);
-        rcForm.append("metadata", JSON.stringify(parsedMetadata));
+        rcForm.append('stationMedia', file);
+        rcForm.append('metadata', JSON.stringify(parsedMetadata));
 
         const rcRes = await fetch(`https://api.radiocult.fm/api/station/${stationId}/media/track`, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "x-api-key": secretKey,
+            'x-api-key': secretKey,
           },
           body: rcForm,
         });
@@ -44,15 +44,15 @@ export async function POST(request: NextRequest) {
         if (rcRes.ok) {
           const rcJson = await rcRes.json();
           radiocultMediaId = rcJson.track?.id;
-          console.log("✅ RadioCult upload SUCCESS - Media ID:", radiocultMediaId);
-          console.log("📝 RadioCult response:", JSON.stringify(rcJson, null, 2));
+          console.log('✅ RadioCult upload SUCCESS - Media ID:', radiocultMediaId);
+          console.log('📝 RadioCult response:', JSON.stringify(rcJson, null, 2));
         } else {
           const errorText = await rcRes.text();
-          console.warn("❌ RadioCult upload FAILED (status:", rcRes.status, "):", errorText);
+          console.warn('❌ RadioCult upload FAILED (status:', rcRes.status, '):', errorText);
           // Continue without RadioCult media upload
         }
       } catch (error) {
-        console.warn("RadioCult upload failed:", error);
+        console.warn('RadioCult upload failed:', error);
         // Continue without RadioCult media upload
       }
     }
@@ -78,10 +78,18 @@ export async function POST(request: NextRequest) {
       success: true,
       radiocultMediaId: radiocultMediaId || null,
       cosmicMedia: cosmicMedia.media,
-      message: radiocultMediaId ? "Successfully uploaded to both RadioCult and Cosmic" : "Successfully uploaded to Cosmic (RadioCult upload skipped due to permissions)",
+      message: radiocultMediaId
+        ? 'Successfully uploaded to both RadioCult and Cosmic'
+        : 'Successfully uploaded to Cosmic (RadioCult upload skipped due to permissions)',
     });
   } catch (error) {
-    console.error("Error uploading media:", error);
-    return NextResponse.json({ error: "Failed to upload media", details: error instanceof Error ? error.message : "Unknown error" }, { status: 500 });
+    console.error('Error uploading media:', error);
+    return NextResponse.json(
+      {
+        error: 'Failed to upload media',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }

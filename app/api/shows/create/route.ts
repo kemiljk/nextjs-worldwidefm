@@ -102,7 +102,6 @@ export async function POST(request: NextRequest) {
       console.error("Error fetching genres:", error);
     }
 
-    // Current timestamp for created/modified/published dates
     const now = new Date().toISOString();
     const bucketSlug = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "";
 

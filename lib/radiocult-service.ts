@@ -1,14 +1,14 @@
-import { RadioShowObject, CosmicImage, GenreObject, HostObject } from "./cosmic-config";
+import { RadioShowObject, CosmicImage, GenreObject, HostObject } from './cosmic-config';
 
 // Define the RadioCult API base URL
-export const RADIOCULT_API_BASE_URL = "https://api.radiocult.fm";
+export const RADIOCULT_API_BASE_URL = 'https://api.radiocult.fm';
 
 // Station ID from environment variables
-const STATION_ID = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID || "";
+const STATION_ID = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID || '';
 
 // API keys from environment variables
-const RADIOCULT_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY || "";
-const RADIOCULT_SECRET_KEY = process.env.RADIOCULT_SECRET_KEY || "";
+const RADIOCULT_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY || '';
+const RADIOCULT_SECRET_KEY = process.env.RADIOCULT_SECRET_KEY || '';
 
 // Cache for RadioCult data with memoization
 type CacheKey = string;
@@ -144,22 +144,30 @@ export interface RadioCultTag {
 }
 
 // Helper function to make API requests to RadioCult
-async function fetchFromRadioCult<T>(endpoint: string, options: RequestInit = {}, useSecretKey: boolean = false): Promise<T> {
+async function fetchFromRadioCult<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  useSecretKey: boolean = false
+): Promise<T> {
   const apiKey = useSecretKey ? RADIOCULT_SECRET_KEY : RADIOCULT_PUBLISHABLE_KEY;
 
   if (!apiKey) {
-    throw new Error(`RadioCult API key not provided. ${useSecretKey ? "Secret" : "Publishable"} key is required.`);
+    throw new Error(
+      `RadioCult API key not provided. ${useSecretKey ? 'Secret' : 'Publishable'} key is required.`
+    );
   }
 
   if (!STATION_ID) {
-    throw new Error("RadioCult station ID not provided. Please set NEXT_PUBLIC_RADIOCULT_STATION_ID environment variable.");
+    throw new Error(
+      'RadioCult station ID not provided. Please set NEXT_PUBLIC_RADIOCULT_STATION_ID environment variable.'
+    );
   }
 
   const url = `${RADIOCULT_API_BASE_URL}${endpoint}`;
 
   const headers = {
     ...options.headers,
-    "x-api-key": apiKey,
+    'x-api-key': apiKey,
   };
 
   try {
@@ -168,20 +176,24 @@ async function fetchFromRadioCult<T>(endpoint: string, options: RequestInit = {}
       headers,
       next: {
         revalidate: 900, // 15 minutes
-        tags: ["radiocult"],
+        tags: ['radiocult'],
       },
     });
 
     if (!response.ok) {
-      console.error(`RadioCult API error: ${response.status} ${response.statusText} for endpoint ${endpoint}`);
+      console.error(
+        `RadioCult API error: ${response.status} ${response.statusText} for endpoint ${endpoint}`
+      );
       throw new Error(`RadioCult API error: ${response.statusText}`);
     }
 
     const data = await response.json();
 
     if (data.success === false) {
-      console.error(`RadioCult API success=false for endpoint ${endpoint}: ${data.error || "Unknown error"}`);
-      throw new Error(`RadioCult API error: ${data.error || "Unknown error"}`);
+      console.error(
+        `RadioCult API success=false for endpoint ${endpoint}: ${data.error || 'Unknown error'}`
+      );
+      throw new Error(`RadioCult API error: ${data.error || 'Unknown error'}`);
     }
 
     return data as T;
@@ -215,7 +227,7 @@ export async function getArtists(forceRefresh = false): Promise<RadioCultArtist[
 
     return data.artists;
   } catch (error) {
-    console.error("Error fetching RadioCult artists:", error);
+    console.error('Error fetching RadioCult artists:', error);
     return [];
   }
 }
@@ -223,7 +235,10 @@ export async function getArtists(forceRefresh = false): Promise<RadioCultArtist[
 /**
  * Get a specific artist by ID or slug
  */
-export async function getArtist(identifier: string, isSlug = false): Promise<RadioCultArtist | null> {
+export async function getArtist(
+  identifier: string,
+  isSlug = false
+): Promise<RadioCultArtist | null> {
   const endpoint = `/api/station/${STATION_ID}/artists/${identifier}`;
   const cacheKey = createCacheKey(endpoint);
   const cached = dataCache.get(cacheKey);
@@ -252,15 +267,19 @@ export async function getArtist(identifier: string, isSlug = false): Promise<Rad
 /**
  * Get an artist's scheduled events
  */
-export async function getArtistSchedule(artistId: string, startDate?: string, endDate?: string): Promise<RadioCultEvent[]> {
+export async function getArtistSchedule(
+  artistId: string,
+  startDate?: string,
+  endDate?: string
+): Promise<RadioCultEvent[]> {
   const queryParams = new URLSearchParams();
 
   if (startDate) {
-    queryParams.append("startDate", startDate);
+    queryParams.append('startDate', startDate);
   }
 
   if (endDate) {
-    queryParams.append("endDate", endDate);
+    queryParams.append('endDate', endDate);
   }
 
   const endpoint = `/api/station/${STATION_ID}/artists/${artistId}/schedule?${queryParams}`;
@@ -291,37 +310,40 @@ export async function getArtistSchedule(artistId: string, startDate?: string, en
 /**
  * Get scheduled events from RadioCult
  */
-export async function getEvents(params: RadioCultEventsParams = {}, forceRefresh = false): Promise<{ events: RadioCultEvent[]; total: number }> {
+export async function getEvents(
+  params: RadioCultEventsParams = {},
+  forceRefresh = false
+): Promise<{ events: RadioCultEvent[]; total: number }> {
   // Early check for required environment variables
   if (!STATION_ID || !RADIOCULT_PUBLISHABLE_KEY) {
-    console.log("RadioCult not configured, returning empty events");
+    console.log('RadioCult not configured, returning empty events');
     return { events: [], total: 0 };
   }
 
   const queryParams = new URLSearchParams();
 
   if (params.startDate) {
-    queryParams.append("startDate", params.startDate);
+    queryParams.append('startDate', params.startDate);
   }
 
   if (params.endDate) {
-    queryParams.append("endDate", params.endDate);
+    queryParams.append('endDate', params.endDate);
   }
 
   if (params.artistId) {
-    queryParams.append("artistId", params.artistId);
+    queryParams.append('artistId', params.artistId);
   }
 
   if (params.showId) {
-    queryParams.append("showId", params.showId);
+    queryParams.append('showId', params.showId);
   }
 
   if (params.limit) {
-    queryParams.append("limit", params.limit.toString());
+    queryParams.append('limit', params.limit.toString());
   }
 
   if (params.offset) {
-    queryParams.append("offset", params.offset.toString());
+    queryParams.append('offset', params.offset.toString());
   }
 
   // Use the schedule endpoint for all date-based requests according to RadioCult API
@@ -346,19 +368,19 @@ export async function getEvents(params: RadioCultEventsParams = {}, forceRefresh
     // Handle the schedules array format
     if (data.schedules && Array.isArray(data.schedules)) {
       events = data.schedules.map((item: RadioCultScheduleItem) => ({
-        id: item.id || item.originalId || item.slug || "",
-        showId: item.showId || item.originalId || "",
-        showName: item.title || item.name || "",
-        description: item.description || "",
-        slug: item.slug || "",
-        imageUrl: item.imageUrl || item.image?.url || "",
-        startTime: item.startTime || item.start || item.startDateUtc || "",
-        endTime: item.endTime || item.end || item.endDateUtc || "",
+        id: item.id || item.originalId || item.slug || '',
+        showId: item.showId || item.originalId || '',
+        showName: item.title || item.name || '',
+        description: item.description || '',
+        slug: item.slug || '',
+        imageUrl: item.imageUrl || item.image?.url || '',
+        startTime: item.startTime || item.start || item.startDateUtc || '',
+        endTime: item.endTime || item.end || item.endDateUtc || '',
         duration: item.duration || 0,
         artists: item.artists || [],
         tags: item.tags || [],
-        createdAt: item.createdAt || item.created || "",
-        updatedAt: item.updatedAt || item.modified || "",
+        createdAt: item.createdAt || item.created || '',
+        updatedAt: item.updatedAt || item.modified || '',
       }));
       total = events.length;
     }
@@ -370,23 +392,23 @@ export async function getEvents(params: RadioCultEventsParams = {}, forceRefresh
     // Handle schedule array format
     else if (data.schedule && Array.isArray(data.schedule)) {
       events = data.schedule.map((item: RadioCultScheduleItem) => ({
-        id: item.id || item.slug || "",
-        showId: item.showId || "",
-        showName: item.title || item.name || "",
-        description: item.description || "",
-        slug: item.slug || "",
-        imageUrl: item.imageUrl || item.image?.url || "",
-        startTime: item.startTime || item.start || "",
-        endTime: item.endTime || item.end || "",
+        id: item.id || item.slug || '',
+        showId: item.showId || '',
+        showName: item.title || item.name || '',
+        description: item.description || '',
+        slug: item.slug || '',
+        imageUrl: item.imageUrl || item.image?.url || '',
+        startTime: item.startTime || item.start || '',
+        endTime: item.endTime || item.end || '',
         duration: item.duration || 0,
         artists: item.artists || [],
         tags: item.tags || [],
-        createdAt: item.createdAt || "",
-        updatedAt: item.updatedAt || "",
+        createdAt: item.createdAt || '',
+        updatedAt: item.updatedAt || '',
       }));
       total = events.length;
     } else {
-      console.error("Unexpected response format from schedule endpoint:", data);
+      console.error('Unexpected response format from schedule endpoint:', data);
       events = [];
       total = 0;
     }
@@ -401,7 +423,7 @@ export async function getEvents(params: RadioCultEventsParams = {}, forceRefresh
 
     return result;
   } catch (error) {
-    console.error("Error fetching RadioCult events:", error);
+    console.error('Error fetching RadioCult events:', error);
     return { events: [], total: 0 };
   }
 }
@@ -424,16 +446,18 @@ export async function getEventBySlug(slug: string): Promise<RadioCultEvent | nul
     // Make the API request to get the specific event
     const response = await fetch(`${RADIOCULT_API_BASE_URL}${endpoint}`, {
       headers: {
-        "x-api-key": RADIOCULT_PUBLISHABLE_KEY,
+        'x-api-key': RADIOCULT_PUBLISHABLE_KEY,
       },
       next: {
         revalidate: 900, // 15 minutes
-        tags: ["radiocult"],
+        tags: ['radiocult'],
       },
     });
 
     if (!response.ok) {
-      console.error(`RadioCult API error for event lookup: ${response.status} ${response.statusText}`);
+      console.error(
+        `RadioCult API error for event lookup: ${response.status} ${response.statusText}`
+      );
       throw new Error(`RadioCult API error: ${response.statusText}`);
     }
 
@@ -441,15 +465,15 @@ export async function getEventBySlug(slug: string): Promise<RadioCultEvent | nul
 
     // Check if we got a valid response
     if (!data || data.success === false) {
-      console.error("Failed to fetch event by slug:", data.error || "Unknown error");
-      throw new Error(`Failed to fetch event: ${data.error || "Unknown error"}`);
+      console.error('Failed to fetch event by slug:', data.error || 'Unknown error');
+      throw new Error(`Failed to fetch event: ${data.error || 'Unknown error'}`);
     }
 
     // Extract the event from the response
     const event = data.event;
 
     if (!event) {
-      console.error("No event data in response:", data);
+      console.error('No event data in response:', data);
       return null;
     }
 
@@ -486,7 +510,10 @@ export async function getEventBySlug(slug: string): Promise<RadioCultEvent | nul
 
       return event;
     } catch (fallbackError) {
-      console.error(`Fallback method for finding event by slug (${slug}) also failed:`, fallbackError);
+      console.error(
+        `Fallback method for finding event by slug (${slug}) also failed:`,
+        fallbackError
+      );
       return null;
     }
   }
@@ -515,7 +542,7 @@ export async function getScheduleData(): Promise<{
 
     // Check if we have events
     if (!events || events.length === 0) {
-      console.log("No events returned from schedule for upcoming shows");
+      console.log('No events returned from schedule for upcoming shows');
       return {
         currentEvent: null,
         upcomingEvent: null,
@@ -548,7 +575,7 @@ export async function getScheduleData(): Promise<{
       upcomingEvents: upcomingEvents.slice(1),
     };
   } catch (error) {
-    console.error("Error getting schedule data:", error);
+    console.error('Error getting schedule data:', error);
     return {
       currentEvent: null,
       upcomingEvent: null,
@@ -561,7 +588,7 @@ export async function getScheduleData(): Promise<{
  * Transform RadioCult event to match the RadioShowObject format used in the app
  * Note: RadioCult events should ideally be matched with their corresponding Cosmic shows
  * to get accurate genre information from the Cosmic taxonomy.
- * 
+ *
  * @param event - RadioCult event
  * @param cosmicShow - Optional Cosmic show to pull genres from
  */
@@ -587,13 +614,13 @@ export function transformRadioCultEvent(
     id: artist.id,
     slug: artist.slug,
     title: artist.name,
-    content: artist.description || "",
-    bucket: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "",
+    content: artist.description || '',
+    bucket: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || '',
     created_at: now,
     modified_at: now,
     published_at: now,
-    status: "published",
-    type: "hosts",
+    status: 'published',
+    type: 'hosts',
     metadata: {
       description: artist.description || null,
       image: artist.imageUrl
@@ -613,7 +640,7 @@ export function transformRadioCultEvent(
     id: event.id,
     title: event.showName,
     slug: event.slug,
-    type: "episodes",
+    type: 'episodes',
     metadata: {
       subtitle: event.showName,
       description: event.description || null,
@@ -631,7 +658,7 @@ export function transformRadioCultEvent(
       broadcast_time: new Date(event.startTime).toLocaleTimeString(),
       broadcast_day: new Date(event.startTime).toLocaleDateString(),
       page_link: null,
-      source: "radiocult",
+      source: 'radiocult',
     },
   };
 }
@@ -651,7 +678,11 @@ export async function getTags(forceRefresh = false, useSecretKey = false): Promi
 
   try {
     // Use publishable key by default, secret key only when explicitly requested
-    const data = await fetchFromRadioCult<{ success: boolean; tags: RadioCultTag[] }>(endpoint, {}, useSecretKey);
+    const data = await fetchFromRadioCult<{ success: boolean; tags: RadioCultTag[] }>(
+      endpoint,
+      {},
+      useSecretKey
+    );
 
     // Update cache
     dataCache.set(cacheKey, {
@@ -661,7 +692,7 @@ export async function getTags(forceRefresh = false, useSecretKey = false): Promi
 
     return data.tags;
   } catch (error) {
-    console.error("Error fetching RadioCult tags:", error);
+    console.error('Error fetching RadioCult tags:', error);
     return [];
   }
 }

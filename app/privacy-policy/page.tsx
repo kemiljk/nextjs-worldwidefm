@@ -8,18 +8,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
 async function getPrivacyPolicyContent() {
   try {
-    const COSMIC_BUCKET_SLUG = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || "worldwide-fm-production";
-    const COSMIC_READ_KEY = process.env.NEXT_PUBLIC_COSMIC_READ_KEY || "Qo9hr8E9Vef66JrXQdyVrh29CVkd7Vz9GuGVdiQIClX6U7N9oh";
+    const { cosmic } = await import("@/cosmic/client");
     
-    const url = `https://api.cosmicjs.com/v3/buckets/${COSMIC_BUCKET_SLUG}/objects/68b2cb04dea361e2db6caf86?read_key=${COSMIC_READ_KEY}&props=slug,title,metadata,type`;
-    
-    const response = await fetch(url, { next: { revalidate: 3600 } }); // Cache for 1 hour
-    if (!response.ok) {
-      throw new Error(`Failed to fetch privacy policy: ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data.object;
+    const response = await cosmic.objects.findOne({
+      id: "68b2cb04dea361e2db6caf86"
+    }).props("slug,title,metadata,type");
+
+    return response?.object || null;
   } catch (error) {
     console.error("Error fetching privacy policy:", error);
     return null;

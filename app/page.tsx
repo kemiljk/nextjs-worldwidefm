@@ -60,19 +60,23 @@ export default async function Home() {
     rawDynamicSections
       .filter((section) => section.is_active && section.items && section.items.length > 0)
       .map(async (section) => {
-        const fetchedItemsPromises = section.items.map((item: any) => {
-          let id: string = "";
-          if (typeof item === "string") {
-            id = item;
-          } else if (item && typeof item === "object" && "id" in item && typeof item.id === "string") {
-            id = item.id;
-          }
-          return fetchCosmicObjectById(id);
-        });
+        const fetchedItemsPromises = section.items
+          .map((item: any) => {
+            let id: string = "";
+            if (typeof item === "string") {
+              id = item;
+            } else if (item && typeof item === "object" && "id" in item && typeof item.id === "string") {
+              id = item.id;
+            }
+            return id;
+          })
+          .filter((id) => id && id.length > 0)
+          .map((id) => fetchCosmicObjectById(id));
+        
         const fetchedItems = (await Promise.all(fetchedItemsPromises)).filter(Boolean) as HomepageSectionItem[];
         return {
           ...section,
-          layout: section.layout || "Grid", // Provide default layout if missing
+          layout: section.layout || "Grid",
           items: fetchedItems,
         };
       })
