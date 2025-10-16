@@ -1,36 +1,18 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { CheckCircle, Headphones, Star, Zap } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   return {
     title: 'Welcome to Worldwide FM Membership!',
     description:
-      'Your Worldwide FM membership subscription is now active. Enjoy exclusive content and ad-free listening.',
+      'Your Worldwide FM membership subscription is now active. Thank you for supporting independent radio.',
     noIndex: true,
   };
 };
 
 export default function MembershipSuccessPage() {
-  const membershipFeatures = [
-    {
-      icon: <Headphones className='size-8' />,
-      title: 'Ad-Free Listening',
-      description: 'Enjoy uninterrupted music without advertisements',
-    },
-    {
-      icon: <Star className='size-8' />,
-      title: 'Exclusive Content',
-      description: 'Access to member-only shows and special broadcasts',
-    },
-    {
-      icon: <Zap className='size-8' />,
-      title: 'Early Access',
-      description: 'Be the first to hear new episodes and special releases',
-    },
-  ];
-
   return (
     <div className='container mx-auto py-8 px-4'>
       <div className='max-w-2xl mx-auto text-center'>
@@ -41,25 +23,19 @@ export default function MembershipSuccessPage() {
           </h1>
           <p className='text-lg text-muted-foreground mb-8'>
             Your membership subscription is now active. You'll receive a confirmation email shortly
-            with all the details about your new membership benefits.
+            with all the details.
           </p>
         </div>
 
         <div className='bg-card p-8 shadow-xs mb-8'>
           <h2 className='font-display uppercase text-2xl font-normal tracking-tight mb-6'>
-            Your Membership Benefits
+            Thank You for Your Support
           </h2>
-          <div className='grid md:grid-cols-3 gap-6'>
-            {membershipFeatures.map((feature, index) => (
-              <div
-                key={index}
-                className='text-center'
-              >
-                <div className='text-primary mb-4 flex justify-center'>{feature.icon}</div>
-                <h3 className='font-medium text-lg mb-2'>{feature.title}</h3>
-                <p className='text-muted-foreground text-sm'>{feature.description}</p>
-              </div>
-            ))}
+          <div className='max-w-lg mx-auto'>
+            <p className='text-muted-foreground'>
+              Your support helps keep Worldwide FM independent and enables us to continue bringing
+              you quality music from around the world. Thank you for being part of our community.
+            </p>
           </div>
         </div>
 

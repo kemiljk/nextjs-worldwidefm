@@ -370,7 +370,7 @@ export default function DashboardClient({
                   <p className='text-muted-foreground'>
                     {userData.metadata.subscription_status === 'active'
                       ? 'You have an active membership'
-                      : 'Upgrade to unlock exclusive content and ad-free listening'}
+                      : 'Support Worldwide FM, an independent radio station'}
                   </p>
                 </div>
               </div>
