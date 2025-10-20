@@ -60,7 +60,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
       show.imageUrl ||
       show.image ||
       show.metadata?.image?.imgix_url ||
-      '/image-placeholder.svg'
+      '/image-placeholder.png'
     );
   };
 
@@ -178,6 +178,13 @@ export const ShowCard: React.FC<ShowCardProps> = ({
             className={`object-cover border ${imageBorderClass} hover:cursor-pointer`}
             sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
             priority={false}
+            onError={(e: any) => {
+              if (e?.currentTarget) {
+                try {
+                  e.currentTarget.src = '/image-placeholder.png';
+                } catch {}
+              }
+            }}
           />
           {shouldShowPlayButton && (
             <div className='absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20'>

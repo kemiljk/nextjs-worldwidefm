@@ -64,112 +64,236 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       };
     }
 
-    // For filtered queries, use client-side filtering for reliability
-    // Cosmic CMS has limited support for complex nested queries
+    // For filtered queries, construct a server-side query using Cosmic operators
     if (hasFilters) {
-      // Use a reasonable limit to avoid timeouts (300 episodes is ~15 pages)
-      const fetchLimit = Math.min(offset + baseLimit * 15, 300);
+      const query: any = {
+        type: 'episode',
+        status: 'published',
+      };
 
-      const allResponse = await cosmic.objects
-        .find({
-          type: 'episode',
-          status: 'published',
-        })
-        .props('slug,title,metadata,type,created_at,published_at')
-        .limit(fetchLimit)
-        .sort('-order')
-        .depth(2);
+      // If searching by text, also resolve related object IDs by title
+      let resolvedHostIds: string[] = [];
+      let resolvedTakeoverIds: string[] = [];
+      let resolvedGenreIds: string[] = [];
+      if (params.searchTerm && params.searchTerm.trim()) {
+        const searchTerm = params.searchTerm.trim();
+        console.log('[getEpisodes] Original search term:', JSON.stringify(searchTerm));
+        const regex = { $regex: searchTerm, $options: 'i' } as any;
+        try {
+          const [hostsRes, takeoversRes, genresRes] = await Promise.all([
+            cosmic.objects
+              .find({ type: 'regular-hosts', title: regex })
+              .props('id,title')
+              .limit(200),
+            cosmic.objects.find({ type: 'takeovers', title: regex }).props('id,title').limit(200),
+            cosmic.objects.find({ type: 'genres', title: regex }).props('id,title').limit(200),
+          ]);
+          resolvedHostIds = (hostsRes.objects || []).map((o: any) => o.id).filter(Boolean);
+          resolvedTakeoverIds = (takeoversRes.objects || []).map((o: any) => o.id).filter(Boolean);
+          resolvedGenreIds = (genresRes.objects || []).map((o: any) => o.id).filter(Boolean);
 
-      let allEpisodes = allResponse.objects || [];
-      const originalFetchedCount = allEpisodes.length;
+          console.log(
+            '[getEpisodes] Found hosts matching search:',
+            (hostsRes.objects || []).map((o: any) => o.title)
+          );
 
-      // Apply filters client-side
+          // Debug: Check if "Sam Bhok" exists as a host object
+          if (params.searchTerm.toLowerCase().includes('sam')) {
+            console.log('[getEpisodes] Searching for Sam Bhok specifically...');
+            try {
+              const samBhokRes = await cosmic.objects
+                .find({ type: 'regular-hosts', title: { $regex: 'sam.*bhok', $options: 'i' } })
+                .props('id,title')
+                .limit(10);
+              console.log(
+                '[getEpisodes] Sam Bhok host objects found:',
+                (samBhokRes.objects || []).map((o: any) => o.title)
+              );
+            } catch (e) {
+              console.log('[getEpisodes] Error searching for Sam Bhok:', e);
+            }
+          }
+          console.log(
+            '[getEpisodes] Found takeovers matching search:',
+            (takeoversRes.objects || []).map((o: any) => o.title)
+          );
+          console.log(
+            '[getEpisodes] Found genres matching search:',
+            (genresRes.objects || []).map((o: any) => o.title)
+          );
+        } catch (e) {
+          // non-fatal
+        }
+      }
+
       if (params.genre) {
         const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
-        const validGenres = genres.filter((g) => g && typeof g === 'string' && g.trim() !== '');
-        if (validGenres.length > 0) {
-          allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
-            const episodeGenres = episode.metadata?.genres || [];
-            return episodeGenres.some((genre: any) => validGenres.includes(genre.id));
-          });
+        const validGenres = genres.filter(Boolean);
+        if (validGenres.length === 1) {
+          query['metadata.genres.id'] = validGenres[0];
+        } else if (validGenres.length > 1) {
+          query.$or = (query.$or || []).concat(
+            validGenres.map((id: string) => ({ 'metadata.genres.id': id }))
+          );
         }
       }
 
       if (params.location) {
         const locations = Array.isArray(params.location) ? params.location : [params.location];
-        allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
-          const episodeLocations = episode.metadata?.locations || [];
-          return episodeLocations.some((location: any) => locations.includes(location.id));
-        });
+        query['metadata.locations.id'] = { $in: locations };
       }
 
       if (params.host) {
         if (params.host === '*') {
-          allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
-            const episodeHosts = episode.metadata?.regular_hosts || [];
-            return episodeHosts.length > 0;
-          });
+          query['metadata.regular_hosts'] = { $exists: true, $ne: [] };
         } else {
           const hosts = Array.isArray(params.host) ? params.host : [params.host];
-          allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
-            const episodeHosts = episode.metadata?.regular_hosts || [];
-            return episodeHosts.some((host: any) => {
-              return hosts.includes(host.id) || hosts.includes(host.slug);
-            });
-          });
+          query['metadata.regular_hosts.id'] = { $in: hosts };
         }
       }
 
       if (params.takeover) {
         if (params.takeover === '*') {
-          allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
-            const episodeTakeovers = episode.metadata?.takeovers || [];
-            return episodeTakeovers.length > 0;
-          });
+          query['metadata.takeovers'] = { $exists: true, $ne: [] };
         } else {
           const takeovers = Array.isArray(params.takeover) ? params.takeover : [params.takeover];
-          allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
-            const episodeTakeovers = episode.metadata?.takeovers || [];
-            return episodeTakeovers.some((takeover: any) => takeovers.includes(takeover.id));
-          });
+          query['metadata.takeovers.id'] = { $in: takeovers };
         }
       }
 
       if (params.showType) {
         const showTypes = Array.isArray(params.showType) ? params.showType : [params.showType];
-        allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
-          const episodeType = episode.metadata?.type;
-          return episodeType && showTypes.includes(episodeType.id);
-        });
+        query['metadata.type.id'] = { $in: showTypes };
       }
 
       if (params.searchTerm) {
-        const searchLower = params.searchTerm.toLowerCase();
-        allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
-          return episode.title.toLowerCase().includes(searchLower);
-        });
+        const term = String(params.searchTerm).trim();
+        if (term) {
+          const regex = { $regex: term, $options: 'i' };
+
+          // Use simple title search instead of complex $or query
+          // The $or query is broken and returns wrong results
+          query.title = regex;
+
+          console.log('[getEpisodes] Using simple title search instead of $or query');
+          console.log('[getEpisodes] Search regex:', JSON.stringify(regex));
+
+          // Add host/takeover/genre ID searches as additional conditions
+          if (resolvedHostIds.length > 0) {
+            query['metadata.regular_hosts.id'] = { $in: resolvedHostIds };
+          }
+          if (resolvedTakeoverIds.length > 0) {
+            query['metadata.takeovers.id'] = { $in: resolvedTakeoverIds };
+          }
+          if (resolvedGenreIds.length > 0) {
+            query['metadata.genres.id'] = { $in: resolvedGenreIds };
+          }
+        }
       }
 
       if (params.isNew) {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        allEpisodes = allEpisodes.filter((episode: EpisodeObject) => {
-          const broadcastDate = episode.metadata?.broadcast_date;
-          return broadcastDate && new Date(broadcastDate) >= thirtyDaysAgo;
+        query['metadata.broadcast_date'] = { $gte: thirtyDaysAgo.toISOString().slice(0, 10) };
+      }
+
+      console.log(
+        '[getEpisodes] searchTerm=',
+        params.searchTerm,
+        'resolvedHostIds=',
+        resolvedHostIds,
+        'resolvedTakeoverIds=',
+        resolvedTakeoverIds,
+        'resolvedGenreIds=',
+        resolvedGenreIds
+      );
+
+      const response = await cosmic.objects
+        .find(query)
+        .limit(baseLimit)
+        .skip(offset)
+        .sort('-order,-metadata.broadcast_date,-created_at')
+        .depth(3); // Increased depth to ensure nested metadata is resolved
+
+      const episodes = response.objects || [];
+      const total = response.total || episodes.length;
+      const hasNext = episodes.length === baseLimit && offset + baseLimit < total;
+
+      console.log(
+        '[getEpisodes] episodes_found=',
+        episodes.length,
+        'query=',
+        JSON.stringify(query, null, 2)
+      );
+
+      // Debug: Log first few episode titles and hosts to see what we're getting
+      if (episodes.length > 0) {
+        console.log('[getEpisodes] Sample episodes found:');
+        episodes.slice(0, 3).forEach((ep: any, idx: number) => {
+          console.log(
+            `  ${idx + 1}. "${ep.title}" - hosts:`,
+            ep.metadata?.regular_hosts?.map((h: any) => h.title) || 'none'
+          );
         });
       }
 
-      // Apply pagination
-      const startIndex = offset;
-      const endIndex = startIndex + baseLimit;
-      const paginatedEpisodes = allEpisodes.slice(startIndex, endIndex);
+      // Debug: Check if any episodes have hosts at all
+      const episodesWithHosts = episodes.filter(
+        (ep: any) => ep.metadata?.regular_hosts?.length > 0
+      );
+      console.log(
+        `[getEpisodes] Episodes with hosts: ${episodesWithHosts.length}/${episodes.length}`
+      );
+      if (episodesWithHosts.length > 0) {
+        console.log('[getEpisodes] First episode with hosts:', {
+          title: episodesWithHosts[0].title,
+          hosts: episodesWithHosts[0].metadata?.regular_hosts,
+          metadataKeys: Object.keys(episodesWithHosts[0].metadata || {}),
+        });
 
-      // If we have more filtered results, or hit the fetch limit (suggesting more episodes exist)
-      const hasNext = endIndex < allEpisodes.length || originalFetchedCount === fetchLimit;
+        // Debug: Show all host titles from episodes with hosts
+        console.log('[getEpisodes] All host titles found:');
+        episodesWithHosts.forEach((ep: any, idx: number) => {
+          const hostTitles = ep.metadata?.regular_hosts?.map((h: any) => h.title) || [];
+          console.log(`  Episode ${idx + 1}: "${ep.title}" - hosts: [${hostTitles.join(', ')}]`);
+        });
+      }
+
+      // Debug: Test if the search term actually matches any episodes
+      if (params.searchTerm) {
+        console.log('[getEpisodes] Testing if search term matches any episodes...');
+        try {
+          const testRes = await cosmic.objects
+            .find({
+              type: 'episode',
+              status: 'published',
+              title: { $regex: params.searchTerm.trim(), $options: 'i' },
+            })
+            .props('id,title')
+            .limit(5);
+          console.log(
+            '[getEpisodes] Episodes matching search term in title:',
+            (testRes.objects || []).map((o: any) => o.title)
+          );
+
+          if (testRes.objects && testRes.objects.length === 0) {
+            console.log(
+              '[getEpisodes] NO episodes match the search term! Returning empty results.'
+            );
+            return {
+              episodes: [],
+              total: 0,
+              hasNext: false,
+            };
+          }
+        } catch (e) {
+          console.log('[getEpisodes] Error testing search term:', e);
+        }
+      }
 
       return {
-        episodes: paginatedEpisodes,
-        total: allEpisodes.length,
+        episodes,
+        total,
         hasNext,
       };
     }
@@ -180,11 +304,10 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         type: 'episode',
         status: 'published',
       })
-      .props('slug,title,metadata,type,created_at,published_at')
       .limit(baseLimit)
       .skip(offset)
       .sort('-order')
-      .depth(2);
+      .depth(3); // Increased depth to ensure nested metadata is resolved
 
     const episodes = response.objects || [];
     const total = response.total || episodes.length;
@@ -270,16 +393,16 @@ export function transformEpisodeToShowFormat(episode: EpisodeObject): any {
 
     // Image handling
     pictures: {
-      small: metadata.image?.imgix_url || '/image-placeholder.svg',
-      thumbnail: metadata.image?.imgix_url || '/image-placeholder.svg',
-      medium_mobile: metadata.image?.imgix_url || '/image-placeholder.svg',
-      medium: metadata.image?.imgix_url || '/image-placeholder.svg',
-      large: metadata.image?.imgix_url || '/image-placeholder.svg',
-      '320wx320h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      extra_large: metadata.image?.imgix_url || '/image-placeholder.svg',
-      '640wx640h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      '768wx768h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      '1024wx1024h': metadata.image?.imgix_url || '/image-placeholder.svg',
+      small: metadata.image?.imgix_url || '/image-placeholder.png',
+      thumbnail: metadata.image?.imgix_url || '/image-placeholder.png',
+      medium_mobile: metadata.image?.imgix_url || '/image-placeholder.png',
+      medium: metadata.image?.imgix_url || '/image-placeholder.png',
+      large: metadata.image?.imgix_url || '/image-placeholder.png',
+      '320wx320h': metadata.image?.imgix_url || '/image-placeholder.png',
+      extra_large: metadata.image?.imgix_url || '/image-placeholder.png',
+      '640wx640h': metadata.image?.imgix_url || '/image-placeholder.png',
+      '768wx768h': metadata.image?.imgix_url || '/image-placeholder.png',
+      '1024wx1024h': metadata.image?.imgix_url || '/image-placeholder.png',
     },
 
     // Dates and times
@@ -324,14 +447,14 @@ export function transformEpisodeToShowFormat(episode: EpisodeObject): any {
       name: host.title || host.id,
       username: host.slug || host.id,
       pictures: {
-        small: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        thumbnail: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        medium_mobile: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        medium: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        large: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        '320wx320h': host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        extra_large: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        '640wx640h': host.metadata?.image?.imgix_url || '/image-placeholder.svg',
+        small: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        thumbnail: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        medium_mobile: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        medium: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        large: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        '320wx320h': host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        extra_large: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        '640wx640h': host.metadata?.image?.imgix_url || '/image-placeholder.png',
       },
     })),
 
@@ -623,16 +746,16 @@ export function transformHostToShowFormat(host: any): any {
 
     // Image handling
     pictures: {
-      small: metadata.image?.imgix_url || '/image-placeholder.svg',
-      thumbnail: metadata.image?.imgix_url || '/image-placeholder.svg',
-      medium_mobile: metadata.image?.imgix_url || '/image-placeholder.svg',
-      medium: metadata.image?.imgix_url || '/image-placeholder.svg',
-      large: metadata.image?.imgix_url || '/image-placeholder.svg',
-      '320wx320h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      extra_large: metadata.image?.imgix_url || '/image-placeholder.svg',
-      '640wx640h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      '768wx768h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      '1024wx1024h': metadata.image?.imgix_url || '/image-placeholder.svg',
+      small: metadata.image?.imgix_url || '/image-placeholder.png',
+      thumbnail: metadata.image?.imgix_url || '/image-placeholder.png',
+      medium_mobile: metadata.image?.imgix_url || '/image-placeholder.png',
+      medium: metadata.image?.imgix_url || '/image-placeholder.png',
+      large: metadata.image?.imgix_url || '/image-placeholder.png',
+      '320wx320h': metadata.image?.imgix_url || '/image-placeholder.png',
+      extra_large: metadata.image?.imgix_url || '/image-placeholder.png',
+      '640wx640h': metadata.image?.imgix_url || '/image-placeholder.png',
+      '768wx768h': metadata.image?.imgix_url || '/image-placeholder.png',
+      '1024wx1024h': metadata.image?.imgix_url || '/image-placeholder.png',
     },
 
     // Dates and times
@@ -705,16 +828,16 @@ export function transformTakeoverToShowFormat(takeover: any): any {
 
     // Image handling
     pictures: {
-      small: metadata.image?.imgix_url || '/image-placeholder.svg',
-      thumbnail: metadata.image?.imgix_url || '/image-placeholder.svg',
-      medium_mobile: metadata.image?.imgix_url || '/image-placeholder.svg',
-      medium: metadata.image?.imgix_url || '/image-placeholder.svg',
-      large: metadata.image?.imgix_url || '/image-placeholder.svg',
-      '320wx320h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      extra_large: metadata.image?.imgix_url || '/image-placeholder.svg',
-      '640wx640h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      '768wx768h': metadata.image?.imgix_url || '/image-placeholder.svg',
-      '1024wx1024h': metadata.image?.imgix_url || '/image-placeholder.svg',
+      small: metadata.image?.imgix_url || '/image-placeholder.png',
+      thumbnail: metadata.image?.imgix_url || '/image-placeholder.png',
+      medium_mobile: metadata.image?.imgix_url || '/image-placeholder.png',
+      medium: metadata.image?.imgix_url || '/image-placeholder.png',
+      large: metadata.image?.imgix_url || '/image-placeholder.png',
+      '320wx320h': metadata.image?.imgix_url || '/image-placeholder.png',
+      extra_large: metadata.image?.imgix_url || '/image-placeholder.png',
+      '640wx640h': metadata.image?.imgix_url || '/image-placeholder.png',
+      '768wx768h': metadata.image?.imgix_url || '/image-placeholder.png',
+      '1024wx1024h': metadata.image?.imgix_url || '/image-placeholder.png',
     },
 
     // Dates and times
@@ -751,14 +874,14 @@ export function transformTakeoverToShowFormat(takeover: any): any {
       name: host.title || host.id,
       username: host.slug || host.id,
       pictures: {
-        small: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        thumbnail: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        medium_mobile: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        medium: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        large: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        '320wx320h': host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        extra_large: host.metadata?.image?.imgix_url || '/image-placeholder.svg',
-        '640wx640h': host.metadata?.image?.imgix_url || '/image-placeholder.svg',
+        small: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        thumbnail: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        medium_mobile: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        medium: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        large: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        '320wx320h': host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        extra_large: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+        '640wx640h': host.metadata?.image?.imgix_url || '/image-placeholder.png',
       },
     })),
 

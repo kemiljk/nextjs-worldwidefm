@@ -205,7 +205,18 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
         response = await getEpisodesForShows(episodeParams);
       }
 
-      setShows((prev) => [...prev, ...response.shows]);
+      setShows((prev) => {
+        const existing = new Set(prev.map((s) => s.id || s.slug));
+        const merged = [...prev];
+        response.shows.forEach((s: any) => {
+          const key = s.id || s.slug;
+          if (!existing.has(key)) {
+            merged.push(s);
+            existing.add(key);
+          }
+        });
+        return merged;
+      });
       setHasNext(response.hasNext);
       setPage((prev) => prev + 1);
     } catch (error) {

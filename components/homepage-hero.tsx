@@ -36,16 +36,21 @@ const renderHeroItem = (item: CosmicItem, isPriority: boolean) => {
       >
         <CardContent className='p-0 grow flex flex-col'>
           <div className='relative w-full h-[calc(100dvh-112px)] flex items-center justify-center'>
-            {item.metadata.image?.url && (
-              <Image
-                src={item.metadata.image.url}
-                alt={item.title}
-                fill
-                className='object-cover'
-                sizes='(max-width: 768px) 100vw, 50vw'
-                priority={isPriority}
-              />
-            )}
+            <Image
+              src={item.metadata.image?.url || '/image-placeholder.png'}
+              alt={item.title}
+              fill
+              className='object-cover'
+              sizes='(max-width: 768px) 100vw, 50vw'
+              priority={isPriority}
+              onError={(e: any) => {
+                if (e?.currentTarget) {
+                  try {
+                    e.currentTarget.src = '/image-placeholder.png';
+                  } catch {}
+                }
+              }}
+            />
           </div>
           <div className='absolute bottom-0 left-0 right-0 flex bg-linear-to-t from-almostblack to-transparent h-1/2 flex-col p-4 flex-1 justify-end'>
             <div className='bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-1 px-1 text-left'>

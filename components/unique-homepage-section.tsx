@@ -32,7 +32,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
         slug: item.slug,
         pictures: {
           large:
-            item.metadata.image?.url || item.metadata.image?.imgix_url || '/image-placeholder.svg',
+            item.metadata.image?.url || item.metadata.image?.imgix_url || '/image-placeholder.png',
         },
         user: {
           name: item.title,
@@ -58,8 +58,8 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
         url: `/episode/${item.slug}`,
         // media
         pictures: {
-          large: imageUrl || '/image-placeholder.svg',
-          extra_large: imageUrl || '/image-placeholder.svg',
+          large: imageUrl || '/image-placeholder.png',
+          extra_large: imageUrl || '/image-placeholder.png',
         },
         enhanced_image: imageUrl,
         // dates
@@ -92,7 +92,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
         large:
           item.metadata.image?.url ||
           item.metadata.featured_image?.imgix_url ||
-          '/image-placeholder.svg',
+          '/image-placeholder.png',
       },
       user: {
         name: item.metadata.author?.title || item.metadata.author || '',

@@ -224,7 +224,7 @@ export default function DashboardClient({
                       <div className='aspect-video bg-gray-200 dark:bg-gray-700'>
                         <img
                           src={
-                            show.enhanced_image || show.pictures?.large || '/image-placeholder.svg'
+                            show.enhanced_image || show.pictures?.large || '/image-placeholder.png'
                           }
                           alt={show.name || show.title}
                           className='w-full h-full object-cover'

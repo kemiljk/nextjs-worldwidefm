@@ -1,13 +1,13 @@
-"use server";
+'use server';
 
-import crypto from "crypto";
-import { cookies } from "next/headers";
-import { cosmic } from "@/cosmic/client";
-import bcrypt from "bcryptjs";
-import { Resend } from "resend";
-import { getRadioShows } from "@/lib/cosmic-service";
+import crypto from 'crypto';
+import { cookies } from 'next/headers';
+import { cosmic } from '@/cosmic/client';
+import bcrypt from 'bcryptjs';
+import { Resend } from 'resend';
+import { getRadioShows } from '@/lib/cosmic-service';
 
-import { getCanonicalGenres } from "@/lib/get-canonical-genres";
+import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -17,16 +17,16 @@ function isValidPassword(password: string): boolean {
 
 export async function signUp(formData: FormData) {
   try {
-    const email = (formData.get("email") as string).toLowerCase();
-    const password = formData.get("password") as string;
-    const firstName = formData.get("firstName") as string;
-    const lastName = formData.get("lastName") as string;
+    const email = (formData.get('email') as string).toLowerCase();
+    const password = formData.get('password') as string;
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
 
     // Add password validation
     if (!isValidPassword(password)) {
       return {
         success: false,
-        error: "Password must be at least 8 characters long and contain both letters and numbers",
+        error: 'Password must be at least 8 characters long and contain both letters and numbers',
       };
     }
 
@@ -35,10 +35,10 @@ export async function signUp(formData: FormData) {
     try {
       existingUser = await cosmic.objects
         .findOne({
-          type: "users",
-          "metadata.email": email,
+          type: 'users',
+          'metadata.email': email,
         })
-        .props(["metadata"])
+        .props(['metadata'])
         .depth(0);
     } catch (err) {
       // User does not exist
@@ -47,12 +47,12 @@ export async function signUp(formData: FormData) {
     if (existingUser) {
       return {
         success: false,
-        error: "An account with this email already exists",
+        error: 'An account with this email already exists',
       };
     }
 
     // Generate verification code
-    const verificationCode = crypto.randomBytes(32).toString("hex");
+    const verificationCode = crypto.randomBytes(32).toString('hex');
     const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Hash password
@@ -61,7 +61,7 @@ export async function signUp(formData: FormData) {
     // Create new user
     await cosmic.objects.insertOne({
       title: `${firstName} ${lastName}`,
-      type: "users",
+      type: 'users',
       metadata: {
         first_name: firstName,
         last_name: lastName,
@@ -81,7 +81,7 @@ export async function signUp(formData: FormData) {
       const result = await resend.emails.send({
         from: `${process.env.NEXT_PUBLIC_APP_NAME} Support <${process.env.SUPPORT_EMAIL}>`,
         to: email,
-        subject: "Verify your email address",
+        subject: 'Verify your email address',
         html: `
           <h1>Welcome to ${process.env.NEXT_PUBLIC_APP_NAME}!</h1>
           <p>Please click the link below to verify your email address:</p>
@@ -90,49 +90,49 @@ export async function signUp(formData: FormData) {
         `,
       });
       console.log(`Verification email sent to ${email}`);
-      console.log("Resend response:", result);
+      console.log('Resend response:', result);
     } catch (error) {
-      console.error("Error sending verification email:", error);
-      console.error("Full error details:", JSON.stringify(error, null, 2));
+      console.error('Error sending verification email:', error);
+      console.error('Full error details:', JSON.stringify(error, null, 2));
       return {
         success: false,
-        error: "Failed to send verification email. Please try again.",
+        error: 'Failed to send verification email. Please try again.',
       };
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Signup error:", error);
+    console.error('Signup error:', error);
     return {
       success: false,
-      error: "Failed to create account. Please try again.",
+      error: 'Failed to create account. Please try again.',
     };
   }
 }
 
 export async function login(formData: FormData) {
-  const email = (formData.get("email") as string).toLowerCase();
-  const password = formData.get("password") as string;
+  const email = (formData.get('email') as string).toLowerCase();
+  const password = formData.get('password') as string;
 
   try {
     const result = await cosmic.objects
       .findOne({
-        type: "users",
-        "metadata.email": email,
-        "metadata.email_verified": true,
-        "metadata.active_status": true,
+        type: 'users',
+        'metadata.email': email,
+        'metadata.email_verified': true,
+        'metadata.active_status': true,
       })
-      .props(["id", "title", "metadata"])
+      .props(['id', 'title', 'metadata'])
       .depth(0);
 
     if (!result.object) {
-      return { error: "Invalid email or password" };
+      return { error: 'Invalid email or password' };
     }
 
     const isValid = await bcrypt.compare(password, result.object.metadata.password);
 
     if (!isValid) {
-      return { error: "Invalid email or password" };
+      return { error: 'Invalid email or password' };
     }
 
     const user = {
@@ -143,17 +143,17 @@ export async function login(formData: FormData) {
     };
 
     // Set the user_id cookie
-    (await cookies()).set("user_id", result.object.id, {
+    (await cookies()).set('user_id', result.object.id, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
     });
 
     return { user };
   } catch (error) {
-    console.error("Login error:", error);
-    return { error: "Invalid email or password" };
+    console.error('Login error:', error);
+    return { error: 'Invalid email or password' };
   }
 }
 
@@ -162,30 +162,30 @@ export async function getUserData(userId: string) {
     const { object } = await cosmic.objects
       .findOne({
         id: userId,
-        type: "users",
+        type: 'users',
       })
-      .props("id,title,metadata")
+      .props('id,title,metadata')
       .depth(1);
 
     if (!object) {
-      return { data: null, error: "User not found" };
+      return { data: null, error: 'User not found' };
     }
 
     // Check active status after finding the user
     if (!object.metadata.active_status) {
-      return { data: null, error: "Account is not active" };
+      return { data: null, error: 'Account is not active' };
     }
 
     return { data: object, error: null };
   } catch (error) {
-    console.error("Error fetching user data:", error);
-    return { data: null, error: "Failed to fetch user data" };
+    console.error('Error fetching user data:', error);
+    return { data: null, error: 'Failed to fetch user data' };
   }
 }
 
 export async function getUserFromCookie() {
   const cookieStore = await cookies();
-  const userId = cookieStore.get("user_id");
+  const userId = cookieStore.get('user_id');
   if (!userId) {
     return null;
   }
@@ -193,11 +193,11 @@ export async function getUserFromCookie() {
   try {
     const result = await cosmic.objects
       .findOne({
-        type: "users",
+        type: 'users',
         id: userId.value,
-        "metadata.active_status": true,
+        'metadata.active_status': true,
       })
-      .props(["id", "metadata.name", "metadata.email", "metadata.image"])
+      .props(['id', 'metadata.name', 'metadata.email', 'metadata.image'])
       .depth(0);
 
     if (!result?.object) {
@@ -211,7 +211,7 @@ export async function getUserFromCookie() {
       image: result.object.metadata.image,
     };
   } catch (error) {
-    console.error("Error fetching user:", error);
+    console.error('Error fetching user:', error);
     return null;
   }
 }
@@ -227,13 +227,16 @@ async function uploadFile(file: File) {
 
 export async function updateUserProfile(userId: string, formData: FormData) {
   try {
-    const firstName = formData.get("firstName") as string;
-    const lastName = formData.get("lastName") as string;
-    const email = (formData.get("email") as string).toLowerCase();
-    const avatar = formData.get("avatar") as File;
+    const firstName = formData.get('firstName') as string;
+    const lastName = formData.get('lastName') as string;
+    const email = (formData.get('email') as string).toLowerCase();
+    const avatar = formData.get('avatar') as File;
 
     // Get current user data to check if email has changed
-    const { object: currentUser } = await cosmic.objects.findOne({ id: userId }).props(["metadata"]).depth(0);
+    const { object: currentUser } = await cosmic.objects
+      .findOne({ id: userId })
+      .props(['metadata'])
+      .depth(0);
 
     const metadata: any = {
       first_name: firstName,
@@ -246,20 +249,20 @@ export async function updateUserProfile(userId: string, formData: FormData) {
       // Check if new email already exists
       const existingUser = await cosmic.objects
         .findOne({
-          type: "users",
-          "metadata.email": email,
+          type: 'users',
+          'metadata.email': email,
         })
-        .props(["id"])
+        .props(['id'])
         .depth(0);
 
       if (existingUser.object) {
         return {
           success: false,
-          error: "An account with this email already exists",
+          error: 'An account with this email already exists',
         };
       }
 
-      const verificationCode = crypto.randomBytes(32).toString("hex");
+      const verificationCode = crypto.randomBytes(32).toString('hex');
       const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       metadata.email_verified = false;
@@ -272,7 +275,7 @@ export async function updateUserProfile(userId: string, formData: FormData) {
         const result = await resend.emails.send({
           from: `${process.env.NEXT_PUBLIC_APP_NAME} Support <${process.env.SUPPORT_EMAIL}>`,
           to: email,
-          subject: "Verify your new email address",
+          subject: 'Verify your new email address',
           html: `
             <h1>Verify Your New Email Address</h1>
             <p>Please click the link below to verify your new email address:</p>
@@ -281,13 +284,13 @@ export async function updateUserProfile(userId: string, formData: FormData) {
           `,
         });
         console.log(`Email change verification sent to ${email}`);
-        console.log("Resend response:", result);
+        console.log('Resend response:', result);
       } catch (error) {
-        console.error("Error sending email change verification:", error);
-        console.error("Full error details:", JSON.stringify(error, null, 2));
+        console.error('Error sending email change verification:', error);
+        console.error('Full error details:', JSON.stringify(error, null, 2));
         return {
           success: false,
-          error: "Failed to send verification email. Please try again.",
+          error: 'Failed to send verification email. Please try again.',
         };
       }
     }
@@ -312,8 +315,8 @@ export async function updateUserProfile(userId: string, formData: FormData) {
 
     return { success: true, data: object };
   } catch (error) {
-    console.error("Error updating profile:", error);
-    return { success: false, error: "Failed to update profile" };
+    console.error('Error updating profile:', error);
+    return { success: false, error: 'Failed to update profile' };
   }
 }
 
@@ -322,58 +325,58 @@ export async function verifyEmail(code: string) {
   try {
     const { object } = await cosmic.objects
       .findOne({
-        type: "users",
-        "metadata.verification_code": code,
+        type: 'users',
+        'metadata.verification_code': code,
       })
-      .props(["id", "metadata"])
+      .props(['id', 'metadata'])
       .depth(0);
 
     if (!object) {
-      throw new Error("Invalid verification code");
+      throw new Error('Invalid verification code');
     }
 
     const verificationExpiry = new Date(object.metadata.verification_expiry);
     if (verificationExpiry < new Date()) {
-      throw new Error("Verification code has expired");
+      throw new Error('Verification code has expired');
     }
 
     await cosmic.objects.updateOne(object.id, {
       metadata: {
         email_verified: true,
-        verification_code: "",
-        verification_expiry: "",
+        verification_code: '',
+        verification_expiry: '',
       },
     });
 
     return { success: true };
   } catch (error) {
-    console.error("Error verifying email:", error);
-    throw new Error("Email verification failed");
+    console.error('Error verifying email:', error);
+    throw new Error('Email verification failed');
   }
 }
 
 export async function forgotPassword(formData: FormData) {
   try {
-    const email = (formData.get("email") as string).toLowerCase();
+    const email = (formData.get('email') as string).toLowerCase();
 
     // Check if user exists
     const existingUser = await cosmic.objects
       .findOne({
-        type: "users",
-        "metadata.email": email,
+        type: 'users',
+        'metadata.email': email,
       })
-      .props(["id", "metadata"])
+      .props(['id', 'metadata'])
       .depth(0);
 
     if (!existingUser.object) {
       return {
         success: false,
-        error: "No account found with this email address",
+        error: 'No account found with this email address',
       };
     }
 
     // Generate reset token and expiry
-    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetToken = crypto.randomBytes(32).toString('hex');
     const resetExpiry = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
 
     // Update user with reset token
@@ -391,7 +394,7 @@ export async function forgotPassword(formData: FormData) {
       const result = await resend.emails.send({
         from: `${process.env.NEXT_PUBLIC_APP_NAME} Support <${process.env.SUPPORT_EMAIL}>`,
         to: email,
-        subject: "Reset your password",
+        subject: 'Reset your password',
         html: `
           <h1>Reset Your Password</h1>
           <p>Click the link below to reset your password:</p>
@@ -400,51 +403,51 @@ export async function forgotPassword(formData: FormData) {
         `,
       });
       console.log(`Password reset email sent to ${email}`);
-      console.log("Resend response:", result);
+      console.log('Resend response:', result);
     } catch (error) {
-      console.error("Error sending password reset email:", error);
-      console.error("Full error details:", JSON.stringify(error, null, 2));
+      console.error('Error sending password reset email:', error);
+      console.error('Full error details:', JSON.stringify(error, null, 2));
       return {
         success: false,
-        error: "Failed to send password reset email. Please try again.",
+        error: 'Failed to send password reset email. Please try again.',
       };
     }
 
     return { success: true };
   } catch (error) {
-    console.error("Forgot password error:", error);
+    console.error('Forgot password error:', error);
     return {
       success: false,
-      error: "Failed to process request. Please try again.",
+      error: 'Failed to process request. Please try again.',
     };
   }
 }
 
 export async function resetPassword(token: string, formData: FormData) {
   try {
-    const password = formData.get("password") as string;
+    const password = formData.get('password') as string;
 
     // Add password validation
     if (!isValidPassword(password)) {
       return {
         success: false,
-        error: "Password must be at least 8 characters long and contain both letters and numbers",
+        error: 'Password must be at least 8 characters long and contain both letters and numbers',
       };
     }
 
     // Find user with reset token
     const existingUser = await cosmic.objects
       .findOne({
-        type: "users",
-        "metadata.reset_password_token": token,
+        type: 'users',
+        'metadata.reset_password_token': token,
       })
-      .props(["id", "metadata"])
+      .props(['id', 'metadata'])
       .depth(0);
 
     if (!existingUser.object) {
       return {
         success: false,
-        error: "Invalid or expired reset token",
+        error: 'Invalid or expired reset token',
       };
     }
 
@@ -452,7 +455,7 @@ export async function resetPassword(token: string, formData: FormData) {
     if (resetExpiry < new Date()) {
       return {
         success: false,
-        error: "Reset token has expired",
+        error: 'Reset token has expired',
       };
     }
 
@@ -463,51 +466,59 @@ export async function resetPassword(token: string, formData: FormData) {
     await cosmic.objects.updateOne(existingUser.object.id, {
       metadata: {
         password: hashedPassword,
-        reset_password_token: "",
-        reset_password_expiry: "",
+        reset_password_token: '',
+        reset_password_expiry: '',
       },
     });
 
     return { success: true };
   } catch (error) {
-    console.error("Reset password error:", error);
+    console.error('Reset password error:', error);
     return {
       success: false,
-      error: "Failed to reset password. Please try again.",
+      error: 'Failed to reset password. Please try again.',
     };
   }
 }
 
 export async function getAuthUser() {
-  "use server";
+  'use server';
   return await getUserFromCookie();
 }
 
 export async function logoutUser() {
-  "use server";
-  (await cookies()).delete("user_id");
+  'use server';
+  (await cookies()).delete('user_id');
   return { success: true };
 }
 
 // --- FAVOURITES MANAGEMENT ---
-import type { GenreObject } from "@/lib/cosmic-config";
-import type { HostObject } from "@/lib/cosmic-config";
+import type { GenreObject } from '@/lib/cosmic-config';
+import type { HostObject } from '@/lib/cosmic-config';
 
 // Generic helper for managing favorites
-async function manageFavourites<T extends { id: string }>(userId: string, item: T, field: "favourite_genres" | "favourite_hosts", action: "add" | "remove") {
+async function manageFavourites<T extends { id: string }>(
+  userId: string,
+  item: T,
+  field: 'favourite_genres' | 'favourite_hosts',
+  action: 'add' | 'remove'
+) {
   try {
     // Validate inputs
     if (!userId || !item?.id) {
-      throw new Error("Invalid user ID or item ID");
+      throw new Error('Invalid user ID or item ID');
     }
 
-    const { object: user } = await cosmic.objects.findOne({ id: userId }).props(["metadata"]).depth(0);
-    if (!user) throw new Error("User not found");
+    const { object: user } = await cosmic.objects
+      .findOne({ id: userId })
+      .props(['metadata'])
+      .depth(0);
+    if (!user) throw new Error('User not found');
 
     const current = user.metadata[field] || [];
     let updated: string[];
 
-    if (action === "add") {
+    if (action === 'add') {
       const exists = current.some((existingId: string) => existingId === item.id);
       if (exists) return { success: true, data: user };
       updated = [...current, item.id];
@@ -527,26 +538,26 @@ async function manageFavourites<T extends { id: string }>(userId: string, item: 
     console.error(`Error managing ${field}:`, error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "An unexpected error occurred",
+      error: error instanceof Error ? error.message : 'An unexpected error occurred',
     };
   }
 }
 
 export async function addFavouriteGenre(userId: string, genre: GenreObject) {
-  return manageFavourites(userId, genre, "favourite_genres", "add");
+  return manageFavourites(userId, genre, 'favourite_genres', 'add');
 }
 
 export async function removeFavouriteGenre(userId: string, genreId: string) {
-  return manageFavourites(userId, { id: genreId } as GenreObject, "favourite_genres", "remove");
+  return manageFavourites(userId, { id: genreId } as GenreObject, 'favourite_genres', 'remove');
 }
 
 // For hosts, use the same pattern. Type is any for now, but should be HostObject if defined.
 export async function addFavouriteHost(userId: string, host: HostObject) {
-  return manageFavourites(userId, host, "favourite_hosts", "add");
+  return manageFavourites(userId, host, 'favourite_hosts', 'add');
 }
 
 export async function removeFavouriteHost(userId: string, hostId: string) {
-  return manageFavourites(userId, { id: hostId } as HostObject, "favourite_hosts", "remove");
+  return manageFavourites(userId, { id: hostId } as HostObject, 'favourite_hosts', 'remove');
 }
 
 export async function getDashboardData(userId: string) {
@@ -554,11 +565,24 @@ export async function getDashboardData(userId: string) {
     // Fetch user data first
     const { data: userData, error: userError } = await getUserData(userId);
     if (userError || !userData) {
-      return { data: null, error: userError || "User not found" };
+      return { data: null, error: userError || 'User not found' };
     }
 
     // Fetch all required collections in parallel
-    const [genresRes, hostsRes] = await Promise.all([cosmic.objects.find({ type: "genres", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 }), cosmic.objects.find({ type: "regular-hosts", props: "id,slug,title,type,metadata", depth: 1, limit: 1000 })]);
+    const [genresRes, hostsRes] = await Promise.all([
+      cosmic.objects.find({
+        type: 'genres',
+        props: 'id,slug,title,type,metadata',
+        depth: 1,
+        limit: 1000,
+      }),
+      cosmic.objects.find({
+        type: 'regular-hosts',
+        props: 'id,slug,title,type,metadata',
+        depth: 1,
+        limit: 1000,
+      }),
+    ]);
 
     const allGenres = genresRes.objects || [];
     const allHosts = hostsRes.objects || [];
@@ -568,7 +592,7 @@ export async function getDashboardData(userId: string) {
     try {
       canonicalGenres = await getCanonicalGenres();
     } catch (error) {
-      console.error("Error fetching canonical genres:", error);
+      console.error('Error fetching canonical genres:', error);
     }
 
     // Helper function to get latest shows by genre
@@ -576,42 +600,42 @@ export async function getDashboardData(userId: string) {
       try {
         // Filter by genre ID in the metadata.genres array
         const cosmicResponse = await cosmic.objects.find({
-          type: "episodes",
-          "metadata.genres": genreId,
-          props: "id,slug,title,type,metadata,created_at,modified_at",
+          type: 'episodes',
+          'metadata.genres': genreId,
+          props: 'id,slug,title,type,metadata,created_at,modified_at',
           depth: 1,
           limit,
-          sort: "-metadata.broadcast_date",
-          status: "published",
+          sort: '-metadata.broadcast_date',
+          status: 'published',
         });
 
         // Transform Cosmic data to match ShowCard expectations
         return (cosmicResponse.objects || []).map((show: any) => ({
           ...show,
           key: show.slug || show.id,
-          name: show.title || "Untitled Show",
+          name: show.title || 'Untitled Show',
           url: `/episode/${show.slug || show.id}`,
           pictures: {
-            large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+            large: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            extra_large: show.metadata?.image?.imgix_url || '/image-placeholder.png',
           },
-          enhanced_image: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          enhanced_image: show.metadata?.image?.imgix_url || '/image-placeholder.png',
           created_time: show.metadata?.broadcast_date || show.created_at,
           broadcast_date: show.metadata?.broadcast_date || show.created_at,
           tags: (show.metadata?.genres || []).map((genre: any) => ({
-            name: genre.title || genre.name || "Unknown Genre",
-            title: genre.title || genre.name || "Unknown Genre",
+            name: genre.title || genre.name || 'Unknown Genre',
+            title: genre.title || genre.name || 'Unknown Genre',
           })),
           enhanced_genres: show.metadata?.genres || [],
           user: {
-            name: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
+            name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
           },
-          host: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
+          host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
           location: show.metadata?.locations?.[0] || null,
-          __source: "episode" as const,
+          __source: 'episode' as const,
         }));
       } catch (error: any) {
-        console.error("Error fetching shows by genre:", error);
+        console.error('Error fetching shows by genre:', error);
         return [];
       }
     }
@@ -621,13 +645,13 @@ export async function getDashboardData(userId: string) {
       try {
         // Filter by host ID in the metadata.regular_hosts array
         const cosmicResponse = await cosmic.objects.find({
-          type: "episodes",
-          "metadata.regular_hosts": hostId,
-          props: "id,slug,title,type,metadata,created_at,modified_at",
+          type: 'episodes',
+          'metadata.regular_hosts': hostId,
+          props: 'id,slug,title,type,metadata,created_at,modified_at',
           depth: 1,
           limit,
-          sort: "-metadata.broadcast_date",
-          status: "published",
+          sort: '-metadata.broadcast_date',
+          status: 'published',
         });
 
         // Transform Cosmic data to match ShowCard expectations
@@ -637,10 +661,10 @@ export async function getDashboardData(userId: string) {
           name: show.title,
           url: `/episode/${show.slug}`,
           pictures: {
-            large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
-            extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+            large: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            extra_large: show.metadata?.image?.imgix_url || '/image-placeholder.png',
           },
-          enhanced_image: show.metadata?.image?.imgix_url || "/image-placeholder.svg",
+          enhanced_image: show.metadata?.image?.imgix_url || '/image-placeholder.png',
           created_time: show.metadata?.broadcast_date || show.created_at,
           broadcast_date: show.metadata?.broadcast_date || show.created_at,
           tags: (show.metadata?.genres || []).map((genre: any) => ({
@@ -649,14 +673,14 @@ export async function getDashboardData(userId: string) {
           })),
           enhanced_genres: show.metadata?.genres || [],
           user: {
-            name: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
+            name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
           },
-          host: show.metadata?.regular_hosts?.[0]?.title || "Worldwide FM",
+          host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
           location: show.metadata?.locations?.[0] || null,
-          __source: "episode" as const,
+          __source: 'episode' as const,
         }));
       } catch (error: any) {
-        console.error("Error fetching shows by host:", error);
+        console.error('Error fetching shows by host:', error);
         return [];
       }
     }
@@ -701,7 +725,10 @@ export async function getDashboardData(userId: string) {
       error: null,
     };
   } catch (error) {
-    console.error("Error fetching dashboard data:", error);
-    return { data: null, error: `Failed to fetch dashboard data: ${error instanceof Error ? error.message : "Unknown error"}` };
+    console.error('Error fetching dashboard data:', error);
+    return {
+      data: null,
+      error: `Failed to fetch dashboard data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
   }
 }

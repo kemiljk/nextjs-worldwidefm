@@ -119,7 +119,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
   // Get initial shows hosted by this person
   const initialShows = await getInitialShows(host.id);
 
-  const hostImage = host.metadata?.image?.imgix_url || '/image-placeholder.svg';
+  const hostImage = host.metadata?.image?.imgix_url || '/image-placeholder.png';
   const hostDescription = host.metadata?.description || host.content || '';
 
   return (

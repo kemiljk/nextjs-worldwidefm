@@ -6,7 +6,7 @@ import UniqueHomepageSection from './unique-homepage-section';
 // Reusable Item Card (similar to the one in HomepageHero, could be centralized)
 const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
   const imageUrl =
-    item.metadata?.image?.imgix_url || item.metadata?.image?.url || '/image-placeholder.svg';
+    item.metadata?.image?.imgix_url || item.metadata?.image?.url || '/image-placeholder.png';
   const title = item.title || 'Untitled';
   const subtitle = item.metadata?.subtitle || '';
   const description = item.metadata?.description || '';

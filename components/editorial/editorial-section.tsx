@@ -86,7 +86,7 @@ export default function EditorialSection({
                 url: `/editorial/${post.slug}`,
                 slug: post.slug,
                 pictures: {
-                  large: post.metadata?.image?.imgix_url || '/image-placeholder.svg',
+                  large: post.metadata?.image?.imgix_url || '/image-placeholder.png',
                 },
                 created_time: post.metadata?.date || '',
                 tags,
@@ -125,7 +125,7 @@ export default function EditorialSection({
                 url: `/editorial/${post.slug}`,
                 slug: post.slug,
                 pictures: {
-                  large: post.metadata?.image?.imgix_url || '/image-placeholder.svg',
+                  large: post.metadata?.image?.imgix_url || '/image-placeholder.png',
                 },
                 created_time: post.metadata?.date || '',
                 tags,

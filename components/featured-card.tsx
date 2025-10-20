@@ -31,13 +31,20 @@ export function FeaturedCard({ show, priority = false, className = '', href }: F
                 show.pictures?.extra_large ||
                 show.enhanced_image ||
                 show.image ||
-                '/image-placeholder.svg'
+                '/image-placeholder.png'
               }
               alt={show.name || show.title || 'Show'}
               fill
               className='object-cover'
               sizes='(max-width: 768px) 100vw, 50vw'
               priority={priority}
+              onError={(e: any) => {
+                if (e?.currentTarget) {
+                  try {
+                    e.currentTarget.src = '/image-placeholder.png';
+                  } catch {}
+                }
+              }}
             />
             <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-30 transition-opacity pointer-events-none z-10' />
 

@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from "react";
-import { SearchResult, FilterItem } from "@/lib/search-context";
+import { useState, useCallback, useEffect } from 'react';
+import { useDebounce } from '@/hooks/use-debounce';
+import { SearchResult, FilterItem } from '@/lib/search-context';
 
 interface UseSearchReturn {
   searchTerm: string;
@@ -33,7 +34,7 @@ interface UseSearchReturn {
 }
 
 export function useSearch(): UseSearchReturn {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +53,8 @@ export function useSearch(): UseSearchReturn {
     takeovers: [] as FilterItem[],
     types: [] as FilterItem[],
   });
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   // Extract available filters from content
   useEffect(() => {
@@ -107,18 +110,29 @@ export function useSearch(): UseSearchReturn {
     setIsLoading(true);
     setError(null);
     try {
-      const [cosmicResponse, mixcloudResponse] = await Promise.all([fetch(`/api/search?q=${encodeURIComponent(term)}&source=cosmic`), fetch(`/api/search?q=${encodeURIComponent(term)}&source=mixcloud`)]);
-
-      const [cosmicData, mixcloudData] = await Promise.all([cosmicResponse.json(), mixcloudResponse.json()]);
-
-      const combinedResults = [...cosmicData.results, ...mixcloudData.results];
-      setResults(combinedResults);
+      if (!term || term.trim().length === 0) {
+        setResults([]);
+        return;
+      }
+      const res = await fetch(`/api/search?q=${encodeURIComponent(term)}&source=cosmic`);
+      const data = await res.json();
+      setResults(Array.isArray(data.results) ? data.results : []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
     }
   }, []);
+
+  // Trigger search on debounced input
+  useEffect(() => {
+    const term = debouncedSearchTerm.trim();
+    if (term.length >= 2) {
+      performSearch(term);
+    } else {
+      setResults([]);
+    }
+  }, [debouncedSearchTerm, performSearch]);
 
   const toggleFilter = useCallback((filter: FilterItem, type: keyof typeof filters) => {
     setFilters((prev) => {
@@ -134,35 +148,35 @@ export function useSearch(): UseSearchReturn {
 
   const toggleGenreFilter = useCallback(
     (genre: FilterItem) => {
-      toggleFilter(genre, "genres");
+      toggleFilter(genre, 'genres');
     },
     [toggleFilter]
   );
 
   const toggleLocationFilter = useCallback(
     (location: FilterItem) => {
-      toggleFilter(location, "locations");
+      toggleFilter(location, 'locations');
     },
     [toggleFilter]
   );
 
   const toggleHostFilter = useCallback(
     (host: FilterItem) => {
-      toggleFilter(host, "hosts");
+      toggleFilter(host, 'hosts');
     },
     [toggleFilter]
   );
 
   const toggleTakeoverFilter = useCallback(
     (takeover: FilterItem) => {
-      toggleFilter(takeover, "takeovers");
+      toggleFilter(takeover, 'takeovers');
     },
     [toggleFilter]
   );
 
   const toggleTypeFilter = useCallback(
     (type: FilterItem) => {
-      toggleFilter(type, "types");
+      toggleFilter(type, 'types');
     },
     [toggleFilter]
   );

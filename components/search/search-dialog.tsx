@@ -24,7 +24,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getAllPosts, getVideos, getEvents, getTakeovers } from '@/lib/actions';
+import { getAllPosts, getVideos, getEvents, getTakeovers, getAllFilters } from '@/lib/actions';
 import type { ContentType } from '@/lib/search/types';
 import type { PostObject, VideoObject } from '@/lib/cosmic-config';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -46,7 +46,7 @@ const typeLabels: Record<ContentType, { label: string; icon: React.ElementType; 
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [results, setResults] = useState<any[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,6 +55,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [videoCategories, setVideoCategories] = useState<any[]>([]);
+  const [genreTitleToId, setGenreTitleToId] = useState<Record<string, string>>({});
   // On mobile: showFilters = false means show results, true means show filters overlay.
   const [showFilters, setShowFilters] = useState(false); // For mobile toggle: start with results list
   const { ref: observerTarget, inView } = useInView({
@@ -114,6 +115,15 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               if (genre?.title || genre?.name) tagSet.add(genre.title || genre.name);
             });
           });
+          // Build map of genre title -> id for querying by genre later
+          try {
+            const filters = await getAllFilters();
+            const map: Record<string, string> = {};
+            (filters.genres || []).forEach((g: any) => {
+              if (g?.title && g?.id) map[g.title.toLowerCase()] = g.id;
+            });
+            setGenreTitleToId(map);
+          } catch {}
         } else if (selectedType === 'posts') {
           const { posts } = await getAllPosts({ limit: 100, offset: 0 });
           posts?.forEach((post: PostObject) => {
@@ -167,32 +177,31 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         let allResults: any[] = [];
 
         if (selectedType === 'episodes') {
-          // Fetch episodes from Cosmic
+          // Fetch episodes from Cosmic using same logic as Shows page
           const { getEpisodesForShows } = await import('@/lib/episode-service');
-          const searchParams = debouncedSearchTerm
-            ? { searchTerm: debouncedSearchTerm, limit: 100, offset: 0 }
-            : { limit: 100, offset: 0 };
+          const searchParams: any = {
+            limit: debouncedSearchTerm ? 1000 : PAGE_SIZE, // No limit for search queries, use PAGE_SIZE for browsing
+            offset: 0,
+          };
+
+          // Add search term if present
+          if (debouncedSearchTerm) {
+            searchParams.searchTerm = debouncedSearchTerm;
+          }
+
+          // If tags selected, convert titles to genre IDs and query server-side
+          if (selectedTags.length > 0) {
+            const ids = selectedTags.map((t) => genreTitleToId[t.toLowerCase()]).filter(Boolean);
+            if (ids.length > 0) {
+              searchParams.genre = ids;
+            }
+          }
+
+          console.log('[SearchDialog] Fetching episodes with params:', searchParams);
           res = await getEpisodesForShows(searchParams);
           allResults = res?.shows || [];
-          // Filter by all selected tags (AND logic)
-          if (selectedTags.length > 0) {
-            allResults = allResults.filter((episode: any) =>
-              selectedTags.every((tag) => {
-                const episodeGenres = episode?.genres || episode?.enhanced_genres || [];
-                return episodeGenres.some(
-                  (genre: any) =>
-                    genre?.title?.toLowerCase() === tag.toLowerCase() ||
-                    genre?.name?.toLowerCase() === tag.toLowerCase()
-                );
-              })
-            );
-          }
-          // Ensure episodes are sorted by broadcast date (most recent first)
-          allResults.sort((a: any, b: any) => {
-            const dateA = new Date(a.broadcast_date || a.created_time);
-            const dateB = new Date(b.broadcast_date || b.created_time);
-            return dateB.getTime() - dateA.getTime();
-          });
+          console.log('[SearchDialog] Found episodes:', allResults.length);
+          // Episodes are already sorted by Cosmic order/broadcast_date from server query
         } else if (selectedType === 'posts') {
           const searchParams = debouncedSearchTerm
             ? { searchTerm: debouncedSearchTerm, limit: 100, offset: 0 }
@@ -622,10 +631,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
               {/* Results Section */}
               <ScrollArea
-                className='flex-1 w-full hide-scrollbar'
+                className='flex-1 w-full hide-scrollbar min-h-0 h-[calc(100%-2.5rem)]'
                 ref={scrollAreaRef}
               >
-                <div className='p-8 space-y-6'>
+                <div className='p-8 space-y-6 min-h-0'>
                   {results.length > 0 ? (
                     <>
                       {results.map(
@@ -633,7 +642,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                           selectedType === 'episodes' && (
                             <Link
                               key={`${result.key}-${result.slug}-${idx}`}
-                              href={`/episodes/${result.slug}`}
+                              href={`/episode/${result.slug}`}
                               onClick={() => onOpenChange(false)}
                               className='group block w-full'
                             >
@@ -643,7 +652,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                                     src={
                                       result.pictures?.large ||
                                       result.pictures?.extra_large ||
-                                      '/image-placeholder.svg'
+                                      '/image-placeholder.png'
                                     }
                                     alt={result.name || 'Radio Show Cover'}
                                     fill
@@ -654,16 +663,16 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                                   <div className='flex flex-col gap-.5'>
                                     <div className='flex items-center gap-2 text-m8 text-muted-foreground mb-1'>
                                       <Music2 className='w-3 h-3 text-foreground' />
-                                      <span>Radio Shows</span>
+                                      <span>Episodes</span>
                                     </div>
                                     <h3 className='max-w-[90%] pl-1 text-[18px] font-mono line-clamp-2'>
                                       {result.name}
                                     </h3>
                                   </div>
                                   <div className='flex flex-col gap-2'>
-                                    {result.created_time && (
+                                    {result.broadcast_date && (
                                       <span className='pl-1 text-m8'>
-                                        {format(new Date(result.created_time), 'MMM d, yyyy')}
+                                        {format(new Date(result.broadcast_date), 'MMM d, yyyy')}
                                       </span>
                                     )}
                                     {Array.isArray(result.tags) &&
@@ -713,7 +722,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                           <Loader className='h-6 w-6 animate-spin mb-4' />
                           <p className='text-muted-foregroun font-mono text-m8'>Searching...</p>
                         </>
-                      ) : searchTerm ? (
+                      ) : debouncedSearchTerm ? (
                         <>
                           <AlertCircle className='h-6 w-6 mb-4 text-muted-foreground' />
                           <p className='text-muted-foreground font-mono text-m8'>

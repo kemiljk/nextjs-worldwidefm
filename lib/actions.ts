@@ -153,16 +153,16 @@ export async function getShowBySlug(slug: string): Promise<any | null> {
           name: show.title,
           url: `/episode/${show.slug}`,
           pictures: {
-            small: show.metadata?.image?.imgix_url || '/image-placeholder.svg',
-            thumbnail: show.metadata?.image?.imgix_url || '/image-placeholder.svg',
-            medium_mobile: show.metadata?.image?.imgix_url || '/image-placeholder.svg',
-            medium: show.metadata?.image?.imgix_url || '/image-placeholder.svg',
-            large: show.metadata?.image?.imgix_url || '/image-placeholder.svg',
-            '320wx320h': show.metadata?.image?.imgix_url || '/image-placeholder.svg',
-            extra_large: show.metadata?.image?.imgix_url || '/image-placeholder.svg',
-            '640wx640h': show.metadata?.image?.imgix_url || '/image-placeholder.svg',
-            '768wx768h': show.metadata?.image?.imgix_url || '/image-placeholder.svg',
-            '1024wx1024h': show.metadata?.image?.imgix_url || '/image-placeholder.svg',
+            small: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            thumbnail: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            medium_mobile: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            medium: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            large: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            '320wx320h': show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            extra_large: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            '640wx640h': show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            '768wx768h': show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            '1024wx1024h': show.metadata?.image?.imgix_url || '/image-placeholder.png',
           },
           created_time: show.metadata?.broadcast_date || show.created_at,
           updated_time: show.modified_at,
@@ -183,14 +183,14 @@ export async function getShowBySlug(slug: string): Promise<any | null> {
             name: host.title,
             username: host.slug || host.id,
             pictures: {
-              small: host.image?.imgix_url || '/image-placeholder.svg',
-              thumbnail: host.image?.imgix_url || '/image-placeholder.svg',
-              medium_mobile: host.image?.imgix_url || '/image-placeholder.svg',
-              medium: host.image?.imgix_url || '/image-placeholder.svg',
-              large: host.image?.imgix_url || '/image-placeholder.svg',
-              '320wx320h': host.image?.imgix_url || '/image-placeholder.svg',
-              extra_large: host.image?.imgix_url || '/image-placeholder.svg',
-              '640wx640h': host.image?.imgix_url || '/image-placeholder.svg',
+              small: host.image?.imgix_url || '/image-placeholder.png',
+              thumbnail: host.image?.imgix_url || '/image-placeholder.png',
+              medium_mobile: host.image?.imgix_url || '/image-placeholder.png',
+              medium: host.image?.imgix_url || '/image-placeholder.png',
+              large: host.image?.imgix_url || '/image-placeholder.png',
+              '320wx320h': host.image?.imgix_url || '/image-placeholder.png',
+              extra_large: host.image?.imgix_url || '/image-placeholder.png',
+              '640wx640h': host.image?.imgix_url || '/image-placeholder.png',
             },
           })),
           hidden_stats: false,
@@ -253,16 +253,16 @@ function convertRadioCultEventToMixcloudFormat(event: RadioCultEvent): any {
     name: event.showName,
     url: `/shows/${event.slug}`,
     pictures: {
-      small: event.imageUrl || '/image-placeholder.svg',
-      thumbnail: event.imageUrl || '/image-placeholder.svg',
-      medium_mobile: event.imageUrl || '/image-placeholder.svg',
-      medium: event.imageUrl || '/image-placeholder.svg',
-      large: event.imageUrl || '/image-placeholder.svg',
-      '320wx320h': event.imageUrl || '/image-placeholder.svg',
-      extra_large: event.imageUrl || '/image-placeholder.svg',
-      '640wx640h': event.imageUrl || '/image-placeholder.svg',
-      '768wx768h': event.imageUrl || '/image-placeholder.svg',
-      '1024wx1024h': event.imageUrl || '/image-placeholder.svg',
+      small: event.imageUrl || '/image-placeholder.png',
+      thumbnail: event.imageUrl || '/image-placeholder.png',
+      medium_mobile: event.imageUrl || '/image-placeholder.png',
+      medium: event.imageUrl || '/image-placeholder.png',
+      large: event.imageUrl || '/image-placeholder.png',
+      '320wx320h': event.imageUrl || '/image-placeholder.png',
+      extra_large: event.imageUrl || '/image-placeholder.png',
+      '640wx640h': event.imageUrl || '/image-placeholder.png',
+      '768wx768h': event.imageUrl || '/image-placeholder.png',
+      '1024wx1024h': event.imageUrl || '/image-placeholder.png',
     },
     created_time: event.startTime,
     updated_time: event.updatedAt,
@@ -295,14 +295,14 @@ function convertRadioCultEventToMixcloudFormat(event: RadioCultEvent): any {
       name: artist.name,
       username: artist.slug,
       pictures: {
-        small: artist.imageUrl || '/image-placeholder.svg',
-        thumbnail: artist.imageUrl || '/image-placeholder.svg',
-        medium_mobile: artist.imageUrl || '/image-placeholder.svg',
-        medium: artist.imageUrl || '/image-placeholder.svg',
-        large: artist.imageUrl || '/image-placeholder.svg',
-        '320wx320h': artist.imageUrl || '/image-placeholder.svg',
-        extra_large: artist.imageUrl || '/image-placeholder.svg',
-        '640wx640h': artist.imageUrl || '/image-placeholder.svg',
+        small: artist.imageUrl || '/image-placeholder.png',
+        thumbnail: artist.imageUrl || '/image-placeholder.png',
+        medium_mobile: artist.imageUrl || '/image-placeholder.png',
+        medium: artist.imageUrl || '/image-placeholder.png',
+        large: artist.imageUrl || '/image-placeholder.png',
+        '320wx320h': artist.imageUrl || '/image-placeholder.png',
+        extra_large: artist.imageUrl || '/image-placeholder.png',
+        '640wx640h': artist.imageUrl || '/image-placeholder.png',
       },
     })),
     hidden_stats: false,
@@ -416,7 +416,7 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           type: 'posts' as const,
           description: post.metadata?.description || '',
           excerpt: post.metadata?.content || '',
-          image: post.metadata?.image?.imgix_url || '/image-placeholder.svg',
+          image: post.metadata?.image?.imgix_url || '/image-placeholder.png',
           slug: post.slug,
           date: post.metadata?.date || '',
           // Map categories to their appropriate filter arrays based on category type if known
@@ -434,7 +434,7 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
         type: 'episodes' as const,
         description: show.metadata?.description || '',
         excerpt: show.metadata?.subtitle || '',
-        image: show.metadata?.image?.imgix_url || '/image-placeholder.svg',
+        image: show.metadata?.image?.imgix_url || '/image-placeholder.png',
         slug: show.slug,
         date: show.metadata?.broadcast_date || '',
         genres: normalizeFilterItems(show.metadata?.genres || []),
@@ -764,16 +764,16 @@ export async function getMixcloudShows(
           slug: event.slug,
           url: `/episode/${event.slug}`,
           pictures: {
-            small: event.imageUrl || '/image-placeholder.svg',
-            thumbnail: event.imageUrl || '/image-placeholder.svg',
-            medium_mobile: event.imageUrl || '/image-placeholder.svg',
-            medium: event.imageUrl || '/image-placeholder.svg',
-            large: event.imageUrl || '/image-placeholder.svg',
-            '320wx320h': event.imageUrl || '/image-placeholder.svg',
-            extra_large: event.imageUrl || '/image-placeholder.svg',
-            '640wx640h': event.imageUrl || '/image-placeholder.svg',
-            '768wx768h': event.imageUrl || '/image-placeholder.svg',
-            '1024wx1024h': event.imageUrl || '/image-placeholder.svg',
+            small: event.imageUrl || '/image-placeholder.png',
+            thumbnail: event.imageUrl || '/image-placeholder.png',
+            medium_mobile: event.imageUrl || '/image-placeholder.png',
+            medium: event.imageUrl || '/image-placeholder.png',
+            large: event.imageUrl || '/image-placeholder.png',
+            '320wx320h': event.imageUrl || '/image-placeholder.png',
+            extra_large: event.imageUrl || '/image-placeholder.png',
+            '640wx640h': event.imageUrl || '/image-placeholder.png',
+            '768wx768h': event.imageUrl || '/image-placeholder.png',
+            '1024wx1024h': event.imageUrl || '/image-placeholder.png',
           },
           created_time: event.startTime,
           updated_time: event.updatedAt,
@@ -793,14 +793,14 @@ export async function getMixcloudShows(
             name: artist.name,
             username: artist.slug,
             pictures: {
-              small: artist.imageUrl || '/image-placeholder.svg',
-              thumbnail: artist.imageUrl || '/image-placeholder.svg',
-              medium_mobile: artist.imageUrl || '/image-placeholder.svg',
-              medium: artist.imageUrl || '/image-placeholder.svg',
-              large: artist.imageUrl || '/image-placeholder.svg',
-              '320wx320h': artist.imageUrl || '/image-placeholder.svg',
-              extra_large: artist.imageUrl || '/image-placeholder.svg',
-              '640wx640h': artist.imageUrl || '/image-placeholder.svg',
+              small: artist.imageUrl || '/image-placeholder.png',
+              thumbnail: artist.imageUrl || '/image-placeholder.png',
+              medium_mobile: artist.imageUrl || '/image-placeholder.png',
+              medium: artist.imageUrl || '/image-placeholder.png',
+              large: artist.imageUrl || '/image-placeholder.png',
+              '320wx320h': artist.imageUrl || '/image-placeholder.png',
+              extra_large: artist.imageUrl || '/image-placeholder.png',
+              '640wx640h': artist.imageUrl || '/image-placeholder.png',
             },
           })),
           hidden_stats: false,
@@ -862,41 +862,120 @@ export async function searchContent(
       safeString(meta?.date) || fallback;
 
     if (source === 'cosmic') {
-      const [postsResponse, eventsResponse, videosResponse, takeoversResponse] = await Promise.all([
-        cosmic.objects.find({
-          type: 'posts',
-          ...(query && { q: query }),
-          props: 'id,title,slug,metadata,created_at',
-          limit,
-          status: 'published',
-        }),
-        cosmic.objects.find({
-          type: 'events',
-          ...(query && { q: query }),
-          props: 'id,title,slug,metadata,created_at',
-          limit,
-          status: 'published',
-        }),
-        cosmic.objects.find({
-          type: 'videos',
-          ...(query && { q: query }),
-          props: 'id,title,slug,metadata,created_at',
-          limit,
-          status: 'published',
-        }),
-        cosmic.objects.find({
-          type: 'takeovers',
-          ...(query && { q: query }),
-          props: 'id,title,slug,metadata,created_at',
-          limit,
-          status: 'published',
-        }),
-      ]);
+      const regex = query ? { $regex: query, $options: 'i' } : (undefined as any);
+
+      // If we have a query, resolve related IDs by title to build reliable relationship queries
+      let hostIds: string[] = [];
+      let takeoverIds: string[] = [];
+      let genreIds: string[] = [];
+
+      if (regex) {
+        try {
+          const [hostsRes, takeoversRes, genresRes] = await Promise.all([
+            cosmic.objects.find({ type: 'regular-hosts', title: regex }).props('id').limit(200),
+            cosmic.objects.find({ type: 'takeovers', title: regex }).props('id').limit(200),
+            cosmic.objects.find({ type: 'genres', title: regex }).props('id').limit(200),
+          ]);
+          hostIds = (hostsRes.objects || []).map((o: any) => o.id).filter(Boolean);
+          takeoverIds = (takeoversRes.objects || []).map((o: any) => o.id).filter(Boolean);
+          genreIds = (genresRes.objects || []).map((o: any) => o.id).filter(Boolean);
+        } catch (e) {
+          // Non-fatal: continue with empty ID lists
+        }
+      }
+
+      const episodeQuery: any = {
+        type: 'episode',
+        status: 'published',
+      };
+
+      if (regex) {
+        episodeQuery.$or = [{ title: regex }, { 'metadata.subtitle': regex }];
+        if (hostIds.length > 0)
+          episodeQuery.$or.push({ 'metadata.regular_hosts.id': { $in: hostIds } });
+        if (takeoverIds.length > 0)
+          episodeQuery.$or.push({ 'metadata.takeovers.id': { $in: takeoverIds } });
+        if (genreIds.length > 0) episodeQuery.$or.push({ 'metadata.genres.id': { $in: genreIds } });
+      }
+
+      const [episodesResponse, postsResponse, eventsResponse, videosResponse, takeoversResponse] =
+        await Promise.all([
+          cosmic.objects
+            .find(episodeQuery)
+            .props('id,slug,title,metadata,created_at')
+            .limit(limit)
+            .sort('-order,-metadata.broadcast_date,-created_at')
+            .depth(2),
+          cosmic.objects.find({
+            type: 'posts',
+            ...(query && { q: query }),
+            props: 'id,title,slug,metadata,created_at',
+            limit,
+            status: 'published',
+          }),
+          cosmic.objects.find({
+            type: 'events',
+            ...(query && { q: query }),
+            props: 'id,title,slug,metadata,created_at',
+            limit,
+            status: 'published',
+          }),
+          cosmic.objects.find({
+            type: 'videos',
+            ...(query && { q: query }),
+            props: 'id,title,slug,metadata,created_at',
+            limit,
+            status: 'published',
+          }),
+          cosmic.objects.find({
+            type: 'takeovers',
+            ...(query && { q: query }),
+            props: 'id,title,slug,metadata,created_at',
+            limit,
+            status: 'published',
+          }),
+        ]);
+      const episodes = episodesResponse.objects || [];
       const posts = postsResponse.objects || [];
       const events = eventsResponse.objects || [];
       const videos = videosResponse.objects || [];
       const takeovers = takeoversResponse.objects || [];
       return [
+        // Episodes (radio shows)
+        ...episodes
+          .map((item: any) => {
+            const meta = item.metadata || {};
+            return {
+              id: item.id,
+              type: 'episodes',
+              slug: item.slug,
+              title: safeString(item.title),
+              description: safeString(meta.description) || safeString(meta.subtitle),
+              image: getImage(meta),
+              date: safeString(meta.broadcast_date) || item.created_at,
+              genres: (meta.genres || []).map((g: any) => ({
+                slug: g.slug || g.id,
+                title: g.title || g.name,
+                type: 'genres',
+              })),
+              hosts: (meta.regular_hosts || []).map((h: any) => ({
+                slug: h.slug || h.id,
+                title: h.title || h.name,
+                type: 'hosts',
+              })),
+              locations: (meta.locations || []).map((l: any) => ({
+                slug: l.slug || l.id,
+                title: l.title || l.name,
+                type: 'locations',
+              })),
+              takeovers: (meta.takeovers || []).map((t: any) => ({
+                slug: t.slug || t.id,
+                title: t.title || t.name,
+                type: 'takeovers',
+              })),
+            };
+          })
+          .filter((item: any) => item.title),
         ...posts
           .map((item: any) => {
             const meta = item.metadata || {};
@@ -1548,8 +1627,8 @@ export async function createColouredSections(
           subtitle: null,
           featured_on_homepage: false,
           image: {
-            url: show.pictures?.large || '/image-placeholder.svg',
-            imgix_url: show.pictures?.large || '/image-placeholder.svg',
+            url: show.pictures?.large || '/image-placeholder.png',
+            imgix_url: show.pictures?.large || '/image-placeholder.png',
           },
           tags: show.tags || [],
           genres: show.metadata?.genres || show.enhanced_genres || show.genres || [],
