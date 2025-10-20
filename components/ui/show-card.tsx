@@ -132,12 +132,27 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   const showHost = show.user?.name || show.host || '';
   const formattedTime = formatShowTime(createdTime);
   const formattedDate = broadcastDate
-    ? new Date(broadcastDate).toLocaleDateString('en-GB', {
-        year: 'numeric',
-        month: 'short',
-        day: '2-digit',
-        timeZone: 'Europe/London',
-      })
+    ? (() => {
+        const date = new Date(broadcastDate);
+        const months = [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ];
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        return `${day} ${month} ${year}`;
+      })()
     : null;
   const primaryLocationName: string | undefined =
     show.location?.name ||

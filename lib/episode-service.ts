@@ -109,7 +109,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     }
 
     // Fetch episodes from Cosmic
-    console.log('[getEpisodes] Final query:', JSON.stringify(query, null, 2));
     const response = await cosmic.objects
       .find(query)
       .limit(baseLimit)
@@ -120,15 +119,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     const episodes = response.objects || [];
     const total = response.total || episodes.length;
     const hasNext = episodes.length === baseLimit && offset + baseLimit < total;
-
-    console.log('[getEpisodes] Response from Cosmic:', {
-      objectsCount: episodes.length,
-      total,
-      hasNext,
-      sampleEpisode: episodes[0]
-        ? { title: episodes[0].title, genres: episodes[0].metadata?.genres }
-        : null,
-    });
 
     return {
       episodes,
