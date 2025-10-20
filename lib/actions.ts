@@ -1522,8 +1522,25 @@ export async function createColouredSections(
         continue;
       }
 
+      // Ensure newest first across all sections using broadcast_date when available
+      const sortedShows = [...shows].sort((a: any, b: any) => {
+        const dateA = new Date(
+          (a.broadcast_date as string) ||
+            (a.created_time as string) ||
+            (a.created_at as string) ||
+            0
+        ).getTime();
+        const dateB = new Date(
+          (b.broadcast_date as string) ||
+            (b.created_time as string) ||
+            (b.created_at as string) ||
+            0
+        ).getTime();
+        return dateB - dateA;
+      });
+
       // Convert shows to HomepageSectionItem format
-      const showItems: HomepageSectionItem[] = shows.map((show: any) => ({
+      const showItems: HomepageSectionItem[] = sortedShows.map((show: any) => ({
         slug: show.key,
         title: show.name,
         type: 'episodes',
@@ -1535,17 +1552,17 @@ export async function createColouredSections(
             imgix_url: show.pictures?.large || '/image-placeholder.svg',
           },
           tags: show.tags || [],
-          genres: [],
-          locations: [],
-          regular_hosts: [],
-          takeovers: [],
+          genres: show.metadata?.genres || show.enhanced_genres || show.genres || [],
+          locations: show.metadata?.locations || show.locations || [],
+          regular_hosts: show.metadata?.regular_hosts || show.enhanced_hosts || [],
+          takeovers: show.metadata?.takeovers || show.takeovers || [],
           description: show.description || '',
           page_link: null,
           source: null,
-          broadcast_date: show.created_time || '',
-          broadcast_time: '',
+          broadcast_date: show.broadcast_date || show.created_time || '',
+          broadcast_time: show.broadcast_time || '',
           duration: '',
-          player: null,
+          player: show.player || show.metadata?.player || null,
           tracklist: null,
           body_text: null,
           radiocult_media_id: null,

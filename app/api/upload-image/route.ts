@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createBucketClient } from '@cosmicjs/sdk';
 
+// Force Node.js runtime to avoid Edge body-size limits for multipart uploads
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
     console.log('📸 Image upload API called');
-    
+
     const formData = await request.formData();
     const file = formData.get('image') as File;
 
@@ -53,18 +57,18 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('❌ Error uploading image:', error);
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorDetails = {
       message: errorMessage,
       type: error?.constructor?.name,
       stack: error instanceof Error ? error.stack : undefined,
     };
-    
+
     console.error('Full error details:', errorDetails);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to upload image',
         details: errorMessage,
       },

@@ -45,15 +45,48 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
     }
 
     // Handle other item types (episodes, posts, etc.)
+    if (item.type === 'episodes') {
+      const imageUrl =
+        item.metadata.image?.imgix_url ||
+        item.metadata.image?.url ||
+        item.metadata.featured_image?.imgix_url;
+      return {
+        // core identity
+        key: item.slug,
+        name: item.title,
+        slug: item.slug,
+        url: `/episode/${item.slug}`,
+        // media
+        pictures: {
+          large: imageUrl || '/image-placeholder.svg',
+          extra_large: imageUrl || '/image-placeholder.svg',
+        },
+        enhanced_image: imageUrl,
+        // dates
+        broadcast_date: item.metadata.broadcast_date || item.metadata.date || '',
+        broadcast_time: item.metadata.broadcast_time || '',
+        created_time:
+          item.metadata.created_time || item.metadata.broadcast_date || item.metadata.date || '',
+        // meta for ShowCard
+        metadata: item.metadata,
+        genres: item.metadata.genres || [],
+        locations: item.metadata.locations || [],
+        regular_hosts: item.metadata.regular_hosts || [],
+        takeovers: item.metadata.takeovers || [],
+        player: item.metadata.player,
+        description: item.metadata.description || item.metadata.excerpt || '',
+        tags: (item.metadata.genres || [])
+          .map((g: any) => ({ name: g.title, title: g.title, id: g.id, slug: g.slug }))
+          .filter(Boolean),
+        __source: 'episode',
+      };
+    }
+
+    // Posts and other content types
     return {
       key: item.slug,
       name: item.title,
-      url:
-        item.type === 'posts'
-          ? `/editorial/${item.slug}`
-          : item.type === 'episodes'
-            ? `/episode/${item.slug}`
-            : `/${item.type}/${item.slug}`,
+      url: item.type === 'posts' ? `/editorial/${item.slug}` : `/${item.type}/${item.slug}`,
       slug: item.slug,
       pictures: {
         large:

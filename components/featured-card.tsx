@@ -21,9 +21,9 @@ export function FeaturedCard({ show, priority = false, className = '', href }: F
   return (
     <Link
       href={href || `/episode/${show.slug}`}
-      className={`block ${className}`}
+      className={`block aspect-square ${className}`}
     >
-      <Card className='overflow-hidden shadow-none relative cursor-pointer border border-almostblack dark:border-white hover:shadow-lg transition-shadow w-full h-full'>
+      <Card className='aspect-square overflow-hidden shadow-none relative cursor-pointer border border-almostblack dark:border-white hover:shadow-lg transition-shadow w-full h-full'>
         <CardContent className='p-0 h-full'>
           <div className='relative group w-full h-full'>
             <Image

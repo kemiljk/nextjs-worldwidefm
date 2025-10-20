@@ -212,47 +212,51 @@ export async function POST(request: NextRequest) {
     }
     console.log(`📊 Total genres processed: ${genreObjects.length}`);
 
-    // Create metadata for the Cosmic object - only including fields with valid values
-    const rawMetadata: any = {
-      featured_on_homepage: validatedData.featuredOnHomepage,
-      broadcast_date: broadcastDate.toISOString().split('T')[0],
-      broadcast_time: broadcastTime,
-      duration: `${validatedData.duration}:00`,
-      source: 'user-created-with-radiocult-sync',
-      radiocult_artist_id: validatedData.artistId,
-      radiocult_synced: false,
-    };
+    // Build metadata strictly from form values (only include fields that have a value)
+    const rawMetadata: any = {};
 
-    // Only add optional fields if they have valid values
+    // Required form-derived fields
+    if (validatedData.startDate) {
+      rawMetadata.broadcast_date = broadcastDate.toISOString().split('T')[0];
+    }
+    if (validatedData.startTime) {
+      rawMetadata.broadcast_time = broadcastTime;
+    }
+    if (validatedData.duration) {
+      rawMetadata.duration = `${validatedData.duration}:00`;
+    }
+
+    // Optional text fields
     if (validatedData.description && validatedData.description.trim()) {
       rawMetadata.description = validatedData.description.trim();
     }
-
     if (validatedData.tracklist) {
       rawMetadata.tracklist = validatedData.tracklist;
     }
-
     if (validatedData.extraDetails && validatedData.extraDetails.trim()) {
       rawMetadata.body_text = validatedData.extraDetails.trim();
     }
 
+    // Optional booleans (only include if true)
+    if (validatedData.featuredOnHomepage) {
+      rawMetadata.featured_on_homepage = true;
+    }
+
+    // Optional media fields
     if (validatedData.radiocult_media_id) {
       rawMetadata.radiocult_media_id = validatedData.radiocult_media_id;
     }
-
     if (validatedData.media_file) {
-      // For Cosmic files field: extract media name and format as array
       if (validatedData.media_file.name) {
-        rawMetadata.media_file = [validatedData.media_file.name];
+        rawMetadata.media_file = validatedData.media_file.name; // Cosmic 'file' expects a single filename string
       } else if (typeof validatedData.media_file === 'string') {
-        rawMetadata.media_file = [validatedData.media_file];
+        rawMetadata.media_file = validatedData.media_file;
       }
     }
 
     // Handle image - store the filename for Cosmic file metafield
     let thumbnailName: string | undefined = undefined;
     if (validatedData.image && validatedData.image.media) {
-      // For Cosmic file metafields, we need to send the filename
       rawMetadata.image = validatedData.image.media.name;
       thumbnailName = validatedData.image.media.name;
       console.log(`🖼️ Image uploaded: "${thumbnailName}" (URL: ${validatedData.image.media.url})`);
@@ -273,14 +277,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Add relationship arrays - include them even if empty so Cosmic knows they exist
-    rawMetadata.genres = genreObjects;
-    rawMetadata.locations = locationObjects;
-    rawMetadata.regular_hosts = hostObjects;
-    rawMetadata.takeovers = [];
+    // Relationship arrays: only include if they have values
+    if (genreObjects.length > 0) {
+      rawMetadata.genres = genreObjects;
+    }
+    if (locationObjects.length > 0) {
+      rawMetadata.locations = locationObjects;
+    }
+    if (hostObjects.length > 0) {
+      rawMetadata.regular_hosts = hostObjects;
+    }
 
-    // Clean metadata to remove any null/undefined values
-    const metadata = cleanMetadata(rawMetadata);
+    const metadata = rawMetadata;
 
     // Log final summary
     console.log(`📋 Final show metadata summary:`);
@@ -305,12 +313,42 @@ export async function POST(request: NextRequest) {
         objectData.thumbnail = thumbnailName;
       }
 
-      const cosmicResponse = await cosmic.objects.insertOne(objectData);
+      // First attempt
+      try {
+        const cosmicResponse = await cosmic.objects.insertOne(objectData);
 
-      return NextResponse.json({
-        success: true,
-        object: cosmicResponse.object,
-      });
+        return NextResponse.json({
+          success: true,
+          object: cosmicResponse.object,
+        });
+      } catch (firstError: any) {
+        console.error('Cosmic creation error (first attempt):', firstError);
+
+        // If it's a metafield validation error, remove the offending key and retry once
+        const msg: string = firstError?.message || '';
+        const match = msg.match(/metafield with key: '([^']+)' is missing/i);
+        if (match && match[1]) {
+          const offendingKey = match[1];
+          const stripped = { ...metadata } as any;
+          delete stripped[offendingKey];
+          console.log(`Retrying after removing unsupported metafield: "${offendingKey}"`);
+
+          const retryData: any = {
+            ...objectData,
+            metadata: stripped,
+          };
+
+          const retryResponse = await cosmic.objects.insertOne(retryData);
+          return NextResponse.json({
+            success: true,
+            object: retryResponse.object,
+            warning: `Created without unsupported metafield: ${offendingKey}`,
+          });
+        }
+
+        // Re-throw to be handled by the outer catch which applies minimal fallback
+        throw firstError;
+      }
     } catch (cosmicError: any) {
       console.error('Cosmic creation error:', cosmicError);
 
@@ -333,16 +371,14 @@ export async function POST(request: NextRequest) {
         }
 
         // Only add media fields if they have values
-        if (validatedData.radiocult_media_id) {
-          rawMinimalMetadata.radiocult_media_id = validatedData.radiocult_media_id;
-        }
+        // Do NOT include keys that may not exist in Cosmic object type
+        // e.g. radiocult_media_id may not be configured yet
 
         if (validatedData.media_file) {
-          // For Cosmic files field: extract media name and format as array
           if (validatedData.media_file.name) {
-            rawMinimalMetadata.media_file = [validatedData.media_file.name];
+            rawMinimalMetadata.media_file = validatedData.media_file.name; // single filename string
           } else if (typeof validatedData.media_file === 'string') {
-            rawMinimalMetadata.media_file = [validatedData.media_file];
+            rawMinimalMetadata.media_file = validatedData.media_file;
           }
         }
 

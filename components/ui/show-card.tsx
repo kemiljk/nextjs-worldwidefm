@@ -121,10 +121,29 @@ export const ShowCard: React.FC<ShowCardProps> = ({
 
   const showImage = getShowImage(show);
   const showTags = getShowTags(show);
-  const createdTime = show.created_time || show.created_at || show.broadcast_date || show.date;
+  // Prefer broadcast_date for date display and created_time (combined with broadcast_time) for time display
+  const broadcastDate: string | undefined =
+    show.broadcast_date || show.metadata?.broadcast_date || show.date;
+  const createdTime: string | undefined =
+    show.created_time || show.metadata?.created_time || show.created_at || broadcastDate;
   const showName = show.name || show.title || 'Untitled Show';
   const showHost = show.user?.name || show.host || '';
   const formattedTime = formatShowTime(createdTime);
+  const formattedDate = broadcastDate
+    ? new Date(broadcastDate).toLocaleDateString('en-GB', {
+        year: 'numeric',
+        month: 'short',
+        day: '2-digit',
+        timeZone: 'Europe/London',
+      })
+    : null;
+  const primaryLocationName: string | undefined =
+    show.location?.name ||
+    show.metadata?.location?.name ||
+    show.metadata?.locations?.[0]?.title ||
+    show.metadata?.locations?.[0]?.name ||
+    show.locations?.[0]?.title ||
+    show.locations?.[0]?.name;
 
   // Split showName for two-line title (Figma: first line main, second line host/guest)
   const [mainTitle, ...restTitle] = showName.split(':');
@@ -200,13 +219,15 @@ export const ShowCard: React.FC<ShowCardProps> = ({
               {subtitle ? ': ' : ''} {subtitle}
             </div>
 
-            {(formattedTime || show.location?.name) && (
+            {(formattedDate || formattedTime || primaryLocationName) && (
               <div
                 className={`flex flex-row items-center gap-2.5 font-mono text-xs uppercase pt-1 ${textClass}`}
               >
+                {formattedDate && <span>{formattedDate}</span>}
+                {formattedDate && formattedTime && <span>|</span>}
                 {formattedTime && <span>{formattedTime}</span>}
-                {formattedTime && show.location?.name && <span>|</span>}
-                {show.location?.name && <span>{show.location?.name}</span>}
+                {(formattedDate || formattedTime) && primaryLocationName && <span>|</span>}
+                {primaryLocationName && <span>{primaryLocationName}</span>}
               </div>
             )}
           </div>

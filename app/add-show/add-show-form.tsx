@@ -80,7 +80,19 @@ interface CosmicGenre {
 }
 
 export function AddShowForm() {
+  const MAX_MEDIA_MB = Number(process.env.NEXT_PUBLIC_MAX_MEDIA_UPLOAD_MB || 600);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  type SubmissionPhase =
+    | 'idle'
+    | 'preparing'
+    | 'uploadingImage'
+    | 'uploadedImage'
+    | 'uploadingMedia'
+    | 'uploadedMedia'
+    | 'creatingShow'
+    | 'success'
+    | 'error';
+  const [phase, setPhase] = useState<SubmissionPhase>('idle');
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [submittedShowTitle, setSubmittedShowTitle] = useState<string>('');
   const [artists, setArtists] = useState<RadioCultArtist[]>([]);
@@ -247,6 +259,7 @@ export function AddShowForm() {
   // Handle form submission
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
+    setPhase('preparing');
 
     try {
       let radiocultMediaId: string | undefined = undefined;
@@ -263,6 +276,7 @@ export function AddShowForm() {
 
       // Upload image file separately if provided
       if (imageFile) {
+        setPhase('uploadingImage');
         console.log('📸 Starting image upload...');
         const imageFormData = new FormData();
         imageFormData.append('image', imageFile);
@@ -292,8 +306,10 @@ export function AddShowForm() {
 
           console.log('✅ Image uploaded successfully:', imageResult);
           toast.success('Image uploaded successfully');
+          setPhase('uploadedImage');
         } catch (imageError) {
           console.error('❌ Image upload failed:', imageError);
+          setPhase('error');
           throw new Error(
             `Image upload failed: ${imageError instanceof Error ? imageError.message : 'Unknown error'}`
           );
@@ -302,6 +318,14 @@ export function AddShowForm() {
 
       // Upload media file separately if provided
       if (mediaFile) {
+        if (mediaFile.size > MAX_MEDIA_MB * 1024 * 1024) {
+          throw new Error(
+            `Selected audio file is ${(mediaFile.size / 1024 / 1024).toFixed(
+              1
+            )}MB which exceeds the ${MAX_MEDIA_MB}MB limit.`
+          );
+        }
+        setPhase('uploadingMedia');
         console.log('🎵 Starting media upload...');
         const formData = new FormData();
         formData.append('media', mediaFile);
@@ -322,15 +346,33 @@ export function AddShowForm() {
           console.log('🎵 Media upload response status:', uploadResponse.status);
 
           if (!uploadResponse.ok) {
+            const status = uploadResponse.status;
+            const contentType = uploadResponse.headers.get('content-type') || '';
             let errorMessage = 'Failed to upload media';
-            try {
-              const uploadError = await uploadResponse.json();
-              errorMessage = uploadError.error || errorMessage;
-            } catch (parseError) {
-              console.error('Failed to parse media error response:', parseError);
-              errorMessage = `Failed to upload media (HTTP ${uploadResponse.status})`;
+
+            if (status === 413) {
+              // Payload too large – likely exceeds platform proxy/function limits
+              errorMessage =
+                'The selected file is too large for the server to accept. Please upload a smaller file.';
+            } else if (contentType.includes('application/json')) {
+              try {
+                const uploadError = await uploadResponse.json();
+                errorMessage = uploadError.error || uploadError.message || errorMessage;
+              } catch (parseError) {
+                // Fall through to text/body-less handling
+              }
+            } else {
+              try {
+                const text = await uploadResponse.text();
+                if (text && text.length < 500) {
+                  errorMessage = `${errorMessage}: ${text}`;
+                }
+              } catch (_) {
+                // ignore
+              }
             }
-            throw new Error(errorMessage);
+
+            throw new Error(`${errorMessage} (HTTP ${status})`);
           }
 
           const uploadResult = await uploadResponse.json();
@@ -353,11 +395,18 @@ export function AddShowForm() {
               description: `Successfully uploaded to both RadioCult (ID: ${uploadResult.radiocultMediaId}) and Cosmic`,
             });
           }
+          setPhase('uploadedMedia');
         } catch (mediaError) {
           console.error('❌ Media upload failed:', mediaError);
-          throw new Error(
-            `Media upload failed: ${mediaError instanceof Error ? mediaError.message : 'Unknown error'}`
-          );
+          // Do not abort submission; continue without media
+          toast.warning('Audio upload failed — continuing without attaching media', {
+            description:
+              mediaError instanceof Error ? mediaError.message : 'Unknown error during upload',
+          });
+          // Reset media-related variables to ensure clean payload
+          radiocultMediaId = undefined;
+          cosmicMedia = undefined;
+          setPhase('uploadedMedia');
         }
       }
 
@@ -368,6 +417,7 @@ export function AddShowForm() {
 
       // Create the show in Cosmic
       console.log('📝 Creating show in Cosmic...');
+      setPhase('creatingShow');
       try {
         const response = await fetch('/api/shows/create', {
           method: 'POST',
@@ -404,6 +454,7 @@ export function AddShowForm() {
         // Set success state
         setSubmittedShowTitle(values.title);
         setIsSubmitted(true);
+        setPhase('success');
 
         toast.success('Show submitted successfully!');
 
@@ -417,6 +468,7 @@ export function AddShowForm() {
         setImageFile(null);
       } catch (createError) {
         console.error('❌ Show creation failed:', createError);
+        setPhase('error');
         throw new Error(
           `Show creation failed: ${createError instanceof Error ? createError.message : 'Unknown error'}`
         );
@@ -959,7 +1011,21 @@ export function AddShowForm() {
             className='px-2'
             disabled={isLoading}
           >
-            {isLoading ? 'Submitting...' : 'Submit for Approval'}
+            {isLoading
+              ? phase === 'preparing'
+                ? 'Preparing submission…'
+                : phase === 'uploadingImage'
+                  ? 'Uploading image…'
+                  : phase === 'uploadedImage'
+                    ? 'Image uploaded ✓'
+                    : phase === 'uploadingMedia'
+                      ? 'Uploading audio…'
+                      : phase === 'uploadedMedia'
+                        ? 'Audio uploaded ✓'
+                        : phase === 'creatingShow'
+                          ? 'Creating show…'
+                          : 'Submitting…'
+              : 'Submit for Approval'}
           </Button>
         </div>
       </form>

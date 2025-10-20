@@ -77,7 +77,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         })
         .props('slug,title,metadata,type,created_at,published_at')
         .limit(fetchLimit)
-        .sort('-metadata.broadcast_date,-created_at')
+        .sort('-order')
         .depth(2);
 
       let allEpisodes = allResponse.objects || [];
@@ -183,7 +183,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       .props('slug,title,metadata,type,created_at,published_at')
       .limit(baseLimit)
       .skip(offset)
-      .sort('-metadata.broadcast_date,-created_at')
+      .sort('-order')
       .depth(2);
 
     const episodes = response.objects || [];
@@ -241,7 +241,7 @@ export async function getAllEpisodes(): Promise<EpisodeObject[]> {
       })
       .props('slug,title,metadata,type,created_at,published_at')
       .limit(1000)
-      .sort('-metadata.broadcast_date,-created_at')
+      .sort('-order')
       .depth(2);
 
     return response.objects || [];
@@ -929,7 +929,11 @@ export async function getRelatedEpisodes(
       .find(query)
       .props('slug,title,metadata,type,created_at,published_at')
       .limit(poolSize)
-      .sort('-metadata.broadcast_date,-created_at')
+      .sort('-metadata.broadcast_date,-published_at,-created_at')
+      .limit(poolSize)
+      .sort('-order')
+      .limit(poolSize)
+      .sort('-order')
       .depth(2);
 
     const candidates = response.objects || [];
@@ -1014,7 +1018,7 @@ export async function getEpisodesByShowType(
       })
       .props('slug,title,metadata,type,created_at,published_at')
       .limit(limit)
-      .sort('-metadata.broadcast_date,-created_at')
+      .sort('-order')
       .depth(2);
 
     const episodes = response.objects || [];

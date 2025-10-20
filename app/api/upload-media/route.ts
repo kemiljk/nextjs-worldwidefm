@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createBucketClient } from '@cosmicjs/sdk';
 
+// Force Node.js runtime to allow large multipart uploads (Edge has ~4.5MB limit)
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   try {
     console.log('🎵 Media upload API called');
-    
+
     const formData = await request.formData();
     const file = formData.get('media') as File;
     const metadata = formData.get('metadata') as string;
@@ -41,7 +45,7 @@ export async function POST(request: NextRequest) {
     if (stationId && secretKey) {
       try {
         console.log('📡 Attempting RadioCult upload...');
-        
+
         // Prepare form data for RadioCult
         const rcForm = new FormData();
         rcForm.append('stationMedia', file);
@@ -107,16 +111,16 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('❌ Error uploading media:', error);
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorDetails = {
       message: errorMessage,
       type: error?.constructor?.name,
       stack: error instanceof Error ? error.stack : undefined,
     };
-    
+
     console.error('Full error details:', errorDetails);
-    
+
     return NextResponse.json(
       {
         error: 'Failed to upload media',
