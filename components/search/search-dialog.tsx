@@ -24,7 +24,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getAllPosts, getVideos, getEvents, getTakeovers, getAllFilters } from '@/lib/actions';
+import {
+  getAllPosts,
+  getVideos,
+  getEvents,
+  getTakeovers,
+  getAllFilters,
+  searchEpisodes,
+} from '@/lib/actions';
 import type { ContentType } from '@/lib/search/types';
 import type { PostObject, VideoObject } from '@/lib/cosmic-config';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -55,7 +62,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [videoCategories, setVideoCategories] = useState<any[]>([]);
-  const [genreTitleToId, setGenreTitleToId] = useState<Record<string, string>>({});
   // On mobile: showFilters = false means show results, true means show filters overlay.
   const [showFilters, setShowFilters] = useState(false); // For mobile toggle: start with results list
   const { ref: observerTarget, inView } = useInView({
@@ -73,7 +79,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       try {
         const types: string[] = [];
         const [episodes, posts, videos, events, takeovers, videoCategories] = await Promise.all([
-          import('@/lib/episode-service').then((m) => m.getEpisodesForShows({ limit: 1 })),
+          searchEpisodes({ limit: 1 }),
           getAllPosts({ limit: 1 }),
           getVideos({ limit: 1 }),
           getEvents({ limit: 1 }),
@@ -106,24 +112,16 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       try {
         let tagSet = new Set<string>();
         if (selectedType === 'episodes') {
-          const response = await import('@/lib/episode-service').then((m) =>
-            m.getEpisodesForShows({ limit: 100, offset: 0 })
-          );
+          const response = await searchEpisodes({ limit: 100, offset: 0 });
           response?.shows?.forEach((episode: any) => {
-            const genres = episode?.genres || episode?.enhanced_genres || [];
+            const genres = episode?.metadata?.genres || [];
             genres.forEach((genre: any) => {
-              if (genre?.title || genre?.name) tagSet.add(genre.title || genre.name);
+              if (genre?.title && genre?.id) {
+                // Store both title and ID for easy access
+                tagSet.add(`${genre.title}|${genre.id}`);
+              }
             });
           });
-          // Build map of genre title -> id for querying by genre later
-          try {
-            const filters = await getAllFilters();
-            const map: Record<string, string> = {};
-            (filters.genres || []).forEach((g: any) => {
-              if (g?.title && g?.id) map[g.title.toLowerCase()] = g.id;
-            });
-            setGenreTitleToId(map);
-          } catch {}
         } else if (selectedType === 'posts') {
           const { posts } = await getAllPosts({ limit: 100, offset: 0 });
           posts?.forEach((post: PostObject) => {
@@ -177,10 +175,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         let allResults: any[] = [];
 
         if (selectedType === 'episodes') {
-          // Fetch episodes from Cosmic using same logic as Shows page
-          const { getEpisodesForShows } = await import('@/lib/episode-service');
+          // Fetch episodes from Cosmic using server action to avoid CORS issues
           const searchParams: any = {
-            limit: debouncedSearchTerm ? 1000 : PAGE_SIZE, // No limit for search queries, use PAGE_SIZE for browsing
+            limit: debouncedSearchTerm || selectedTags.length > 0 ? 1000 : PAGE_SIZE, // Higher limit for search/genre filtering, normal limit for browsing
             offset: 0,
           };
 
@@ -189,25 +186,39 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             searchParams.searchTerm = debouncedSearchTerm;
           }
 
-          // If tags selected, convert titles to genre IDs and query server-side
+          // If tags selected, extract genre IDs directly from selected tags
           if (selectedTags.length > 0) {
-            const ids = selectedTags.map((t) => genreTitleToId[t.toLowerCase()]).filter(Boolean);
+            const ids = selectedTags
+              .map((tag) => {
+                // For episodes, tags are in format "title|id"
+                if (selectedType === 'episodes' && tag.includes('|')) {
+                  return tag.split('|')[1]; // Extract ID part
+                }
+                return null;
+              })
+              .filter(Boolean);
+
+            console.log('[SearchDialog] Selected tags:', selectedTags);
+            console.log('[SearchDialog] Genre IDs extracted:', ids);
+
             if (ids.length > 0) {
               searchParams.genre = ids;
             }
           }
 
           console.log('[SearchDialog] Fetching episodes with params:', searchParams);
-          res = await getEpisodesForShows(searchParams);
+          res = await searchEpisodes(searchParams);
           allResults = res?.shows || [];
           console.log('[SearchDialog] Found episodes:', allResults.length);
+          console.log('[SearchDialog] Raw response:', res);
           // Episodes are already sorted by Cosmic order/broadcast_date from server query
         } else if (selectedType === 'posts') {
           const searchParams = debouncedSearchTerm
-            ? { searchTerm: debouncedSearchTerm, limit: 100, offset: 0 }
-            : { limit: 100, offset: 0 };
+            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 } // Increased limit for search
+            : { limit: selectedTags.length > 0 ? 1000 : 100, offset: 0 }; // Increased limit for genre filtering
           res = await getAllPosts(searchParams);
           allResults = res?.posts || [];
+          // Note: Posts don't have server-side genre filtering yet, so we keep client-side filtering for now
           if (selectedTags.length > 0) {
             allResults = allResults.filter((post: any) =>
               selectedTags.every(
@@ -221,8 +232,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           }
         } else if (selectedType === 'videos') {
           const searchParams = debouncedSearchTerm
-            ? { searchTerm: debouncedSearchTerm, limit: 100, offset: 0 }
-            : { limit: 100, offset: 0 };
+            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 } // Increased limit for search
+            : { limit: selectedTags.length > 0 ? 1000 : 100, offset: 0 }; // Increased limit for genre filtering
           res = await getVideos(searchParams);
           allResults = res?.videos || [];
           if (selectedTags.length > 0) {
@@ -238,8 +249,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           }
         } else if (selectedType === 'events') {
           const searchParams = debouncedSearchTerm
-            ? { searchTerm: debouncedSearchTerm, limit: 100, offset: 0 }
-            : { limit: 100, offset: 0 };
+            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 } // Increased limit for search
+            : { limit: selectedTags.length > 0 ? 1000 : 100, offset: 0 }; // Increased limit for genre filtering
           res = await getEvents(searchParams);
           allResults = res?.events || [];
           if (selectedTags.length > 0) {
@@ -255,8 +266,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           }
         } else if (selectedType === 'takeovers') {
           const searchParams = debouncedSearchTerm
-            ? { searchTerm: debouncedSearchTerm, limit: 100, offset: 0 }
-            : { limit: 100, offset: 0 };
+            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 } // Increased limit for search
+            : { limit: selectedTags.length > 0 ? 1000 : 100, offset: 0 }; // Increased limit for genre filtering
           res = await getTakeovers(searchParams);
           allResults = res?.takeovers || [];
           if (selectedTags.length > 0) {
@@ -289,7 +300,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       }
     }
 
+    // Always fetch results - either default episodes or filtered/search results
     fetchResults();
+
     setTimeout(() => searchInputRef.current?.focus(), 100);
 
     return () => {
@@ -309,11 +322,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           try {
             let res: any;
             if (selectedType === 'episodes') {
-              const episodeModule = await import('@/lib/episode-service');
               const searchParams = debouncedSearchTerm
                 ? { searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset }
                 : { limit: PAGE_SIZE, offset: nextOffset };
-              res = await episodeModule.getEpisodesForShows(searchParams);
+              res = await searchEpisodes(searchParams);
               setResults((prev) => [...prev, ...(res?.shows || [])]);
               setHasNext(res?.hasNext || false);
             } else if (selectedType === 'posts') {
@@ -563,23 +575,33 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                       </div>
                     </div>
                     {/* Tags Section */}
-                    <div className='border-b border-almostblack dark:border-white py-3'>
+                    <div
+                      className={`${selectedType === 'episodes' && results.length > 0 ? 'border-b border-almostblack dark:border-white' : ''} py-3`}
+                    >
                       <div className='pl-2 space-y-1'>
-                        {tags.map((tag) => (
-                          <button
-                            key={tag}
-                            onClick={() => handleFilterToggle({ type: 'tags', slug: tag })}
-                            className={cn(
-                              'uppercase font-mono text-m8 gap-2 rounded-full flex text-left items-start w-fit px-3 py-2',
-                              activeFilters.includes(tag)
-                                ? 'bg-accent text-accent-foreground'
-                                : 'hover:bg-accent/100 hover:text-white hover:cursor-pointer'
-                            )}
-                          >
-                            <span className='text-m8 leading-none'>{tag}</span>
-                            {activeFilters.includes(tag) && <X className='h-3 w-3' />}
-                          </button>
-                        ))}
+                        {tags.map((tag) => {
+                          // For episodes, extract just the title part for display
+                          const displayTitle =
+                            selectedType === 'episodes' && tag.includes('|')
+                              ? tag.split('|')[0]
+                              : tag;
+
+                          return (
+                            <button
+                              key={tag}
+                              onClick={() => handleFilterToggle({ type: 'tags', slug: tag })}
+                              className={cn(
+                                'uppercase font-mono text-m8 gap-2 rounded-full flex text-left items-start w-fit px-3 py-2',
+                                activeFilters.includes(tag)
+                                  ? 'bg-accent text-accent-foreground'
+                                  : 'hover:bg-accent/100 hover:text-white hover:cursor-pointer'
+                              )}
+                            >
+                              <span className='text-m8 leading-none'>{displayTitle}</span>
+                              {activeFilters.includes(tag) && <X className='h-3 w-3' />}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -650,11 +672,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                                 <div className='size-32 relative shrink-0 overflow-hidden'>
                                   <Image
                                     src={
-                                      result.pictures?.large ||
-                                      result.pictures?.extra_large ||
+                                      result.metadata?.image?.imgix_url ||
+                                      result.metadata?.image?.url ||
                                       '/image-placeholder.png'
                                     }
-                                    alt={result.name || 'Radio Show Cover'}
+                                    alt={result.title || 'Radio Show Cover'}
                                     fill
                                     className='object-cover transition-opacity duration-200 group-hover:opacity-70'
                                   />
@@ -666,36 +688,30 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                                       <span>Episodes</span>
                                     </div>
                                     <h3 className='max-w-[90%] pl-1 text-[18px] font-mono line-clamp-2'>
-                                      {result.name}
+                                      {result.title}
                                     </h3>
                                   </div>
                                   <div className='flex flex-col gap-2'>
-                                    {result.broadcast_date && (
+                                    {result.metadata?.broadcast_date && (
                                       <span className='pl-1 text-m8'>
-                                        {format(new Date(result.broadcast_date), 'MMM d, yyyy')}
+                                        {format(
+                                          new Date(result.metadata.broadcast_date),
+                                          'MMM d, yyyy'
+                                        )}
                                       </span>
                                     )}
-                                    {Array.isArray(result.tags) &&
-                                      result.tags.filter(
-                                        (tag: any) =>
-                                          tag.name && tag.name.toUpperCase() !== 'WORLDWIDE FM'
-                                      ).length > 0 && (
+                                    {Array.isArray(result.metadata?.genres) &&
+                                      result.metadata.genres.length > 0 && (
                                         <div className='flex flex-wrap'>
-                                          {result.tags
-                                            .filter(
-                                              (tag: any) =>
-                                                tag.name &&
-                                                tag.name.toUpperCase() !== 'WORLDWIDE FM'
-                                            )
-                                            .map((tag: any) => (
-                                              <Badge
-                                                key={tag.name}
-                                                variant='outline'
-                                                className='text-m8 uppercase'
-                                              >
-                                                {tag.name}
-                                              </Badge>
-                                            ))}
+                                          {result.metadata.genres.map((genre: any) => (
+                                            <Badge
+                                              key={genre.id}
+                                              variant='outline'
+                                              className='text-m8 uppercase'
+                                            >
+                                              {genre.title}
+                                            </Badge>
+                                          ))}
                                         </div>
                                       )}
                                   </div>

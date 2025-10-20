@@ -1237,6 +1237,24 @@ export async function fetchGenres() {
   }
 }
 
+// Server action to search episodes (avoids CORS issues)
+export async function searchEpisodes(params: {
+  limit?: number;
+  offset?: number;
+  genre?: string | string[];
+  searchTerm?: string;
+}) {
+  'use server';
+
+  try {
+    const { getEpisodesForShows } = await import('./episode-service');
+    return await getEpisodesForShows(params);
+  } catch (error) {
+    console.error('Error searching episodes:', error);
+    return { shows: [], total: 0, hasNext: false };
+  }
+}
+
 export async function uploadMediaToRadioCultAndCosmic(
   file: File,
   metadata: Record<string, any> = {}
