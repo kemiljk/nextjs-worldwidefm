@@ -54,12 +54,13 @@ export const ShowCard: React.FC<ShowCardProps> = ({
 
   const getShowImage = (show: any) => {
     return (
+      show.metadata?.image?.imgix_url ||
+      show.metadata?.image?.url ||
       show.pictures?.large ||
       show.pictures?.extra_large ||
       show.enhanced_image ||
       show.imageUrl ||
       show.image ||
-      show.metadata?.image?.imgix_url ||
       '/image-placeholder.png'
     );
   };
@@ -121,6 +122,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
 
   const showImage = getShowImage(show);
   const showTags = getShowTags(show);
+
   // Prefer broadcast_date for date display and created_time (combined with broadcast_time) for time display
   const broadcastDate: string | undefined =
     show.broadcast_date || show.metadata?.broadcast_date || show.date;

@@ -28,12 +28,12 @@ export function FeaturedCard({ show, priority = false, className = '', href }: F
           <div className='relative group w-full h-full'>
             <Image
               src={
-                show.pictures?.extra_large ||
-                show.enhanced_image ||
-                show.image ||
+                show.metadata?.image?.imgix_url ||
+                show.metadata?.image?.url ||
+                show.imgix_url ||
                 '/image-placeholder.png'
               }
-              alt={show.name || show.title || 'Show'}
+              alt={show.title || show.name || 'Show'}
               fill
               className='object-cover'
               sizes='(max-width: 768px) 100vw, 50vw'
@@ -51,23 +51,23 @@ export function FeaturedCard({ show, priority = false, className = '', href }: F
             <div className='absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-almostblack to-transparent flex flex-col justify-end p-4 z-20'>
               <div className='bg-almostblack p-0.5 text-h9 sm:text-h8 leading-[1] font-display uppercase w-fit'>
                 <HighlightedText variant='default'>
-                  {show.broadcast_date ? formatDateShort(show.broadcast_date) : 'RECENT SHOW'}
+                  {show.metadata?.broadcast_date
+                    ? formatDateShort(show.metadata.broadcast_date)
+                    : 'RECENT SHOW'}
                 </HighlightedText>
               </div>
               <h3 className='text-h8 sm:text-h7 lg:text-h6 max-w-[80%] leading-[1] font-display w-fit'>
-                <HighlightedText variant='white'>{show.name || show.title}</HighlightedText>
+                <HighlightedText variant='white'>{show.title}</HighlightedText>
               </h3>
               <div className='flex flex-wrap mt-4'>
-                {(show.tags || show.genres || show.enhanced_genres || [])
-                  .slice(0, 3)
-                  .map((tag: any, tagIndex: number) => (
-                    <GenreTag
-                      key={tag.name || tag.title || tagIndex}
-                      variant='white'
-                    >
-                      {tag.name || tag.title}
-                    </GenreTag>
-                  ))}
+                {(show.metadata?.genres || []).slice(0, 3).map((genre: any, genreIndex: number) => (
+                  <GenreTag
+                    key={genre.id || genreIndex}
+                    variant='white'
+                  >
+                    {genre.title}
+                  </GenreTag>
+                ))}
                 {show?.metadata?.player && (
                   <div className='absolute bottom-4 right-4 z-30 opacity-0 group-hover:opacity-100 transition-opacity'>
                     <PlayButton

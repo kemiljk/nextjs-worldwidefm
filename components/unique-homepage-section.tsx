@@ -22,96 +22,21 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
   // Fallback to orange if no color is provided
   const sectionColor = section.color || 'bg-sunset';
 
-  // Convert Cosmic items to show format for ShowCard
-  const convertToShowFormat = (item: CosmicItem) => {
-    if (item.type === 'regular-hosts') {
-      return {
-        key: item.slug,
-        name: item.title,
-        url: `/hosts/${item.slug}`,
-        slug: item.slug,
-        pictures: {
-          large:
-            item.metadata.image?.url || item.metadata.image?.imgix_url || '/image-placeholder.png',
-        },
-        user: {
-          name: item.title,
-          username: item.slug,
-        },
-        created_time: item.metadata.created_time || item.metadata.date || '',
-        tags: item.metadata.tags || item.metadata.categories || [],
-        description: item.metadata.description || '',
-      };
-    }
-
-    // Handle other item types (episodes, posts, etc.)
-    if (item.type === 'episodes') {
-      const imageUrl =
-        item.metadata.image?.imgix_url ||
-        item.metadata.image?.url ||
-        item.metadata.featured_image?.imgix_url;
-      return {
-        // core identity
-        key: item.slug,
-        name: item.title,
-        slug: item.slug,
-        url: `/episode/${item.slug}`,
-        // media
-        pictures: {
-          large: imageUrl || '/image-placeholder.png',
-          extra_large: imageUrl || '/image-placeholder.png',
-        },
-        enhanced_image: imageUrl,
-        // dates
-        broadcast_date: item.metadata.broadcast_date || item.metadata.date || '',
-        broadcast_time: item.metadata.broadcast_time || '',
-        created_time:
-          item.metadata.created_time || item.metadata.broadcast_date || item.metadata.date || '',
-        // meta for ShowCard
-        metadata: item.metadata,
-        genres: item.metadata.genres || [],
-        locations: item.metadata.locations || [],
-        regular_hosts: item.metadata.regular_hosts || [],
-        takeovers: item.metadata.takeovers || [],
-        player: item.metadata.player,
-        description: item.metadata.description || item.metadata.excerpt || '',
-        tags: (item.metadata.genres || [])
-          .map((g: any) => ({ name: g.title, title: g.title, id: g.id, slug: g.slug }))
-          .filter(Boolean),
-        __source: 'episode',
-      };
-    }
-
-    // Posts and other content types
-    return {
-      key: item.slug,
-      name: item.title,
-      url: item.type === 'posts' ? `/editorial/${item.slug}` : `/${item.type}/${item.slug}`,
-      slug: item.slug,
-      pictures: {
-        large:
-          item.metadata.image?.url ||
-          item.metadata.featured_image?.imgix_url ||
-          '/image-placeholder.png',
-      },
-      user: {
-        name: item.metadata.author?.title || item.metadata.author || '',
-        username: item.metadata.author?.title || item.metadata.author || '',
-      },
-      created_time: item.metadata.date || item.metadata.created_time || '',
-      tags: (item.metadata.categories || item.metadata.tags || [])
-        .map((cat: any) => {
-          if (typeof cat === 'string') return cat;
-          if (cat && typeof cat === 'object' && 'title' in cat && typeof cat.title === 'string')
-            return cat.title;
-          return '';
-        })
-        .filter((tag: string) => !!tag),
-      excerpt: item.metadata.excerpt || '',
-    };
-  };
-
-  const shows = section.items.map(convertToShowFormat);
+  // Pass Cosmic items directly to ShowCard - no transformation needed
+  const shows = section.items.map((item: CosmicItem) => ({
+    ...item,
+    // Add URL for navigation
+    url:
+      item.type === 'episodes'
+        ? `/episode/${item.slug}`
+        : item.type === 'posts'
+          ? `/editorial/${item.slug}`
+          : item.type === 'regular-hosts'
+            ? `/hosts/${item.slug}`
+            : `/${item.type}/${item.slug}`,
+    // Add key for ShowCard
+    key: item.slug,
+  }));
 
   // Use coloured section data if available, otherwise fall back to section data
   const displayTitle = colouredSection?.title || section.title;

@@ -1583,28 +1583,21 @@ export async function createColouredSections(
         if (colouredSection.show_type && colouredSection.show_type.length > 0) {
           // Extract just the IDs from the show_type objects
           const showTypeIds = colouredSection.show_type.map((type: any) => type.id);
-          console.log(
-            `Filtering episodes for "${colouredSection.title}" by show type IDs:`,
-            showTypeIds
-          );
 
-          // Use dedicated function to fetch episodes by show type
-          const { getEpisodesByShowType } = await import('./episode-service');
-          const episodes = await getEpisodesByShowType(showTypeIds, 8);
+          // Fetch episodes by show type using simplified Cosmic approach
+          const { getEpisodes } = await import('./episode-service');
+          const episodes = await getEpisodes({
+            showType: showTypeIds,
+            limit: 8,
+          });
 
-          // Transform episodes to show format
-          const { transformEpisodeToShowFormat } = await import('./episode-service');
-          shows = episodes.map(transformEpisodeToShowFormat);
-
-          console.log(`Found ${shows.length} episodes for "${colouredSection.title}"`);
+          // Use episodes directly - no transformation needed
+          shows = episodes.episodes || [];
         } else {
           // Fallback to recent episodes if no show_type specified
-          console.log(
-            `No show_type specified for "${colouredSection.title}", using recent episodes`
-          );
-          const { getMixcloudShows } = await import('./actions');
-          const { shows: recentShows } = await getMixcloudShows({ limit: 8 });
-          shows = recentShows.slice(0, 8);
+          const { getEpisodes } = await import('./episode-service');
+          const episodes = await getEpisodes({ limit: 8 });
+          shows = episodes.episodes || [];
         }
       } catch (error) {
         console.warn(
@@ -1622,49 +1615,25 @@ export async function createColouredSections(
       // Ensure newest first across all sections using broadcast_date when available
       const sortedShows = [...shows].sort((a: any, b: any) => {
         const dateA = new Date(
-          (a.broadcast_date as string) ||
-            (a.created_time as string) ||
+          (a.metadata?.broadcast_date as string) ||
+            (a.metadata?.created_at as string) ||
             (a.created_at as string) ||
             0
         ).getTime();
         const dateB = new Date(
-          (b.broadcast_date as string) ||
-            (b.created_time as string) ||
+          (b.metadata?.broadcast_date as string) ||
+            (b.metadata?.created_at as string) ||
             (b.created_at as string) ||
             0
         ).getTime();
         return dateB - dateA;
       });
 
-      // Convert shows to HomepageSectionItem format
-      const showItems: HomepageSectionItem[] = sortedShows.map((show: any) => ({
-        slug: show.key,
-        title: show.name,
-        type: 'episodes',
-        metadata: {
-          subtitle: null,
-          featured_on_homepage: false,
-          image: {
-            url: show.pictures?.large || '/image-placeholder.png',
-            imgix_url: show.pictures?.large || '/image-placeholder.png',
-          },
-          tags: show.tags || [],
-          genres: show.metadata?.genres || show.enhanced_genres || show.genres || [],
-          locations: show.metadata?.locations || show.locations || [],
-          regular_hosts: show.metadata?.regular_hosts || show.enhanced_hosts || [],
-          takeovers: show.metadata?.takeovers || show.takeovers || [],
-          description: show.description || '',
-          page_link: null,
-          source: null,
-          broadcast_date: show.broadcast_date || show.created_time || '',
-          broadcast_time: show.broadcast_time || '',
-          duration: '',
-          player: show.player || show.metadata?.player || null,
-          tracklist: null,
-          body_text: null,
-          radiocult_media_id: null,
-          media_file: null,
-        },
+      // Use raw Cosmic shows directly - no transformation needed
+      const showItems = sortedShows.map((show: any) => ({
+        ...show,
+        url: `/episode/${show.slug}`,
+        key: show.slug,
       }));
 
       // Assign colors sequentially: orange, green, purple, blue, then repeat
