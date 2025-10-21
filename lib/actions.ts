@@ -1,16 +1,32 @@
-"use server";
+'use server';
 
-import { getPosts, getEditorialHomepage, getRadioShowBySlug } from "./cosmic-service";
-import { SearchResult, FilterItem } from "./search-context";
-import { PostObject, VideoObject } from "./cosmic-config";
-import { cosmic } from "./cosmic-config";
-import { getEventBySlug as getRadioCultEventBySlug, getEvents as getRadioCultEvents, RadioCultEvent, getScheduleData as getRadioCultScheduleData, getTags } from "./radiocult-service";
-import FormData from "form-data";
-import { CosmicHomepageData, HomepageSectionItem, CosmicAPIObject, ProcessedHomepageSection } from "./cosmic-types";
-import { stripUrlsFromText } from "./utils";
-import { deduplicateFilters } from "./filter-types";
+import { getPosts, getEditorialHomepage, getRadioShowBySlug } from './cosmic-service';
+import { SearchResult, FilterItem } from './search-context';
+import { PostObject, VideoObject } from './cosmic-config';
+import { cosmic } from './cosmic-config';
+import {
+  getEventBySlug as getRadioCultEventBySlug,
+  getEvents as getRadioCultEvents,
+  RadioCultEvent,
+  getScheduleData as getRadioCultScheduleData,
+  getTags,
+} from './radiocult-service';
+import FormData from 'form-data';
+import {
+  CosmicHomepageData,
+  HomepageSectionItem,
+  CosmicAPIObject,
+  ProcessedHomepageSection,
+} from './cosmic-types';
+import { stripUrlsFromText } from './utils';
+import { deduplicateFilters } from './filter-types';
 
-export async function getAllPosts({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{
+export async function getAllPosts({
+  limit = 20,
+  offset = 0,
+  tag,
+  searchTerm,
+}: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{
   posts: PostObject[];
   hasNext: boolean;
 }> {
@@ -18,21 +34,21 @@ export async function getAllPosts({ limit = 20, offset = 0, tag, searchTerm }: {
     const filters: any = {
       limit,
       skip: offset,
-      sort: "-metadata.date",
-      status: "published",
+      sort: '-metadata.date',
+      status: 'published',
     };
     if (tag) {
-      filters["metadata.categories"] = tag;
+      filters['metadata.categories'] = tag;
     }
     if (searchTerm) {
-      filters["title"] = searchTerm;
+      filters['title'] = searchTerm;
     }
     const response = await getPosts(filters);
     const posts = response.objects || [];
     const hasNext = posts.length === limit;
     return { posts, hasNext };
   } catch (error) {
-    console.error("Error in getAllPosts:", error);
+    console.error('Error in getAllPosts:', error);
     return { posts: [], hasNext: false };
   }
 }
@@ -40,7 +56,7 @@ export async function getAllPosts({ limit = 20, offset = 0, tag, searchTerm }: {
 export async function getAllShows(skip = 0, limit = 20, filters?: any) {
   try {
     // Get episodes from Cosmic using the episode service
-    const { getEpisodesForShows } = await import("./episode-service");
+    const { getEpisodesForShows } = await import('./episode-service');
     const response = await getEpisodesForShows({
       offset: skip,
       limit,
@@ -54,7 +70,7 @@ export async function getAllShows(skip = 0, limit = 20, filters?: any) {
       mixcloudSkip: 0, // Deprecated but kept for compatibility
     };
   } catch (error) {
-    console.error("Error fetching episodes:", error);
+    console.error('Error fetching episodes:', error);
     return { shows: [], hasMore: false, cosmicSkip: skip, mixcloudSkip: 0 };
   }
 }
@@ -65,14 +81,14 @@ export async function getAllShows(skip = 0, limit = 20, filters?: any) {
 export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
   // First try to get episode from Cosmic
   try {
-    const { getEpisodeBySlug } = await import("./episode-service");
+    const { getEpisodeBySlug } = await import('./episode-service');
     const episode = await getEpisodeBySlug(slug);
 
     if (episode) {
       return episode;
     }
   } catch (error) {
-    console.error("Error fetching episode from Cosmic:", error);
+    console.error('Error fetching episode from Cosmic:', error);
   }
 
   // If no episode found in Cosmic, try RadioCult for live shows
@@ -82,7 +98,7 @@ export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
       return convertRadioCultEventToMixcloudFormat(radioCultEvent);
     }
   } catch (error) {
-    console.error("Error fetching RadioCult event:", error);
+    console.error('Error fetching RadioCult event:', error);
   }
 
   return null;
@@ -90,12 +106,17 @@ export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
 
 export async function getShowBySlug(slug: string): Promise<any | null> {
   // Normalize slug variants
-  const slugVariants = [slug, slug.startsWith("/") ? slug.slice(1) : "/" + slug, slug.replace(/^\/+/, ""), slug.replace(/^\/worldwidefm\//, "")];
+  const slugVariants = [
+    slug,
+    slug.startsWith('/') ? slug.slice(1) : '/' + slug,
+    slug.replace(/^\/+/, ''),
+    slug.replace(/^\/worldwidefm\//, ''),
+  ];
 
   // First, try to get episode from Cosmic
   for (const variant of slugVariants) {
     try {
-      const { getEpisodeBySlug } = await import("./episode-service");
+      const { getEpisodeBySlug } = await import('./episode-service');
       const episode = await getEpisodeBySlug(variant);
       if (episode) {
         return episode;
@@ -109,7 +130,7 @@ export async function getShowBySlug(slug: string): Promise<any | null> {
   for (const variant of slugVariants) {
     try {
       // Only try RadioCult if it looks like a live show slug
-      if (!variant.includes("/")) {
+      if (!variant.includes('/')) {
         const radioCultEvent = await getRadioCultEventBySlug(variant);
         if (radioCultEvent) {
           return convertRadioCultEventToMixcloudFormat(radioCultEvent);
@@ -132,16 +153,16 @@ export async function getShowBySlug(slug: string): Promise<any | null> {
           name: show.title,
           url: `/episode/${show.slug}`,
           pictures: {
-            small: show.metadata?.image?.imgix_url || "/image-placeholder.png",
-            thumbnail: show.metadata?.image?.imgix_url || "/image-placeholder.png",
-            medium_mobile: show.metadata?.image?.imgix_url || "/image-placeholder.png",
-            medium: show.metadata?.image?.imgix_url || "/image-placeholder.png",
-            large: show.metadata?.image?.imgix_url || "/image-placeholder.png",
-            "320wx320h": show.metadata?.image?.imgix_url || "/image-placeholder.png",
-            extra_large: show.metadata?.image?.imgix_url || "/image-placeholder.png",
-            "640wx640h": show.metadata?.image?.imgix_url || "/image-placeholder.png",
-            "768wx768h": show.metadata?.image?.imgix_url || "/image-placeholder.png",
-            "1024wx1024h": show.metadata?.image?.imgix_url || "/image-placeholder.png",
+            small: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            thumbnail: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            medium_mobile: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            medium: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            large: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            '320wx320h': show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            extra_large: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            '640wx640h': show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            '768wx768h': show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            '1024wx1024h': show.metadata?.image?.imgix_url || '/image-placeholder.png',
           },
           created_time: show.metadata?.broadcast_date || show.created_at,
           updated_time: show.modified_at,
@@ -162,29 +183,32 @@ export async function getShowBySlug(slug: string): Promise<any | null> {
             name: host.title,
             username: host.slug || host.id,
             pictures: {
-              small: host.image?.imgix_url || "/image-placeholder.png",
-              thumbnail: host.image?.imgix_url || "/image-placeholder.png",
-              medium_mobile: host.image?.imgix_url || "/image-placeholder.png",
-              medium: host.image?.imgix_url || "/image-placeholder.png",
-              large: host.image?.imgix_url || "/image-placeholder.png",
-              "320wx320h": host.image?.imgix_url || "/image-placeholder.png",
-              extra_large: host.image?.imgix_url || "/image-placeholder.png",
-              "640wx640h": host.image?.imgix_url || "/image-placeholder.png",
+              small: host.image?.imgix_url || '/image-placeholder.png',
+              thumbnail: host.image?.imgix_url || '/image-placeholder.png',
+              medium_mobile: host.image?.imgix_url || '/image-placeholder.png',
+              medium: host.image?.imgix_url || '/image-placeholder.png',
+              large: host.image?.imgix_url || '/image-placeholder.png',
+              '320wx320h': host.image?.imgix_url || '/image-placeholder.png',
+              extra_large: host.image?.imgix_url || '/image-placeholder.png',
+              '640wx640h': host.image?.imgix_url || '/image-placeholder.png',
             },
           })),
           hidden_stats: false,
           audio_length: 0,
-          description: show.metadata?.description || "",
+          description: show.metadata?.description || '',
           player: show.metadata?.player,
-          __source: "cosmic",
+          __source: 'cosmic',
         };
       }
     } catch (error) {
-      console.error(`Error fetching legacy radio-show from Cosmic for variant '${variant}':`, error);
+      console.error(
+        `Error fetching legacy radio-show from Cosmic for variant '${variant}':`,
+        error
+      );
     }
   }
 
-  console.warn(`No show found for any slug variant: ${slugVariants.join(", ")}`);
+  console.warn(`No show found for any slug variant: ${slugVariants.join(', ')}`);
   return null;
 }
 
@@ -198,8 +222,12 @@ export async function getScheduleData(): Promise<{
     const { currentEvent, upcomingEvent, upcomingEvents } = await getRadioCultScheduleData();
 
     // Convert RadioCult events to show format
-    const adaptCurrentEvent = currentEvent ? convertRadioCultEventToMixcloudFormat(currentEvent) : null;
-    const adaptUpcomingEvent = upcomingEvent ? convertRadioCultEventToMixcloudFormat(upcomingEvent) : null;
+    const adaptCurrentEvent = currentEvent
+      ? convertRadioCultEventToMixcloudFormat(currentEvent)
+      : null;
+    const adaptUpcomingEvent = upcomingEvent
+      ? convertRadioCultEventToMixcloudFormat(upcomingEvent)
+      : null;
     const adaptUpcomingEvents = upcomingEvents.map(convertRadioCultEventToMixcloudFormat);
 
     return {
@@ -208,7 +236,7 @@ export async function getScheduleData(): Promise<{
       upcomingShows: adaptUpcomingEvents,
     };
   } catch (error) {
-    console.error("Error getting RadioCult schedule data:", error);
+    console.error('Error getting RadioCult schedule data:', error);
     return {
       currentShow: null,
       upcomingShow: null,
@@ -225,16 +253,16 @@ function convertRadioCultEventToMixcloudFormat(event: RadioCultEvent): any {
     name: event.showName,
     url: `/shows/${event.slug}`,
     pictures: {
-      small: event.imageUrl || "/image-placeholder.png",
-      thumbnail: event.imageUrl || "/image-placeholder.png",
-      medium_mobile: event.imageUrl || "/image-placeholder.png",
-      medium: event.imageUrl || "/image-placeholder.png",
-      large: event.imageUrl || "/image-placeholder.png",
-      "320wx320h": event.imageUrl || "/image-placeholder.png",
-      extra_large: event.imageUrl || "/image-placeholder.png",
-      "640wx640h": event.imageUrl || "/image-placeholder.png",
-      "768wx768h": event.imageUrl || "/image-placeholder.png",
-      "1024wx1024h": event.imageUrl || "/image-placeholder.png",
+      small: event.imageUrl || '/image-placeholder.png',
+      thumbnail: event.imageUrl || '/image-placeholder.png',
+      medium_mobile: event.imageUrl || '/image-placeholder.png',
+      medium: event.imageUrl || '/image-placeholder.png',
+      large: event.imageUrl || '/image-placeholder.png',
+      '320wx320h': event.imageUrl || '/image-placeholder.png',
+      extra_large: event.imageUrl || '/image-placeholder.png',
+      '640wx640h': event.imageUrl || '/image-placeholder.png',
+      '768wx768h': event.imageUrl || '/image-placeholder.png',
+      '1024wx1024h': event.imageUrl || '/image-placeholder.png',
     },
     created_time: event.startTime,
     updated_time: event.updatedAt,
@@ -246,19 +274,19 @@ function convertRadioCultEventToMixcloudFormat(event: RadioCultEvent): any {
     tags: [], // Don't use RadioCult playlist tags - genres should come from Cosmic
     slug: event.slug,
     user: {
-      key: "radiocult",
-      url: "/",
-      name: "RadioCult",
-      username: "radiocult",
+      key: 'radiocult',
+      url: '/',
+      name: 'RadioCult',
+      username: 'radiocult',
       pictures: {
-        small: "/logo.svg",
-        thumbnail: "/logo.svg",
-        medium_mobile: "/logo.svg",
-        medium: "/logo.svg",
-        large: "/logo.svg",
-        "320wx320h": "/logo.svg",
-        extra_large: "/logo.svg",
-        "640wx640h": "/logo.svg",
+        small: '/logo.svg',
+        thumbnail: '/logo.svg',
+        medium_mobile: '/logo.svg',
+        medium: '/logo.svg',
+        large: '/logo.svg',
+        '320wx320h': '/logo.svg',
+        extra_large: '/logo.svg',
+        '640wx640h': '/logo.svg',
       },
     },
     hosts: event.artists.map((artist) => ({
@@ -267,21 +295,24 @@ function convertRadioCultEventToMixcloudFormat(event: RadioCultEvent): any {
       name: artist.name,
       username: artist.slug,
       pictures: {
-        small: artist.imageUrl || "/image-placeholder.png",
-        thumbnail: artist.imageUrl || "/image-placeholder.png",
-        medium_mobile: artist.imageUrl || "/image-placeholder.png",
-        medium: artist.imageUrl || "/image-placeholder.png",
-        large: artist.imageUrl || "/image-placeholder.png",
-        "320wx320h": artist.imageUrl || "/image-placeholder.png",
-        extra_large: artist.imageUrl || "/image-placeholder.png",
-        "640wx640h": artist.imageUrl || "/image-placeholder.png",
+        small: artist.imageUrl || '/image-placeholder.png',
+        thumbnail: artist.imageUrl || '/image-placeholder.png',
+        medium_mobile: artist.imageUrl || '/image-placeholder.png',
+        medium: artist.imageUrl || '/image-placeholder.png',
+        large: artist.imageUrl || '/image-placeholder.png',
+        '320wx320h': artist.imageUrl || '/image-placeholder.png',
+        extra_large: artist.imageUrl || '/image-placeholder.png',
+        '640wx640h': artist.imageUrl || '/image-placeholder.png',
       },
     })),
     hidden_stats: false,
     audio_length: event.duration * 60, // convert minutes to seconds
     endTime: event.endTime, // Add endTime for RadioCult events
-    description: typeof event.description === "string" ? stripUrlsFromText(event.description) : event.description, // Add description for RadioCult events
-    __source: "radiocult", // Add a source marker to identify RadioCult events
+    description:
+      typeof event.description === 'string'
+        ? stripUrlsFromText(event.description)
+        : event.description, // Add description for RadioCult events
+    __source: 'radiocult', // Add a source marker to identify RadioCult events
   };
 }
 
@@ -302,15 +333,15 @@ export async function getEditorialContent(): Promise<{
       }
     } catch (error) {
       // If editorial homepage doesn't exist or has no posts, continue to fetch posts directly
-      console.log("No editorial homepage found, fetching posts directly");
+      console.log('No editorial homepage found, fetching posts directly');
     }
 
     // If we don't have enough posts, fetch more
     if (posts.length < 6) {
       const postsResponse = await getPosts({
         limit: 6 - posts.length,
-        sort: "-metadata.date",
-        status: "published",
+        sort: '-metadata.date',
+        status: 'published',
       });
 
       if (postsResponse.objects && postsResponse.objects.length > 0) {
@@ -322,8 +353,8 @@ export async function getEditorialContent(): Promise<{
     if (posts.length === 0) {
       const allPostsResponse = await getPosts({
         limit: 6,
-        sort: "-metadata.date",
-        status: "published",
+        sort: '-metadata.date',
+        status: 'published',
       });
 
       if (allPostsResponse.objects && allPostsResponse.objects.length > 0) {
@@ -344,7 +375,7 @@ export async function getEditorialContent(): Promise<{
       featuredPosts,
     };
   } catch (error) {
-    console.error("Error in getEditorialContent:", error);
+    console.error('Error in getEditorialContent:', error);
     return {
       posts: [],
       featuredPosts: [],
@@ -356,15 +387,20 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
   try {
     // Use the limit parameter for shows if provided
     const showsLimit = limit ?? 1000;
-    const [postsResponse, showsResponse] = await Promise.all([getAllPosts(), getAllShows(0, showsLimit)]);
+    const [postsResponse, showsResponse] = await Promise.all([
+      getAllPosts(),
+      getAllShows(0, showsLimit),
+    ]);
 
     // Helper to ensure filter items have correct structure
     const normalizeFilterItems = (items: any[] = []): FilterItem[] => {
-      return items.filter(Boolean).map((item: { title?: string; slug?: string; id?: string; type?: string }) => ({
-        title: item.title || "",
-        slug: item.slug || item.id || "",
-        type: item.type || "",
-      }));
+      return items
+        .filter(Boolean)
+        .map((item: { title?: string; slug?: string; id?: string; type?: string }) => ({
+          title: item.title || '',
+          slug: item.slug || item.id || '',
+          type: item.type || '',
+        }));
     };
 
     const allContent: SearchResult[] = [
@@ -377,12 +413,12 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
         return {
           id: post.id,
           title: post.title,
-          type: "posts" as const,
-          description: post.metadata?.description || "",
-          excerpt: post.metadata?.content || "",
-          image: post.metadata?.image?.imgix_url || "/image-placeholder.png",
+          type: 'posts' as const,
+          description: post.metadata?.description || '',
+          excerpt: post.metadata?.content || '',
+          image: post.metadata?.image?.imgix_url || '/image-placeholder.png',
           slug: post.slug,
-          date: post.metadata?.date || "",
+          date: post.metadata?.date || '',
           // Map categories to their appropriate filter arrays based on category type if known
           // For simplicity, we'll just put all categories in genres for now
           genres: normalizeFilterItems(categories),
@@ -395,12 +431,12 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
       ...showsResponse.shows.map((show) => ({
         id: show.id,
         title: show.title,
-        type: "episodes" as const,
-        description: show.metadata?.description || "",
-        excerpt: show.metadata?.subtitle || "",
-        image: show.metadata?.image?.imgix_url || "/image-placeholder.png",
+        type: 'episodes' as const,
+        description: show.metadata?.description || '',
+        excerpt: show.metadata?.subtitle || '',
+        image: show.metadata?.image?.imgix_url || '/image-placeholder.png',
         slug: show.slug,
-        date: show.metadata?.broadcast_date || "",
+        date: show.metadata?.broadcast_date || '',
         genres: normalizeFilterItems(show.metadata?.genres || []),
         locations: normalizeFilterItems(show.metadata?.locations || []),
         hosts: normalizeFilterItems(show.metadata?.regular_hosts || []),
@@ -408,44 +444,49 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
         metadata: show.metadata,
       })),
     ].sort((a, b) => {
-      const dateA = new Date(a.date || "");
-      const dateB = new Date(b.date || "");
+      const dateA = new Date(a.date || '');
+      const dateB = new Date(b.date || '');
       return dateB.getTime() - dateA.getTime();
     });
 
     return allContent;
   } catch (error) {
-    console.error("Error in getAllSearchableContent:", error);
+    console.error('Error in getAllSearchableContent:', error);
     return [];
   }
 }
 
-export async function getVideos({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{
+export async function getVideos({
+  limit = 20,
+  offset = 0,
+  tag,
+  searchTerm,
+}: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{
   videos: VideoObject[];
   hasNext: boolean;
 }> {
   try {
     const filters: any = {
-      type: "videos",
+      type: 'videos',
       limit,
       skip: offset,
-      sort: "-metadata.date",
-      status: "published",
-      props: "id,slug,title,metadata,created_at",
+      sort: '-metadata.date',
+      status: 'published',
+      props: 'id,slug,title,metadata,created_at',
       depth: 3,
     };
     if (tag) {
-      filters["metadata.categories"] = tag;
+      filters['metadata.categories'] = tag;
     }
     if (searchTerm) {
-      filters["title"] = searchTerm;
+      filters['title'] = searchTerm;
     }
     const response = await cosmic.objects.find(filters);
     const videos = response.objects || [];
     const hasNext = videos.length === limit;
     return { videos, hasNext };
   } catch (error) {
-    console.error("Error in getVideos:", error);
+    console.error('Error in getVideos:', error);
     return { videos: [], hasNext: false };
   }
 }
@@ -453,13 +494,14 @@ export async function getVideos({ limit = 20, offset = 0, tag, searchTerm }: { l
 export async function getVideoCategories(): Promise<any[]> {
   try {
     const response = await cosmic.objects.find({
-      type: "video-categories",
-      props: "id,slug,title,content,bucket,created_at,modified_at,status,published_at,modified_by,created_by,type,metadata",
+      type: 'video-categories',
+      props:
+        'id,slug,title,content,bucket,created_at,modified_at,status,published_at,modified_by,created_by,type,metadata',
       depth: 1,
     });
     return response.objects || [];
   } catch (error) {
-    console.error("Error in getVideoCategories:", error);
+    console.error('Error in getVideoCategories:', error);
     return [];
   }
 }
@@ -468,16 +510,16 @@ export async function getVideoBySlug(slug: string): Promise<VideoObject | null> 
   try {
     const response = await cosmic.objects
       .findOne({
-        type: "videos",
+        type: 'videos',
         slug: slug,
-        status: "published",
+        status: 'published',
       })
-      .props("id,slug,title,metadata,created_at")
+      .props('id,slug,title,metadata,created_at')
       .depth(3);
 
     return response?.object || null;
   } catch (error) {
-    console.error("Error fetching video by slug:", error);
+    console.error('Error fetching video by slug:', error);
     return null;
   }
 }
@@ -486,10 +528,10 @@ export async function getPostBySlug(slug: string): Promise<{ object: PostObject 
   try {
     const response = await cosmic.objects
       .findOne({
-        type: "posts",
+        type: 'posts',
         slug: slug,
       })
-      .props("id,title,slug,type,created_at,metadata")
+      .props('id,title,slug,type,created_at,metadata')
       .depth(2);
 
     if (!response) {
@@ -498,9 +540,9 @@ export async function getPostBySlug(slug: string): Promise<{ object: PostObject 
 
     return response;
   } catch (error) {
-    console.error("Error fetching post:", error);
+    console.error('Error fetching post:', error);
     if (error instanceof Error) {
-      console.error("Error details:", error.message);
+      console.error('Error details:', error.message);
     }
     return null;
   }
@@ -523,19 +565,21 @@ export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
     // Fetch posts that share at least one category with the current post
     const relatedPosts = await cosmic.objects
       .find({
-        type: "posts",
-        "metadata.categories.slug": {
+        type: 'posts',
+        'metadata.categories.slug': {
           $in: categories,
         },
       })
-      .props("id,title,slug,type,created_at,metadata")
+      .props('id,title,slug,type,created_at,metadata')
       .limit(3)
       .depth(2);
 
     // Filter out the current post from related posts and extract the objects from the response
-    return (relatedPosts.objects || []).filter((relatedPost: PostObject) => relatedPost.slug !== post.slug).map((post: any) => post.object || post); // Handle both direct objects and nested ones
+    return (relatedPosts.objects || [])
+      .filter((relatedPost: PostObject) => relatedPost.slug !== post.slug)
+      .map((post: any) => post.object || post); // Handle both direct objects and nested ones
   } catch (error) {
-    console.error("Error fetching related posts:", error);
+    console.error('Error fetching related posts:', error);
     return [];
   }
 }
@@ -543,57 +587,59 @@ export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
 export async function getAllFilters() {
   try {
     // Fetch all filter collections in parallel from Cosmic
-    const [genresRes, hostsRes, takeoversRes, locationsRes, featuredShowsRes, seriesRes] = await Promise.all([
-      cosmic.objects.find({
-        type: "genres",
-        props: "id,slug,title,type,metadata",
-        depth: 1,
-        limit: 1000,
-      }),
-      cosmic.objects.find({
-        type: "regular-hosts",
-        props: "id,slug,title,type,metadata",
-        depth: 1,
-        limit: 1000,
-      }),
-      cosmic.objects.find({
-        type: "takeovers",
-        props: "id,slug,title,type,metadata",
-        depth: 1,
-        limit: 1000,
-      }),
-      cosmic.objects.find({
-        type: "locations",
-        props: "id,slug,title,type,metadata",
-        depth: 1,
-        limit: 1000,
-      }),
-      cosmic.objects.find({
-        type: "featured-shows",
-        props: "id,slug,title,type,metadata",
-        depth: 1,
-        limit: 1000,
-      }),
-      cosmic.objects.find({
-        type: "series",
-        props: "id,slug,title,type,metadata",
-        depth: 1,
-        limit: 1000,
-      }),
-    ]);
+    const [genresRes, hostsRes, takeoversRes, locationsRes, featuredShowsRes, seriesRes] =
+      await Promise.all([
+        cosmic.objects.find({
+          type: 'genres',
+          props: 'id,slug,title,type,metadata',
+          depth: 1,
+          limit: 1000,
+        }),
+        cosmic.objects.find({
+          type: 'regular-hosts',
+          props: 'id,slug,title,type,metadata',
+          depth: 1,
+          limit: 1000,
+        }),
+        cosmic.objects.find({
+          type: 'takeovers',
+          props: 'id,slug,title,type,metadata',
+          depth: 1,
+          limit: 1000,
+        }),
+        cosmic.objects.find({
+          type: 'locations',
+          props: 'id,slug,title,type,metadata',
+          depth: 1,
+          limit: 1000,
+        }),
+        cosmic.objects.find({
+          type: 'featured-shows',
+          props: 'id,slug,title,type,metadata',
+          depth: 1,
+          limit: 1000,
+        }),
+        cosmic.objects.find({
+          type: 'series',
+          props: 'id,slug,title,type,metadata',
+          depth: 1,
+          limit: 1000,
+        }),
+      ]);
 
-    const toFilterItems = (objects: any[] = [], type: string): FilterItem[] => objects.map((obj) => ({ id: obj.id, slug: obj.slug, title: obj.title, type }));
+    const toFilterItems = (objects: any[] = [], type: string): FilterItem[] =>
+      objects.map((obj) => ({ id: obj.id, slug: obj.slug, title: obj.title, type }));
 
-    const genres = toFilterItems(genresRes.objects || [], "genres");
-    const hosts = toFilterItems(hostsRes.objects || [], "hosts");
-    const takeovers = toFilterItems(takeoversRes.objects || [], "takeovers");
-    const locations = toFilterItems(locationsRes.objects || [], "locations");
-    const featuredShows = toFilterItems(featuredShowsRes.objects || [], "featured-shows");
-    const series = toFilterItems(seriesRes.objects || [], "series");
+    const genres = toFilterItems(genresRes.objects || [], 'genres');
+    const hosts = toFilterItems(hostsRes.objects || [], 'hosts');
+    const takeovers = toFilterItems(takeoversRes.objects || [], 'takeovers');
+    const locations = toFilterItems(locationsRes.objects || [], 'locations');
+    const featuredShows = toFilterItems(featuredShowsRes.objects || [], 'featured-shows');
+    const series = toFilterItems(seriesRes.objects || [], 'series');
 
     return { genres, hosts, takeovers, locations, featuredShows, series };
   } catch (error) {
-    console.error("Error getting filters:", error);
+    console.error('Error getting filters:', error);
     return {
       genres: [],
       hosts: [],
@@ -612,7 +658,7 @@ export async function getShowsFilters() {
       try {
         return await cosmic.objects.find({
           type,
-          props: "id,slug,title,type,metadata",
+          props: 'id,slug,title,type,metadata',
           depth: 1,
           limit: 1000,
         });
@@ -623,7 +669,12 @@ export async function getShowsFilters() {
     };
 
     // Fetch only the filter collections we actually need
-    const [genresRes, hostsRes, takeoversRes, locationsRes] = await Promise.all([safeFind("genres"), safeFind("regular-hosts"), safeFind("takeovers"), safeFind("locations")]);
+    const [genresRes, hostsRes, takeoversRes, locationsRes] = await Promise.all([
+      safeFind('genres'),
+      safeFind('regular-hosts'),
+      safeFind('takeovers'),
+      safeFind('locations'),
+    ]);
 
     // Convert to FilterItem type with id property for shows page
     const toShowsFilterItems = (objects: any[] = [], type: string) => {
@@ -632,8 +683,8 @@ export async function getShowsFilters() {
         slug: obj.slug,
         title: obj.title,
         type: type,
-        content: obj.content || "",
-        status: obj.status || "published",
+        content: obj.content || '',
+        status: obj.status || 'published',
         metadata: obj.metadata || null,
         created_at: obj.created_at,
         modified_at: obj.modified_at,
@@ -642,22 +693,24 @@ export async function getShowsFilters() {
 
       const deduplicated = deduplicateFilters(items);
       if (items.length !== deduplicated.length) {
-        console.log(`${type}: Removed ${items.length - deduplicated.length} duplicates (${items.length} → ${deduplicated.length})`);
+        console.log(
+          `${type}: Removed ${items.length - deduplicated.length} duplicates (${items.length} → ${deduplicated.length})`
+        );
       }
 
       return deduplicated;
     };
 
     return {
-      genres: toShowsFilterItems(genresRes.objects || [], "genres"),
-      hosts: toShowsFilterItems(hostsRes.objects || [], "hosts"),
-      takeovers: toShowsFilterItems(takeoversRes.objects || [], "takeovers"),
-      locations: toShowsFilterItems(locationsRes.objects || [], "locations"),
+      genres: toShowsFilterItems(genresRes.objects || [], 'genres'),
+      hosts: toShowsFilterItems(hostsRes.objects || [], 'hosts'),
+      takeovers: toShowsFilterItems(takeoversRes.objects || [], 'takeovers'),
+      locations: toShowsFilterItems(locationsRes.objects || [], 'locations'),
       featuredShows: [], // Remove this since we don't need it
       series: [], // Remove this since we don't need it
     };
   } catch (error) {
-    console.error("Error getting shows filters:", error);
+    console.error('Error getting shows filters:', error);
     return {
       genres: [],
       hosts: [],
@@ -680,10 +733,12 @@ interface EpisodeShowsFilters {
   random?: boolean;
 }
 
-export async function getMixcloudShows(filters: EpisodeShowsFilters = {}): Promise<{ shows: any[]; total: number }> {
+export async function getMixcloudShows(
+  filters: EpisodeShowsFilters = {}
+): Promise<{ shows: any[]; total: number }> {
   try {
     // Get episodes from Cosmic
-    const { getEpisodesForShows } = await import("./episode-service");
+    const { getEpisodesForShows } = await import('./episode-service');
     const episodeResponse = await getEpisodesForShows({
       offset: filters.skip || 0,
       limit: filters.limit || 20,
@@ -709,16 +764,16 @@ export async function getMixcloudShows(filters: EpisodeShowsFilters = {}): Promi
           slug: event.slug,
           url: `/episode/${event.slug}`,
           pictures: {
-            small: event.imageUrl || "/image-placeholder.png",
-            thumbnail: event.imageUrl || "/image-placeholder.png",
-            medium_mobile: event.imageUrl || "/image-placeholder.png",
-            medium: event.imageUrl || "/image-placeholder.png",
-            large: event.imageUrl || "/image-placeholder.png",
-            "320wx320h": event.imageUrl || "/image-placeholder.png",
-            extra_large: event.imageUrl || "/image-placeholder.png",
-            "640wx640h": event.imageUrl || "/image-placeholder.png",
-            "768wx768h": event.imageUrl || "/image-placeholder.png",
-            "1024wx1024h": event.imageUrl || "/image-placeholder.png",
+            small: event.imageUrl || '/image-placeholder.png',
+            thumbnail: event.imageUrl || '/image-placeholder.png',
+            medium_mobile: event.imageUrl || '/image-placeholder.png',
+            medium: event.imageUrl || '/image-placeholder.png',
+            large: event.imageUrl || '/image-placeholder.png',
+            '320wx320h': event.imageUrl || '/image-placeholder.png',
+            extra_large: event.imageUrl || '/image-placeholder.png',
+            '640wx640h': event.imageUrl || '/image-placeholder.png',
+            '768wx768h': event.imageUrl || '/image-placeholder.png',
+            '1024wx1024h': event.imageUrl || '/image-placeholder.png',
           },
           created_time: event.startTime,
           updated_time: event.updatedAt,
@@ -728,8 +783,8 @@ export async function getMixcloudShows(filters: EpisodeShowsFilters = {}): Promi
           listener_count: 0,
           repost_count: 0,
           tags: event.tags.map((tag) => ({
-            key: tag.toLowerCase().replace(/\s+/g, "-"),
-            url: `/tags/${tag.toLowerCase().replace(/\s+/g, "-")}`,
+            key: tag.toLowerCase().replace(/\s+/g, '-'),
+            url: `/tags/${tag.toLowerCase().replace(/\s+/g, '-')}`,
             name: tag,
           })),
           hosts: event.artists.map((artist) => ({
@@ -738,25 +793,25 @@ export async function getMixcloudShows(filters: EpisodeShowsFilters = {}): Promi
             name: artist.name,
             username: artist.slug,
             pictures: {
-              small: artist.imageUrl || "/image-placeholder.png",
-              thumbnail: artist.imageUrl || "/image-placeholder.png",
-              medium_mobile: artist.imageUrl || "/image-placeholder.png",
-              medium: artist.imageUrl || "/image-placeholder.png",
-              large: artist.imageUrl || "/image-placeholder.png",
-              "320wx320h": artist.imageUrl || "/image-placeholder.png",
-              extra_large: artist.imageUrl || "/image-placeholder.png",
-              "640wx640h": artist.imageUrl || "/image-placeholder.png",
+              small: artist.imageUrl || '/image-placeholder.png',
+              thumbnail: artist.imageUrl || '/image-placeholder.png',
+              medium_mobile: artist.imageUrl || '/image-placeholder.png',
+              medium: artist.imageUrl || '/image-placeholder.png',
+              large: artist.imageUrl || '/image-placeholder.png',
+              '320wx320h': artist.imageUrl || '/image-placeholder.png',
+              extra_large: artist.imageUrl || '/image-placeholder.png',
+              '640wx640h': artist.imageUrl || '/image-placeholder.png',
             },
           })),
           hidden_stats: false,
           audio_length: event.duration * 60,
-          __source: "radiocult",
+          __source: 'radiocult',
         }));
 
         // Add RadioCult events at the beginning for live content
         allShows = [...adaptedEvents, ...allShows];
       } catch (error) {
-        console.error("Error fetching RadioCult events:", error);
+        console.error('Error fetching RadioCult events:', error);
         // Continue with just episode data
       }
     }
@@ -766,7 +821,13 @@ export async function getMixcloudShows(filters: EpisodeShowsFilters = {}): Promi
 
     if (filters.searchTerm) {
       const searchTerm = filters.searchTerm.toLowerCase();
-      filteredShows = filteredShows.filter((show) => show.name?.toLowerCase().includes(searchTerm) || show.title?.toLowerCase().includes(searchTerm) || (show.tags || []).some((tag: any) => tag.name?.toLowerCase().includes(searchTerm)) || (show.genres || []).some((genre: any) => genre.title?.toLowerCase().includes(searchTerm)));
+      filteredShows = filteredShows.filter(
+        (show) =>
+          show.name?.toLowerCase().includes(searchTerm) ||
+          show.title?.toLowerCase().includes(searchTerm) ||
+          (show.tags || []).some((tag: any) => tag.name?.toLowerCase().includes(searchTerm)) ||
+          (show.genres || []).some((genre: any) => genre.title?.toLowerCase().includes(searchTerm))
+      );
     }
 
     return {
@@ -774,24 +835,34 @@ export async function getMixcloudShows(filters: EpisodeShowsFilters = {}): Promi
       total: filteredShows.length,
     };
   } catch (error) {
-    console.error("Error in getMixcloudShows (now using episodes):", error);
+    console.error('Error in getMixcloudShows (now using episodes):', error);
     return { shows: [], total: 0 };
   }
 }
 
-export async function searchContent(query?: string, source?: string, limit: number = 100): Promise<SearchResult[]> {
+export async function searchContent(
+  query?: string,
+  source?: string,
+  limit: number = 100
+): Promise<SearchResult[]> {
   try {
     // Helper to safely extract a string field
-    const safeString = (val: any): string | undefined => (typeof val === "string" && val.trim() ? val : undefined);
+    const safeString = (val: any): string | undefined =>
+      typeof val === 'string' && val.trim() ? val : undefined;
     // Helper to get best image url
-    const getImage = (meta: any): string | undefined => meta?.image?.imgix_url || meta?.image?.url || undefined;
+    const getImage = (meta: any): string | undefined =>
+      meta?.image?.imgix_url || meta?.image?.url || undefined;
     // Helper to get genres from categories
-    const getGenres = (meta: any): FilterItem[] => (meta?.categories || []).filter(Boolean).map((cat: any) => ({ slug: cat.slug, title: cat.title, type: "genres" }));
+    const getGenres = (meta: any): FilterItem[] =>
+      (meta?.categories || [])
+        .filter(Boolean)
+        .map((cat: any) => ({ slug: cat.slug, title: cat.title, type: 'genres' }));
     // Helper to get date
-    const getDate = (meta: any, fallback: string): string | undefined => safeString(meta?.date) || fallback;
+    const getDate = (meta: any, fallback: string): string | undefined =>
+      safeString(meta?.date) || fallback;
 
-    if (source === "cosmic") {
-      const regex = query ? { $regex: query, $options: "i" } : (undefined as any);
+    if (source === 'cosmic') {
+      const regex = query ? { $regex: query, $options: 'i' } : (undefined as any);
 
       // If we have a query, resolve related IDs by title to build reliable relationship queries
       let hostIds: string[] = [];
@@ -800,7 +871,11 @@ export async function searchContent(query?: string, source?: string, limit: numb
 
       if (regex) {
         try {
-          const [hostsRes, takeoversRes, genresRes] = await Promise.all([cosmic.objects.find({ type: "regular-hosts", title: regex }).props("id").limit(200), cosmic.objects.find({ type: "takeovers", title: regex }).props("id").limit(200), cosmic.objects.find({ type: "genres", title: regex }).props("id").limit(200)]);
+          const [hostsRes, takeoversRes, genresRes] = await Promise.all([
+            cosmic.objects.find({ type: 'regular-hosts', title: regex }).props('id').limit(200),
+            cosmic.objects.find({ type: 'takeovers', title: regex }).props('id').limit(200),
+            cosmic.objects.find({ type: 'genres', title: regex }).props('id').limit(200),
+          ]);
           hostIds = (hostsRes.objects || []).map((o: any) => o.id).filter(Boolean);
           takeoverIds = (takeoversRes.objects || []).map((o: any) => o.id).filter(Boolean);
           genreIds = (genresRes.objects || []).map((o: any) => o.id).filter(Boolean);
@@ -810,48 +885,56 @@ export async function searchContent(query?: string, source?: string, limit: numb
       }
 
       const episodeQuery: any = {
-        type: "episode",
-        status: "published",
+        type: 'episode',
+        status: 'published',
       };
 
       if (regex) {
-        episodeQuery.$or = [{ title: regex }, { "metadata.subtitle": regex }];
-        if (hostIds.length > 0) episodeQuery.$or.push({ "metadata.regular_hosts.id": { $in: hostIds } });
-        if (takeoverIds.length > 0) episodeQuery.$or.push({ "metadata.takeovers.id": { $in: takeoverIds } });
-        if (genreIds.length > 0) episodeQuery.$or.push({ "metadata.genres.id": { $in: genreIds } });
+        episodeQuery.$or = [{ title: regex }, { 'metadata.subtitle': regex }];
+        if (hostIds.length > 0)
+          episodeQuery.$or.push({ 'metadata.regular_hosts.id': { $in: hostIds } });
+        if (takeoverIds.length > 0)
+          episodeQuery.$or.push({ 'metadata.takeovers.id': { $in: takeoverIds } });
+        if (genreIds.length > 0) episodeQuery.$or.push({ 'metadata.genres.id': { $in: genreIds } });
       }
 
-      const [episodesResponse, postsResponse, eventsResponse, videosResponse, takeoversResponse] = await Promise.all([
-        cosmic.objects.find(episodeQuery).props("id,slug,title,metadata,created_at").limit(limit).sort("-order,-metadata.broadcast_date,-created_at").depth(2),
-        cosmic.objects.find({
-          type: "posts",
-          ...(query && { q: query }),
-          props: "id,title,slug,metadata,created_at",
-          limit,
-          status: "published",
-        }),
-        cosmic.objects.find({
-          type: "events",
-          ...(query && { q: query }),
-          props: "id,title,slug,metadata,created_at",
-          limit,
-          status: "published",
-        }),
-        cosmic.objects.find({
-          type: "videos",
-          ...(query && { q: query }),
-          props: "id,title,slug,metadata,created_at",
-          limit,
-          status: "published",
-        }),
-        cosmic.objects.find({
-          type: "takeovers",
-          ...(query && { q: query }),
-          props: "id,title,slug,metadata,created_at",
-          limit,
-          status: "published",
-        }),
-      ]);
+      const [episodesResponse, postsResponse, eventsResponse, videosResponse, takeoversResponse] =
+        await Promise.all([
+          cosmic.objects
+            .find(episodeQuery)
+            .props('id,slug,title,metadata,created_at')
+            .limit(limit)
+            .sort('-order,-metadata.broadcast_date,-created_at')
+            .depth(2),
+          cosmic.objects.find({
+            type: 'posts',
+            ...(query && { q: query }),
+            props: 'id,title,slug,metadata,created_at',
+            limit,
+            status: 'published',
+          }),
+          cosmic.objects.find({
+            type: 'events',
+            ...(query && { q: query }),
+            props: 'id,title,slug,metadata,created_at',
+            limit,
+            status: 'published',
+          }),
+          cosmic.objects.find({
+            type: 'videos',
+            ...(query && { q: query }),
+            props: 'id,title,slug,metadata,created_at',
+            limit,
+            status: 'published',
+          }),
+          cosmic.objects.find({
+            type: 'takeovers',
+            ...(query && { q: query }),
+            props: 'id,title,slug,metadata,created_at',
+            limit,
+            status: 'published',
+          }),
+        ]);
       const episodes = episodesResponse.objects || [];
       const posts = postsResponse.objects || [];
       const events = eventsResponse.objects || [];
@@ -864,7 +947,7 @@ export async function searchContent(query?: string, source?: string, limit: numb
             const meta = item.metadata || {};
             return {
               id: item.id,
-              type: "episodes",
+              type: 'episodes',
               slug: item.slug,
               title: safeString(item.title),
               description: safeString(meta.description) || safeString(meta.subtitle),
@@ -873,22 +956,22 @@ export async function searchContent(query?: string, source?: string, limit: numb
               genres: (meta.genres || []).map((g: any) => ({
                 slug: g.slug || g.id,
                 title: g.title || g.name,
-                type: "genres",
+                type: 'genres',
               })),
               hosts: (meta.regular_hosts || []).map((h: any) => ({
                 slug: h.slug || h.id,
                 title: h.title || h.name,
-                type: "hosts",
+                type: 'hosts',
               })),
               locations: (meta.locations || []).map((l: any) => ({
                 slug: l.slug || l.id,
                 title: l.title || l.name,
-                type: "locations",
+                type: 'locations',
               })),
               takeovers: (meta.takeovers || []).map((t: any) => ({
                 slug: t.slug || t.id,
                 title: t.title || t.name,
-                type: "takeovers",
+                type: 'takeovers',
               })),
             };
           })
@@ -898,7 +981,7 @@ export async function searchContent(query?: string, source?: string, limit: numb
             const meta = item.metadata || {};
             return {
               id: item.id,
-              type: "posts",
+              type: 'posts',
               slug: item.slug,
               title: safeString(item.title),
               description: safeString(meta.description) || safeString(meta.excerpt),
@@ -913,7 +996,7 @@ export async function searchContent(query?: string, source?: string, limit: numb
             const meta = item.metadata || {};
             return {
               id: item.id,
-              type: "events",
+              type: 'events',
               slug: item.slug,
               title: safeString(item.title),
               description: safeString(meta.description) || safeString(meta.excerpt),
@@ -928,7 +1011,7 @@ export async function searchContent(query?: string, source?: string, limit: numb
             const meta = item.metadata || {};
             return {
               id: item.id,
-              type: "videos",
+              type: 'videos',
               slug: item.slug,
               title: safeString(item.title),
               description: safeString(meta.description),
@@ -943,7 +1026,7 @@ export async function searchContent(query?: string, source?: string, limit: numb
             const meta = item.metadata || {};
             return {
               id: item.id,
-              type: "takeovers",
+              type: 'takeovers',
               slug: item.slug,
               title: safeString(item.title),
               description: safeString(meta.description) || safeString(meta.excerpt),
@@ -957,37 +1040,40 @@ export async function searchContent(query?: string, source?: string, limit: numb
     }
 
     // If no source specified, search in both and combine results
-    const [episodesResponse, postsResponse, eventsResponse, videosResponse, takeoversResponse] = await Promise.all([
-      import("./episode-service").then((m) => m.getEpisodesForShows({ searchTerm: query, limit })),
-      cosmic.objects.find({
-        type: "posts",
-        ...(query && { q: query }),
-        props: "id,title,slug,metadata,created_at",
-        limit,
-        status: "published",
-      }),
-      cosmic.objects.find({
-        type: "events",
-        ...(query && { q: query }),
-        props: "id,title,slug,metadata,created_at",
-        limit,
-        status: "published",
-      }),
-      cosmic.objects.find({
-        type: "videos",
-        ...(query && { q: query }),
-        props: "id,title,slug,metadata,created_at",
-        limit,
-        status: "published",
-      }),
-      cosmic.objects.find({
-        type: "takeovers",
-        ...(query && { q: query }),
-        props: "id,title,slug,metadata,created_at",
-        limit,
-        status: "published",
-      }),
-    ]);
+    const [episodesResponse, postsResponse, eventsResponse, videosResponse, takeoversResponse] =
+      await Promise.all([
+        import('./episode-service').then((m) =>
+          m.getEpisodesForShows({ searchTerm: query, limit })
+        ),
+        cosmic.objects.find({
+          type: 'posts',
+          ...(query && { q: query }),
+          props: 'id,title,slug,metadata,created_at',
+          limit,
+          status: 'published',
+        }),
+        cosmic.objects.find({
+          type: 'events',
+          ...(query && { q: query }),
+          props: 'id,title,slug,metadata,created_at',
+          limit,
+          status: 'published',
+        }),
+        cosmic.objects.find({
+          type: 'videos',
+          ...(query && { q: query }),
+          props: 'id,title,slug,metadata,created_at',
+          limit,
+          status: 'published',
+        }),
+        cosmic.objects.find({
+          type: 'takeovers',
+          ...(query && { q: query }),
+          props: 'id,title,slug,metadata,created_at',
+          limit,
+          status: 'published',
+        }),
+      ]);
     const episodes = episodesResponse.shows || [];
     const posts = postsResponse.objects || [];
     const events = eventsResponse.objects || [];
@@ -1000,22 +1086,27 @@ export async function searchContent(query?: string, source?: string, limit: numb
         .map((episode: any) => {
           return {
             id: episode.id || episode.slug,
-            type: "episodes",
+            type: 'episodes',
             slug: episode.slug,
             title: safeString(episode.title || episode.name),
-            description: safeString(episode.description) || safeString(episode.title || episode.name),
+            description:
+              safeString(episode.description) || safeString(episode.title || episode.name),
             image: episode.pictures?.extra_large || episode.enhanced_image || undefined,
             date: safeString(episode.created_time || episode.broadcast_date),
-            genres: (episode.genres || episode.enhanced_genres || []).filter(Boolean).map((genre: any) => ({
-              slug: genre.slug || genre.title?.toLowerCase().replace(/\s+/g, "-"),
-              title: genre.title || genre.name,
-              type: "genres",
-            })),
-            hosts: (episode.hosts || episode.enhanced_hosts || episode.regular_hosts || []).filter(Boolean).map((host: any) => ({
-              slug: host.slug || host.username,
-              title: host.title || host.name,
-              type: "hosts",
-            })),
+            genres: (episode.genres || episode.enhanced_genres || [])
+              .filter(Boolean)
+              .map((genre: any) => ({
+                slug: genre.slug || genre.title?.toLowerCase().replace(/\s+/g, '-'),
+                title: genre.title || genre.name,
+                type: 'genres',
+              })),
+            hosts: (episode.hosts || episode.enhanced_hosts || episode.regular_hosts || [])
+              .filter(Boolean)
+              .map((host: any) => ({
+                slug: host.slug || host.username,
+                title: host.title || host.name,
+                type: 'hosts',
+              })),
             locations: episode.locations || [],
             takeovers: episode.takeovers || [],
           };
@@ -1027,7 +1118,7 @@ export async function searchContent(query?: string, source?: string, limit: numb
           const meta = item.metadata || {};
           return {
             id: item.id,
-            type: "posts",
+            type: 'posts',
             slug: item.slug,
             title: safeString(item.title),
             description: safeString(meta.description) || safeString(meta.excerpt),
@@ -1046,7 +1137,7 @@ export async function searchContent(query?: string, source?: string, limit: numb
           const meta = item.metadata || {};
           return {
             id: item.id,
-            type: "events",
+            type: 'events',
             slug: item.slug,
             title: safeString(item.title),
             description: safeString(meta.description) || safeString(meta.excerpt),
@@ -1065,7 +1156,7 @@ export async function searchContent(query?: string, source?: string, limit: numb
           const meta = item.metadata || {};
           return {
             id: item.id,
-            type: "videos",
+            type: 'videos',
             slug: item.slug,
             title: safeString(item.title),
             description: safeString(meta.description),
@@ -1084,7 +1175,7 @@ export async function searchContent(query?: string, source?: string, limit: numb
           const meta = item.metadata || {};
           return {
             id: item.id,
-            type: "takeovers",
+            type: 'takeovers',
             slug: item.slug,
             title: safeString(item.title),
             description: safeString(meta.description) || safeString(meta.excerpt),
@@ -1100,35 +1191,35 @@ export async function searchContent(query?: string, source?: string, limit: numb
     ];
     return results.slice(0, limit);
   } catch (error) {
-    console.error("Search error:", error);
+    console.error('Search error:', error);
     return [];
   }
 }
 
 // Server action to fetch tags (DEPRECATED - use fetchGenres instead)
 export async function fetchTags() {
-  "use server";
+  'use server';
 
   try {
     const tags = await getTags(false, true); // Use secret key for server-side operations
     return { success: true, tags };
   } catch (error) {
-    console.error("Error fetching tags:", error);
-    return { success: false, error: "Failed to fetch tags" };
+    console.error('Error fetching tags:', error);
+    return { success: false, error: 'Failed to fetch tags' };
   }
 }
 
 // Server action to fetch genres from Cosmic
 export async function fetchGenres() {
-  "use server";
+  'use server';
 
   try {
     const response = await cosmic.objects.find({
-      type: "genres",
-      props: "id,slug,title,type,metadata",
+      type: 'genres',
+      props: 'id,slug,title,type,metadata',
       depth: 1,
       limit: 1000,
-      sort: "title",
+      sort: 'title',
     });
 
     const genres = (response.objects || []).map((genre: any) => ({
@@ -1141,63 +1232,74 @@ export async function fetchGenres() {
 
     return { success: true, genres };
   } catch (error) {
-    console.error("Error fetching genres:", error);
-    return { success: false, error: "Failed to fetch genres", genres: [] };
+    console.error('Error fetching genres:', error);
+    return { success: false, error: 'Failed to fetch genres', genres: [] };
   }
 }
 
 // Server action to search episodes (avoids CORS issues)
-export async function searchEpisodes(params: { limit?: number; offset?: number; genre?: string | string[]; searchTerm?: string }) {
-  "use server";
+export async function searchEpisodes(params: {
+  limit?: number;
+  offset?: number;
+  genre?: string | string[];
+  searchTerm?: string;
+}) {
+  'use server';
 
   try {
-    const { getEpisodesForShows } = await import("./episode-service");
+    const { getEpisodesForShows } = await import('./episode-service');
     return await getEpisodesForShows(params);
   } catch (error) {
-    console.error("Error searching episodes:", error);
+    console.error('Error searching episodes:', error);
     return { shows: [], total: 0, hasNext: false };
   }
 }
 
-export async function uploadMediaToRadioCultAndCosmic(file: File, metadata: Record<string, any> = {}) {
+export async function uploadMediaToRadioCultAndCosmic(
+  file: File,
+  metadata: Record<string, any> = {}
+) {
   // Upload to RadioCult
   const stationId = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
   const secretKey = process.env.RADIOCULT_SECRET_KEY;
   if (!stationId || !secretKey) {
-    throw new Error("Missing RadioCult station ID or secret key");
+    throw new Error('Missing RadioCult station ID or secret key');
   }
 
   // Prepare form data for RadioCult
   const rcForm = new FormData();
-  rcForm.append("stationMedia", file as any); // Node.js: use createReadStream, but File is fine in edge/serverless
-  rcForm.append("metadata", JSON.stringify(metadata));
+  rcForm.append('stationMedia', file as any); // Node.js: use createReadStream, but File is fine in edge/serverless
+  rcForm.append('metadata', JSON.stringify(metadata));
 
   const rcRes = await fetch(`https://api.radiocult.fm/api/station/${stationId}/media/track`, {
-    method: "POST",
+    method: 'POST',
     headers: {
       ...rcForm.getHeaders?.(),
-      "x-api-key": secretKey,
+      'x-api-key': secretKey,
     },
     body: rcForm as any,
   });
   if (!rcRes.ok) {
-    throw new Error("Failed to upload to RadioCult");
+    throw new Error('Failed to upload to RadioCult');
   }
   const rcJson = await rcRes.json();
   const radiocultMediaId = rcJson.track?.id;
 
   const cosmicForm = new FormData();
-  cosmicForm.append("media", file as any);
-  const cosmicRes = await fetch(`https://api.cosmicjs.com/v2/buckets/${process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG}/media`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.COSMIC_WRITE_KEY}`,
-      ...cosmicForm.getHeaders?.(),
-    },
-    body: cosmicForm as any,
-  });
+  cosmicForm.append('media', file as any);
+  const cosmicRes = await fetch(
+    `https://api.cosmicjs.com/v2/buckets/${process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG}/media`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.COSMIC_WRITE_KEY}`,
+        ...cosmicForm.getHeaders?.(),
+      },
+      body: cosmicForm as any,
+    }
+  );
   if (!cosmicRes.ok) {
-    throw new Error("Failed to upload to Cosmic");
+    throw new Error('Failed to upload to Cosmic');
   }
   const cosmicJson = await cosmicRes.json();
   const cosmicMedia = cosmicJson.media;
@@ -1213,7 +1315,7 @@ export async function uploadMediaToRadioCultAndCosmic(file: File, metadata: Reco
  */
 export async function getHostProfileUrl(hostName: string): Promise<string | null> {
   try {
-    const { getHostByName, getHosts } = await import("./cosmic-service");
+    const { getHostByName, getHosts } = await import('./cosmic-service');
 
     // First try to find by exact name match
     let host = await getHostByName(hostName);
@@ -1221,12 +1323,16 @@ export async function getHostProfileUrl(hostName: string): Promise<string | null
     if (!host) {
       // Try to find by similar name
       const allHosts = await getHosts({ limit: 1000 });
-      host = allHosts.objects.find((h) => h.title.toLowerCase().includes(hostName.toLowerCase()) || hostName.toLowerCase().includes(h.title.toLowerCase()));
+      host = allHosts.objects.find(
+        (h) =>
+          h.title.toLowerCase().includes(hostName.toLowerCase()) ||
+          hostName.toLowerCase().includes(h.title.toLowerCase())
+      );
     }
 
     return host ? `/hosts/${host.slug}` : null;
   } catch (error) {
-    console.error("Error getting host profile URL:", error);
+    console.error('Error getting host profile URL:', error);
     return null;
   }
 }
@@ -1236,10 +1342,10 @@ export async function getCosmicHomepageData(): Promise<CosmicHomepageData | null
   try {
     const response = await cosmic.objects
       .findOne({
-        type: "homepage",
-        slug: "homepage",
+        type: 'homepage',
+        slug: 'homepage',
       })
-      .props("slug,title,metadata,type")
+      .props('slug,title,metadata,type')
       .depth(2);
 
     if (response?.object) {
@@ -1247,31 +1353,37 @@ export async function getCosmicHomepageData(): Promise<CosmicHomepageData | null
     }
 
     const COSMIC_HOMEPAGE_ID = process.env.NEXT_PUBLIC_COSMIC_HOMEPAGE_ID;
-    if (COSMIC_HOMEPAGE_ID && COSMIC_HOMEPAGE_ID !== "undefined") {
-      const fallbackResponse = await cosmic.objects.findOne({ id: COSMIC_HOMEPAGE_ID }).props("slug,title,metadata,type").depth(2);
+    if (COSMIC_HOMEPAGE_ID && COSMIC_HOMEPAGE_ID !== 'undefined') {
+      const fallbackResponse = await cosmic.objects
+        .findOne({ id: COSMIC_HOMEPAGE_ID })
+        .props('slug,title,metadata,type')
+        .depth(2);
 
       if (fallbackResponse?.object) {
         return fallbackResponse.object as CosmicHomepageData;
       }
     }
 
-    console.error("Failed to fetch Cosmic homepage data: No homepage object found");
+    console.error('Failed to fetch Cosmic homepage data: No homepage object found');
     return null;
   } catch (error) {
-    console.error("Error fetching Cosmic homepage data:", error);
+    console.error('Error fetching Cosmic homepage data:', error);
     return null;
   }
 }
 
 export async function fetchCosmicObjectById(id: string): Promise<HomepageSectionItem | null> {
   try {
-    if (!id || typeof id !== "string" || id.trim().length === 0) {
+    if (!id || typeof id !== 'string' || id.trim().length === 0) {
       return null;
     }
 
     const trimmedId = id.trim();
 
-    const response = await cosmic.objects.findOne({ id: trimmedId }).props("slug,title,metadata,type").depth(1);
+    const response = await cosmic.objects
+      .findOne({ id: trimmedId })
+      .props('slug,title,metadata,type')
+      .depth(1);
 
     if (!response?.object) {
       return null;
@@ -1284,133 +1396,156 @@ export async function fetchCosmicObjectById(id: string): Promise<HomepageSection
   }
 }
 
-export async function getEvents({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{
+export async function getEvents({
+  limit = 20,
+  offset = 0,
+  tag,
+  searchTerm,
+}: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{
   events: any[];
   hasNext: boolean;
 }> {
   try {
     const filters: any = {
-      type: "events",
+      type: 'events',
       limit,
       skip: offset,
-      sort: "-metadata.date",
-      status: "published",
-      props: "id,slug,title,metadata,created_at",
+      sort: '-metadata.date',
+      status: 'published',
+      props: 'id,slug,title,metadata,created_at',
     };
     if (tag) {
-      filters["metadata.categories"] = tag;
+      filters['metadata.categories'] = tag;
     }
     if (searchTerm) {
-      filters["title"] = searchTerm;
+      filters['title'] = searchTerm;
     }
     const response = await cosmic.objects.find(filters);
     const events = response.objects || [];
     const hasNext = events.length === limit;
     return { events, hasNext };
   } catch (error) {
-    console.error("Error in getEvents:", error);
+    console.error('Error in getEvents:', error);
     return { events: [], hasNext: false };
   }
 }
 
-export async function getTakeovers({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{
+export async function getTakeovers({
+  limit = 20,
+  offset = 0,
+  tag,
+  searchTerm,
+}: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{
   takeovers: any[];
   hasNext: boolean;
 }> {
   try {
     const filters: any = {
-      type: "takeovers",
+      type: 'takeovers',
       limit,
       skip: offset,
-      sort: "-metadata.date",
-      status: "published",
-      props: "id,slug,title,metadata,created_at",
+      sort: '-metadata.date',
+      status: 'published',
+      props: 'id,slug,title,metadata,created_at',
     };
     if (tag) {
-      filters["metadata.categories"] = tag;
+      filters['metadata.categories'] = tag;
     }
     if (searchTerm) {
-      filters["title"] = searchTerm;
+      filters['title'] = searchTerm;
     }
     const response = await cosmic.objects.find(filters);
     const takeovers = response.objects || [];
     const hasNext = takeovers.length === limit;
     return { takeovers, hasNext };
   } catch (error) {
-    console.error("Error in getTakeovers:", error);
+    console.error('Error in getTakeovers:', error);
     return { takeovers: [], hasNext: false };
   }
 }
 
-export async function getFeaturedShows({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{
+export async function getFeaturedShows({
+  limit = 20,
+  offset = 0,
+  tag,
+  searchTerm,
+}: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{
   featuredShows: any[];
   hasNext: boolean;
 }> {
   try {
     const filters: any = {
-      type: "featured-shows",
+      type: 'featured-shows',
       limit,
       skip: offset,
-      sort: "-metadata.date",
-      status: "published",
-      props: "id,slug,title,metadata,created_at",
+      sort: '-metadata.date',
+      status: 'published',
+      props: 'id,slug,title,metadata,created_at',
     };
     if (tag) {
-      filters["metadata.categories"] = tag;
+      filters['metadata.categories'] = tag;
     }
     if (searchTerm) {
-      filters["title"] = searchTerm;
+      filters['title'] = searchTerm;
     }
     const response = await cosmic.objects.find(filters);
     const featuredShows = response.objects || [];
     const hasNext = featuredShows.length === limit;
     return { featuredShows, hasNext };
   } catch (error) {
-    console.error("Error in getFeaturedShows:", error);
+    console.error('Error in getFeaturedShows:', error);
     return { featuredShows: [], hasNext: false };
   }
 }
 
-export async function getSeries({ limit = 20, offset = 0, tag, searchTerm }: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{
+export async function getSeries({
+  limit = 20,
+  offset = 0,
+  tag,
+  searchTerm,
+}: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{
   series: any[];
   hasNext: boolean;
 }> {
   try {
     const filters: any = {
-      type: "series",
+      type: 'series',
       limit,
       skip: offset,
-      sort: "-metadata.date",
-      status: "published",
-      props: "id,slug,title,metadata,created_at",
+      sort: '-metadata.date',
+      status: 'published',
+      props: 'id,slug,title,metadata,created_at',
     };
     if (tag) {
-      filters["metadata.categories"] = tag;
+      filters['metadata.categories'] = tag;
     }
     if (searchTerm) {
-      filters["title"] = searchTerm;
+      filters['title'] = searchTerm;
     }
     const response = await cosmic.objects.find(filters);
     const series = response.objects || [];
     const hasNext = series.length === limit;
     return { series, hasNext };
   } catch (error) {
-    console.error("Error in getSeries:", error);
+    console.error('Error in getSeries:', error);
     return { series: [], hasNext: false };
   }
 }
 
-export async function getRegularHosts({ limit = 20, offset = 0 }: { limit?: number; offset?: number } = {}): Promise<{ hosts: any[]; hasNext: boolean }> {
+export async function getRegularHosts({
+  limit = 20,
+  offset = 0,
+}: { limit?: number; offset?: number } = {}): Promise<{ hosts: any[]; hasNext: boolean }> {
   try {
     const response = await cosmic.objects
       .find({
-        type: "regular-hosts",
-        status: "published",
+        type: 'regular-hosts',
+        status: 'published',
       })
-      .props("id,slug,title,metadata")
+      .props('id,slug,title,metadata')
       .limit(limit)
       .skip(offset)
-      .sort("title")
+      .sort('title')
       .depth(1);
 
     const hosts = response.objects || [];
@@ -1418,12 +1553,14 @@ export async function getRegularHosts({ limit = 20, offset = 0 }: { limit?: numb
 
     return { hosts, hasNext };
   } catch (error) {
-    console.error("Error in getRegularHosts:", error);
+    console.error('Error in getRegularHosts:', error);
     return { hosts: [], hasNext: false };
   }
 }
 
-export async function createColouredSections(homepageData: any): Promise<ProcessedHomepageSection[]> {
+export async function createColouredSections(
+  homepageData: any
+): Promise<ProcessedHomepageSection[]> {
   const colouredSections: ProcessedHomepageSection[] = [];
 
   if (!homepageData?.metadata?.coloured_sections) {
@@ -1431,10 +1568,10 @@ export async function createColouredSections(homepageData: any): Promise<Process
   }
 
   const colors = [
-    "#f8971d", // sunset
-    "#88ca4f", // electric
-    "#e661a4", // hyperpop
-    "#1da0f8", // hyperblue
+    '#f8971d', // sunset
+    '#88ca4f', // electric
+    '#e661a4', // hyperpop
+    '#1da0f8', // hyperblue
   ];
 
   for (let i = 0; i < homepageData.metadata.coloured_sections.length; i++) {
@@ -1448,22 +1585,40 @@ export async function createColouredSections(homepageData: any): Promise<Process
           const showTypeIds = colouredSection.show_type.map((type: any) => type.id);
 
           // Fetch episodes by show type using simplified Cosmic approach
-          const { getEpisodes } = await import("./episode-service");
+          const { getEpisodes } = await import('./episode-service');
           const episodes = await getEpisodes({
             showType: showTypeIds,
             limit: 8,
           });
 
-          // Use episodes directly - no transformation needed
-          shows = episodes.episodes || [];
+          // Transform episodes using the same function as other components
+          const { transformShowToViewData } = await import('./cosmic-service');
+          shows = (episodes.episodes || []).map((episode: any) => {
+            const transformed = transformShowToViewData(episode);
+            return {
+              ...transformed,
+              key: transformed.slug, // Add key for media player identification
+            };
+          });
         } else {
           // Fallback to recent episodes if no show_type specified
-          const { getEpisodes } = await import("./episode-service");
+          const { getEpisodes } = await import('./episode-service');
           const episodes = await getEpisodes({ limit: 8 });
-          shows = episodes.episodes || [];
+          // Transform episodes using the same function as other components
+          const { transformShowToViewData } = await import('./cosmic-service');
+          shows = (episodes.episodes || []).map((episode: any) => {
+            const transformed = transformShowToViewData(episode);
+            return {
+              ...transformed,
+              key: transformed.slug, // Add key for media player identification
+            };
+          });
         }
       } catch (error) {
-        console.warn(`Failed to fetch shows for coloured section "${colouredSection.title}":`, error);
+        console.warn(
+          `Failed to fetch shows for coloured section "${colouredSection.title}":`,
+          error
+        );
         // Continue with empty shows array - the section will be skipped
         continue;
       }
@@ -1474,15 +1629,26 @@ export async function createColouredSections(homepageData: any): Promise<Process
 
       // Ensure newest first across all sections using broadcast_date when available
       const sortedShows = [...shows].sort((a: any, b: any) => {
-        const dateA = new Date((a.metadata?.broadcast_date as string) || (a.metadata?.created_at as string) || (a.created_at as string) || 0).getTime();
-        const dateB = new Date((b.metadata?.broadcast_date as string) || (b.metadata?.created_at as string) || (b.created_at as string) || 0).getTime();
+        const dateA = new Date(
+          (a.metadata?.broadcast_date as string) ||
+            (a.metadata?.created_at as string) ||
+            (a.created_at as string) ||
+            0
+        ).getTime();
+        const dateB = new Date(
+          (b.metadata?.broadcast_date as string) ||
+            (b.metadata?.created_at as string) ||
+            (b.created_at as string) ||
+            0
+        ).getTime();
         return dateB - dateA;
       });
 
-      // Use raw Cosmic shows directly - no transformation needed
+      // Use transformed shows - don't overwrite the URL that was already transformed
       const showItems = sortedShows.map((show: any) => ({
         ...show,
-        url: `/episode/${show.slug}`,
+        // Don't overwrite the url - it's already been transformed by transformShowToViewData
+        // url: `/episode/${show.slug}`, // ❌ This overwrites the Mixcloud URL!
         key: show.slug,
       }));
 
@@ -1493,8 +1659,8 @@ export async function createColouredSections(homepageData: any): Promise<Process
       const section: ProcessedHomepageSection = {
         is_active: true,
         title: colouredSection.title,
-        type: "episodes",
-        layout: "Unique",
+        type: 'episodes',
+        layout: 'Unique',
         itemsPerRow: 4,
         items: showItems,
         color: sectionColor,

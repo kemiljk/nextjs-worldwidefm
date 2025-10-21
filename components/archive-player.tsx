@@ -60,6 +60,37 @@ const ArchivePlayer: React.FC = () => {
     }
   }, [selectedMixcloudUrl, selectedShow]);
 
+  // Prevent Mixcloud widget from affecting browser history
+  useEffect(() => {
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    // Override history methods to prevent widget from affecting navigation
+    history.pushState = function (...args) {
+      // Only allow our own navigation, block widget navigation
+      if (args[2] && typeof args[2] === 'string' && args[2].includes('mixcloud.com')) {
+        console.log('Blocked Mixcloud widget history push:', args[2]);
+        return;
+      }
+      return originalPushState.apply(this, args);
+    };
+
+    history.replaceState = function (...args) {
+      // Only allow our own navigation, block widget navigation
+      if (args[2] && typeof args[2] === 'string' && args[2].includes('mixcloud.com')) {
+        console.log('Blocked Mixcloud widget history replace:', args[2]);
+        return;
+      }
+      return originalReplaceState.apply(this, args);
+    };
+
+    // Cleanup on unmount
+    return () => {
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
+    };
+  }, []);
+
   const initializeWidget = () => {
     if (!selectedMixcloudUrl || !iframeRef.current) return;
 
@@ -192,6 +223,7 @@ const ArchivePlayer: React.FC = () => {
             height='60'
             allow='autoplay'
             title='Mixcloud Player (Fallback)'
+            sandbox='allow-scripts allow-same-origin allow-presentation'
             style={{
               display: 'block',
               margin: 0,
@@ -227,6 +259,7 @@ const ArchivePlayer: React.FC = () => {
           height='60'
           allow='autoplay'
           title='Mixcloud Player'
+          sandbox='allow-scripts allow-same-origin allow-presentation'
           style={{
             display: 'block',
             margin: 0,

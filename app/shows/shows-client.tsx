@@ -5,7 +5,9 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { PageHeader } from '@/components/shared/page-header';
 import { ShowsGrid } from '../../components/shows-grid';
 import { Loader, X } from 'lucide-react';
-import { getEpisodesForShows, getRegularHosts, getTakeovers } from '@/lib/episode-service';
+import { getEpisodesForShows } from '@/lib/episode-service';
+import { getRegularHosts, getTakeovers } from '@/lib/actions';
+import { transformShowToViewData } from '@/lib/cosmic-service';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { CanonicalGenre } from '@/lib/get-canonical-genres';
@@ -117,8 +119,38 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
         }
 
         if (!isMounted) return;
-        setShows(response.shows);
-        setHasNext(response.hasNext);
+
+        // Transform episodes data using the same function as other components
+        if (activeType === 'all' || activeType === 'episodes') {
+          const shows = (response as any).shows || [];
+          const transformedShows = shows.map((show: any) => {
+            const transformed = transformShowToViewData(show);
+            return {
+              ...transformed,
+              key: transformed.slug, // Add key for media player identification
+            };
+          });
+          setShows(transformedShows);
+        } else if (activeType === 'hosts-series') {
+          // For hosts, add key property
+          const hosts = (response as any).hosts || [];
+          const transformedHosts = hosts.map((host: any) => ({
+            ...host,
+            key: host.slug, // Add key for media player identification
+          }));
+          setShows(transformedHosts);
+        } else if (activeType === 'takeovers') {
+          // For takeovers, add key property
+          const takeovers = (response as any).takeovers || [];
+          const transformedTakeovers = takeovers.map((takeover: any) => ({
+            ...takeover,
+            key: takeover.slug, // Add key for media player identification
+          }));
+          setShows(transformedTakeovers);
+        }
+
+        const hasNext = Array.isArray(response) ? false : response.hasNext;
+        setHasNext(hasNext);
         setIsLoadingMore(false);
         setPage(1);
       } catch (error) {
@@ -208,7 +240,33 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       setShows((prev) => {
         const existing = new Set(prev.map((s) => s.id || s.slug));
         const merged = [...prev];
-        response.shows.forEach((s: any) => {
+
+        // Transform new shows using the same function as other components
+        let newShows: any[] = [];
+        if (activeType === 'all' || activeType === 'episodes') {
+          const shows = (response as any).shows || [];
+          newShows = shows.map((s: any) => {
+            const transformed = transformShowToViewData(s);
+            return {
+              ...transformed,
+              key: transformed.slug, // Add key for media player identification
+            };
+          });
+        } else if (activeType === 'hosts-series') {
+          const hosts = (response as any).hosts || [];
+          newShows = hosts.map((host: any) => ({
+            ...host,
+            key: host.slug, // Add key for media player identification
+          }));
+        } else if (activeType === 'takeovers') {
+          const takeovers = (response as any).takeovers || [];
+          newShows = takeovers.map((takeover: any) => ({
+            ...takeover,
+            key: takeover.slug, // Add key for media player identification
+          }));
+        }
+
+        newShows.forEach((s: any) => {
           const key = s.id || s.slug;
           if (!existing.has(key)) {
             merged.push(s);
@@ -217,7 +275,8 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
         });
         return merged;
       });
-      setHasNext(response.hasNext);
+      const hasNext = Array.isArray(response) ? false : response.hasNext;
+      setHasNext(hasNext);
       setPage((prev) => prev + 1);
     } catch (error) {
       console.error('Error loading more data:', error);
@@ -383,7 +442,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
 
         {/* Linear white gradient */}
         <div
-          className='absolute inset-0 bg-gradient-to-b from-white via-white/0 to-white'
+          className='absolute inset-0 bg-linear-to-b from-white via-white/0 to-white'
           style={{ mixBlendMode: 'hue' }}
         />
 

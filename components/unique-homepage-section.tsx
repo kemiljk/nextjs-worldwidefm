@@ -4,6 +4,7 @@ import React from 'react';
 import { ShowCard } from '@/components/ui/show-card';
 import { HighlightedText } from '@/components/ui/highlighted-text';
 import { ProcessedHomepageSection, CosmicItem, ColouredSection } from '@/lib/cosmic-types';
+import { transformShowToViewData } from '@/lib/cosmic-service';
 
 interface UniqueHomepageSectionProps {
   section: ProcessedHomepageSection;
@@ -22,34 +23,13 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
   // Fallback to orange if no color is provided
   const sectionColor = section.color || 'bg-sunset';
 
-  // Pass Cosmic items directly to ShowCard - no transformation needed
+  // Data is already transformed by createColouredSections, so use it directly
   const shows = section.items.map((item: CosmicItem) => {
-    const showData: any = {
+    // Data is already transformed, just ensure key is set
+    return {
       ...item,
-      // Add URL for navigation
-      url:
-        item.type === 'episodes'
-          ? `/episode/${item.slug}`
-          : item.type === 'posts'
-            ? `/editorial/${item.slug}`
-            : item.type === 'regular-hosts'
-              ? `/hosts/${item.slug}`
-              : `/${item.type}/${item.slug}`,
-      // Add key for ShowCard (used for show identification in media player)
       key: item.slug,
     };
-
-    // Add Mixcloud player URL for episodes
-    if (item.type === 'episodes' && item.metadata?.player) {
-      const playerUrl = item.metadata.player as string;
-      if (typeof playerUrl === 'string') {
-        showData.url = playerUrl.startsWith('http')
-          ? playerUrl
-          : `https://www.mixcloud.com${playerUrl}`;
-      }
-    }
-
-    return showData;
   });
 
   // Use coloured section data if available, otherwise fall back to section data
@@ -96,7 +76,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
             >
               <ShowCard
                 show={show}
-                slug={show.url}
+                slug={`/episode/${show.slug}`}
                 playable
                 className='w-full border-almostblack cursor-default'
                 variant='light'
