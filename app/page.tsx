@@ -8,7 +8,8 @@ import {
   createColouredSections,
 } from '@/lib/actions';
 import { generateHomepageMetadata } from '@/lib/metadata-utils';
-import { getEpisodesForShows } from '@/lib/episode-service';
+import { getEpisodesForShows, getEpisodeBySlug } from '@/lib/episode-service';
+import { transformShowToViewData } from '@/lib/cosmic-service';
 import EditorialSection from '@/components/editorial/editorial-section';
 import VideoSection from '@/components/video/video-section';
 import ArchiveSection from '@/components/archive/archive-section';
@@ -47,22 +48,64 @@ export default async function Home() {
 
   // Get recent published episodes from Cosmic (already sorted newest-first server-side)
   const response = await getEpisodesForShows({ limit: 20 });
-  const shows = (response?.shows || []).map((show) => ({
-    ...show,
-    key: show.slug, // Add key for media player identification
-  }));
+  const shows = (response?.shows || []).map((show) => {
+    // Transform using the same function as other components
+    const transformed = transformShowToViewData(show);
+    return {
+      ...transformed,
+      key: transformed.slug, // Add key for media player identification
+    };
+  });
 
   // Removed getCurrentShow function and mostRecentShow variable as they're no longer needed with simplified FeaturedSections
 
   // Get shows from the archive
   const { shows: archiveShowsRaw } = await getEpisodesForShows({ random: true, limit: 20 });
-  const archiveShows = archiveShowsRaw.map((show) => ({
-    ...show,
-    key: show.slug, // Add key for media player identification
-  }));
+  const archiveShows = archiveShowsRaw.map((show) => {
+    // Transform using the same function as other components
+    const transformed = transformShowToViewData(show);
+    return {
+      ...transformed,
+      key: transformed.slug, // Add key for media player identification
+    };
+  });
 
   const heroLayout = homepageData?.metadata?.heroLayout;
-  const heroItems = homepageData?.metadata?.heroItems || [];
+  const heroItemsRaw = homepageData?.metadata?.heroItems || [];
+
+  // Fetch full episode data for hero items (similar to dynamic sections)
+  const heroItems = await Promise.all(
+    heroItemsRaw
+      .filter((item) => item.type === 'episodes') // Only process episodes
+      .map(async (item) => {
+        try {
+          // Fetch the full episode data
+          const fullEpisode = await getEpisodeBySlug(item.slug);
+          if (fullEpisode) {
+            // Transform using the same function as other components
+            const transformed = transformShowToViewData(fullEpisode);
+            return {
+              ...transformed,
+              key: transformed.slug,
+              url: transformed.url,
+            } as any; // Cast to any to avoid type issues
+          }
+        } catch (error) {
+          console.error(`Error fetching hero episode ${item.slug}:`, error);
+        }
+        // Fallback to original item if fetch fails
+        const playerUrl = item.metadata?.player as unknown as string | undefined;
+        return {
+          ...item,
+          key: item.slug,
+          url: playerUrl
+            ? playerUrl.startsWith('http')
+              ? playerUrl
+              : `https://www.mixcloud.com${playerUrl}`
+            : '',
+        } as any; // Cast to any to avoid type issues
+      })
+  );
 
   // Process dynamic sections to fetch full item data
   const rawDynamicSections = homepageData?.metadata?.sections || [];
