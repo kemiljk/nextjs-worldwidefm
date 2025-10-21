@@ -243,17 +243,15 @@ export const ShowCard: React.FC<ShowCardProps> = ({
               {subtitle ? ': ' : ''} {subtitle}
             </div>
 
-            {(formattedDate || formattedTime || primaryLocationName) && (
-              <div
-                className={`flex flex-row items-center gap-2.5 font-mono text-xs uppercase pt-1 ${textClass}`}
-              >
-                {formattedDate && <span>{formattedDate}</span>}
-                {formattedDate && formattedTime && <span>|</span>}
-                {formattedTime && <span>{formattedTime}</span>}
-                {(formattedDate || formattedTime) && primaryLocationName && <span>|</span>}
-                {primaryLocationName && <span>{primaryLocationName}</span>}
-              </div>
-            )}
+          {(formattedDate || formattedTime || primaryLocationName) && (
+            <span
+              className={`block overflow-hidden text-ellipsis whitespace-nowrap font-mono text-m8 uppercase pt-1 ${textClass}`}
+            >
+              {[formattedDate, formattedTime, primaryLocationName]
+                .filter(Boolean)
+                .join(' | ')}
+            </span>
+          )}
           </div>
         </Link>
 

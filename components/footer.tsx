@@ -123,7 +123,7 @@ export default async function Footer() {
             {/* Newsletter section */}
             <div className='w-80'>
               <h3 className='text-m7 font-mono uppercase font-normal text-almostblack dark:text-white pb-3'>
-                Stay Updated
+                BECOME A MEMEBER
               </h3>
               <p className='font-sans text-b3 pb-4'>
                 Become a member for exclusive content, ad-free listening, and early access to new
@@ -134,7 +134,7 @@ export default async function Footer() {
                 className='w-auto border-black font-mono text-[12px] dark:border-white text-foreground'
                 asChild
               >
-                <Link href='/membership'>Subscribe</Link>
+                <Link href='/membership'>JOIN NOW</Link>
               </Button>
             </div>
           </div>

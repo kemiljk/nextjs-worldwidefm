@@ -668,7 +668,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                               onClick={() => onOpenChange(false)}
                               className='group block w-full'
                             >
-                              <div className='flex items-start gap-6 w-full pb-6 '>
+                              <div className='flex items-start gap-6 w-full pb-6  '>
                                 <div className='size-32 relative shrink-0 overflow-hidden'>
                                   <Image
                                     src={
@@ -687,7 +687,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                                       <Music2 className='w-3 h-3 text-foreground' />
                                       <span>Episodes</span>
                                     </div>
-                                    <h3 className='max-w-[90%] pl-1 text-[18px] font-mono line-clamp-2'>
+                                    <h3 className='w-[90%] pl-1 text-[16px] sm:text-[18px] font-mono line-clamp-2'>
                                       {result.title}
                                     </h3>
                                   </div>
@@ -702,7 +702,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                                     )}
                                     {Array.isArray(result.metadata?.genres) &&
                                       result.metadata.genres.length > 0 && (
-                                        <div className='flex flex-wrap'>
+                                        <div className='flex flex-row sm:flex-wrap '>
                                           {result.metadata.genres.map((genre: any) => (
                                             <Badge
                                               key={genre.id}

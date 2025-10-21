@@ -23,7 +23,7 @@ export function FeaturedCard({ show, priority = false, className = '', href }: F
       href={href || `/episode/${show.slug}`}
       className={`block aspect-square ${className}`}
     >
-      <Card className='aspect-square overflow-hidden shadow-none relative cursor-pointer border border-almostblack dark:border-white hover:shadow-lg transition-shadow w-full h-full'>
+      <Card className='aspect-square overflow-hidden shadow-none relative cursor-pointer border border-almostblack dark:border-white hover:shadow-lg transition-shadow w-full h-full aspect-square'>
         <CardContent className='p-0 h-full'>
           <div className='relative group w-full h-full'>
             <Image
@@ -49,14 +49,14 @@ export function FeaturedCard({ show, priority = false, className = '', href }: F
             <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-30 transition-opacity pointer-events-none z-10' />
 
             <div className='absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-almostblack to-transparent flex flex-col justify-end p-4 z-20'>
-              <div className='bg-almostblack p-0.5 text-h9 sm:text-h8 leading-[1] font-display uppercase w-fit'>
+              <div className='bg-almostblack p-0.5 text-h9 lg:text-h8 leading-[1] font-display uppercase w-fit'>
                 <HighlightedText variant='default'>
                   {show.metadata?.broadcast_date
                     ? formatDateShort(show.metadata.broadcast_date)
                     : 'RECENT SHOW'}
                 </HighlightedText>
               </div>
-              <h3 className='text-h8 sm:text-h7 lg:text-h6 max-w-[80%] leading-[1] font-display w-fit'>
+              <h3 className='text-h8 lg:text-h7 xl:text-h6 max-w-[80%] leading-[1] font-display w-fit'>
                 <HighlightedText variant='white'>{show.title}</HighlightedText>
               </h3>
               <div className='flex flex-wrap mt-4'>
