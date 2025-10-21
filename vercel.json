@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/sync-episodes",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/sync-player-urls",
+      "schedule": "0 3 * * *"
     }
   ]
 }
