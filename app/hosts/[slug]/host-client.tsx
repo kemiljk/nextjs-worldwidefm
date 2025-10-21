@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { ShowCard } from "@/components/ui/show-card";
 import { Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { transformEpisodeToShowFormat } from "@/lib/episode-service";
 
 interface HostClientProps {
   hostId: string;

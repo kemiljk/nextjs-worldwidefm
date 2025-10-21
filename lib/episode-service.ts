@@ -1,5 +1,5 @@
-import { cosmic } from './cosmic-config';
-import { EpisodeObject } from './cosmic-types';
+import { cosmic } from "./cosmic-config";
+import { EpisodeObject } from "./cosmic-types";
 
 export interface EpisodeParams {
   limit?: number;
@@ -8,8 +8,8 @@ export interface EpisodeParams {
   searchTerm?: string;
   isNew?: boolean;
   genre?: string | string[];
-  host?: string | string[] | '*';
-  takeover?: string | string[] | '*';
+  host?: string | string[] | "*";
+  takeover?: string | string[] | "*";
   location?: string | string[];
   showType?: string | string[];
 }
@@ -32,8 +32,8 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     if (params.random) {
       const response = await cosmic.objects
         .find({
-          type: 'episode',
-          status: 'published',
+          type: "episode",
+          status: "published",
         })
         .limit(Math.min(baseLimit * 5, 200))
         .depth(2);
@@ -51,8 +51,8 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
 
     // Build query for Cosmic
     const query: any = {
-      type: 'episode',
-      status: 'published',
+      type: "episode",
+      status: "published",
     };
 
     // Add filters
@@ -60,61 +60,56 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
       const validGenres = genres.filter(Boolean);
       if (validGenres.length > 0) {
-        query['metadata.genres.id'] = { $in: validGenres };
-        console.log('[getEpisodes] Genre filter applied:', {
-          'metadata.genres.id': { $in: validGenres },
+        query["metadata.genres.id"] = { $in: validGenres };
+        console.log("[getEpisodes] Genre filter applied:", {
+          "metadata.genres.id": { $in: validGenres },
         });
       }
     }
 
     if (params.location) {
       const locations = Array.isArray(params.location) ? params.location : [params.location];
-      query['metadata.locations.id'] = { $in: locations };
+      query["metadata.locations.id"] = { $in: locations };
     }
 
     if (params.host) {
-      if (params.host === '*') {
-        query['metadata.regular_hosts'] = { $exists: true, $ne: [] };
+      if (params.host === "*") {
+        query["metadata.regular_hosts"] = { $exists: true, $ne: [] };
       } else {
         const hosts = Array.isArray(params.host) ? params.host : [params.host];
-        query['metadata.regular_hosts.id'] = { $in: hosts };
+        query["metadata.regular_hosts.id"] = { $in: hosts };
       }
     }
 
     if (params.takeover) {
-      if (params.takeover === '*') {
-        query['metadata.takeovers'] = { $exists: true, $ne: [] };
+      if (params.takeover === "*") {
+        query["metadata.takeovers"] = { $exists: true, $ne: [] };
       } else {
         const takeovers = Array.isArray(params.takeover) ? params.takeover : [params.takeover];
-        query['metadata.takeovers.id'] = { $in: takeovers };
+        query["metadata.takeovers.id"] = { $in: takeovers };
       }
     }
 
     if (params.showType) {
       const showTypes = Array.isArray(params.showType) ? params.showType : [params.showType];
-      query['metadata.type.id'] = { $in: showTypes };
+      query["metadata.type.id"] = { $in: showTypes };
     }
 
     if (params.searchTerm) {
       const term = String(params.searchTerm).trim();
       if (term) {
-        query.title = { $regex: term, $options: 'i' };
+        query.title = { $regex: term, $options: "i" };
       }
     }
 
     if (params.isNew) {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      query['metadata.broadcast_date'] = { $gte: thirtyDaysAgo.toISOString().slice(0, 10) };
+      query["metadata.broadcast_date"] = { $gte: thirtyDaysAgo.toISOString().slice(0, 10) };
     }
 
     // Fetch episodes from Cosmic
-    const response = await cosmic.objects
-      .find(query)
-      .limit(baseLimit)
-      .skip(offset)
-      .sort('-order')
-      .depth(2);
+    const response = await cosmic.objects.find(query).limit(baseLimit).skip(offset).sort("-order").depth(2);
 
     const episodes = response.objects || [];
     const total = response.total || episodes.length;
@@ -126,7 +121,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       hasNext,
     };
   } catch (error) {
-    console.error('Error fetching episodes:', error);
+    console.error("Error fetching episodes:", error);
     return {
       episodes: [],
       total: 0,
@@ -160,15 +155,15 @@ export async function getRegularHosts(): Promise<any[]> {
   try {
     const response = await cosmic.objects
       .find({
-        type: 'regular-hosts',
-        status: 'published',
+        type: "regular-hosts",
+        status: "published",
       })
       .limit(100)
       .depth(1);
 
     return response.objects || [];
   } catch (error) {
-    console.error('Error fetching regular hosts:', error);
+    console.error("Error fetching regular hosts:", error);
     return [];
   }
 }
@@ -180,15 +175,15 @@ export async function getTakeovers(): Promise<any[]> {
   try {
     const response = await cosmic.objects
       .find({
-        type: 'takeovers',
-        status: 'published',
+        type: "takeovers",
+        status: "published",
       })
       .limit(100)
       .depth(1);
 
     return response.objects || [];
   } catch (error) {
-    console.error('Error fetching takeovers:', error);
+    console.error("Error fetching takeovers:", error);
     return [];
   }
 }
@@ -200,76 +195,101 @@ export async function getEpisodeBySlug(slug: string): Promise<any | null> {
   try {
     const response = await cosmic.objects
       .findOne({
-        type: 'episode',
+        type: "episode",
         slug: slug,
-        status: 'published',
+        status: "published",
       })
       .depth(2);
 
     return response.object || null;
   } catch (error) {
-    console.error('Error fetching episode by slug:', error);
+    console.error("Error fetching episode by slug:", error);
     return null;
   }
 }
 
 /**
- * Get related episodes
+ * Get related episodes based on shared genres and hosts
  */
 export async function getRelatedEpisodes(episodeId: string, limit: number = 5): Promise<any[]> {
   try {
-    const response = await cosmic.objects
-      .find({
-        type: 'episode',
-        status: 'published',
-        id: { $ne: episodeId },
+    // First get the current episode to extract its genres and hosts
+    const currentEpisode = await cosmic.objects
+      .findOne({
+        type: "episode",
+        id: episodeId,
+        status: "published",
       })
-      .limit(limit)
       .depth(2);
 
-    return response.objects || [];
+    if (!currentEpisode?.object) {
+      return [];
+    }
+
+    const episode = currentEpisode.object;
+    const genres = episode.metadata?.genres?.map((g: any) => g.id) || [];
+    const hosts = episode.metadata?.regular_hosts?.map((h: any) => h.id) || [];
+
+    // If no genres or hosts, fall back to random episodes
+    if (genres.length === 0 && hosts.length === 0) {
+      const response = await cosmic.objects
+        .find({
+          type: "episode",
+          status: "published",
+          id: { $ne: episodeId },
+        })
+        .limit(limit)
+        .depth(2);
+
+      return response.objects || [];
+    }
+
+    // Build query to find episodes with shared genres or hosts
+    const query: any = {
+      type: "episode",
+      status: "published",
+      id: { $ne: episodeId },
+    };
+
+    // Add genre or host filters
+    if (genres.length > 0) {
+      query["metadata.genres.id"] = { $in: genres };
+    }
+    if (hosts.length > 0) {
+      query["metadata.regular_hosts.id"] = { $in: hosts };
+    }
+
+    // If we have both genres and hosts, use OR logic
+    if (genres.length > 0 && hosts.length > 0) {
+      query.$or = [{ "metadata.genres.id": { $in: genres } }, { "metadata.regular_hosts.id": { $in: hosts } }];
+      delete query["metadata.genres.id"];
+      delete query["metadata.regular_hosts.id"];
+    }
+
+    const response = await cosmic.objects
+      .find(query)
+      .limit(limit * 2) // Get more to ensure we have enough after filtering
+      .depth(2);
+
+    const episodes = response.objects || [];
+
+    // If we don't have enough episodes with shared genres/hosts, fill with random ones
+    if (episodes.length < limit) {
+      const randomResponse = await cosmic.objects
+        .find({
+          type: "episode",
+          status: "published",
+          id: { $nin: [episodeId, ...episodes.map((e: EpisodeObject) => e.id)] },
+        })
+        .limit(limit - episodes.length)
+        .depth(2);
+      const randomEpisodes = randomResponse.objects || [];
+      episodes.push(...randomEpisodes);
+    }
+
+    return episodes.slice(0, limit) as EpisodeObject[];
   } catch (error) {
-    console.error('Error fetching related episodes:', error);
+    console.error("Error fetching related episodes:", error);
     return [];
   }
-}
-
-/**
- * Transform episode to show format (for backward compatibility)
- */
-export function transformEpisodeToShowFormat(episode: any): any {
-  return {
-    id: episode.id,
-    slug: episode.slug,
-    name: episode.title,
-    pictures: {
-      large:
-        episode.metadata?.pictures?.large ||
-        episode.metadata?.pictures?.extra_large ||
-        episode.metadata?.pictures?.medium ||
-        episode.metadata?.pictures?.small,
-      extra_large:
-        episode.metadata?.pictures?.extra_large ||
-        episode.metadata?.pictures?.large ||
-        episode.metadata?.pictures?.medium ||
-        episode.metadata?.pictures?.small,
-      medium:
-        episode.metadata?.pictures?.medium ||
-        episode.metadata?.pictures?.small ||
-        episode.metadata?.pictures?.large,
-      small:
-        episode.metadata?.pictures?.small ||
-        episode.metadata?.pictures?.medium ||
-        episode.metadata?.pictures?.large,
-    },
-    broadcast_date: episode.metadata?.broadcast_date,
-    created_time: episode.metadata?.broadcast_date || episode.created_at,
-    genres: episode.metadata?.genres || [],
-    enhanced_genres: episode.metadata?.genres || [],
-    tags: episode.metadata?.genres?.map((g: any) => ({ name: g.title })) || [],
-    hosts: episode.metadata?.regular_hosts || [],
-    takeovers: episode.metadata?.takeovers || [],
-    locations: episode.metadata?.locations || [],
-    showType: episode.metadata?.type || {},
-  };
 }
