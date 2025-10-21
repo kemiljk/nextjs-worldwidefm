@@ -23,20 +23,34 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
   const sectionColor = section.color || 'bg-sunset';
 
   // Pass Cosmic items directly to ShowCard - no transformation needed
-  const shows = section.items.map((item: CosmicItem) => ({
-    ...item,
-    // Add URL for navigation
-    url:
-      item.type === 'episodes'
-        ? `/episode/${item.slug}`
-        : item.type === 'posts'
-          ? `/editorial/${item.slug}`
-          : item.type === 'regular-hosts'
-            ? `/hosts/${item.slug}`
-            : `/${item.type}/${item.slug}`,
-    // Add key for ShowCard
-    key: item.slug,
-  }));
+  const shows = section.items.map((item: CosmicItem) => {
+    const showData: any = {
+      ...item,
+      // Add URL for navigation
+      url:
+        item.type === 'episodes'
+          ? `/episode/${item.slug}`
+          : item.type === 'posts'
+            ? `/editorial/${item.slug}`
+            : item.type === 'regular-hosts'
+              ? `/hosts/${item.slug}`
+              : `/${item.type}/${item.slug}`,
+      // Add key for ShowCard (used for show identification in media player)
+      key: item.slug,
+    };
+
+    // Add Mixcloud player URL for episodes
+    if (item.type === 'episodes' && item.metadata?.player) {
+      const playerUrl = item.metadata.player as string;
+      if (typeof playerUrl === 'string') {
+        showData.url = playerUrl.startsWith('http')
+          ? playerUrl
+          : `https://www.mixcloud.com${playerUrl}`;
+      }
+    }
+
+    return showData;
+  });
 
   // Use coloured section data if available, otherwise fall back to section data
   const displayTitle = colouredSection?.title || section.title;
@@ -53,7 +67,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
 
       {/*Linear white gradient*/}
       <div
-        className='absolute inset-0 w-full bg-gradient-to-b from-white via-white/0 to-white'
+        className='absolute inset-0 w-full bg-linear-to-b from-white via-white/0 to-white'
         style={{ mixBlendMode: 'hue' }}
       />
 
@@ -102,7 +116,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
                 </h2>
                 {/* Subtitle with color background */}
                 {displayTime && (
-                  <h3 className='font-display text-h8 sm:text-h7 leading-none uppercase tracking-tight break-words'>
+                  <h3 className='font-display text-h8 sm:text-h7 leading-none uppercase tracking-tight wrap-break-word'>
                     <HighlightedText
                       variant='custom'
                       backgroundColor={sectionColor}

@@ -316,6 +316,12 @@ export function transformShowToViewData(show: RadioShowObject) {
     broadcast_day: show.metadata?.broadcast_day || '',
     duration: show.metadata?.duration || '',
     player: show.metadata?.player || '',
+    // Convert relative player URLs to full Mixcloud URLs for the media player
+    url: show.metadata?.player
+      ? show.metadata.player.startsWith('http')
+        ? show.metadata.player
+        : `https://www.mixcloud.com${show.metadata.player}`
+      : '',
     tracklist: show.metadata?.tracklist || '',
     body_text: show.metadata?.body_text || '',
     page_link: show.metadata?.page_link || '',
@@ -344,6 +350,7 @@ export function transformShowToViewData(show: RadioShowObject) {
 
     // Additional properties for ShowCard compatibility
     name: show.title,
+    key: show.slug, // Use slug as unique key for show identification
     created_time:
       broadcastToISOString(
         show.metadata?.broadcast_date,

@@ -42,7 +42,17 @@ const LatestEpisodes: React.FC = () => {
         {episodes.map((episode) => (
           <ShowCard
             key={episode.key || episode.id || episode.slug}
-            show={episode}
+            show={{
+              ...episode,
+              // Add Mixcloud player URL for episodes
+              url: episode.metadata?.player
+                ? episode.metadata.player.startsWith('http')
+                  ? episode.metadata.player
+                  : `https://www.mixcloud.com${episode.metadata.player}`
+                : episode.url || '',
+              // Add key for ShowCard (used for show identification in media player)
+              key: episode.slug,
+            }}
             slug={`/episode/${episode.slug}`}
             playable
           />

@@ -47,12 +47,19 @@ export default async function Home() {
 
   // Get recent published episodes from Cosmic (already sorted newest-first server-side)
   const response = await getEpisodesForShows({ limit: 20 });
-  const shows = response?.shows || [];
+  const shows = (response?.shows || []).map((show) => ({
+    ...show,
+    key: show.slug, // Add key for media player identification
+  }));
 
   // Removed getCurrentShow function and mostRecentShow variable as they're no longer needed with simplified FeaturedSections
 
   // Get shows from the archive
-  const { shows: archiveShows } = await getEpisodesForShows({ random: true, limit: 20 });
+  const { shows: archiveShowsRaw } = await getEpisodesForShows({ random: true, limit: 20 });
+  const archiveShows = archiveShowsRaw.map((show) => ({
+    ...show,
+    key: show.slug, // Add key for media player identification
+  }));
 
   const heroLayout = homepageData?.metadata?.heroLayout;
   const heroItems = homepageData?.metadata?.heroItems || [];
