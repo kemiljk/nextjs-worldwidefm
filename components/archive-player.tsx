@@ -14,58 +14,17 @@ const ArchivePlayer: React.FC = () => {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const {
-    selectedMixcloudUrl,
-    setSelectedMixcloudUrl,
-    selectedShow,
-    setSelectedShow,
-    pauseShow,
-    setWidgetRef,
-    widgetRef,
-  } = useMediaPlayer();
+  const { selectedMixcloudUrl, setSelectedMixcloudUrl, selectedShow, setSelectedShow, pauseShow } =
+    useMediaPlayer();
 
-  // Preload Mixcloud widget script and iframe for faster first play
+  // Preload iframe in background for faster first play
   useEffect(() => {
-    // Load Mixcloud script
-    if (!window.Mixcloud) {
-      const script = document.createElement('script');
-      script.src = 'https://widget.mixcloud.com/media/js/widgetApi.js';
-      script.async = true;
-      script.crossOrigin = 'anonymous';
-      document.head.appendChild(script);
-    }
-
-    // Preload iframe in background
     if (iframeRef.current && !selectedMixcloudUrl) {
       // Set a placeholder URL to preload the Mixcloud widget
       const preloadUrl =
         'https://www.mixcloud.com/widget/iframe/?hide_cover=1&hide_artwork=1&light=1&mini=1';
       iframeRef.current.src = preloadUrl;
     }
-
-    // Prevent bfcache by handling pagehide/pageshow events
-    const handlePageHide = (event: PageTransitionEvent) => {
-      // If being persisted in bfcache, clear iframe to prevent issues
-      if (event.persisted && iframeRef.current) {
-        iframeRef.current.src = 'about:blank';
-      }
-    };
-
-    const handlePageShow = (event: PageTransitionEvent) => {
-      // If restored from bfcache and we have a selected show, reload it
-      if (event.persisted && selectedMixcloudUrl && iframeRef.current) {
-        const widgetUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(selectedMixcloudUrl)}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`;
-        iframeRef.current.src = widgetUrl;
-      }
-    };
-
-    window.addEventListener('pagehide', handlePageHide);
-    window.addEventListener('pageshow', handlePageShow);
-
-    return () => {
-      window.removeEventListener('pagehide', handlePageHide);
-      window.removeEventListener('pageshow', handlePageShow);
-    };
   }, [selectedMixcloudUrl]);
 
   // Handle show changes by setting iframe src
@@ -75,9 +34,6 @@ const ArchivePlayer: React.FC = () => {
     // Show loading state
     setIsLoading(true);
     setHasError(false);
-
-    // Clear widget ref before loading new content
-    setWidgetRef(null);
 
     // Build iframe URL with feed parameter
     const widgetUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(selectedMixcloudUrl)}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`;
@@ -92,26 +48,16 @@ const ArchivePlayer: React.FC = () => {
 
     // Store timeout ref for cleanup
     iframeRef.current.dataset.timeout = fallbackTimeout.toString();
-  }, [selectedMixcloudUrl, setWidgetRef]);
+  }, [selectedMixcloudUrl]);
 
   const handleClose = () => {
-    // Pause the widget if available
-    if (widgetRef) {
-      try {
-        widgetRef.pause();
-      } catch (error) {
-        console.log('Could not pause widget');
-      }
-    }
-
-    // Clear the iframe src to prevent any ongoing navigation
+    // Clear the iframe src to stop playback
     if (iframeRef.current) {
       iframeRef.current.src = 'about:blank';
     }
 
     setSelectedMixcloudUrl(null);
     setSelectedShow(null);
-    setWidgetRef(null);
     pauseShow();
   };
 
@@ -199,26 +145,6 @@ const ArchivePlayer: React.FC = () => {
             // Clear the fallback timeout
             if (iframeRef.current?.dataset.timeout) {
               clearTimeout(parseInt(iframeRef.current.dataset.timeout));
-            }
-            // Initialize Widget API for pause control
-            if (window.Mixcloud && iframeRef.current) {
-              setTimeout(() => {
-                try {
-                  if (window.Mixcloud && iframeRef.current) {
-                    const widget = window.Mixcloud.PlayerWidget(iframeRef.current);
-                    widget.ready
-                      .then(() => {
-                        setWidgetRef(widget);
-                        console.log('Widget ready for pause control');
-                      })
-                      .catch((err) => {
-                        console.log('Widget not ready:', err);
-                      });
-                  }
-                } catch (error) {
-                  console.log('Widget API not available for pause control');
-                }
-              }, 500);
             }
           }}
           onError={() => {
