@@ -11,19 +11,21 @@ export const runtime = 'nodejs';
 
 const ArchivePlayer: React.FC = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const hasPreloadedRef = useRef(false);
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const { selectedMixcloudUrl, setSelectedMixcloudUrl, selectedShow, setSelectedShow, pauseShow } =
     useMediaPlayer();
 
-  // Preload iframe in background for faster first play
+  // Preload iframe in background for faster first play (run once)
   useEffect(() => {
-    if (iframeRef.current && !selectedMixcloudUrl) {
-      // Set a placeholder URL to preload the Mixcloud widget
+    if (iframeRef.current && !selectedMixcloudUrl && !hasPreloadedRef.current) {
       const preloadUrl =
         'https://www.mixcloud.com/widget/iframe/?hide_cover=1&hide_artwork=1&light=1&mini=1';
+      console.log('[ArchivePlayer] Preloading Mixcloud widget iframe');
       iframeRef.current.src = preloadUrl;
+      hasPreloadedRef.current = true;
     }
   }, [selectedMixcloudUrl]);
 
@@ -40,6 +42,38 @@ const ArchivePlayer: React.FC = () => {
 
     return () => {
       window.removeEventListener('unload', handleUnload);
+    };
+  }, [selectedMixcloudUrl]);
+
+  // Align bfcache behavior between environments: blank on pagehide, restore on pageshow
+  useEffect(() => {
+    const handlePageHide = (event: PageTransitionEvent) => {
+      if (event.persisted && iframeRef.current) {
+        console.log(
+          '[ArchivePlayer] pagehide (persisted) -> blanking iframe to avoid cached player history'
+        );
+        iframeRef.current.src = 'about:blank';
+      }
+    };
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        console.log('[ArchivePlayer] pageshow (persisted) -> restoring current show');
+        if (selectedMixcloudUrl && iframeRef.current) {
+          const widgetUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(
+            selectedMixcloudUrl
+          )}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`;
+          iframeRef.current.src = widgetUrl;
+        }
+      }
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('pageshow', handlePageShow);
     };
   }, [selectedMixcloudUrl]);
 

@@ -9,10 +9,6 @@
       "schedule": "0 2 * * *"
     },
     {
-      "path": "/api/cron/migrate-episode-images",
-      "schedule": "30 2 * * *"
-    },
-    {
       "path": "/api/cron/sync-episodes",
       "schedule": "*/5 * * * *"
     },
