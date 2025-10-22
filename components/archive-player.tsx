@@ -44,7 +44,7 @@ const ArchivePlayer: React.FC = () => {
     }
   }, [selectedMixcloudUrl]);
 
-  // Handle show changes by setting iframe src directly
+  // Handle show changes - use Widget API load() if available, otherwise change src
   useEffect(() => {
     if (!selectedMixcloudUrl || !iframeRef.current) return;
 
@@ -52,20 +52,32 @@ const ArchivePlayer: React.FC = () => {
     setIsLoading(true);
     setHasError(false);
 
-    // Build iframe URL with feed parameter
-    const widgetUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(selectedMixcloudUrl)}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`;
+    // If we have a ready widget, use the load() method (no bfcache issues)
+    if (widgetRef) {
+      console.log('Using widget.load() for:', selectedMixcloudUrl);
+      widgetRef
+        .load(selectedMixcloudUrl, true)
+        .then(() => {
+          setIsLoading(false);
+        })
+        .catch(() => {
+          setIsLoading(false);
+        });
+    } else {
+      // Otherwise, set iframe src directly (first load)
+      console.log('Setting iframe src for:', selectedMixcloudUrl);
+      const widgetUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(selectedMixcloudUrl)}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`;
+      iframeRef.current.src = widgetUrl;
 
-    // Set iframe src directly
-    iframeRef.current.src = widgetUrl;
+      // Fallback: if onLoad doesn't fire within 2 seconds, show the iframe anyway
+      const fallbackTimeout = setTimeout(() => {
+        setIsLoading(false);
+      }, 2000);
 
-    // Fallback: if onLoad doesn't fire within 2 seconds, show the iframe anyway
-    const fallbackTimeout = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
-
-    // Store timeout ref for cleanup
-    iframeRef.current.dataset.timeout = fallbackTimeout.toString();
-  }, [selectedMixcloudUrl]);
+      // Store timeout ref for cleanup
+      iframeRef.current.dataset.timeout = fallbackTimeout.toString();
+    }
+  }, [selectedMixcloudUrl, widgetRef]);
 
   const handleClose = () => {
     // Pause the widget if available
