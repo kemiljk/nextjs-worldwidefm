@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useMediaPlayer } from './providers/media-player-provider';
 
@@ -10,16 +10,110 @@ export const fetchCache = 'no-store';
 export const runtime = 'nodejs';
 
 const ArchivePlayer: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const widgetInitializedRef = useRef(false);
 
-  const { selectedMixcloudUrl, setSelectedMixcloudUrl, selectedShow, setSelectedShow, pauseShow } =
-    useMediaPlayer();
+  const {
+    selectedMixcloudUrl,
+    setSelectedMixcloudUrl,
+    selectedShow,
+    setSelectedShow,
+    pauseShow,
+    setWidgetRef,
+  } = useMediaPlayer();
+
+  // Only show loading state if iframe takes longer than 2 seconds to load
+  useEffect(() => {
+    if (selectedMixcloudUrl) {
+      // Clear any existing timeout
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+
+      // Only show loading state after 2 second delay
+      loadingTimeoutRef.current = setTimeout(() => {
+        setIsLoading(true);
+      }, 2000);
+    }
+
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [selectedMixcloudUrl]);
+
+  const handleLoad = () => {
+    // Clear the timeout if iframe loads quickly
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+    }
+    setIsLoading(false);
+
+    // Initialize Mixcloud Widget API
+    if (iframeRef.current && !widgetInitializedRef.current) {
+      try {
+        // Load Mixcloud widget API script if not already loaded
+        if (!window.Mixcloud) {
+          const script = document.createElement('script');
+          script.src = 'https://widget.mixcloud.com/media/js/widgetApi.js';
+          script.onload = () => {
+            initializeWidget();
+          };
+          document.body.appendChild(script);
+        } else {
+          initializeWidget();
+        }
+      } catch (error) {
+        console.error('Failed to initialize Mixcloud widget:', error);
+      }
+    }
+  };
+
+  const initializeWidget = () => {
+    if (!iframeRef.current || widgetInitializedRef.current) return;
+
+    try {
+      const widget = window.Mixcloud?.PlayerWidget(iframeRef.current);
+      if (!widget) return;
+      setWidgetRef(widget);
+      widgetInitializedRef.current = true;
+
+      // Listen to play/pause events from the widget
+      widget.ready.then(() => {
+        widget.events.pause.on(() => {
+          // Widget was paused
+          console.log('[ArchivePlayer] Widget paused');
+        });
+
+        widget.events.play.on(() => {
+          // Widget started playing
+          console.log('[ArchivePlayer] Widget playing');
+        });
+      });
+    } catch (error) {
+      console.error('Failed to create Mixcloud widget:', error);
+    }
+  };
 
   const handleClose = () => {
+    if (loadingTimeoutRef.current) {
+      clearTimeout(loadingTimeoutRef.current);
+    }
+    setIsLoading(false);
+    widgetInitializedRef.current = false;
+    setWidgetRef(null);
     setSelectedMixcloudUrl(null);
     setSelectedShow(null);
     pauseShow();
   };
+
+  // Reset widget initialization when URL changes
+  useEffect(() => {
+    widgetInitializedRef.current = false;
+  }, [selectedMixcloudUrl]);
 
   // Only render when there's a show selected
   const shouldShowPlayer = selectedMixcloudUrl && selectedShow;
@@ -45,7 +139,7 @@ const ArchivePlayer: React.FC = () => {
           <X className='w-4 h-4' />
         </button>
         {isLoading && (
-          <div className='absolute inset-0 bg-white dark:bg-almostblack flex items-center justify-center border-t border-gray-200 dark:border-gray-700 animate-pulse'>
+          <div className='absolute inset-0 bg-white dark:bg-almostblack flex items-center justify-center border-t border-gray-200 dark:border-gray-700'>
             <div className='flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400'>
               <div className='animate-spin rounded-full h-4 w-4 border-2 border-gray-300 dark:border-gray-600 border-t-gray-600 dark:border-t-gray-400'></div>
               <span>Loading player...</span>
@@ -53,6 +147,7 @@ const ArchivePlayer: React.FC = () => {
           </div>
         )}
         <iframe
+          ref={iframeRef}
           key={selectedMixcloudUrl}
           src={embedUrl}
           width='100%'
@@ -60,14 +155,16 @@ const ArchivePlayer: React.FC = () => {
           allow='autoplay'
           title='Mixcloud Player'
           referrerPolicy='no-referrer'
-          onLoad={() => setIsLoading(false)}
-          onError={() => setIsLoading(false)}
+          onLoad={handleLoad}
+          onError={handleLoad}
           style={{
-            display: isLoading ? 'none' : 'block',
+            display: 'block',
             margin: 0,
             padding: 0,
             border: 'none',
             verticalAlign: 'bottom',
+            opacity: isLoading ? 0 : 1,
+            transition: 'opacity 0.2s ease-in',
           }}
         />
       </div>
