@@ -12,198 +12,26 @@ export const runtime = 'nodejs';
 const ArchivePlayer: React.FC = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [hasError, setHasError] = useState(false);
-  const [isWidgetReady, setIsWidgetReady] = useState(false);
-  const [isContentLoaded, setIsContentLoaded] = useState(false);
-  const hasLoadedInitialShow = useRef(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const {
-    selectedMixcloudUrl,
-    setSelectedMixcloudUrl,
-    selectedShow,
-    setSelectedShow,
-    playShow,
-    pauseShow,
-    setWidgetRef,
-    widgetRef,
-  } = useMediaPlayer();
+  const { selectedMixcloudUrl, setSelectedMixcloudUrl, selectedShow, setSelectedShow, pauseShow } =
+    useMediaPlayer();
 
-  // Handle show changes using widget API load method (skip initial load)
+  // Handle show changes by setting iframe src directly
   useEffect(() => {
-    if (widgetRef && isWidgetReady && selectedMixcloudUrl && hasLoadedInitialShow.current) {
-      console.log('Loading new show via widget API:', selectedMixcloudUrl);
-      try {
-        widgetRef
-          .load(selectedMixcloudUrl, true)
-          .then(() => {
-            setIsContentLoaded(true);
-          })
-          .catch(() => {
-            setIsContentLoaded(true); // Show even if load fails
-          });
-      } catch (error) {
-        console.error('Failed to load show via widget API:', error);
-        setHasError(true);
-        setIsContentLoaded(true); // Show even if load fails
-      }
-    }
-  }, [selectedMixcloudUrl, widgetRef, isWidgetReady]);
+    if (!selectedMixcloudUrl || !iframeRef.current) return;
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      // Clear iframe src on unmount to prevent any lingering navigation
-      if (iframeRef.current) {
-        iframeRef.current.src = 'about:blank';
-      }
-    };
-  }, []);
+    // Show loading state
+    setIsLoading(true);
 
-  // Initialize widget when first show is selected
-  useEffect(() => {
-    if (!selectedMixcloudUrl || !selectedShow) {
-      return;
-    }
+    // Build iframe URL with feed parameter
+    const widgetUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(selectedMixcloudUrl)}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`;
 
-    // Only initialize if widget is not already ready
-    if (isWidgetReady) {
-      return;
-    }
-
-    console.log('ArchivePlayer: Initializing widget for show:', selectedShow.name);
-    setHasError(false);
-    setIsWidgetReady(false);
-
-    // Load Mixcloud widget script if not already loaded
-    if (!window.Mixcloud) {
-      const script = document.createElement('script');
-      script.src = 'https://widget.mixcloud.com/media/js/widgetApi.js';
-      script.async = true;
-      script.crossOrigin = 'anonymous';
-      script.onload = () => {
-        initializeWidget();
-      };
-      script.onerror = (error) => {
-        console.error('Failed to load Mixcloud widget script:', error);
-        setHasError(true);
-      };
-      document.head.appendChild(script);
-    } else {
-      initializeWidget();
-    }
-  }, [selectedMixcloudUrl, selectedShow, isWidgetReady]); // Run when show changes but only if not already ready
-
-  // No longer need to block history methods since we're using static iframe URL
-  // The static iframe approach prevents bfcache issues without interfering with navigation
-
-  const initializeWidget = () => {
-    if (!iframeRef.current) return;
-
-    try {
-      // Log current domain for debugging
-      const currentDomain = window.location.hostname;
-      console.log('Initializing Mixcloud widget for domain:', currentDomain);
-
-      // Use a static widget URL to prevent history entries
-      // The widget will be controlled via API instead of changing src
-      const staticWidgetUrl =
-        'https://www.mixcloud.com/widget/iframe/?hide_cover=1&hide_artwork=1&light=1&mini=1';
-      console.log('Static Widget URL:', staticWidgetUrl);
-
-      if (iframeRef.current) {
-        // Only set src if it's not already set (first time initialization)
-        if (!iframeRef.current.src || iframeRef.current.src === 'about:blank') {
-          iframeRef.current.src = staticWidgetUrl;
-        }
-
-        // Add error handling for iframe load
-        iframeRef.current.onload = () => {
-          console.log('Mixcloud iframe loaded successfully');
-        };
-
-        iframeRef.current.onerror = (error) => {
-          console.error('Mixcloud iframe failed to load:', error);
-          setHasError(true);
-        };
-
-        // Try to initialize the widget API for control
-        const widgetTimeout = setTimeout(() => {
-          if (!isWidgetReady) {
-            console.warn('Mixcloud widget API failed to initialize within timeout');
-            setHasError(true);
-          }
-        }, 5000); // 5 second timeout
-
-        setTimeout(() => {
-          try {
-            if (window.Mixcloud && iframeRef.current) {
-              const widget = window.Mixcloud.PlayerWidget(iframeRef.current);
-              setWidgetRef(widget);
-
-              widget.ready
-                .then(() => {
-                  clearTimeout(widgetTimeout);
-                  setIsWidgetReady(true);
-                  console.log('Mixcloud widget API initialized successfully');
-
-                  // Load the initial show immediately to prevent "Sorry we couldn't find that" message
-                  if (selectedMixcloudUrl) {
-                    widget
-                      .load(selectedMixcloudUrl, true)
-                      .then(() => {
-                        setIsContentLoaded(true);
-                      })
-                      .catch(() => {
-                        setIsContentLoaded(true); // Show even if load fails
-                      });
-                    hasLoadedInitialShow.current = true;
-                  }
-
-                  // Set up event listeners
-                  widget.events.play.on(() => {
-                    if (selectedShow) playShow(selectedShow);
-                  });
-                  widget.events.pause.on(() => pauseShow());
-                  widget.events.ended.on(() => pauseShow());
-                  widget.events.error.on((error) => {
-                    console.error('Mixcloud widget error:', error);
-                    setHasError(true);
-                  });
-                })
-                .catch((error) => {
-                  clearTimeout(widgetTimeout);
-                  console.error('Failed to initialize Mixcloud widget:', error);
-                  setIsWidgetReady(false);
-                  setHasError(true);
-                });
-            } else {
-              clearTimeout(widgetTimeout);
-              console.warn('Mixcloud API not available, using iframe only');
-              setHasError(true);
-            }
-          } catch (err) {
-            clearTimeout(widgetTimeout);
-            console.error('Widget API not available:', err);
-            setIsWidgetReady(false);
-            setHasError(true);
-          }
-        }, 1000);
-      }
-    } catch (error) {
-      console.error('Failed to initialize Mixcloud widget:', error);
-      setHasError(true);
-      setIsWidgetReady(false);
-    }
-  };
+    // Set iframe src directly
+    iframeRef.current.src = widgetUrl;
+  }, [selectedMixcloudUrl]);
 
   const handleClose = () => {
-    if (widgetRef && isWidgetReady) {
-      try {
-        widgetRef.pause();
-      } catch (err) {
-        // Ignore if widget control not available
-      }
-    }
-
     // Clear the iframe src to prevent any ongoing navigation
     if (iframeRef.current) {
       iframeRef.current.src = 'about:blank';
@@ -211,8 +39,6 @@ const ArchivePlayer: React.FC = () => {
 
     setSelectedMixcloudUrl(null);
     setSelectedShow(null);
-    setIsWidgetReady(false);
-    setWidgetRef(null);
     pauseShow();
   };
 
@@ -281,8 +107,16 @@ const ArchivePlayer: React.FC = () => {
           sandbox='allow-scripts allow-same-origin allow-presentation allow-forms'
           referrerPolicy='no-referrer'
           loading='lazy'
+          onLoad={() => {
+            setIsLoading(false);
+            setHasError(false);
+          }}
+          onError={() => {
+            setHasError(true);
+            setIsLoading(false);
+          }}
           style={{
-            display: isContentLoaded ? 'block' : 'none',
+            display: isLoading ? 'none' : 'block',
             margin: 0,
             padding: 0,
             border: 'none',
