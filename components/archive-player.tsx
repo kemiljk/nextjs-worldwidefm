@@ -66,7 +66,7 @@ const ArchivePlayer: React.FC = () => {
             height='60'
             allow='autoplay'
             title='Mixcloud Player (Fallback)'
-            sandbox='allow-scripts allow-same-origin allow-presentation allow-forms'
+            sandbox='allow-scripts allow-same-origin allow-forms'
             referrerPolicy='no-referrer'
             loading='lazy'
             style={{
@@ -104,7 +104,7 @@ const ArchivePlayer: React.FC = () => {
           height='60'
           allow='autoplay'
           title='Mixcloud Player'
-          sandbox='allow-scripts allow-same-origin allow-presentation allow-forms'
+          sandbox='allow-scripts allow-same-origin allow-forms'
           referrerPolicy='no-referrer'
           loading='lazy'
           onLoad={() => {
