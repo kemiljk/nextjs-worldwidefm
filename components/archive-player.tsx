@@ -27,6 +27,22 @@ const ArchivePlayer: React.FC = () => {
     }
   }, [selectedMixcloudUrl]);
 
+  // Prevent bfcache when player is active by adding unload listener
+  useEffect(() => {
+    if (!selectedMixcloudUrl) return;
+
+    // Adding an unload event listener disqualifies the page from bfcache
+    const handleUnload = () => {
+      // This intentionally does nothing - just prevents bfcache
+    };
+
+    window.addEventListener('unload', handleUnload);
+
+    return () => {
+      window.removeEventListener('unload', handleUnload);
+    };
+  }, [selectedMixcloudUrl]);
+
   // Handle show changes by setting iframe src
   useEffect(() => {
     if (!selectedMixcloudUrl || !iframeRef.current) return;
