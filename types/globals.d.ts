@@ -3,6 +3,7 @@ interface MixcloudWidget {
   ready: Promise<void>;
   play(): Promise<void>;
   pause(): Promise<void>;
+  load(url: string, autoplay?: boolean): Promise<void>;
   getPosition(): Promise<number>;
   getDuration(): Promise<number>;
   seek(seconds: number): Promise<void>;

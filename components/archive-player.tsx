@@ -13,6 +13,8 @@ const ArchivePlayer: React.FC = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [hasError, setHasError] = useState(false);
   const [isWidgetReady, setIsWidgetReady] = useState(false);
+  const [isContentLoaded, setIsContentLoaded] = useState(false);
+  const hasLoadedInitialShow = useRef(false);
 
   const {
     selectedMixcloudUrl,
@@ -25,19 +27,49 @@ const ArchivePlayer: React.FC = () => {
     widgetRef,
   } = useMediaPlayer();
 
-  // Clear widgetRef and state on show change
+  // Handle show changes using widget API load method (skip initial load)
   useEffect(() => {
-    setWidgetRef(null);
-    setIsWidgetReady(false);
-  }, [selectedMixcloudUrl, selectedShow, setWidgetRef]);
+    if (widgetRef && isWidgetReady && selectedMixcloudUrl && hasLoadedInitialShow.current) {
+      console.log('Loading new show via widget API:', selectedMixcloudUrl);
+      try {
+        widgetRef
+          .load(selectedMixcloudUrl, true)
+          .then(() => {
+            setIsContentLoaded(true);
+          })
+          .catch(() => {
+            setIsContentLoaded(true); // Show even if load fails
+          });
+      } catch (error) {
+        console.error('Failed to load show via widget API:', error);
+        setHasError(true);
+        setIsContentLoaded(true); // Show even if load fails
+      }
+    }
+  }, [selectedMixcloudUrl, widgetRef, isWidgetReady]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Clear iframe src on unmount to prevent any lingering navigation
+      if (iframeRef.current) {
+        iframeRef.current.src = 'about:blank';
+      }
+    };
+  }, []);
+
+  // Initialize widget when first show is selected
   useEffect(() => {
     if (!selectedMixcloudUrl || !selectedShow) {
       return;
     }
 
-    console.log('ArchivePlayer: Initializing for show:', selectedShow.name);
-    console.log('ArchivePlayer: Mixcloud URL:', selectedMixcloudUrl);
+    // Only initialize if widget is not already ready
+    if (isWidgetReady) {
+      return;
+    }
+
+    console.log('ArchivePlayer: Initializing widget for show:', selectedShow.name);
     setHasError(false);
     setIsWidgetReady(false);
 
@@ -46,7 +78,7 @@ const ArchivePlayer: React.FC = () => {
       const script = document.createElement('script');
       script.src = 'https://widget.mixcloud.com/media/js/widgetApi.js';
       script.async = true;
-      script.crossOrigin = 'anonymous'; // Add CORS handling
+      script.crossOrigin = 'anonymous';
       script.onload = () => {
         initializeWidget();
       };
@@ -58,62 +90,30 @@ const ArchivePlayer: React.FC = () => {
     } else {
       initializeWidget();
     }
-  }, [selectedMixcloudUrl, selectedShow]);
+  }, [selectedMixcloudUrl, selectedShow, isWidgetReady]); // Run when show changes but only if not already ready
 
-  // Prevent Mixcloud widget from affecting browser history
-  useEffect(() => {
-    const originalPushState = history.pushState;
-    const originalReplaceState = history.replaceState;
-
-    // Override history methods to prevent widget from affecting navigation
-    history.pushState = function (...args) {
-      // Only allow our own navigation, block widget navigation
-      if (args[2] && typeof args[2] === 'string' && args[2].includes('mixcloud.com')) {
-        console.log('Blocked Mixcloud widget history push:', args[2]);
-        return;
-      }
-      return originalPushState.apply(this, args);
-    };
-
-    history.replaceState = function (...args) {
-      // Only allow our own navigation, block widget navigation
-      if (args[2] && typeof args[2] === 'string' && args[2].includes('mixcloud.com')) {
-        console.log('Blocked Mixcloud widget history replace:', args[2]);
-        return;
-      }
-      return originalReplaceState.apply(this, args);
-    };
-
-    // Cleanup on unmount
-    return () => {
-      history.pushState = originalPushState;
-      history.replaceState = originalReplaceState;
-    };
-  }, []);
+  // No longer need to block history methods since we're using static iframe URL
+  // The static iframe approach prevents bfcache issues without interfering with navigation
 
   const initializeWidget = () => {
-    if (!selectedMixcloudUrl || !iframeRef.current) return;
+    if (!iframeRef.current) return;
 
     try {
       // Log current domain for debugging
       const currentDomain = window.location.hostname;
       console.log('Initializing Mixcloud widget for domain:', currentDomain);
 
-      // Create widget URL using official Mixcloud widget parameters
-      const widgetParams = new URLSearchParams({
-        feed: selectedMixcloudUrl,
-        hide_cover: '1',
-        autoplay: '1',
-        hide_artwork: '1',
-        light: '1',
-        mini: '1',
-      });
-
-      const widgetUrl = `https://www.mixcloud.com/widget/iframe/?${widgetParams.toString()}`;
-      console.log('Widget URL:', widgetUrl);
+      // Use a static widget URL to prevent history entries
+      // The widget will be controlled via API instead of changing src
+      const staticWidgetUrl =
+        'https://www.mixcloud.com/widget/iframe/?hide_cover=1&hide_artwork=1&light=1&mini=1';
+      console.log('Static Widget URL:', staticWidgetUrl);
 
       if (iframeRef.current) {
-        iframeRef.current.src = widgetUrl;
+        // Only set src if it's not already set (first time initialization)
+        if (!iframeRef.current.src || iframeRef.current.src === 'about:blank') {
+          iframeRef.current.src = staticWidgetUrl;
+        }
 
         // Add error handling for iframe load
         iframeRef.current.onload = () => {
@@ -144,6 +144,20 @@ const ArchivePlayer: React.FC = () => {
                   clearTimeout(widgetTimeout);
                   setIsWidgetReady(true);
                   console.log('Mixcloud widget API initialized successfully');
+
+                  // Load the initial show immediately to prevent "Sorry we couldn't find that" message
+                  if (selectedMixcloudUrl) {
+                    widget
+                      .load(selectedMixcloudUrl, true)
+                      .then(() => {
+                        setIsContentLoaded(true);
+                      })
+                      .catch(() => {
+                        setIsContentLoaded(true); // Show even if load fails
+                      });
+                    hasLoadedInitialShow.current = true;
+                  }
+
                   // Set up event listeners
                   widget.events.play.on(() => {
                     if (selectedShow) playShow(selectedShow);
@@ -189,6 +203,12 @@ const ArchivePlayer: React.FC = () => {
         // Ignore if widget control not available
       }
     }
+
+    // Clear the iframe src to prevent any ongoing navigation
+    if (iframeRef.current) {
+      iframeRef.current.src = 'about:blank';
+    }
+
     setSelectedMixcloudUrl(null);
     setSelectedShow(null);
     setIsWidgetReady(false);
@@ -203,10 +223,7 @@ const ArchivePlayer: React.FC = () => {
   if (hasError) {
     // Fallback: show a simple iframe without widget API if CORS fails
     console.log('Using fallback Mixcloud player due to CORS error');
-    console.log(
-      'Fallback URL:',
-      `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(selectedMixcloudUrl)}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`
-    );
+    console.log('Fallback URL with static src to prevent history issues');
     return (
       <div className='fixed bottom-0 left-0 right-0 z-50 overflow-hidden'>
         <div className='relative'>
@@ -223,7 +240,9 @@ const ArchivePlayer: React.FC = () => {
             height='60'
             allow='autoplay'
             title='Mixcloud Player (Fallback)'
-            sandbox='allow-scripts allow-same-origin allow-presentation'
+            sandbox='allow-scripts allow-same-origin allow-presentation allow-forms'
+            referrerPolicy='no-referrer'
+            loading='lazy'
             style={{
               display: 'block',
               margin: 0,
@@ -259,9 +278,11 @@ const ArchivePlayer: React.FC = () => {
           height='60'
           allow='autoplay'
           title='Mixcloud Player'
-          sandbox='allow-scripts allow-same-origin allow-presentation'
+          sandbox='allow-scripts allow-same-origin allow-presentation allow-forms'
+          referrerPolicy='no-referrer'
+          loading='lazy'
           style={{
-            display: 'block',
+            display: isContentLoaded ? 'block' : 'none',
             margin: 0,
             padding: 0,
             border: 'none',
