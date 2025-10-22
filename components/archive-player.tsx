@@ -24,8 +24,9 @@ const ArchivePlayer: React.FC = () => {
     widgetRef,
   } = useMediaPlayer();
 
-  // Preload Mixcloud widget script for faster initialization
+  // Preload Mixcloud widget script and iframe for faster first play
   useEffect(() => {
+    // Load Mixcloud script
     if (!window.Mixcloud) {
       const script = document.createElement('script');
       script.src = 'https://widget.mixcloud.com/media/js/widgetApi.js';
@@ -33,7 +34,15 @@ const ArchivePlayer: React.FC = () => {
       script.crossOrigin = 'anonymous';
       document.head.appendChild(script);
     }
-  }, []);
+
+    // Preload iframe in background
+    if (iframeRef.current && !selectedMixcloudUrl) {
+      // Set a placeholder URL to preload the Mixcloud widget
+      const preloadUrl =
+        'https://www.mixcloud.com/widget/iframe/?hide_cover=1&hide_artwork=1&light=1&mini=1';
+      iframeRef.current.src = preloadUrl;
+    }
+  }, [selectedMixcloudUrl]);
 
   // Handle show changes by setting iframe src directly
   useEffect(() => {
@@ -79,11 +88,10 @@ const ArchivePlayer: React.FC = () => {
     pauseShow();
   };
 
-  if (!selectedMixcloudUrl || !selectedShow) {
-    return null;
-  }
+  // Always render the component to allow preloading, but hide it when no show is selected
+  const shouldShowPlayer = selectedMixcloudUrl && selectedShow;
 
-  if (hasError) {
+  if (hasError && shouldShowPlayer) {
     // Fallback: show a simple iframe without widget API if CORS fails
     console.log('Using fallback Mixcloud player due to CORS error');
     console.log('Fallback URL with static src to prevent history issues');
@@ -128,7 +136,10 @@ const ArchivePlayer: React.FC = () => {
   return (
     <div
       className='fixed bottom-0 left-0 right-0 z-50 overflow-hidden'
-      style={{ height: '60px' }}
+      style={{
+        height: '60px',
+        display: shouldShowPlayer ? 'block' : 'none',
+      }}
     >
       <div className='relative h-full'>
         <button
@@ -138,7 +149,7 @@ const ArchivePlayer: React.FC = () => {
         >
           <X className='w-4 h-4' />
         </button>
-        {isLoading && (
+        {isLoading && shouldShowPlayer && (
           <div className='absolute inset-0 bg-white dark:bg-almostblack flex items-center justify-center border-t border-gray-200 dark:border-gray-700 animate-pulse'>
             <div className='flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400'>
               <div className='animate-spin rounded-full h-4 w-4 border-2 border-gray-300 dark:border-gray-600 border-t-gray-600 dark:border-t-gray-400'></div>
