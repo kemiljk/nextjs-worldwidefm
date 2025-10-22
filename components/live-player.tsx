@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Play, Pause, Circle } from 'lucide-react';
+import { Play, Pause } from 'lucide-react';
 import { useMediaPlayer } from '@/components/providers/media-player-provider';
 
 declare global {
@@ -28,6 +28,11 @@ interface LiveMetadata {
     listeners?: number;
   };
 }
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'no-store';
+export const runtime = 'nodejs';
 
 export default function LivePlayer() {
   const { currentLiveEvent, isLivePlaying, playLive, pauseLive, liveVolume, setLiveVolume } =

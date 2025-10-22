@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { useMediaPlayer } from './providers/media-player-provider';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'no-store';
+export const runtime = 'nodejs';
+
 const ArchivePlayer: React.FC = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [hasError, setHasError] = useState(false);
@@ -14,16 +19,11 @@ const ArchivePlayer: React.FC = () => {
     setSelectedMixcloudUrl,
     selectedShow,
     setSelectedShow,
-    isLivePlaying,
     playShow,
     pauseShow,
-    stopAllPlayers,
-    isArchivePlaying,
     setWidgetRef,
     widgetRef,
   } = useMediaPlayer();
-
-  const isPlaying = isArchivePlaying;
 
   // Clear widgetRef and state on show change
   useEffect(() => {
