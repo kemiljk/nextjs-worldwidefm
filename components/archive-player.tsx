@@ -42,9 +42,33 @@ const ArchivePlayer: React.FC = () => {
         'https://www.mixcloud.com/widget/iframe/?hide_cover=1&hide_artwork=1&light=1&mini=1';
       iframeRef.current.src = preloadUrl;
     }
+
+    // Prevent bfcache by handling pagehide/pageshow events
+    const handlePageHide = (event: PageTransitionEvent) => {
+      // If being persisted in bfcache, clear iframe to prevent issues
+      if (event.persisted && iframeRef.current) {
+        iframeRef.current.src = 'about:blank';
+      }
+    };
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // If restored from bfcache and we have a selected show, reload it
+      if (event.persisted && selectedMixcloudUrl && iframeRef.current) {
+        const widgetUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(selectedMixcloudUrl)}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`;
+        iframeRef.current.src = widgetUrl;
+      }
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
   }, [selectedMixcloudUrl]);
 
-  // Handle show changes - use Widget API load() if available, otherwise change src
+  // Handle show changes by setting iframe src
   useEffect(() => {
     if (!selectedMixcloudUrl || !iframeRef.current) return;
 
@@ -52,32 +76,23 @@ const ArchivePlayer: React.FC = () => {
     setIsLoading(true);
     setHasError(false);
 
-    // If we have a ready widget, use the load() method (no bfcache issues)
-    if (widgetRef) {
-      console.log('Using widget.load() for:', selectedMixcloudUrl);
-      widgetRef
-        .load(selectedMixcloudUrl, true)
-        .then(() => {
-          setIsLoading(false);
-        })
-        .catch(() => {
-          setIsLoading(false);
-        });
-    } else {
-      // Otherwise, set iframe src directly (first load)
-      console.log('Setting iframe src for:', selectedMixcloudUrl);
-      const widgetUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(selectedMixcloudUrl)}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`;
-      iframeRef.current.src = widgetUrl;
+    // Clear widget ref before loading new content
+    setWidgetRef(null);
 
-      // Fallback: if onLoad doesn't fire within 2 seconds, show the iframe anyway
-      const fallbackTimeout = setTimeout(() => {
-        setIsLoading(false);
-      }, 2000);
+    // Build iframe URL with feed parameter
+    const widgetUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(selectedMixcloudUrl)}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`;
 
-      // Store timeout ref for cleanup
-      iframeRef.current.dataset.timeout = fallbackTimeout.toString();
-    }
-  }, [selectedMixcloudUrl, widgetRef]);
+    // Set iframe src directly
+    iframeRef.current.src = widgetUrl;
+
+    // Fallback: if onLoad doesn't fire within 2 seconds, show the iframe anyway
+    const fallbackTimeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+
+    // Store timeout ref for cleanup
+    iframeRef.current.dataset.timeout = fallbackTimeout.toString();
+  }, [selectedMixcloudUrl, setWidgetRef]);
 
   const handleClose = () => {
     // Pause the widget if available
