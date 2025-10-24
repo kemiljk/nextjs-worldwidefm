@@ -31,12 +31,11 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
         <ArticleCard
           key={sortedPosts[0].slug}
           slug={sortedPosts[0].slug}
-          title={sortedPosts[0].title}
-          date={sortedPosts[0].metadata?.date}
-          excerpt={sortedPosts[0].metadata?.excerpt}
-          image={sortedPosts[0].metadata?.image?.imgix_url || '/image-placeholder.png'}
-          tags={sortedPosts[0].metadata.categories?.map(c => c.title)}
-          size={sortedPosts[0].metadata.featured_size?.key}
+          title={sortedPosts[0].title ?? ''}
+          date={sortedPosts[0].metadata?.date ?? undefined}
+          excerpt={sortedPosts[0].metadata?.excerpt ?? undefined}
+          image={sortedPosts[0].metadata?.image?.imgix_url ?? '/image-placeholder.png'}
+          tags={sortedPosts[0].metadata.categories?.map(c => c.title) ?? []}
           variant='featured'
         />
       </div>

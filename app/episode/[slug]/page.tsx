@@ -10,6 +10,7 @@ import { GenreTag } from '@/components/ui/genre-tag';
 import { generateShowMetadata } from '@/lib/metadata-utils';
 import { TracklistToggle } from '@/components/ui/tracklisttoggle';
 import { parseBroadcastDateTime } from '@/lib/date-utils';
+import { transformShowToViewData } from '@/lib/cosmic-service';
 
 export const revalidate = 60; // 1 minute - shows update quickly
 
@@ -64,10 +65,7 @@ async function HostLink({ host, className }: { host: any; className: string }) {
   }
 
   return (
-    <Link
-      href={href}
-      className={className}
-    >
+    <Link href={href} className={className}>
       {displayName}
     </Link>
   );
@@ -100,18 +98,15 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
   const show = transformShowToViewData(episode);
 
   const startTime =
-    parseBroadcastDateTime(
-      metadata.broadcast_date,
-      metadata.broadcast_time,
-      metadata.broadcast_date_old
-    ) || new Date(episode.created_at);
+    parseBroadcastDateTime(episode.metadata.broadcast_date, episode.metadata.broadcast_time) ||
+    new Date(episode.created_at);
 
   // Get related episodes based on genres and hosts
   const relatedEpisodesRaw = await getRelatedEpisodes(episode.id, 3);
-  const relatedEpisodes = relatedEpisodesRaw.map((ep) => transformShowToViewData(ep));
+  const relatedEpisodes = relatedEpisodesRaw.map(ep => transformShowToViewData(ep));
 
   const displayName = episode.title || 'Untitled Episode';
-  const displayImage = metadata.image?.imgix_url || '/image-placeholder.png';
+  const displayImage = episode.metadata.image?.imgix_url || '/image-placeholder.png';
 
   // Format date for overlay (e.g., SAT 14/06)
   const showDate = startTime
@@ -138,10 +133,10 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
         {/*LEFT CONTAINER*/}
         <div className='w-full md:w-[40%] flex flex-col gap-1 pt-2'>
           {/* Episode Description */}
-          {(metadata.body_text || metadata.description) && (
+          {(episode.metadata.body_text || episode.metadata.description) && (
             <div className='prose dark:prose-invert max-w-none'>
               <SafeHtml
-                content={metadata.body_text || metadata.description || ''}
+                content={episode.metadata.body_text || episode.metadata.description || ''}
                 type='editorial'
                 className='text-b3 sm:text-[18px] leading-tight text-almostblack dark:text-white'
               />
@@ -149,19 +144,19 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
           )}
 
           {/* Genres Section */}
-          {metadata.genres?.length > 0 && (
+          {episode.metadata.genres?.length > 0 && (
             <div>
               <div className='flex flex-wrap select-none cursor-default my-3'>
-                {metadata.genres.map((genre: any) => (
+                {episode.metadata.genres.map((genre: any) => (
                   <GenreTag key={genre.id || genre.slug}>{genre.title || genre.name}</GenreTag>
                 ))}
               </div>
             </div>
           )}
           {/* Hosts Section */}
-          {metadata.regular_hosts?.length > 0 && (
+          {episode.metadata.regular_hosts?.length > 0 && (
             <div className='flex flex-wrap gap-1 pl-1'>
-              {metadata.regular_hosts.map((host: any) => (
+              {episode.metadata.regular_hosts.map((host: any) => (
                 <HostLink
                   key={host.id || host.slug}
                   host={host}
@@ -172,43 +167,46 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
           )}
 
           {/* Duration */}
-          {metadata.duration && (
+          {episode.metadata.duration && (
             <div>
               <span className='text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors'>
-                Duration: {metadata.duration}
+                Duration: {episode.metadata.duration}
               </span>
             </div>
           )}
 
           {/* Broadcast Info */}
-          {(metadata.broadcast_date || metadata.broadcast_date_old) && (
+          {(episode.metadata.broadcast_date || episode.metadata.broadcast_date_old) && (
             <div>
               <span className='text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors'>
                 Broadcast:{' '}
                 {parseBroadcastDateTime(
-                  metadata.broadcast_date,
-                  metadata.broadcast_time,
-                  metadata.broadcast_date_old
+                  episode.metadata.broadcast_date,
+                  episode.metadata.broadcast_time,
+                  episode.metadata.broadcast_date_old
                 )?.toLocaleDateString()}
-                {metadata.broadcast_time && ` at ${metadata.broadcast_time}`}
+                {episode.metadata.broadcast_time && ` at ${episode.metadata.broadcast_time}`}
               </span>
             </div>
           )}
 
           {/* Tracklist Section */}
           {(() => {
-            if ((!metadata.broadcast_date && !metadata.broadcast_date_old) || !metadata.tracklist)
+            if (
+              (!episode.metadata.broadcast_date && !episode.metadata.broadcast_date_old) ||
+              !episode.metadata.tracklist
+            )
               return null;
 
-            const durationInMinutes = metadata.duration
-              ? parseInt(metadata.duration.split(':')[0])
+            const durationInMinutes = episode.metadata.duration
+              ? parseInt(episode.metadata.duration.split(':')[0])
               : 120;
 
             const broadcastStart =
               parseBroadcastDateTime(
-                metadata.broadcast_date,
-                metadata.broadcast_time,
-                metadata.broadcast_date_old
+                episode.metadata.broadcast_date,
+                episode.metadata.broadcast_time,
+                episode.metadata.broadcast_date_old
               ) || new Date();
             const broadcastEnd = addMinutes(broadcastStart, durationInMinutes);
             const now = new Date();
@@ -217,7 +215,7 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
             return (
               showTracklist && (
                 <div className='my-4'>
-                  <TracklistToggle tracklist={metadata.tracklist} />
+                  <TracklistToggle tracklist={episode.metadata.tracklist} />
                 </div>
               )
             );

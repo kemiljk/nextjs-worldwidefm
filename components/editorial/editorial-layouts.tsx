@@ -54,12 +54,10 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
         <div className='w-full sm:w-[80vw] lg:w-[35vw] text-almostblack dark:text-white'>
           <p className='font-sans text-[40px] md:text-[50px] leading-none mb-4'>{title}</p>
           <p className='text-sans text-b3'>{description}</p>
-          <div className='flex flex-col gap-1'>
-            <div className='pl-1 text-[12px] leading-none font-mono tracking-wider'>
-              {formattedDate}
-            </div>
+          <div className='flex flex-col gap-1 mt-4'>
+            <div className='text-m7 leading-none font-mono tracking-wider'>{formattedDate}</div>
             {author && (
-              <div className='pl-1 text-[12px] font-mono leading-none uppercase tracking-wider text-muted-foreground'>
+              <div className='text-m7 font-mono leading-none uppercase tracking-wider text-muted-foreground'>
                 By {typeof author === 'string' ? author : author.title || 'Unknown'}
               </div>
             )}
