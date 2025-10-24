@@ -10,13 +10,11 @@ import { HighlightedText } from '@/components/ui/highlighted-text';
 
 interface HomepageHeroProps {
   heroLayout: string;
-  heroItems: HomepageHeroItem[];
+  heroItems: TransformedHeroItem[];
 }
 
-const renderHeroItem = (item: CosmicItem, isPriority: boolean) => {
-  // Basic card structure - can be expanded based on item.type and metadata
-  // For example, if item.type is 'episodes', we might want to show play buttons, genres, etc.
-  // If item.type is 'posts', we might show an excerpt or author.
+const HeroItem = ({ item, isPriority }: { item: TransformedHeroItem; isPriority: boolean }) => {
+  const { playShow, pauseShow, selectedShow, isArchivePlaying } = useMediaPlayer();
 
   const href =
     item.type === 'episodes'
@@ -52,6 +50,34 @@ const renderHeroItem = (item: CosmicItem, isPriority: boolean) => {
                 }
               }}
             />
+            {/* Play button for episodes */}
+            {shouldShowPlayButton && (
+              <div className='absolute bottom-4 right-4 z-30 opacity-0 group-hover:opacity-100 transition-opacity'>
+                <button
+                  onClick={handlePlayPause}
+                  className='text-white bg-almostblack rounded-full w-12 h-12 flex items-center justify-center transition-colors hover:bg-almostblack/80'
+                  aria-label={isCurrentlyPlaying ? 'Pause' : 'Play'}
+                >
+                  {isCurrentlyPlaying ? (
+                    <svg
+                      className='w-5 h-5'
+                      fill='currentColor'
+                      viewBox='0 0 24 24'
+                    >
+                      <path d='M6 4h4v16H6V4zm8 0h4v16h-4V4z' />
+                    </svg>
+                  ) : (
+                    <svg
+                      className='w-5 h-5 ml-0.5'
+                      fill='currentColor'
+                      viewBox='0 0 24 24'
+                    >
+                      <path d='M8 5v14l11-7z' />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
           <div className='absolute bottom-0 left-0 right-0 flex bg-linear-to-t from-almostblack to-transparent h-1/2 flex-col p-4 flex-1 justify-end'>
             <div className='bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-1 px-1 text-left'>
@@ -82,6 +108,15 @@ const renderHeroItem = (item: CosmicItem, isPriority: boolean) => {
         </CardContent>
       </Link>
     </Card>
+  );
+};
+
+const renderHeroItem = (item: TransformedHeroItem, isPriority: boolean) => {
+  return (
+    <HeroItem
+      item={item}
+      isPriority={isPriority}
+    />
   );
 };
 
@@ -143,6 +178,8 @@ export const EpisodeHero = ({
   // For other content, check if there's actual audio content
   const isEpisode = show?.__source === 'episode' || show?.episodeData || show?.type === 'episode';
   const hasAudioContent = show?.url || show?.player || show?.metadata?.player;
+  const shouldShowPlayButton =
+    (isEpisode || hasAudioContent) && (show?.metadata?.player || show?.url);
 
   return (
     <div className='relative w-full h-[calc(100dvh-80px)] aspect-[2/1]'>

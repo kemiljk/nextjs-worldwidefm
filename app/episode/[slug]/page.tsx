@@ -64,7 +64,10 @@ async function HostLink({ host, className }: { host: any; className: string }) {
   }
 
   return (
-    <Link href={href} className={className}>
+    <Link
+      href={href}
+      className={className}
+    >
       {displayName}
     </Link>
   );
@@ -93,9 +96,8 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
     );
   }
 
-  // Transform episode to show format for compatibility with existing components
-  const show = episode;
-  const metadata = episode.metadata || {};
+  // Transform the episode data to the expected format
+  const show = transformShowToViewData(episode);
 
   const startTime =
     parseBroadcastDateTime(
@@ -105,7 +107,8 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
     ) || new Date(episode.created_at);
 
   // Get related episodes based on genres and hosts
-  const relatedEpisodes = await getRelatedEpisodes(episode.id, 3);
+  const relatedEpisodesRaw = await getRelatedEpisodes(episode.id, 3);
+  const relatedEpisodes = relatedEpisodesRaw.map((ep) => transformShowToViewData(ep));
 
   const displayName = episode.title || 'Untitled Episode';
   const displayImage = metadata.image?.imgix_url || '/image-placeholder.png';

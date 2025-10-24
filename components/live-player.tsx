@@ -29,6 +29,11 @@ interface LiveMetadata {
   };
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'no-store';
+export const runtime = 'nodejs';
+
 export default function LivePlayer() {
   const { currentLiveEvent, isLivePlaying, playLive, pauseLive, liveVolume, setLiveVolume } =
     useMediaPlayer();

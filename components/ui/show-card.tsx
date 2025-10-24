@@ -53,16 +53,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   };
 
   const getShowImage = (show: any) => {
-    return (
-      show.metadata?.image?.imgix_url ||
-      show.metadata?.image?.url ||
-      show.pictures?.large ||
-      show.pictures?.extra_large ||
-      show.enhanced_image ||
-      show.imageUrl ||
-      show.image ||
-      '/image-placeholder.png'
-    );
+    return show.metadata?.image?.imgix_url || show.metadata?.image?.url || '/image-placeholder.png';
   };
 
   const getShowTags = (show: any): Array<{ id: string; title: string }> => {
@@ -225,7 +216,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
         <Link href={slug} className='block'>
           <div className='w-auto h-auto flex-1 gap-1 flex flex-col cursor-pointer'>
             <div
-              className={`font-mono text-m8 sm:text-m6 uppercase w-full line-clamp-2 break-words pr-10 ${textClass}`}
+              className={`font-mono text-m8 sm:text-m6 uppercase w-full line-clamp-2 wrap-break-word pr-10 ${textClass}`}
             >
               {mainTitle}
               {subtitle ? ': ' : ''} {subtitle}

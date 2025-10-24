@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createBucketClient } from '@cosmicjs/sdk';
+import { extractDatePart, extractTimePart } from '@/lib/date-utils';
 
 // Initialize Cosmic client
 const cosmic = createBucketClient({
@@ -440,7 +441,8 @@ async function migrateEpisodes(episodes: any[]) {
           slug: episode.slug,
           type: 'episode',
           metadata: {
-            broadcast_date: episode.broadcastDate,
+            broadcast_date: extractDatePart(episode.broadcastDate),
+            broadcast_time: extractTimePart(episode.broadcastDate) || episode.broadcastTime || '00:00',
             body_text: episode.bodyText || null,
             featured_on_homepage: episode.featuredOnHomepage || false,
             source: 'migrated_from_craft',

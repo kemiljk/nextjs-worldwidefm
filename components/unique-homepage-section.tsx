@@ -4,6 +4,7 @@ import React from 'react';
 import { ShowCard } from '@/components/ui/show-card';
 import { HighlightedText } from '@/components/ui/highlighted-text';
 import { ProcessedHomepageSection, CosmicItem, ColouredSection } from '@/lib/cosmic-types';
+import { transformShowToViewData } from '@/lib/cosmic-service';
 
 interface UniqueHomepageSectionProps {
   section: ProcessedHomepageSection;
@@ -22,21 +23,14 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
   // Fallback to orange if no color is provided
   const sectionColor = section.color || 'bg-sunset';
 
-  // Pass Cosmic items directly to ShowCard - no transformation needed
-  const shows = section.items.map((item: CosmicItem) => ({
-    ...item,
-    // Add URL for navigation
-    url:
-      item.type === 'episodes'
-        ? `/episode/${item.slug}`
-        : item.type === 'posts'
-          ? `/editorial/${item.slug}`
-          : item.type === 'regular-hosts'
-            ? `/hosts/${item.slug}`
-            : `/${item.type}/${item.slug}`,
-    // Add key for ShowCard
-    key: item.slug,
-  }));
+  // Data is already transformed by createColouredSections, so use it directly
+  const shows = section.items.map((item: CosmicItem) => {
+    // Data is already transformed, just ensure key is set
+    return {
+      ...item,
+      key: item.slug,
+    };
+  });
 
   // Use coloured section data if available, otherwise fall back to section data
   const displayTitle = colouredSection?.title || section.title;
@@ -50,7 +44,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
 
       {/*Linear white gradient*/}
       <div
-        className='absolute inset-0 w-full bg-gradient-to-b from-white via-white/0 to-white'
+        className='absolute inset-0 w-full bg-linear-to-b from-white via-white/0 to-white'
         style={{ mixBlendMode: 'hue' }}
       />
 
@@ -79,7 +73,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
             >
               <ShowCard
                 show={show}
-                slug={show.url}
+                slug={`/episode/${show.slug}`}
                 playable
                 className='w-full border-almostblack cursor-default'
                 variant='light'
@@ -99,7 +93,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
                 </h2>
                 {/* Subtitle with color background */}
                 {displayTime && (
-                  <h3 className='font-display text-h8 sm:text-h7 leading-none uppercase tracking-tight break-words'>
+                  <h3 className='font-display text-h8 sm:text-h7 leading-none uppercase tracking-tight wrap-break-word'>
                     <HighlightedText
                       variant='custom'
                       backgroundColor={sectionColor}

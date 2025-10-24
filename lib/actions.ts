@@ -1726,13 +1726,28 @@ export async function createColouredSections(
             limit: 8,
           });
 
-          // Use episodes directly - no transformation needed
-          shows = episodes.episodes || [];
+          // Transform episodes using the same function as other components
+          const { transformShowToViewData } = await import('./cosmic-service');
+          shows = (episodes.episodes || []).map((episode: any) => {
+            const transformed = transformShowToViewData(episode);
+            return {
+              ...transformed,
+              key: transformed.slug, // Add key for media player identification
+            };
+          });
         } else {
           // Fallback to recent episodes if no show_type specified
           const { getEpisodes } = await import('./episode-service');
           const episodes = await getEpisodes({ limit: 8 });
-          shows = episodes.episodes || [];
+          // Transform episodes using the same function as other components
+          const { transformShowToViewData } = await import('./cosmic-service');
+          shows = (episodes.episodes || []).map((episode: any) => {
+            const transformed = transformShowToViewData(episode);
+            return {
+              ...transformed,
+              key: transformed.slug, // Add key for media player identification
+            };
+          });
         }
       } catch (error) {
         console.warn(
@@ -1764,10 +1779,11 @@ export async function createColouredSections(
         return dateB - dateA;
       });
 
-      // Use raw Cosmic shows directly - no transformation needed
+      // Use transformed shows - don't overwrite the URL that was already transformed
       const showItems = sortedShows.map((show: any) => ({
         ...show,
-        url: `/episode/${show.slug}`,
+        // Don't overwrite the url - it's already been transformed by transformShowToViewData
+        // url: `/episode/${show.slug}`, // ❌ This overwrites the Mixcloud URL!
         key: show.slug,
       }));
 
