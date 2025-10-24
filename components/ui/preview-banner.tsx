@@ -10,7 +10,7 @@ export function PreviewBanner({ className }: PreviewBannerProps) {
   return (
     <div
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 bg-yellow-400 text-black border-b-2 border-black',
+        'w-full bg-yellow-400 text-black border-b-2 border-black',
         'flex items-center justify-center py-2 px-4 text-center',
         'font-mono text-sm font-bold uppercase tracking-wider',
         className

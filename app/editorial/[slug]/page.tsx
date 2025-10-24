@@ -138,18 +138,16 @@ export default async function EditorialArticlePage({
       {/* Preview Banner - show when post is a draft */}
       {isDraft && <PreviewBanner />}
 
-      <div className={isDraft ? 'pt-12' : ''}>
-        {getLayoutComponent()}
+      {getLayoutComponent()}
 
-        {/* Related Articles */}
-        {relatedPosts.length > 0 && (
-          <div className='border-t'>
-            <div className='max-w-7xl mx-auto px-4 py-16'>
-              <EditorialSection title='Related Articles' posts={relatedPosts} layout='grid' />
-            </div>
+      {/* Related Articles */}
+      {relatedPosts.length > 0 && (
+        <div className='border-t'>
+          <div className='max-w-7xl mx-auto px-4 py-16'>
+            <EditorialSection title='Related Articles' posts={relatedPosts} layout='grid' />
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 }
