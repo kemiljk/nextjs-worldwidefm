@@ -130,12 +130,15 @@ export default async function EditorialArticlePage({
     return <StandardLayout post={post} formattedDate={formattedDate} />;
   };
 
+  // Check if this is a draft post
+  const isDraft = post.status === 'draft';
+
   return (
     <>
-      {/* Preview Banner - only show when in preview mode */}
-      {preview && <PreviewBanner />}
-
-      <div className={preview ? 'pt-12' : ''}>
+      {/* Preview Banner - show when post is a draft */}
+      {isDraft && <PreviewBanner />}
+      
+      <div className={isDraft ? 'pt-12' : ''}>
         {getLayoutComponent()}
 
         {/* Related Articles */}

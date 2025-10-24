@@ -172,6 +172,7 @@ export interface PostObject {
   title: string;
   type: string;
   created_at: string;
+  status?: string;
   metadata: {
     seo?: {
       title?: string;
