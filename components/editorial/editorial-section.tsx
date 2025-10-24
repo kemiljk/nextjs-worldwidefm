@@ -127,7 +127,7 @@ export default function EditorialSection({
     <section className={cn('', className)}>
       {!isHomepage && (
         <div className={`flex items-center justify-between mb-4 mt-4`}>
-          <h2 className='px-5 text-[40px] tracking-tight font-display uppercase font-normal text-almostblack dark:text-white'>
+          <h2 className='text-[40px] tracking-tight font-display uppercase font-normal text-almostblack dark:text-white'>
             {title}
           </h2>
         </div>
@@ -186,7 +186,7 @@ export default function EditorialSection({
         </div>
       ) : (
         <>
-          <div className='px-25 grid grid-cols-1 md:grid-cols-3 gap-10'>
+          <div className='grid grid-cols-1 md:grid-cols-3 gap-10'>
             {displayedPosts.map(post => {
               const tags = (post.metadata?.categories || [])
                 .map((cat: any) => {

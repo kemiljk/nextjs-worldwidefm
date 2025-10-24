@@ -273,24 +273,51 @@ function EditorialContent() {
         />
       </div>
 
-      {isLoading ? (
-        <div className='py-5 text-center'>
-          <h3 className='text-m5 font-mono font-normal text-almostblack dark:text-white'>
-            Loading...
-          </h3>
-        </div>
-      ) : posts.length > 0 ? (
-        <>
-          {/* Only show featured content when no filters are active */}
-          {!currentFilters.article &&
-          !currentFilters.video &&
-          currentFilters.categories.length === 0 &&
-          !currentFilters.search ? (
-            <>
-              <FeaturedContent posts={posts.slice(0, 1)} />
+      <div className='px-5'>
+        {isLoading ? (
+          <div className='py-5 text-center'>
+            <h3 className='text-m5 font-mono font-normal text-almostblack dark:text-white'>
+              Loading...
+            </h3>
+          </div>
+        ) : posts.length > 0 ? (
+          <>
+            {/* Only show featured content when no filters are active */}
+            {!currentFilters.article &&
+            !currentFilters.video &&
+            currentFilters.categories.length === 0 &&
+            !currentFilters.search ? (
+              <>
+                <FeaturedContent posts={posts.slice(0, 1)} />
+                <EditorialSection
+                  title='All Posts'
+                  posts={posts.slice(1)}
+                  currentFilters={{
+                    searchTerm: currentFilters.search,
+                    categories: currentFilters.categories,
+                    postType: currentFilters.article
+                      ? 'article'
+                      : currentFilters.video
+                        ? 'video'
+                        : undefined,
+                  }}
+                  availableFilters={availableFilters}
+                />
+              </>
+            ) : (
               <EditorialSection
-                title='All Posts'
-                posts={posts.slice(1)}
+                title={
+                  currentFilters.article
+                    ? 'Articles'
+                    : currentFilters.video
+                      ? 'Videos'
+                      : currentFilters.categories.length > 0
+                        ? 'Filtered Posts'
+                        : currentFilters.search
+                          ? 'Search Results'
+                          : 'All Posts'
+                }
+                posts={posts}
                 currentFilters={{
                   searchTerm: currentFilters.search,
                   categories: currentFilters.categories,
@@ -302,42 +329,17 @@ function EditorialContent() {
                 }}
                 availableFilters={availableFilters}
               />
-            </>
-          ) : (
-            <EditorialSection
-              title={
-                currentFilters.article
-                  ? 'Articles'
-                  : currentFilters.video
-                    ? 'Videos'
-                    : currentFilters.categories.length > 0
-                      ? 'Filtered Posts'
-                      : currentFilters.search
-                        ? 'Search Results'
-                        : 'All Posts'
-              }
-              posts={posts}
-              currentFilters={{
-                searchTerm: currentFilters.search,
-                categories: currentFilters.categories,
-                postType: currentFilters.article
-                  ? 'article'
-                  : currentFilters.video
-                    ? 'video'
-                    : undefined,
-              }}
-              availableFilters={availableFilters}
-            />
-          )}
-        </>
-      ) : (
-        <div className='py-5 text-center'>
-          <h3 className='text-m5 font-mono font-normal text-almostblack dark:text-white'>
-            No posts found
-          </h3>
-          <p className='text-gray-500 mt-2'>Try adjusting your filters or search term.</p>
-        </div>
-      )}
+            )}
+          </>
+        ) : (
+          <div className='py-5 text-center'>
+            <h3 className='text-m5 font-mono font-normal text-almostblack dark:text-white'>
+              No posts found
+            </h3>
+            <p className='text-gray-500 mt-2'>Try adjusting your filters or search term.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

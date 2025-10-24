@@ -37,7 +37,7 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
   return (
     <article className='w-full'>
       {/* Hero Section */}
-      <div className='w-full mt-20 mb-40 px-20 flex flex-col lg:flex-row gap-20 justify-center items-center md:items-start'>
+      <div className='w-full mt-20 mb-40 px-5 md:px-20 flex flex-col lg:flex-row gap-20 justify-center items-center md:items-start'>
         {/* Image */}
         <div className='sm:w-[80vw] lg:w-[50vw] flex items-center justify-center overflow-hidden relative'>
           <Image
@@ -52,7 +52,9 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
 
         {/* Text */}
         <div className='w-full sm:w-[80vw] lg:w-[35vw] text-almostblack dark:text-white'>
-          <p className='font-sans text-[40px] md:text-[50px] leading-none mb-4'>{title}</p>
+          <p className='font-sans text-[28px] md:text-[40px] lg:text-[50px] leading-none mb-4'>
+            {title}
+          </p>
           <p className='text-sans text-b3'>{description}</p>
           <div className='flex flex-col gap-1 mt-4'>
             <div className='text-m7 leading-none font-mono tracking-wider'>{formattedDate}</div>
@@ -107,8 +109,10 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
       <div className='relative w-full h-[60vh] mb-20'>
         <Image src={imageUrl} alt={`${title} - Featured image`} fill className='object-cover' />
         <div className='absolute inset-0 bg-black bg-opacity-40 flex items-end'>
-          <div className='w-full px-20 pb-20 text-white'>
-            <h1 className='font-sans text-[60px] md:text-[80px] leading-none mb-6'>{title}</h1>
+          <div className='w-full px-5 md:px-20 pb-20 text-white'>
+            <h1 className='font-sans text-[32px] md:text-[60px] lg:text-[80px] leading-none mb-6'>
+              {title}
+            </h1>
             <p className='text-sans text-b2 mb-4 max-w-3xl'>{description}</p>
             <div className='flex items-center gap-4'>
               <div className='text-[14px] font-mono tracking-wider'>{formattedDate}</div>
@@ -130,7 +134,7 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
       </div>
 
       {/* Centered Content */}
-      <div className='max-w-4xl mx-auto px-20'>
+      <div className='max-w-4xl mx-auto px-5 md:px-20'>
         {content && (
           <div
             dangerouslySetInnerHTML={{ __html: content }}
@@ -162,8 +166,8 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
   return (
     <article className='w-full'>
       {/* Title Section */}
-      <div className='w-full px-20 py-20 text-center'>
-        <h1 className='font-sans text-[50px] md:text-[70px] leading-none mb-6 text-almostblack dark:text-white'>
+      <div className='w-full px-5 md:px-20 py-20 text-center'>
+        <h1 className='font-sans text-[32px] md:text-[50px] lg:text-[70px] leading-none mb-6 text-almostblack dark:text-white'>
           {title}
         </h1>
         <p className='text-sans text-b2 mb-6 max-w-3xl mx-auto'>{description}</p>
@@ -202,7 +206,7 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
 
       {/* Content */}
       {content && (
-        <div className='max-w-4xl mx-auto px-20 mb-20'>
+        <div className='max-w-4xl mx-auto px-5 md:px-20 mb-20'>
           <div
             dangerouslySetInnerHTML={{ __html: content }}
             className='break-words font-sans text-b6 space-y-6'
@@ -230,8 +234,8 @@ export function MinimalLayout({ post, formattedDate }: EditorialLayoutProps) {
 
   return (
     <article className='w-full'>
-      <div className='max-w-3xl mx-auto px-20 py-20'>
-        <h1 className='font-sans text-[40px] md:text-[50px] leading-none mb-6 text-almostblack dark:text-white'>
+      <div className='max-w-3xl mx-auto px-5 md:px-20 py-20'>
+        <h1 className='font-sans text-[28px] md:text-[40px] lg:text-[50px] leading-none mb-6 text-almostblack dark:text-white'>
           {title}
         </h1>
         <p className='text-sans text-b3 mb-8'>{description}</p>

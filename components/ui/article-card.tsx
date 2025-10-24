@@ -36,7 +36,7 @@ export function ArticleCard({
   return (
     <Link href={`/editorial/${slug}`} className='block group'>
       <div
-        className={`relative w-full ${variant === 'featured' ? 'p-10 md:p-20 flex flex-col md:flex-row gap-6 items-start' : ''}`}
+        className={`relative w-full ${variant === 'featured' ? 'flex flex-col md:flex-row gap-6 items-start' : ''}`}
       >
         <div className={`flex-1 relative ${variant === 'featured' ? 'h-auto' : ''}`}>
           <img
