@@ -1,12 +1,7 @@
 'use client';
 
 import { createContext, useContext } from 'react';
-import {
-  SearchResult,
-  SearchFilters,
-  SearchContextType as UnifiedSearchContextType,
-  FilterItem,
-} from './search/unified-types';
+import { SearchContextType as UnifiedSearchContextType } from './search/unified-types';
 
 // Re-export types for backward compatibility
 export type { SearchResult, SearchFilters, FilterItem } from './search/unified-types';

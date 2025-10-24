@@ -442,7 +442,8 @@ async function migrateEpisodes(episodes: any[]) {
           type: 'episode',
           metadata: {
             broadcast_date: extractDatePart(episode.broadcastDate),
-            broadcast_time: extractTimePart(episode.broadcastDate) || episode.broadcastTime || '00:00',
+            broadcast_time:
+              extractTimePart(episode.broadcastDate) || episode.broadcastTime || '00:00',
             body_text: episode.bodyText || null,
             featured_on_homepage: episode.featuredOnHomepage || false,
             source: 'migrated_from_craft',

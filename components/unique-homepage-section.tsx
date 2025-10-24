@@ -4,7 +4,6 @@ import React from 'react';
 import { ShowCard } from '@/components/ui/show-card';
 import { HighlightedText } from '@/components/ui/highlighted-text';
 import { ProcessedHomepageSection, CosmicItem, ColouredSection } from '@/lib/cosmic-types';
-import { transformShowToViewData } from '@/lib/cosmic-service';
 
 interface UniqueHomepageSectionProps {
   section: ProcessedHomepageSection;

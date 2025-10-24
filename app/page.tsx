@@ -48,7 +48,7 @@ export default async function Home() {
 
   // Get recent published episodes from Cosmic (already sorted newest-first server-side)
   const response = await getEpisodesForShows({ limit: 20 });
-  const shows = (response?.shows || []).map((show) => {
+  const shows = (response?.shows || []).map(show => {
     // Transform using the same function as other components
     const transformed = transformShowToViewData(show);
     return {
@@ -61,7 +61,7 @@ export default async function Home() {
 
   // Get shows from the archive
   const { shows: archiveShowsRaw } = await getEpisodesForShows({ random: true, limit: 20 });
-  const archiveShows = archiveShowsRaw.map((show) => {
+  const archiveShows = archiveShowsRaw.map(show => {
     // Transform using the same function as other components
     const transformed = transformShowToViewData(show);
     return {
@@ -76,8 +76,8 @@ export default async function Home() {
   // Fetch full episode data for hero items (similar to dynamic sections)
   const heroItems = await Promise.all(
     heroItemsRaw
-      .filter((item) => item.type === 'episodes') // Only process episodes
-      .map(async (item) => {
+      .filter(item => item.type === 'episodes') // Only process episodes
+      .map(async item => {
         try {
           // Fetch the full episode data
           const fullEpisode = await getEpisodeBySlug(item.slug);

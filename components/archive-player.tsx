@@ -126,10 +126,7 @@ const ArchivePlayer: React.FC = () => {
   const embedUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(selectedMixcloudUrl)}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`;
 
   return (
-    <div
-      className='fixed bottom-0 left-0 right-0 z-50 overflow-hidden'
-      style={{ height: '60px' }}
-    >
+    <div className='fixed bottom-0 left-0 right-0 z-50 overflow-hidden' style={{ height: '60px' }}>
       <div className='relative h-full'>
         <button
           onClick={handleClose}

@@ -165,7 +165,6 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       ``;
       clearTimeout(timeoutId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGenres, selectedLocations, typeParam, searchTerm, letterParam]);
 
   // Load more data function

@@ -1,5 +1,4 @@
 import React from 'react';
-import { HomepageHeroItem, CosmicItem } from '@/lib/cosmic-types';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
@@ -59,19 +58,11 @@ const HeroItem = ({ item, isPriority }: { item: TransformedHeroItem; isPriority:
                   aria-label={isCurrentlyPlaying ? 'Pause' : 'Play'}
                 >
                   {isCurrentlyPlaying ? (
-                    <svg
-                      className='w-5 h-5'
-                      fill='currentColor'
-                      viewBox='0 0 24 24'
-                    >
+                    <svg className='w-5 h-5' fill='currentColor' viewBox='0 0 24 24'>
                       <path d='M6 4h4v16H6V4zm8 0h4v16h-4V4z' />
                     </svg>
                   ) : (
-                    <svg
-                      className='w-5 h-5 ml-0.5'
-                      fill='currentColor'
-                      viewBox='0 0 24 24'
-                    >
+                    <svg className='w-5 h-5 ml-0.5' fill='currentColor' viewBox='0 0 24 24'>
                       <path d='M8 5v14l11-7z' />
                     </svg>
                   )}
@@ -112,12 +103,7 @@ const HeroItem = ({ item, isPriority }: { item: TransformedHeroItem; isPriority:
 };
 
 const renderHeroItem = (item: TransformedHeroItem, isPriority: boolean) => {
-  return (
-    <HeroItem
-      item={item}
-      isPriority={isPriority}
-    />
-  );
+  return <HeroItem item={item} isPriority={isPriority} />;
 };
 
 const HomepageHero: React.FC<HomepageHeroProps> = ({ heroLayout, heroItems }) => {

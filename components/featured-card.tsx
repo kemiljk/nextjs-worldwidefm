@@ -6,7 +6,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { GenreTag } from '@/components/ui/genre-tag';
 import { HighlightedText } from '@/components/ui/highlighted-text';
 import { formatDateShort } from '@/lib/utils';
-import { PlayButton } from './play-button';
 import { useMediaPlayer } from './providers/media-player-provider';
 
 interface FeaturedCardProps {
@@ -91,19 +90,11 @@ export function FeaturedCard({ show, priority = false, className = '', href }: F
                       aria-label={isCurrentlyPlaying ? 'Pause' : 'Play'}
                     >
                       {isCurrentlyPlaying ? (
-                        <svg
-                          className='w-4 h-4'
-                          fill='currentColor'
-                          viewBox='0 0 24 24'
-                        >
+                        <svg className='w-4 h-4' fill='currentColor' viewBox='0 0 24 24'>
                           <path d='M6 4h4v16H6V4zm8 0h4v16h-4V4z' />
                         </svg>
                       ) : (
-                        <svg
-                          className='w-4 h-4 ml-0.5'
-                          fill='currentColor'
-                          viewBox='0 0 24 24'
-                        >
+                        <svg className='w-4 h-4 ml-0.5' fill='currentColor' viewBox='0 0 24 24'>
                           <path d='M8 5v14l11-7z' />
                         </svg>
                       )}

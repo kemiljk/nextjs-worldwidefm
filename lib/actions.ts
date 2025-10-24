@@ -688,7 +688,7 @@ export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
     console.log(`Searching for related posts with ${searchField}:`, searchTerms);
 
     // Build the query based on whether we're using tags or categories
-    let query: any = {
+    const query: any = {
       type: 'posts',
       status: 'published',
     };
