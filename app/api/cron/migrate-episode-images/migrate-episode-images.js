@@ -10,15 +10,15 @@
 // Load environment variables
 require('dotenv').config({ path: '.env.local' });
 
-const { createBucketClient } = require("@cosmicjs/sdk");
-const axios = require("axios");
-const fs = require("fs").promises;
-const path = require("path");
-const os = require("os");
+const { createBucketClient } = require('@cosmicjs/sdk');
+const axios = require('axios');
+const fs = require('fs').promises;
+const path = require('path');
+const os = require('os');
 
 // Configuration
 const config = {
-  downloadDir: path.join(os.tmpdir(), "episode-images"),
+  downloadDir: path.join(os.tmpdir(), 'episode-images'),
   batchSize: 10, // Process episodes in batches to avoid memory issues
   timeout: 30000, // 30 second timeout for downloads
 };
@@ -49,8 +49,8 @@ async function downloadImage(imageUrl, filename) {
     console.log(`   📥 Downloading: ${filename}`);
     const response = await axios({
       url: imageUrl,
-      method: "GET",
-      responseType: "arraybuffer",
+      method: 'GET',
+      responseType: 'arraybuffer',
       timeout: config.timeout,
     });
 
@@ -94,22 +94,22 @@ async function uploadImageToCosmic(filepath, filename, title) {
 
 async function findEpisodesNeedingImages() {
   try {
-    console.log("🔍 Finding episodes that need image processing...");
+    console.log('🔍 Finding episodes that need image processing...');
 
     const response = await cosmic.objects.find({
-      type: "episode",
-      status: "published",
-      "metadata.source": "migrated_from_craft",
-      "metadata.craft_image_url": { $exists: true },
+      type: 'episode',
+      status: 'published',
+      'metadata.source': 'migrated_from_craft',
+      'metadata.craft_image_url': { $exists: true },
       limit: 1000,
-      props: "id,title,slug,metadata.craft_image_url,thumbnail,metadata.image",
+      props: 'id,title,slug,metadata.craft_image_url,thumbnail,metadata.image',
     });
 
     const episodes = response.objects || [];
     console.log(`📊 Found ${episodes.length} episodes with craft_image_url`);
 
     // Filter out episodes that already have images
-    const episodesNeedingImages = episodes.filter((episode) => {
+    const episodesNeedingImages = episodes.filter(episode => {
       const hasImage = episode.metadata?.image || episode.thumbnail;
       if (hasImage) {
         console.log(`   ⏭️ Skipping ${episode.title} - already has image`);
@@ -121,7 +121,7 @@ async function findEpisodesNeedingImages() {
     console.log(`🎯 ${episodesNeedingImages.length} episodes need image processing`);
     return episodesNeedingImages;
   } catch (error) {
-    console.error("❌ Error finding episodes:", error.message);
+    console.error('❌ Error finding episodes:', error.message);
     return [];
   }
 }
@@ -137,10 +137,10 @@ async function processEpisodeImage(episode) {
     }
 
     // Extract filename from URL
-    const urlParts = imageUrl.split("/");
+    const urlParts = imageUrl.split('/');
     const filename = urlParts[urlParts.length - 1];
 
-    if (!filename || !filename.includes(".")) {
+    if (!filename || !filename.includes('.')) {
       console.log(`   ⚠️ Could not extract valid filename from URL: ${imageUrl}`);
       return false;
     }
@@ -192,15 +192,15 @@ async function processEpisodeImage(episode) {
 
 async function migrateEpisodeImages(dryRun = false) {
   try {
-    console.log("🚀 Starting episode image migration...");
+    console.log('🚀 Starting episode image migration...');
     if (dryRun) {
-      console.log("🔍 DRY RUN MODE - No actual changes will be made");
+      console.log('🔍 DRY RUN MODE - No actual changes will be made');
     }
 
     const episodes = await findEpisodesNeedingImages();
 
     if (episodes.length === 0) {
-      console.log("✅ No episodes need image processing");
+      console.log('✅ No episodes need image processing');
       return;
     }
 
@@ -211,7 +211,9 @@ async function migrateEpisodeImages(dryRun = false) {
     // Process episodes in batches
     for (let i = 0; i < episodes.length; i += config.batchSize) {
       const batch = episodes.slice(i, i + config.batchSize);
-      console.log(`\n📦 Processing batch ${Math.floor(i / config.batchSize) + 1}/${Math.ceil(episodes.length / config.batchSize)}`);
+      console.log(
+        `\n📦 Processing batch ${Math.floor(i / config.batchSize) + 1}/${Math.ceil(episodes.length / config.batchSize)}`
+      );
 
       for (const episode of batch) {
         if (dryRun) {
@@ -231,13 +233,13 @@ async function migrateEpisodeImages(dryRun = false) {
         }
 
         // Small delay between episodes to avoid overwhelming the system
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
       // Longer delay between batches
       if (i + config.batchSize < episodes.length) {
         console.log(`   ⏳ Waiting 5 seconds before next batch...`);
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, 5000));
       }
     }
 
@@ -251,20 +253,20 @@ async function migrateEpisodeImages(dryRun = false) {
       console.log(`\n🔍 This was a dry run. Run without --dry-run to actually process images.`);
     }
   } catch (error) {
-    console.error("❌ Error in migration process:", error);
+    console.error('❌ Error in migration process:', error);
   }
 }
 
 // Main execution
 async function main() {
   const args = process.argv.slice(2);
-  const dryRun = args.includes("--dry-run");
+  const dryRun = args.includes('--dry-run');
 
-  console.log("🎵 Episode Image Migration Script");
-  console.log("=================================");
+  console.log('🎵 Episode Image Migration Script');
+  console.log('=================================');
 
   if (dryRun) {
-    console.log("🔍 Running in DRY RUN mode");
+    console.log('🔍 Running in DRY RUN mode');
   }
 
   await migrateEpisodeImages(dryRun);
@@ -272,8 +274,8 @@ async function main() {
 
 // Run the script
 if (require.main === module) {
-  main().catch((error) => {
-    console.error("❌ Script failed:", error);
+  main().catch(error => {
+    console.error('❌ Script failed:', error);
     process.exit(1);
   });
 }

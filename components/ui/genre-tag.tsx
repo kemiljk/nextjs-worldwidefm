@@ -16,8 +16,7 @@ export const GenreTag: React.FC<GenreTagProps> = ({
   href,
   onClick,
 }) => {
-  const baseClasses =
-    'border-1 rounded-full px-1.5 py-0.5 text-[9px] font-mono uppercase';
+  const baseClasses = 'border-1 rounded-full px-1.5 py-0.5 text-[9px] font-mono uppercase';
 
   const variantClasses = {
     default: 'border-almostblack dark:border-white text-almostblack dark:text-white',

@@ -89,7 +89,7 @@ migrateBroadcastDates(true)
     console.log('✅ Migration completed successfully');
     process.exit(0);
   })
-  .catch((error) => {
+  .catch(error => {
     console.error('❌ Migration failed:', error);
     process.exit(1);
   });

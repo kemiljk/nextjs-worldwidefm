@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Play, Pause, Circle } from 'lucide-react';
+import { Play, Pause } from 'lucide-react';
 import { useMediaPlayer } from '@/components/providers/media-player-provider';
 
 declare global {
@@ -110,14 +110,14 @@ export default function LivePlayer() {
 
       // Set up audio event listeners
       audio.addEventListener('loadstart', () => {
-        setStreamState((prev) => ({ ...prev, loading: true, error: null }));
+        setStreamState(prev => ({ ...prev, loading: true, error: null }));
       });
 
       audio.addEventListener('canplay', () => {
-        setStreamState((prev) => ({ ...prev, loading: false, connected: true }));
+        setStreamState(prev => ({ ...prev, loading: false, connected: true }));
       });
 
-      audio.addEventListener('error', (e) => {
+      audio.addEventListener('error', e => {
         const error = audio.error;
         let errorMessage = 'Stream connection failed';
 
@@ -138,7 +138,7 @@ export default function LivePlayer() {
         }
 
         console.error('Audio error:', error);
-        setStreamState((prev) => ({
+        setStreamState(prev => ({
           ...prev,
           loading: false,
           error: errorMessage,
@@ -147,16 +147,16 @@ export default function LivePlayer() {
       });
 
       audio.addEventListener('ended', () => {
-        setStreamState((prev) => ({ ...prev, connected: false }));
+        setStreamState(prev => ({ ...prev, connected: false }));
         pauseLive();
       });
 
       audio.addEventListener('pause', () => {
-        setStreamState((prev) => ({ ...prev, loading: false }));
+        setStreamState(prev => ({ ...prev, loading: false }));
       });
 
       audio.addEventListener('playing', () => {
-        setStreamState((prev) => ({ ...prev, loading: false, connected: true, error: null }));
+        setStreamState(prev => ({ ...prev, loading: false, connected: true, error: null }));
       });
     }
 
@@ -195,7 +195,7 @@ export default function LivePlayer() {
 
         socket.on('connect', () => {
           console.log('RadioCult WebSocket connected');
-          setStreamState((prev) => ({ ...prev, error: null }));
+          setStreamState(prev => ({ ...prev, error: null }));
         });
 
         socket.on('player-metadata', (data: any) => {
@@ -213,7 +213,7 @@ export default function LivePlayer() {
 
           // Set offline after 2 minutes of no updates
           metadataTimeoutRef.current = setTimeout(() => {
-            setLiveMetadata((prev) => ({ ...prev, status: 'offline' }));
+            setLiveMetadata(prev => ({ ...prev, status: 'offline' }));
           }, 120000);
         });
 
@@ -280,7 +280,7 @@ export default function LivePlayer() {
 
     if (isLivePlaying && currentLiveEvent) {
       if (!streamUrl) {
-        setStreamState((prev) => ({
+        setStreamState(prev => ({
           ...prev,
           error: 'Stream URL not configured',
         }));
@@ -292,11 +292,11 @@ export default function LivePlayer() {
         audioRef.current.src = streamUrl;
       }
 
-      setStreamState((prev) => ({ ...prev, loading: true, error: null }));
+      setStreamState(prev => ({ ...prev, loading: true, error: null }));
 
-      audioRef.current.play().catch((error) => {
+      audioRef.current.play().catch(error => {
         console.error('Error playing live stream:', error);
-        setStreamState((prev) => ({
+        setStreamState(prev => ({
           ...prev,
           loading: false,
           error: 'Failed to start playback',
@@ -306,7 +306,7 @@ export default function LivePlayer() {
       });
     } else {
       audioRef.current.pause();
-      setStreamState((prev) => ({ ...prev, loading: false, connected: false }));
+      setStreamState(prev => ({ ...prev, loading: false, connected: false }));
     }
   }, [isLivePlaying, currentLiveEvent, streamUrl, pauseLive]);
 
@@ -326,7 +326,7 @@ export default function LivePlayer() {
 
     if (streamState.error) {
       // Retry on error
-      setStreamState((prev) => ({ ...prev, error: null }));
+      setStreamState(prev => ({ ...prev, error: null }));
       if (audioRef.current && streamUrl) {
         audioRef.current.src = streamUrl;
       }
@@ -355,15 +355,9 @@ export default function LivePlayer() {
           onClick={handlePlayPause}
         >
           {isLivePlaying ? (
-            <Pause
-              fill='white'
-              className='h-3 w-3'
-            />
+            <Pause fill='white' className='h-3 w-3' />
           ) : (
-            <Play
-              fill='white'
-              className='h-3 w-3'
-            />
+            <Play fill='white' className='h-3 w-3' />
           )}
         </button>
       </div>

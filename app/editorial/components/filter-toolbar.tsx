@@ -1,13 +1,12 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
-import { Search, X } from "lucide-react";
-import { FilterItem } from "@/lib/filter-types";
-import { MultiSelectDropdown } from "@/components/ui/multi-select-dropdown";
-import { Badge } from "@/components/ui/badge";
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Search, X } from 'lucide-react';
+import { FilterItem } from '@/lib/filter-types';
+import { MultiSelectDropdown } from '@/components/ui/multi-select-dropdown';
+import { Badge } from '@/components/ui/badge';
 
 interface FilterToolbarProps {
   onFilterChange: (filter: string, subfilter?: string) => void;
@@ -20,13 +19,29 @@ interface FilterToolbarProps {
   };
 }
 
-export function FilterToolbar({ onFilterChange, onSearchChange, searchTerm = "", activeFilter, selectedFilters, availableFilters }: FilterToolbarProps) {
-  // Handle "New" filter button (acts as toggle)
-  const handleNewClick = () => {
-    if (activeFilter === "new") {
-      onFilterChange("");
+export function FilterToolbar({
+  onFilterChange,
+  onSearchChange,
+  searchTerm = '',
+  activeFilter,
+  selectedFilters,
+  availableFilters,
+}: FilterToolbarProps) {
+  // Handle "Article" filter button (acts as toggle)
+  const handleArticleClick = () => {
+    if (activeFilter === 'article') {
+      onFilterChange('');
     } else {
-      onFilterChange("new");
+      onFilterChange('article');
+    }
+  };
+
+  // Handle "Video" filter button (acts as toggle)
+  const handleVideoClick = () => {
+    if (activeFilter === 'video') {
+      onFilterChange('');
+    } else {
+      onFilterChange('video');
     }
   };
 
@@ -35,29 +50,27 @@ export function FilterToolbar({ onFilterChange, onSearchChange, searchTerm = "",
     const currentSelected = selectedFilters[filterType] || [];
 
     // Find what changed
-    const added = values.filter((v) => !currentSelected.includes(v));
-    const removed = currentSelected.filter((v) => !values.includes(v));
+    const added = values.filter(v => !currentSelected.includes(v));
+    const removed = currentSelected.filter(v => !values.includes(v));
 
     // Handle additions
-    added.forEach((value) => {
+    added.forEach(value => {
       onFilterChange(filterType, value);
     });
 
     // Handle removals
-    removed.forEach((value) => {
+    removed.forEach(value => {
       onFilterChange(filterType, value);
     });
 
     // If no items selected, clear all filters
     if (values.length === 0) {
-      onFilterChange("");
+      onFilterChange('');
     }
   };
 
   const handleClearFilter = (filterType: string, value?: string) => {
-    if (filterType === "new") {
-      onFilterChange("");
-    } else if (value) {
+    if (value) {
       onFilterChange(filterType, value); // This will toggle the item
     }
   };
@@ -66,16 +79,12 @@ export function FilterToolbar({ onFilterChange, onSearchChange, searchTerm = "",
   const getActiveChips = () => {
     const chips: Array<{ type: string; value: string; label: string }> = [];
 
-    if (activeFilter === "new") {
-      chips.push({ type: "new", value: "new", label: "New" });
-    }
-
     // Add article filters
     if (selectedFilters.article?.length > 0) {
-      selectedFilters.article.forEach((slug) => {
-        const item = availableFilters.article?.find((f) => f.slug === slug);
+      selectedFilters.article.forEach(slug => {
+        const item = availableFilters.article?.find(f => f.slug === slug);
         chips.push({
-          type: "article",
+          type: 'article',
           value: slug,
           label: item?.title || slug,
         });
@@ -84,10 +93,10 @@ export function FilterToolbar({ onFilterChange, onSearchChange, searchTerm = "",
 
     // Add video filters
     if (selectedFilters.video?.length > 0) {
-      selectedFilters.video.forEach((slug) => {
-        const item = availableFilters.video?.find((f) => f.slug === slug);
+      selectedFilters.video.forEach(slug => {
+        const item = availableFilters.video?.find(f => f.slug === slug);
         chips.push({
-          type: "video",
+          type: 'video',
           value: slug,
           label: item?.title || slug,
         });
@@ -96,10 +105,10 @@ export function FilterToolbar({ onFilterChange, onSearchChange, searchTerm = "",
 
     // Add category filters
     if (selectedFilters.categories?.length > 0) {
-      selectedFilters.categories.forEach((slug) => {
-        const item = availableFilters.categories?.find((f) => f.slug === slug);
+      selectedFilters.categories.forEach(slug => {
+        const item = availableFilters.categories?.find(f => f.slug === slug);
         chips.push({
-          type: "categories",
+          type: 'categories',
           value: slug,
           label: item?.title || slug,
         });
@@ -111,68 +120,71 @@ export function FilterToolbar({ onFilterChange, onSearchChange, searchTerm = "",
 
   return (
     <div className='flex flex-row flex-wrap items-start justify-between gap-2 h-auto pt-4 pb-2'>
-
-      <div className="flex flex-col gap-4">
+      <div className='flex flex-col gap-4'>
         {/* Main Filter Controls */}
         <div className='flex flex-wrap gap-2 text-m7'>
-          <Button variant="outline" className={cn("border-almostblack dark:border-white", !activeFilter && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={() => onFilterChange("")}>
+          <Button
+            variant='outline'
+            className={cn(
+              'border-almostblack dark:border-white',
+              !activeFilter && 'bg-almostblack text-white dark:bg-white dark:text-almostblack'
+            )}
+            onClick={() => onFilterChange('')}
+          >
             All
           </Button>
 
-          <Button variant="outline" className={cn("border-almostblack dark:border-white", activeFilter === "new" && "bg-almostblack text-white dark:bg-white dark:text-almostblack")} onClick={handleNewClick}>
-            New
+          <Button
+            variant='outline'
+            className={cn(
+              'border-almostblack dark:border-white',
+              activeFilter === 'article' &&
+                'bg-almostblack text-white dark:bg-white dark:text-almostblack'
+            )}
+            onClick={handleArticleClick}
+          >
+            Articles
+          </Button>
+
+          <Button
+            variant='outline'
+            className={cn(
+              'border-almostblack dark:border-white',
+              activeFilter === 'video' &&
+                'bg-almostblack text-white dark:bg-white dark:text-almostblack'
+            )}
+            onClick={handleVideoClick}
+          >
+            Videos
           </Button>
 
           <MultiSelectDropdown
             options={
-              availableFilters.article?.map((item) => ({
-                id: item.id,
-                title: item.title,
-                slug: item.slug,
-              })) || []
-            }
-            selectedValues={selectedFilters.article || []}
-            onSelectionChange={handleSelectionChange("article")}
-            placeholder="Articles"
-          />
-
-          <MultiSelectDropdown
-            options={
-              availableFilters.video?.map((item) => ({
-                id: item.id,
-                title: item.title,
-                slug: item.slug,
-              })) || []
-            }
-            selectedValues={selectedFilters.video || []}
-            onSelectionChange={handleSelectionChange("video")}
-            placeholder="Videos"
-          />
-
-          <MultiSelectDropdown
-            options={
-              availableFilters.categories?.map((item) => ({
+              availableFilters.categories?.map(item => ({
                 id: item.id,
                 title: item.title,
                 slug: item.slug,
               })) || []
             }
             selectedValues={selectedFilters.categories || []}
-            onSelectionChange={handleSelectionChange("categories")}
-            placeholder="Categories"
+            onSelectionChange={handleSelectionChange('categories')}
+            placeholder='Categories'
           />
-
         </div>
 
         {/* Active Filter Chips */}
         {getActiveChips().length > 0 && (
           <div className='w-full border-t border-almostblack flex gap-2 pt-4 pb-2 text-[15px] overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700'>
             {getActiveChips().map((chip, index) => (
-              <Badge key={`${chip.type}-${chip.value}-${index}`} variant="default" className="font-mono cursor-pointer border border-almostblack hover:bg-white whitespace-nowrap bg-white text-almostblack flex items-center gap-1">
+              <Badge
+                key={`${chip.type}-${chip.value}-${index}`}
+                variant='default'
+                className='font-mono cursor-pointer border border-almostblack hover:bg-white whitespace-nowrap bg-white text-almostblack flex items-center gap-1'
+              >
                 {chip.label}
                 <X
-                  className="h-3 w-3"
-                  onClick={(e) => {
+                  className='h-3 w-3'
+                  onClick={e => {
                     e.stopPropagation();
                     handleClearFilter(chip.type, chip.value);
                   }}
@@ -184,14 +196,14 @@ export function FilterToolbar({ onFilterChange, onSearchChange, searchTerm = "",
       </div>
       {/* Search Bar */}
       {onSearchChange && (
-        <div className="relative w-auto h-auto flex flex-row bg-background border border-almostblack dark:border-white items-center text-almostblack self-start">
+        <div className='relative w-auto h-auto flex flex-row bg-background border border-almostblack dark:border-white items-center text-almostblack self-start'>
           <Input
-            placeholder="Search editorial..."
-            className="flex flex-wrap gap-2 h-full px-2 py-1.5  font-mono text-[14px]"
+            placeholder='Search editorial...'
+            className='flex flex-wrap gap-2 h-full px-2 py-1.5  font-mono text-[14px]'
             value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={e => onSearchChange(e.target.value)}
           />
-          <Search className="relative text-muted-foreground h-4 w-4 mr-2 pointer-events-none" />
+          <Search className='relative text-muted-foreground h-4 w-4 mr-2 pointer-events-none' />
         </div>
       )}
     </div>

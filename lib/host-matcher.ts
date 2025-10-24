@@ -1,14 +1,14 @@
-import { cosmic } from "@/lib/cosmic-config";
+import { cosmic } from '@/lib/cosmic-config';
 
 // Convert a display name to slug format
 function nameToSlug(name: string): string {
   return name
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, "") // Remove special characters except hyphens
-    .replace(/\s+/g, "-") // Replace spaces with hyphens
-    .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
-    .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
+    .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 }
 
 // Calculate simple string similarity (Levenshtein-like)
@@ -66,10 +66,10 @@ async function getHosts() {
   try {
     const response = await cosmic.objects
       .find({
-        type: "regular-hosts",
-        status: "published",
+        type: 'regular-hosts',
+        status: 'published',
       })
-      .props("slug,title")
+      .props('slug,title')
       .limit(1000);
 
     hostsCache =
@@ -81,7 +81,7 @@ async function getHosts() {
     cacheTimestamp = now;
     return hostsCache;
   } catch (error) {
-    console.error("Error fetching hosts for matching:", error);
+    console.error('Error fetching hosts for matching:', error);
     return [];
   }
 }
@@ -129,11 +129,15 @@ export async function findHostSlug(displayName: string, threshold = 0.6): Promis
 
   const bestMatch = matches[0];
   if (bestMatch) {
-    console.log(`🔍 Host matcher: "${displayName}" → "${bestMatch.slug}" (${(bestMatch.similarity * 100).toFixed(1)}% match)`);
+    console.log(
+      `🔍 Host matcher: "${displayName}" → "${bestMatch.slug}" (${(bestMatch.similarity * 100).toFixed(1)}% match)`
+    );
     return bestMatch.slug;
   }
 
-  console.log(`❌ Host matcher: No good match found for "${displayName}" (tried slug: "${targetSlug}")`);
+  console.log(
+    `❌ Host matcher: No good match found for "${displayName}" (tried slug: "${targetSlug}")`
+  );
   return null;
 }
 

@@ -14,7 +14,7 @@ export function SafeHtml({
   type = 'default',
   className = '',
   allowedTags,
-  allowedAttributes
+  allowedAttributes,
 }: SafeHtmlProps) {
   if (!content || typeof content !== 'string') {
     return null;
@@ -34,12 +34,7 @@ export function SafeHtml({
       break;
   }
 
-  return (
-    <div
-      className={className}
-      dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-    />
-  );
+  return <div className={className} dangerouslySetInnerHTML={{ __html: sanitizedContent }} />;
 }
 
 // Client-side only component for when you need to sanitize on the client
@@ -48,7 +43,7 @@ export function SafeHtmlClient({
   type = 'default',
   className = '',
   allowedTags,
-  allowedAttributes
+  allowedAttributes,
 }: SafeHtmlProps) {
   const [sanitizedContent, setSanitizedContent] = React.useState<string>('');
 
@@ -56,7 +51,7 @@ export function SafeHtmlClient({
     if (typeof window !== 'undefined') {
       // Client-side sanitization using the same logic
       let sanitized: string;
-      
+
       switch (type) {
         case 'tracklist':
           sanitized = sanitizeTracklist(content);
@@ -68,7 +63,7 @@ export function SafeHtmlClient({
           sanitized = content;
           break;
       }
-      
+
       setSanitizedContent(sanitized);
     }
   }, [content, type]);
@@ -77,10 +72,5 @@ export function SafeHtmlClient({
     return null;
   }
 
-  return (
-    <div
-      className={className}
-      dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-    />
-  );
+  return <div className={className} dangerouslySetInnerHTML={{ __html: sanitizedContent }} />;
 }

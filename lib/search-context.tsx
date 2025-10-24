@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { createContext, useContext } from "react";
+import { createContext, useContext } from 'react';
 
 export interface FilterItem {
   title: string;
@@ -8,7 +8,7 @@ export interface FilterItem {
   type: string;
 }
 
-export type SearchResultType = "posts" | "episodes" | "events" | "videos" | "takeovers";
+export type SearchResultType = 'posts' | 'episodes' | 'events' | 'videos' | 'takeovers';
 
 export interface SearchResult {
   id: string;
@@ -61,7 +61,7 @@ export interface SearchContextType {
 }
 
 export const SearchContext = createContext<SearchContextType>({
-  searchTerm: "",
+  searchTerm: '',
   setSearchTerm: () => {},
   filters: {},
   setFilters: () => {},
@@ -88,7 +88,7 @@ export const SearchContext = createContext<SearchContextType>({
 export function useSearch() {
   const context = useContext(SearchContext);
   if (!context) {
-    throw new Error("useSearch must be used within a SearchProvider");
+    throw new Error('useSearch must be used within a SearchProvider');
   }
   return context;
 }

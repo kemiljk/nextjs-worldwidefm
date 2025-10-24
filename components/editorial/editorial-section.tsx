@@ -5,9 +5,8 @@ import { ArticleCard } from '@/components/ui/article-card';
 import { getAllPosts } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { PostObject } from '@/lib/cosmic-config';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import Marquee from '@/components/ui/marquee';
 
 import Link from 'next/link';
 
@@ -37,7 +36,7 @@ export default function EditorialSection({
       const newPosts = await getAllPosts({ limit: 20, offset: displayedPosts.length });
 
       if (newPosts.posts.length > 0) {
-        setDisplayedPosts((prev) => [...prev, ...newPosts.posts]);
+        setDisplayedPosts(prev => [...prev, ...newPosts.posts]);
       } else {
         setHasMore(false);
       }
@@ -90,6 +89,7 @@ export default function EditorialSection({
                 },
                 created_time: post.metadata?.date || '',
                 tags,
+                categories: post.metadata?.categories || [],
                 excerpt: post.metadata?.excerpt || '',
               };
 
@@ -102,6 +102,7 @@ export default function EditorialSection({
                   excerpt={article.excerpt}
                   date={article.created_time}
                   tags={tags}
+                  categories={article.categories}
                 />
               );
             })}
@@ -110,7 +111,7 @@ export default function EditorialSection({
       ) : (
         <>
           <div className='px-25 grid grid-cols-1 md:grid-cols-3 gap-10'>
-            {displayedPosts.map((post) => {
+            {displayedPosts.map(post => {
               const tags = (post.metadata?.categories || [])
                 .map((cat: any) => {
                   if (typeof cat === 'string') return cat;
@@ -139,6 +140,7 @@ export default function EditorialSection({
                   image={article.pictures.large}
                   date={article.created_time}
                   tags={tags}
+                  categories={post.metadata?.categories || []}
                 />
               );
             })}

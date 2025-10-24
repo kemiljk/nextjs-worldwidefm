@@ -1,11 +1,18 @@
-"use client";
+'use client';
 
-import * as React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import * as React from 'react';
+import { ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface ComboboxOption {
   value: string;
@@ -22,7 +29,15 @@ interface ComboboxProps {
   className?: string;
 }
 
-export function Combobox({ options, value = [], onValueChange, placeholder = "SELECT", searchPlaceholder = "SEARCH", emptyMessage = "No options found.", className }: ComboboxProps) {
+export function Combobox({
+  options,
+  value = [],
+  onValueChange,
+  placeholder = 'SELECT',
+  searchPlaceholder = 'SEARCH',
+  emptyMessage = 'No options found.',
+  className,
+}: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
 
   // Sort options alphabetically
@@ -31,36 +46,47 @@ export function Combobox({ options, value = [], onValueChange, placeholder = "SE
   }, [options]);
 
   const selectedLabels = React.useMemo(() => {
-    return value.map((v) => options.find((opt) => opt.value === v)?.label).filter(Boolean);
+    return value.map(v => options.find(opt => opt.value === v)?.label).filter(Boolean);
   }, [value, options]);
 
-  const displayText = selectedLabels.length > 0 ? selectedLabels.join(", ") : placeholder;
+  const displayText = selectedLabels.length > 0 ? selectedLabels.join(', ') : placeholder;
 
   const handleSelect = (selectedValue: string) => {
-    const newValue = value.includes(selectedValue) ? value.filter((v) => v !== selectedValue) : [...value, selectedValue];
+    const newValue = value.includes(selectedValue)
+      ? value.filter(v => v !== selectedValue)
+      : [...value, selectedValue];
     onValueChange(newValue);
   };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" role="combobox" aria-expanded={open} className={cn("w-full justify-between border-almostblack dark:border-white text-almostblack dark:text-white", value.length > 0 && "bg-almostblack text-white dark:bg-white dark:text-almostblack", className)}>
-          <span className="truncate">{displayText}</span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        <Button
+          variant='outline'
+          role='combobox'
+          aria-expanded={open}
+          className={cn(
+            'w-full justify-between border-almostblack dark:border-white text-almostblack dark:text-white',
+            value.length > 0 && 'bg-almostblack text-white dark:bg-white dark:text-almostblack',
+            className
+          )}
+        >
+          <span className='truncate'>{displayText}</span>
+          <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="max-w-50 w-full p-0 font-mono uppercase" align="start">
+      <PopoverContent className='max-w-50 w-full p-0 font-mono uppercase' align='start'>
         <Command>
-          <CommandInput className="font-mono uppercase" placeholder={searchPlaceholder} />
+          <CommandInput className='font-mono uppercase' placeholder={searchPlaceholder} />
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
-              {sortedOptions.map((option) => (
+              {sortedOptions.map(option => (
                 <CommandItem
                   key={option.value}
                   value={option.label}
                   onSelect={() => handleSelect(option.value)}
-                  className="rounded-[90px] cursor-pointer"
+                  className='rounded-[90px] cursor-pointer'
                 >
                   {option.label}
                 </CommandItem>

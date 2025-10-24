@@ -64,11 +64,11 @@ export default function DashboardClient({
 
   const [optimisticGenresRemove, removeOptimisticGenre] = useOptimistic(
     optimisticGenres,
-    (state, genreId: string) => state.filter((genre) => genre.id !== genreId)
+    (state, genreId: string) => state.filter(genre => genre.id !== genreId)
   );
   const [optimisticHostsRemove, removeOptimisticHost] = useOptimistic(
     optimisticHosts,
-    (state, hostId: string) => state.filter((host) => host.id !== hostId)
+    (state, hostId: string) => state.filter(host => host.id !== hostId)
   );
 
   const handleLogout = async () => {
@@ -88,7 +88,7 @@ export default function DashboardClient({
   };
 
   const handleRemoveGenre = (genreId: string) => {
-    const genreToRemove = optimisticGenresRemove.find((g) => g.id === genreId);
+    const genreToRemove = optimisticGenresRemove.find(g => g.id === genreId);
     if (genreToRemove) {
       startTransition(() => {
         removeOptimisticGenre(genreId);
@@ -98,7 +98,7 @@ export default function DashboardClient({
   };
 
   const handleRemoveHost = (hostId: string) => {
-    const hostToRemove = optimisticHostsRemove.find((h) => h.id === hostId);
+    const hostToRemove = optimisticHostsRemove.find(h => h.id === hostId);
     if (hostToRemove) {
       startTransition(() => {
         removeOptimisticHost(hostId);
@@ -126,14 +126,14 @@ export default function DashboardClient({
       let res;
 
       if (isAdding === 'genre' && selectedGenre) {
-        const genre = allGenres.find((g) => g.id === selectedGenre);
+        const genre = allGenres.find(g => g.id === selectedGenre);
         if (!genre) return;
         startTransition(() => {
           addOptimisticGenre(genre);
         });
         res = await addFavouriteGenre(user.id, genre);
       } else if (isAdding === 'host' && selectedHost) {
-        const host = allHosts.find((h) => h.id === selectedHost);
+        const host = allHosts.find(h => h.id === selectedHost);
         if (!host) return;
         startTransition(() => {
           addOptimisticHost(host);
@@ -190,7 +190,7 @@ export default function DashboardClient({
       <div className='space-y-8'>
         {/* Badges */}
         <div className='flex flex-wrap gap-2'>
-          {items.map((item) => (
+          {items.map(item => (
             <div key={item.id}>
               {renderFavouriteBadge(
                 item,
@@ -202,24 +202,18 @@ export default function DashboardClient({
         </div>
 
         {/* Latest shows */}
-        {items.map((item) => {
+        {items.map(item => {
           const shows = showsMap[item.id] || [];
           if (shows.length === 0) return null;
 
           return (
-            <div
-              key={item.id}
-              className='space-y-4'
-            >
+            <div key={item.id} className='space-y-4'>
               <h3 className='text-xl font-semibold'>
                 Latest {type === 'genre' ? 'in' : 'from'} {item.title}
               </h3>
               <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
                 {shows.map((show: any) => (
-                  <div
-                    key={show.key || show.id || show.slug}
-                    className='relative'
-                  >
+                  <div key={show.key || show.id || show.slug} className='relative'>
                     <div className='bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden'>
                       <div className='aspect-video bg-gray-200 dark:bg-gray-700'>
                         <img
@@ -263,24 +257,18 @@ export default function DashboardClient({
             <p className='text-sm text-gray-600 dark:text-gray-400 mb-4'>
               Select a genre to add to your favorites:
             </p>
-            <Select
-              onValueChange={setSelectedGenre}
-              value={selectedGenre}
-            >
+            <Select onValueChange={setSelectedGenre} value={selectedGenre}>
               <SelectTrigger>
                 <SelectValue placeholder='Choose a genre...' />
               </SelectTrigger>
               <SelectContent>
                 {allGenres
                   .filter(
-                    (genre) => !optimisticGenresRemove.some((favGenre) => favGenre.id === genre.id)
+                    genre => !optimisticGenresRemove.some(favGenre => favGenre.id === genre.id)
                   )
                   .sort((a, b) => a.title.localeCompare(b.title))
-                  .map((genre) => (
-                    <SelectItem
-                      key={genre.id}
-                      value={genre.id}
-                    >
+                  .map(genre => (
+                    <SelectItem key={genre.id} value={genre.id}>
                       {genre.title}
                     </SelectItem>
                   ))}
@@ -295,24 +283,16 @@ export default function DashboardClient({
             <p className='text-sm text-gray-600 dark:text-gray-400 mb-4'>
               Select a host to add to your favorites:
             </p>
-            <Select
-              onValueChange={setSelectedHost}
-              value={selectedHost}
-            >
+            <Select onValueChange={setSelectedHost} value={selectedHost}>
               <SelectTrigger>
                 <SelectValue placeholder='Choose a host...' />
               </SelectTrigger>
               <SelectContent>
                 {allHosts
-                  .filter(
-                    (host) => !optimisticHostsRemove.some((favHost) => favHost.id === host.id)
-                  )
+                  .filter(host => !optimisticHostsRemove.some(favHost => favHost.id === host.id))
                   .sort((a, b) => a.title.localeCompare(b.title))
-                  .map((host) => (
-                    <SelectItem
-                      key={host.id}
-                      value={host.id}
-                    >
+                  .map(host => (
+                    <SelectItem key={host.id} value={host.id}>
                       {host.title}
                     </SelectItem>
                   ))}
@@ -335,17 +315,11 @@ export default function DashboardClient({
             Welcome, {userData.metadata.first_name}!
           </h1>
           <div className='flex gap-2'>
-            <Button
-              variant='outline'
-              onClick={() => setShowEditProfile(!showEditProfile)}
-            >
+            <Button variant='outline' onClick={() => setShowEditProfile(!showEditProfile)}>
               <Settings className='size-4 mr-2' />
               {showEditProfile ? 'Hide' : 'Edit'} Profile
             </Button>
-            <Button
-              variant='outline'
-              onClick={handleLogout}
-            >
+            <Button variant='outline' onClick={handleLogout}>
               <LogOut className='size-4 mr-2' />
               Log Out
             </Button>
@@ -416,11 +390,7 @@ export default function DashboardClient({
         <section className='mt-10'>
           <div className='flex items-center justify-between mb-4'>
             <h2 className='text-2xl font-bold'>Favourite Genres</h2>
-            <Button
-              variant='outline'
-              onClick={() => handleAddClick('genre')}
-              disabled={isPending}
-            >
+            <Button variant='outline' onClick={() => handleAddClick('genre')} disabled={isPending}>
               Add Genre
             </Button>
           </div>
@@ -431,11 +401,7 @@ export default function DashboardClient({
         <section className='mt-10'>
           <div className='flex items-center justify-between mb-4'>
             <h2 className='text-2xl font-bold'>Favourite Hosts</h2>
-            <Button
-              variant='outline'
-              onClick={() => handleAddClick('host')}
-              disabled={isPending}
-            >
+            <Button variant='outline' onClick={() => handleAddClick('host')} disabled={isPending}>
               Add Host
             </Button>
           </div>

@@ -16,7 +16,6 @@ import {
   Loader,
   AlertCircle,
   FileQuestion,
-  FolderSearch,
   MicVocal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -24,14 +23,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  getAllPosts,
-  getVideos,
-  getEvents,
-  getTakeovers,
-  getAllFilters,
-  searchEpisodes,
-} from '@/lib/actions';
+import { getAllPosts, getVideos, getEvents, getTakeovers, searchEpisodes } from '@/lib/actions';
 import type { ContentType } from '@/lib/search/types';
 import type { PostObject, VideoObject } from '@/lib/cosmic-config';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -84,7 +76,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           getVideos({ limit: 1 }),
           getEvents({ limit: 1 }),
           getTakeovers({ limit: 1 }),
-          import('@/lib/actions').then((m) => m.getVideoCategories()),
+          import('@/lib/actions').then(m => m.getVideoCategories()),
         ]);
         if (episodes?.shows?.length > 0) types.push('episodes');
         if (posts?.posts?.length > 0) types.push('posts');
@@ -102,15 +94,15 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   }, [open]);
 
   // Determine selected content type and selected tags
-  const selectedType = activeFilters.find((f) => Object.keys(typeLabels).includes(f)) || 'episodes';
-  const selectedTags = activeFilters.filter((f) => !Object.keys(typeLabels).includes(f));
+  const selectedType = activeFilters.find(f => Object.keys(typeLabels).includes(f)) || 'episodes';
+  const selectedTags = activeFilters.filter(f => !Object.keys(typeLabels).includes(f));
 
   // Fetch tags for the selected type
   useEffect(() => {
     if (!open) return;
     async function fetchTags() {
       try {
-        let tagSet = new Set<string>();
+        const tagSet = new Set<string>();
         if (selectedType === 'episodes') {
           const response = await searchEpisodes({ limit: 100, offset: 0 });
           response?.shows?.forEach((episode: any) => {
@@ -189,7 +181,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           // If tags selected, extract genre IDs directly from selected tags
           if (selectedTags.length > 0) {
             const ids = selectedTags
-              .map((tag) => {
+              .map(tag => {
                 // For episodes, tags are in format "title|id"
                 if (selectedType === 'episodes' && tag.includes('|')) {
                   return tag.split('|')[1]; // Extract ID part
@@ -222,7 +214,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           if (selectedTags.length > 0) {
             allResults = allResults.filter((post: any) =>
               selectedTags.every(
-                (tag) =>
+                tag =>
                   Array.isArray(post?.metadata?.categories) &&
                   post.metadata.categories.some(
                     (cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase()
@@ -239,7 +231,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           if (selectedTags.length > 0) {
             allResults = allResults.filter((video: any) =>
               selectedTags.every(
-                (tag) =>
+                tag =>
                   Array.isArray(video?.metadata?.categories) &&
                   video.metadata.categories.some(
                     (cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase()
@@ -256,7 +248,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           if (selectedTags.length > 0) {
             allResults = allResults.filter((event: any) =>
               selectedTags.every(
-                (tag) =>
+                tag =>
                   Array.isArray(event?.metadata?.categories) &&
                   event.metadata.categories.some(
                     (cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase()
@@ -273,7 +265,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           if (selectedTags.length > 0) {
             allResults = allResults.filter((takeover: any) =>
               selectedTags.every(
-                (tag) =>
+                tag =>
                   Array.isArray(takeover?.metadata?.categories) &&
                   takeover.metadata.categories.some(
                     (cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase()
@@ -326,7 +318,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 ? { searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset }
                 : { limit: PAGE_SIZE, offset: nextOffset };
               res = await searchEpisodes(searchParams);
-              setResults((prev) => [...prev, ...(res?.shows || [])]);
+              setResults(prev => [...prev, ...(res?.shows || [])]);
               setHasNext(res?.hasNext || false);
             } else if (selectedType === 'posts') {
               const searchParams = debouncedSearchTerm
@@ -338,7 +330,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   }
                 : { tag: selectedTags.join('|'), limit: PAGE_SIZE, offset: nextOffset };
               res = await getAllPosts(searchParams);
-              setResults((prev) => [...prev, ...(res?.posts || [])]);
+              setResults(prev => [...prev, ...(res?.posts || [])]);
               setHasNext(res?.hasNext || false);
             } else if (selectedType === 'videos') {
               const searchParams = debouncedSearchTerm
@@ -350,7 +342,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   }
                 : { tag: selectedTags.join('|'), limit: PAGE_SIZE, offset: nextOffset };
               res = await getVideos(searchParams);
-              setResults((prev) => [...prev, ...(res?.videos || [])]);
+              setResults(prev => [...prev, ...(res?.videos || [])]);
               setHasNext(res?.hasNext || false);
             } else if (selectedType === 'events') {
               const searchParams = debouncedSearchTerm
@@ -362,7 +354,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   }
                 : { tag: selectedTags.join('|'), limit: PAGE_SIZE, offset: nextOffset };
               res = await getEvents(searchParams);
-              setResults((prev) => [...prev, ...(res?.events || [])]);
+              setResults(prev => [...prev, ...(res?.events || [])]);
               setHasNext(res?.hasNext || false);
             } else if (selectedType === 'takeovers') {
               const searchParams = debouncedSearchTerm
@@ -374,10 +366,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   }
                 : { tag: selectedTags.join('|'), limit: PAGE_SIZE, offset: nextOffset };
               res = await getTakeovers(searchParams);
-              setResults((prev) => [...prev, ...(res?.takeovers || [])]);
+              setResults(prev => [...prev, ...(res?.takeovers || [])]);
               setHasNext(res?.hasNext || false);
             }
-            setPage((prev) => prev + 1);
+            setPage(prev => prev + 1);
           } catch (error) {
             console.warn('Error loading more results:', error);
             setHasNext(false);
@@ -405,16 +397,16 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
   // Filter toggle logic (content type and tags)
   const handleFilterToggle = (filter: { type: string; slug: string }) => {
-    setActiveFilters((prev) => {
+    setActiveFilters(prev => {
       if (filter.type === 'types') {
         // Only one type filter at a time
         return prev.includes(filter.slug)
-          ? prev.filter((f) => f !== filter.slug)
-          : [filter.slug, ...prev.filter((f) => f !== filter.slug && !tags.includes(f))];
+          ? prev.filter(f => f !== filter.slug)
+          : [filter.slug, ...prev.filter(f => f !== filter.slug && !tags.includes(f))];
       } else {
         // Allow multiple tags to be selected
         return prev.includes(filter.slug)
-          ? prev.filter((f) => f !== filter.slug)
+          ? prev.filter(f => f !== filter.slug)
           : [...prev, filter.slug];
       }
     });
@@ -435,17 +427,14 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={onOpenChange}
-    >
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='max-w-[90vw] h-[80vh] p-0 gap-0 overflow-hidden'>
         <div className='flex h-full overflow-hidden relative flex-col sm:flex-row'>
           {/* --- Mobile: Search bar always at top, toggle below it --- */}
           <div className='sm:hidden w-full z-40 bg-background border-b shrink-0'>
             {/* Search Input and Edit filters button always at top */}
             <form
-              onSubmit={(e) => {
+              onSubmit={e => {
                 e.preventDefault();
                 setPage(1);
                 setHasNext(true);
@@ -460,7 +449,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   placeholder='Search'
                   className='border-none pl-4 font-mono text-m8 uppercase bg-background'
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={e => setSearchTerm(e.target.value)}
                 />
                 {/* Edit filters button always visible on mobile, to right of input */}
                 <div className='w-auto flex justify-left py-2 bg-background'>
@@ -554,7 +543,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                     {/* Content Type Section */}
                     <div className='border-b border-almostblack dark:border-white sm:py-2 pb-4'>
                       <div className='pl-2 space-y-2'>
-                        {availableTypes.map((type) => {
+                        {availableTypes.map(type => {
                           const { label, icon: Icon } = typeLabels[type as ContentType];
                           return (
                             <button
@@ -579,7 +568,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                       className={`${selectedType === 'episodes' && results.length > 0 ? 'border-b border-almostblack dark:border-white' : ''} py-3`}
                     >
                       <div className='pl-2 space-y-1'>
-                        {tags.map((tag) => {
+                        {tags.map(tag => {
                           // For episodes, extract just the title part for display
                           const displayTitle =
                             selectedType === 'episodes' && tag.includes('|')
@@ -630,7 +619,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               {/* Desktop search bar (mobile: already at top) */}
               <div className='hidden sm:block border-b shrink-0 w-full z-10'>
                 <form
-                  onSubmit={(e) => {
+                  onSubmit={e => {
                     e.preventDefault();
                     setPage(1);
                     setHasNext(true);
@@ -645,7 +634,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                       placeholder='Search'
                       className='border-none pl-4 font-mono text-m8 uppercase focus-visible:ring-0'
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={e => setSearchTerm(e.target.value)}
                     />
                   </div>
                 </form>

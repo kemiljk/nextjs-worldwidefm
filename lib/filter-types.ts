@@ -34,8 +34,12 @@ export function getFilterItemsFromShow(show: any): AvailableFilters {
   };
 }
 
-export function filterShowsByCategory(shows: any[], category: FilterCategory, subfilter?: string): any[] {
-  return shows.filter((show) => {
+export function filterShowsByCategory(
+  shows: any[],
+  category: FilterCategory,
+  subfilter?: string
+): any[] {
+  return shows.filter(show => {
     if (!show.metadata?.[category]) return false;
     if (!subfilter) return show.metadata[category].length > 0;
     return show.metadata[category].some((item: any) => item.id === subfilter);
@@ -46,7 +50,7 @@ export function deduplicateFilters(filters: FilterItem[]): FilterItem[] {
   const seenIds = new Set();
   const seenTitles = new Set();
 
-  return filters.filter((filter) => {
+  return filters.filter(filter => {
     // Check for duplicate IDs
     if (seenIds.has(filter.id)) {
       return false;

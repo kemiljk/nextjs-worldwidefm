@@ -2,14 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronRight, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { PostObject } from '@/lib/cosmic-config';
-import { formatDate } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 import { getAllPosts } from '@/lib/actions';
-import { Badge } from '@/components/ui/badge';
 import { subDays } from 'date-fns';
-import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { GenreTag } from '@/components/ui/genre-tag';
@@ -44,7 +41,7 @@ export default function PostsGrid({
       const filteredNewPosts = filterPosts(newPosts.posts);
 
       if (filteredNewPosts.length > 0) {
-        setPosts((prev) => [...prev, ...filteredNewPosts]);
+        setPosts(prev => [...prev, ...filteredNewPosts]);
       } else {
         setHasMore(false);
       }
@@ -62,21 +59,21 @@ export default function PostsGrid({
     switch (activeFilter) {
       case 'new': {
         const thirtyDaysAgo = subDays(new Date(), 30);
-        return postsToFilter.filter((post) => {
+        return postsToFilter.filter(post => {
           if (!post.metadata?.date) return false;
           const postDate = new Date(post.metadata.date);
           return !isNaN(postDate.getTime()) && postDate > thirtyDaysAgo;
         });
       }
       case 'types':
-        return postsToFilter.filter((post) => {
+        return postsToFilter.filter(post => {
           if (!activeSubfilter) return true;
           return post.metadata.type?.key === activeSubfilter;
         });
       case 'categories':
-        return postsToFilter.filter((post) => {
+        return postsToFilter.filter(post => {
           if (!activeSubfilter) return true;
-          return post.metadata.categories?.some((category) => category.slug === activeSubfilter);
+          return post.metadata.categories?.some(category => category.slug === activeSubfilter);
         });
       default:
         return postsToFilter;
@@ -89,7 +86,7 @@ export default function PostsGrid({
   return (
     <>
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-        {filteredPosts.map((post) => {
+        {filteredPosts.map(post => {
           const postDate = post.metadata?.date ? new Date(post.metadata.date) : null;
           const formattedDate = postDate ? format(postDate, 'dd-MM-yyyy') : '';
 
@@ -116,7 +113,7 @@ export default function PostsGrid({
                     {post.title}
                   </h3>
                   <div className='flex flex-wrap mt-2'>
-                    {post.metadata.categories?.map((category) => (
+                    {post.metadata.categories?.map(category => (
                       <GenreTag key={category.slug}>{category.title}</GenreTag>
                     ))}
                   </div>

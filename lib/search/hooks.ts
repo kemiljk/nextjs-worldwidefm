@@ -2,10 +2,10 @@
  * React hooks for using the search engine in components
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { SearchFilters, SearchItem, SearchOptions, SearchState, FilterCategory, FilterItem, ContentType } from "./types";
-import { searchEngine } from "./engine";
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { SearchFilters, SearchState, FilterCategory, FilterItem, ContentType } from './types';
+import { searchEngine } from './engine';
 
 // Default search options
 const DEFAULT_LIMIT = 20;
@@ -59,13 +59,13 @@ export function useSearch(
       }
 
       // Perform initial search with filters (if any)
-      setState((prev) => ({ ...prev, loading: true }));
+      setState(prev => ({ ...prev, loading: true }));
 
       if (Object.keys(initialFilters).length > 0) {
         // If we have filters from URL, perform a search
         searchEngine
           .search(initialFilters, { limit })
-          .then((response) => {
+          .then(response => {
             setState({
               items: response.items,
               filters: initialFilters,
@@ -77,12 +77,12 @@ export function useSearch(
               error: null,
             });
           })
-          .catch((error) => {
-            console.error("Error performing initial search:", error);
-            setState((prev) => ({
+          .catch(error => {
+            console.error('Error performing initial search:', error);
+            setState(prev => ({
               ...prev,
               loading: false,
-              error: "Failed to load search results",
+              error: 'Failed to load search results',
             }));
           })
           .finally(() => {
@@ -92,7 +92,7 @@ export function useSearch(
         // No filters, just load initial content
         searchEngine
           .getInitialContent(limit)
-          .then((response) => {
+          .then(response => {
             setState({
               items: response.items,
               filters: {},
@@ -104,12 +104,12 @@ export function useSearch(
               error: null,
             });
           })
-          .catch((error) => {
-            console.error("Error loading initial content:", error);
-            setState((prev) => ({
+          .catch(error => {
+            console.error('Error loading initial content:', error);
+            setState(prev => ({
               ...prev,
               loading: false,
-              error: "Failed to load content",
+              error: 'Failed to load content',
             }));
           })
           .finally(() => {
@@ -135,7 +135,7 @@ export function useSearch(
   const loadMore = useCallback(async () => {
     if (state.loading || !state.hasMore) return;
 
-    setState((prev) => ({ ...prev, loading: true }));
+    setState(prev => ({ ...prev, loading: true }));
 
     try {
       const nextPage = state.page + 1;
@@ -145,7 +145,7 @@ export function useSearch(
       });
 
       // Append new items to existing ones
-      setState((prev) => ({
+      setState(prev => ({
         ...prev,
         items: [...prev.items, ...response.items],
         hasMore: response.hasMore,
@@ -153,11 +153,11 @@ export function useSearch(
         loading: false,
       }));
     } catch (error) {
-      console.error("Error loading more items:", error);
-      setState((prev) => ({
+      console.error('Error loading more items:', error);
+      setState(prev => ({
         ...prev,
         loading: false,
-        error: "Failed to load more content",
+        error: 'Failed to load more content',
       }));
     }
   }, [state.loading, state.hasMore, state.filters, state.page, limit]);
@@ -167,7 +167,7 @@ export function useSearch(
    */
   const search = useCallback(
     async (newFilters: SearchFilters) => {
-      setState((prev) => ({
+      setState(prev => ({
         ...prev,
         loading: true,
         filters: newFilters,
@@ -176,7 +176,7 @@ export function useSearch(
       try {
         const response = await searchEngine.search(newFilters, { limit });
 
-        setState((prev) => ({
+        setState(prev => ({
           ...prev,
           items: response.items,
           availableFilters: response.availableFilters,
@@ -187,11 +187,11 @@ export function useSearch(
           error: null,
         }));
       } catch (error) {
-        console.error("Error performing search:", error);
-        setState((prev) => ({
+        console.error('Error performing search:', error);
+        setState(prev => ({
           ...prev,
           loading: false,
-          error: "Failed to perform search",
+          error: 'Failed to perform search',
         }));
       }
     },
@@ -223,12 +223,23 @@ export function useSearch(
    */
   const toggleFilter = useCallback(
     (category: FilterCategory, value: string) => {
-      setState((prev) => {
+      setState(prev => {
         // Create a new filters object with the updated filters
         const newFilters = { ...prev.filters };
 
         // Convert category to corresponding filter property name
-        const filterKey = category === "types" ? "contentType" : category === "genres" ? "genres" : category === "locations" ? "locations" : category === "hosts" ? "hosts" : category === "takeovers" ? "takeovers" : null;
+        const filterKey =
+          category === 'types'
+            ? 'contentType'
+            : category === 'genres'
+              ? 'genres'
+              : category === 'locations'
+                ? 'locations'
+                : category === 'hosts'
+                  ? 'hosts'
+                  : category === 'takeovers'
+                    ? 'takeovers'
+                    : null;
 
         if (!filterKey) return prev;
 
@@ -248,7 +259,10 @@ export function useSearch(
           newFilters[filterKey] = [...currentValues, value];
         } else {
           // Value in array, remove it
-          newFilters[filterKey] = [...currentValues.slice(0, index), ...currentValues.slice(index + 1)];
+          newFilters[filterKey] = [
+            ...currentValues.slice(0, index),
+            ...currentValues.slice(index + 1),
+          ];
 
           // Remove empty arrays
           if (newFilters[filterKey].length === 0) {
@@ -273,7 +287,7 @@ export function useSearch(
    * Reset all filters
    */
   const resetFilters = useCallback(() => {
-    setState((prev) => ({
+    setState(prev => ({
       ...prev,
       filters: {},
       loading: true,
@@ -282,8 +296,8 @@ export function useSearch(
     // Load initial content again
     searchEngine
       .getInitialContent(limit)
-      .then((response) => {
-        setState((prev) => ({
+      .then(response => {
+        setState(prev => ({
           ...prev,
           items: response.items,
           availableFilters: response.availableFilters,
@@ -294,12 +308,12 @@ export function useSearch(
           error: null,
         }));
       })
-      .catch((error) => {
-        console.error("Error resetting filters:", error);
-        setState((prev) => ({
+      .catch(error => {
+        console.error('Error resetting filters:', error);
+        setState(prev => ({
           ...prev,
           loading: false,
-          error: "Failed to reset filters",
+          error: 'Failed to reset filters',
         }));
       });
   }, [limit]);
@@ -309,7 +323,18 @@ export function useSearch(
    */
   const isFilterActive = useCallback(
     (category: FilterCategory, value: string): boolean => {
-      const filterKey = category === "types" ? "contentType" : category === "genres" ? "genres" : category === "locations" ? "locations" : category === "hosts" ? "hosts" : category === "takeovers" ? "takeovers" : null;
+      const filterKey =
+        category === 'types'
+          ? 'contentType'
+          : category === 'genres'
+            ? 'genres'
+            : category === 'locations'
+              ? 'locations'
+              : category === 'hosts'
+                ? 'hosts'
+                : category === 'takeovers'
+                  ? 'takeovers'
+                  : null;
 
       if (!filterKey || !state.filters[filterKey]) return false;
 
@@ -329,16 +354,29 @@ export function useSearch(
       if (!values || (Array.isArray(values) && values.length === 0)) continue;
 
       // Skip search query
-      if (category === "search") continue;
+      if (category === 'search') continue;
 
       // Map category name to filter category
-      const filterCategory: FilterCategory = category === "contentType" ? "types" : category === "genres" ? "genres" : category === "locations" ? "locations" : category === "hosts" ? "hosts" : category === "takeovers" ? "takeovers" : null;
+      const filterCategory: FilterCategory =
+        category === 'contentType'
+          ? 'types'
+          : category === 'genres'
+            ? 'genres'
+            : category === 'locations'
+              ? 'locations'
+              : category === 'hosts'
+                ? 'hosts'
+                : category === 'takeovers'
+                  ? 'takeovers'
+                  : null;
 
       if (!filterCategory) continue;
 
       // Find the FilterItem objects for each active value
-      const filterValues = (values as string[]).map((value) => {
-        const filterItem = state.availableFilters[filterCategory].find((item) => item.slug === value || item.id === value);
+      const filterValues = (values as string[]).map(value => {
+        const filterItem = state.availableFilters[filterCategory].find(
+          item => item.slug === value || item.id === value
+        );
 
         return (
           filterItem || {
@@ -382,7 +420,7 @@ export function useSearch(
     isFilterActive,
 
     // Utility values
-    searchQuery: state.filters.search || "",
+    searchQuery: state.filters.search || '',
   };
 }
 
@@ -393,37 +431,37 @@ function getFiltersFromUrl(searchParams: URLSearchParams): SearchFilters {
   const filters: SearchFilters = {};
 
   // Search query
-  const search = searchParams.get("q");
+  const search = searchParams.get('q');
   if (search) {
     filters.search = search;
   }
 
   // Content types
-  const types = searchParams.getAll("type");
+  const types = searchParams.getAll('type');
   if (types.length > 0) {
     filters.contentType = types as ContentType[];
   }
 
   // Genre filters
-  const genres = searchParams.getAll("genre");
+  const genres = searchParams.getAll('genre');
   if (genres.length > 0) {
     filters.genres = genres;
   }
 
   // Location filters
-  const locations = searchParams.getAll("location");
+  const locations = searchParams.getAll('location');
   if (locations.length > 0) {
     filters.locations = locations;
   }
 
   // Host filters
-  const hosts = searchParams.getAll("host");
+  const hosts = searchParams.getAll('host');
   if (hosts.length > 0) {
     filters.hosts = hosts;
   }
 
   // Takeover filters
-  const takeovers = searchParams.getAll("takeover");
+  const takeovers = searchParams.getAll('takeover');
   if (takeovers.length > 0) {
     filters.takeovers = takeovers;
   }
@@ -439,41 +477,41 @@ function buildUrlFromFilters(filters: SearchFilters): string {
 
   // Add search query
   if (filters.search) {
-    params.set("q", filters.search);
+    params.set('q', filters.search);
   }
 
   // Add content types
   if (filters.contentType) {
-    filters.contentType.forEach((type) => {
-      params.append("type", type);
+    filters.contentType.forEach(type => {
+      params.append('type', type);
     });
   }
 
   // Add genres
   if (filters.genres) {
-    filters.genres.forEach((genre) => {
-      params.append("genre", genre);
+    filters.genres.forEach(genre => {
+      params.append('genre', genre);
     });
   }
 
   // Add locations
   if (filters.locations) {
-    filters.locations.forEach((location) => {
-      params.append("location", location);
+    filters.locations.forEach(location => {
+      params.append('location', location);
     });
   }
 
   // Add hosts
   if (filters.hosts) {
-    filters.hosts.forEach((host) => {
-      params.append("host", host);
+    filters.hosts.forEach(host => {
+      params.append('host', host);
     });
   }
 
   // Add takeovers
   if (filters.takeovers) {
-    filters.takeovers.forEach((takeover) => {
-      params.append("takeover", takeover);
+    filters.takeovers.forEach(takeover => {
+      params.append('takeover', takeover);
     });
   }
 

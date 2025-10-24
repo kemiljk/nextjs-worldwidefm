@@ -124,29 +124,18 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
 
   return (
     <div className='space-y-8'>
-      <Link
-        href='/shows'
-        className='text-foreground flex items-center gap-1'
-      >
+      <Link href='/shows' className='text-foreground flex items-center gap-1'>
         <ChevronRight className='w-4 h-4 rotate-180' />
         Back to Shows
       </Link>
 
       <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
         <div className='aspect-square relative overflow-hidden'>
-          <Image
-            src={hostImage}
-            alt={host.title}
-            fill
-            className='object-cover rounded-none'
-          />
+          <Image src={hostImage} alt={host.title} fill className='object-cover rounded-none' />
         </div>
 
         <div>
-          <PageHeader
-            title={host.title}
-            description={hostDescription}
-          />
+          <PageHeader title={host.title} description={hostDescription} />
 
           {initialShows.length > 0 && (
             <div className='mt-8'>
@@ -160,11 +149,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
       </div>
 
       {/* Hosted Shows with Infinite Scroll */}
-      <HostClient
-        hostId={host.id}
-        hostTitle={host.title}
-        initialShows={initialShows}
-      />
+      <HostClient hostId={host.id} hostTitle={host.title} initialShows={initialShows} />
     </div>
   );
 }

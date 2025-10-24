@@ -19,10 +19,7 @@ interface FeaturedCardProps {
 
 export function FeaturedCard({ show, priority = false, className = '', href }: FeaturedCardProps) {
   return (
-    <Link
-      href={href || `/episode/${show.slug}`}
-      className={`block aspect-square ${className}`}
-    >
+    <Link href={href || `/episode/${show.slug}`} className={`block aspect-square ${className}`}>
       <Card className='aspect-square overflow-hidden shadow-none relative cursor-pointer border border-almostblack dark:border-white hover:shadow-lg transition-shadow w-full h-full aspect-square'>
         <CardContent className='p-0 h-full'>
           <div className='relative group w-full h-full'>
@@ -61,10 +58,7 @@ export function FeaturedCard({ show, priority = false, className = '', href }: F
               </h3>
               <div className='flex flex-wrap mt-4'>
                 {(show.metadata?.genres || []).slice(0, 3).map((genre: any, genreIndex: number) => (
-                  <GenreTag
-                    key={genre.id || genreIndex}
-                    variant='white'
-                  >
+                  <GenreTag key={genre.id || genreIndex} variant='white'>
                     {genre.title}
                   </GenreTag>
                 ))}

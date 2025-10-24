@@ -4,7 +4,6 @@ import { PostObject, AuthorObject } from '@/lib/cosmic-config';
 import { Card, CardContent } from '@/components/ui/card';
 import { GenreTag } from '@/components/ui/genre-tag';
 import { formatDate } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 import { ChevronRight } from 'lucide-react';
 
 interface ArticlesSectionProps {
@@ -35,10 +34,7 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
       </h3>
       <div className='grid grid-cols-1 gap-6'>
         {articles.map((article, index) => (
-          <Link
-            key={index}
-            href={`/articles/${article.slug}`}
-          >
+          <Link key={index} href={`/articles/${article.slug}`}>
             <Card
               ref={index === articles.length - 1 ? lastArticleRef : undefined}
               className='overflow-hidden bg-white dark:bg-gray-900 h-full flex flex-col border border-black dark:border-white rounded-none shadow-none'

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { getEvents, transformRadioCultEvent } from '@/lib/radiocult-service';
+import { getEvents } from '@/lib/radiocult-service';
 import { generateScheduleMetadata } from '@/lib/metadata-utils';
 import { PageHeader } from '@/components/shared/page-header';
 
@@ -57,7 +57,7 @@ async function getWeeklySchedule(): Promise<{
     }
 
     // Transform RadioCult events to schedule items
-    const scheduleItems = events.map((event) => {
+    const scheduleItems = events.map(event => {
       const eventDate = new Date(event.startTime);
       const hours = eventDate.getHours().toString().padStart(2, '0');
       const minutes = eventDate.getMinutes().toString().padStart(2, '0');
@@ -75,7 +75,7 @@ async function getWeeklySchedule(): Promise<{
         picture: event.imageUrl || '/image-placeholder.png',
         created_time: event.createdAt,
         tags: event.tags || [],
-        hosts: (event.artists || []).map((artist) => artist.name || 'Unknown Artist'),
+        hosts: (event.artists || []).map(artist => artist.name || 'Unknown Artist'),
         duration: event.duration || 0,
         play_count: 0,
         favorite_count: 0,
@@ -118,7 +118,7 @@ export default async function SchedulePage() {
   );
 
   // Sort shows within each day by time
-  Object.keys(showsByDay).forEach((day) => {
+  Object.keys(showsByDay).forEach(day => {
     showsByDay[day].sort((a, b) => {
       const timeA = a.show_time.split(':').map(Number);
       const timeB = b.show_time.split(':').map(Number);
@@ -145,7 +145,7 @@ export default async function SchedulePage() {
         <div className='space-y-0 px-5'>
           {isActive && scheduleItems.length > 0 ? (
             <>
-              {daysOrder.map((day) => {
+              {daysOrder.map(day => {
                 const dayShows = showsByDay[day] || [];
                 if (dayShows.length === 0) return null;
 

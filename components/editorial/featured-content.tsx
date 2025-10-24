@@ -1,9 +1,4 @@
-import Image from 'next/image';
-import Link from 'next/link';
 import { PostObject } from '@/lib/cosmic-config';
-import { GenreTag } from '@/components/ui/genre-tag';
-import { HighlightedText } from '@/components/ui/highlighted-text';
-import { format } from 'date-fns';
 import { ArticleCard } from '@/components/ui/article-card';
 
 interface FeaturedContentProps {
@@ -40,7 +35,7 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
           date={sortedPosts[0].metadata?.date}
           excerpt={sortedPosts[0].metadata?.excerpt}
           image={sortedPosts[0].metadata?.image?.imgix_url || '/image-placeholder.png'}
-          tags={sortedPosts[0].metadata.categories?.map((c) => c.title)}
+          tags={sortedPosts[0].metadata.categories?.map(c => c.title)}
           size={sortedPosts[0].metadata.featured_size?.key}
           variant='featured'
         />

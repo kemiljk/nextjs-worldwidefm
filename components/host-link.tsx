@@ -1,5 +1,5 @@
-import Link from "next/link";
-import { getHostProfileUrl } from "@/lib/actions";
+import Link from 'next/link';
+import { getHostProfileUrl } from '@/lib/actions';
 
 interface HostLinkProps {
   hostName: string;
@@ -10,7 +10,7 @@ interface HostLinkProps {
 /**
  * Component that renders a link to host profile if it exists, otherwise renders plain text
  */
-export async function HostLink({ hostName, className = "", children }: HostLinkProps) {
+export async function HostLink({ hostName, className = '', children }: HostLinkProps) {
   const profileUrl = await getHostProfileUrl(hostName);
 
   if (profileUrl) {
@@ -27,12 +27,12 @@ export async function HostLink({ hostName, className = "", children }: HostLinkP
 /**
  * Client-side version that uses a fallback approach
  */
-export function ClientHostLink({ hostName, className = "", children }: HostLinkProps) {
+export function ClientHostLink({ hostName, className = '', children }: HostLinkProps) {
   // Generate a basic slug from the host name for fallback
   const fallbackSlug = hostName
     .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "");
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
 
   return (
     <Link href={`/hosts/${fallbackSlug}`} className={className}>

@@ -247,7 +247,7 @@ async function findMatchingCosmicObject(items: any[], craftItem: any, type: stri
   if (!craftItem || !craftItem.title) return null;
 
   // Use case-insensitive title matching
-  const matching = items.find((item) => item.title.toLowerCase() === craftItem.title.toLowerCase());
+  const matching = items.find(item => item.title.toLowerCase() === craftItem.title.toLowerCase());
 
   if (matching) {
     console.log(`   ✅ Found matching ${type}: ${craftItem.title} (ID: ${matching.id})`);

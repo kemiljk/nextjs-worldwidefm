@@ -29,10 +29,7 @@ export default async function MembershipPage() {
 
   return (
     <div className='mx-auto'>
-      <MembershipSignupClient
-        heading={membership.title}
-        body={membership.metadata.body}
-      />
+      <MembershipSignupClient heading={membership.title} body={membership.metadata.body} />
     </div>
   );
 }

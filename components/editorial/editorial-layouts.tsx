@@ -1,0 +1,269 @@
+import Image from 'next/image';
+import { CategoryTag } from '@/components/ui/category-tag';
+import { ImageGallery } from '@/components/ui/image-gallery';
+import { PostObject } from '@/lib/cosmic-config';
+
+interface Category {
+  id: string;
+  slug: string;
+  title: string;
+  content: string;
+  bucket: string;
+  created_at: string;
+  modified_at: string;
+  status: string;
+  published_at: string;
+  modified_by: string;
+  created_by: string;
+  type: string;
+  metadata: null;
+}
+
+interface EditorialLayoutProps {
+  post: PostObject;
+  formattedDate: string;
+}
+
+// Standard Layout - Current layout
+export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
+  const { title, metadata } = post;
+  const imageUrl = metadata?.image?.imgix_url || '';
+  const description = metadata?.excerpt || '';
+  const content = metadata?.content || '';
+  const categories = metadata?.categories || [];
+  const author = metadata?.author;
+  const imageGallery = metadata?.image_gallery || [];
+
+  return (
+    <article className='w-full'>
+      {/* Hero Section */}
+      <div className='w-full mt-20 mb-40 px-20 flex flex-col lg:flex-row gap-20 justify-center items-center md:items-start'>
+        {/* Image */}
+        <div className='sm:w-[80vw] lg:w-[50vw] flex items-center justify-center overflow-hidden relative'>
+          <Image
+            src={imageUrl}
+            alt={`${title} - Featured image`}
+            width={0}
+            height={0}
+            style={{ width: '100%', height: 'auto' }}
+            className='object-contain'
+          />
+        </div>
+
+        {/* Text */}
+        <div className='w-full sm:w-[80vw] lg:w-[35vw] text-almostblack dark:text-white'>
+          <p className='font-sans text-[40px] md:text-[50px] leading-none mb-4'>{title}</p>
+          <p className='text-sans text-b3'>{description}</p>
+          <div className='flex flex-col gap-1'>
+            <div className='pl-1 text-[12px] leading-none font-mono tracking-wider'>
+              {formattedDate}
+            </div>
+            {author && (
+              <div className='pl-1 text-[12px] font-mono leading-none uppercase tracking-wider text-muted-foreground'>
+                By {typeof author === 'string' ? author : author.title || 'Unknown'}
+              </div>
+            )}
+            <div className='flex pt-4 flex-wrap gap-3'>
+              {categories.map((category: Category) => (
+                <CategoryTag key={category.slug} categorySlug={category.slug}>
+                  {category.title}
+                </CategoryTag>
+              ))}
+            </div>
+          </div>
+          {/* Main Content */}
+          <div className=''>
+            {content && (
+              <div
+                dangerouslySetInnerHTML={{ __html: content }}
+                className='break-words font-sans text-b6 mt-10 md:mt-20 space-y-4'
+              />
+            )}
+          </div>
+
+          {/* Image Gallery */}
+          {imageGallery.length > 0 && (
+            <div className='mt-10 md:mt-20'>
+              <ImageGallery images={imageGallery} />
+            </div>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+// Featured Layout - Large hero with centered content
+export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
+  const { title, metadata } = post;
+  const imageUrl = metadata?.image?.imgix_url || '';
+  const description = metadata?.excerpt || '';
+  const content = metadata?.content || '';
+  const categories = metadata?.categories || [];
+  const author = metadata?.author;
+  const imageGallery = metadata?.image_gallery || [];
+
+  return (
+    <article className='w-full'>
+      {/* Large Hero Image */}
+      <div className='relative w-full h-[60vh] mb-20'>
+        <Image src={imageUrl} alt={`${title} - Featured image`} fill className='object-cover' />
+        <div className='absolute inset-0 bg-black bg-opacity-40 flex items-end'>
+          <div className='w-full px-20 pb-20 text-white'>
+            <h1 className='font-sans text-[60px] md:text-[80px] leading-none mb-6'>{title}</h1>
+            <p className='text-sans text-b2 mb-4 max-w-3xl'>{description}</p>
+            <div className='flex items-center gap-4'>
+              <div className='text-[14px] font-mono tracking-wider'>{formattedDate}</div>
+              {author && (
+                <div className='text-[14px] font-mono uppercase tracking-wider'>
+                  By {typeof author === 'string' ? author : author.title || 'Unknown'}
+                </div>
+              )}
+            </div>
+            <div className='flex pt-4 flex-wrap gap-3'>
+              {categories.map((category: Category) => (
+                <CategoryTag key={category.slug} categorySlug={category.slug} variant='white'>
+                  {category.title}
+                </CategoryTag>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Centered Content */}
+      <div className='max-w-4xl mx-auto px-20'>
+        {content && (
+          <div
+            dangerouslySetInnerHTML={{ __html: content }}
+            className='break-words font-sans text-b6 space-y-6'
+          />
+        )}
+
+        {/* Image Gallery */}
+        {imageGallery.length > 0 && (
+          <div className='mt-20'>
+            <ImageGallery images={imageGallery} />
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+// Gallery Layout - Image-focused layout
+export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
+  const { title, metadata } = post;
+  const imageUrl = metadata?.image?.imgix_url || '';
+  const description = metadata?.excerpt || '';
+  const content = metadata?.content || '';
+  const categories = metadata?.categories || [];
+  const author = metadata?.author;
+  const imageGallery = metadata?.image_gallery || [];
+
+  return (
+    <article className='w-full'>
+      {/* Title Section */}
+      <div className='w-full px-20 py-20 text-center'>
+        <h1 className='font-sans text-[50px] md:text-[70px] leading-none mb-6 text-almostblack dark:text-white'>
+          {title}
+        </h1>
+        <p className='text-sans text-b2 mb-6 max-w-3xl mx-auto'>{description}</p>
+        <div className='flex items-center justify-center gap-4 mb-6'>
+          <div className='text-[12px] font-mono tracking-wider text-muted-foreground'>
+            {formattedDate}
+          </div>
+          {author && (
+            <div className='text-[12px] font-mono uppercase tracking-wider text-muted-foreground'>
+              By {typeof author === 'string' ? author : author.title || 'Unknown'}
+            </div>
+          )}
+        </div>
+        <div className='flex justify-center flex-wrap gap-3'>
+          {categories.map((category: Category) => (
+            <CategoryTag key={category.slug} categorySlug={category.slug}>
+              {category.title}
+            </CategoryTag>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Image */}
+      {imageUrl && (
+        <div className='w-full mb-20'>
+          <Image
+            src={imageUrl}
+            alt={`${title} - Featured image`}
+            width={0}
+            height={0}
+            style={{ width: '100%', height: 'auto' }}
+            className='object-contain'
+          />
+        </div>
+      )}
+
+      {/* Content */}
+      {content && (
+        <div className='max-w-4xl mx-auto px-20 mb-20'>
+          <div
+            dangerouslySetInnerHTML={{ __html: content }}
+            className='break-words font-sans text-b6 space-y-6'
+          />
+        </div>
+      )}
+
+      {/* Image Gallery */}
+      {imageGallery.length > 0 && (
+        <div className='w-full'>
+          <ImageGallery images={imageGallery} />
+        </div>
+      )}
+    </article>
+  );
+}
+
+// Minimal Layout - Text-focused
+export function MinimalLayout({ post, formattedDate }: EditorialLayoutProps) {
+  const { title, metadata } = post;
+  const description = metadata?.excerpt || '';
+  const content = metadata?.content || '';
+  const categories = metadata?.categories || [];
+  const author = metadata?.author;
+
+  return (
+    <article className='w-full'>
+      <div className='max-w-3xl mx-auto px-20 py-20'>
+        <h1 className='font-sans text-[40px] md:text-[50px] leading-none mb-6 text-almostblack dark:text-white'>
+          {title}
+        </h1>
+        <p className='text-sans text-b3 mb-8'>{description}</p>
+
+        <div className='flex items-center gap-4 mb-8'>
+          <div className='text-[12px] font-mono tracking-wider text-muted-foreground'>
+            {formattedDate}
+          </div>
+          {author && (
+            <div className='text-[12px] font-mono uppercase tracking-wider text-muted-foreground'>
+              By {typeof author === 'string' ? author : author.title || 'Unknown'}
+            </div>
+          )}
+        </div>
+
+        <div className='flex flex-wrap gap-3 mb-12'>
+          {categories.map((category: Category) => (
+            <CategoryTag key={category.slug} categorySlug={category.slug}>
+              {category.title}
+            </CategoryTag>
+          ))}
+        </div>
+
+        {content && (
+          <div
+            dangerouslySetInnerHTML={{ __html: content }}
+            className='break-words font-sans text-b6 space-y-6'
+          />
+        )}
+      </div>
+    </article>
+  );
+}

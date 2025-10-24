@@ -158,48 +158,43 @@ export type PostType = {
   title: string;
   type: 'posts';
   metadata: {
+    seo: {
+      title: string;
+      description: string;
+      og_title: string;
+      og_description: string;
+      og_image: {
+        url: string;
+        imgix_url: string;
+      };
+    };
     type: {
-      key: 'article';
-      value: 'Article';
+      key: 'article' | 'video' | 'event';
+      value: 'Article' | 'Video' | 'Event';
     };
     categories: any[]; // Consider defining a more specific type if the structure of categories is known
     image: {
       url: string;
       imgix_url: string;
     };
+    image_gallery: {
+      image: {
+        url: string;
+        imgix_url: string;
+      };
+    }[];
     author: null | any; // Consider defining a more specific type if the structure of author is known
     date: string;
     excerpt: string;
     content: string;
-    featured_on_homepage: boolean;
     is_featured: boolean;
     featured_size: {
-      key: 'small';
-      value: 'Small';
-    };
-    section_name: {
-      id: string;
-      slug: string;
-      title: string;
-      content: string;
-      bucket: string;
-      created_at: string;
-      modified_at: string;
-      status: string;
-      published_at: string;
-      modified_by: string;
-      created_by: string;
-      type: 'sections';
-      metadata: null;
-    }[];
-    section_priority: number;
-    display_style: {
-      key: 'standard';
-      value: 'Standard';
+      key: 'large' | 'medium' | 'small';
+      value: 'Large' | 'Medium' | 'Small';
     };
     image_aspect_ratio: {
-      key: '1_1';
-      value: 'Square';
+      key: '16_9' | '4_3' | '1_1';
+      value: 'Video' | 'Photo' | 'Square';
     };
   };
 };

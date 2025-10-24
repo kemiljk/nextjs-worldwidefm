@@ -5,7 +5,6 @@ import { cookies } from 'next/headers';
 import { cosmic } from '@/cosmic/client';
 import bcrypt from 'bcryptjs';
 import { Resend } from 'resend';
-import { getRadioShows } from '@/lib/cosmic-service';
 
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 

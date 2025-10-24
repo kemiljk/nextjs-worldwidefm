@@ -55,12 +55,7 @@ const CosmicSectionComponent: React.FC<CosmicSectionProps> = ({ section, coloure
 
   // Handle unique sections with special styling
   if (section.layout === 'Unique') {
-    return (
-      <UniqueHomepageSection
-        section={section}
-        colouredSection={colouredSection}
-      />
-    );
+    return <UniqueHomepageSection section={section} colouredSection={colouredSection} />;
   }
 
   return (
@@ -69,11 +64,8 @@ const CosmicSectionComponent: React.FC<CosmicSectionProps> = ({ section, coloure
         {section.title}
       </h2>
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-        {section.items.map((item) => (
-          <SectionItemCard
-            key={item.slug}
-            item={item}
-          />
+        {section.items.map(item => (
+          <SectionItemCard key={item.slug} item={item} />
         ))}
       </div>
     </section>

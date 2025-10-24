@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/shared/page-header';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { cosmic } from '@/lib/cosmic-config';
 import { getEpisodesForShows } from '@/lib/episode-service';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
@@ -126,10 +126,7 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className='space-y-8 mt-8'>
-      <Link
-        href='/shows'
-        className='text-foreground flex items-center gap-1'
-      >
+      <Link href='/shows' className='text-foreground flex items-center gap-1'>
         <ChevronRight className='w-4 h-4 rotate-180' />
         Back to Shows
       </Link>
@@ -145,10 +142,7 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
         </div>
 
         <div>
-          <PageHeader
-            title={takeover.title}
-            description={takeoverDescription}
-          />
+          <PageHeader title={takeover.title} description={takeoverDescription} />
 
           {takeoverEpisodes.length > 0 && (
             <div className='mt-8'>
@@ -168,7 +162,7 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
             Recent Episodes
           </h2>
           <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-            {takeoverEpisodes.slice(0, 9).map((episode) => {
+            {takeoverEpisodes.slice(0, 9).map(episode => {
               const episodeImage =
                 episode.enhanced_image || episode.pictures?.extra_large || '/image-placeholder.png';
               const broadcastDate = episode.broadcast_date
@@ -176,10 +170,7 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
                 : '';
 
               return (
-                <Link
-                  key={episode.id || episode.slug}
-                  href={`/episode${episode.slug}`}
-                >
+                <Link key={episode.id || episode.slug} href={`/episode${episode.slug}`}>
                   <Card className='overflow-hidden h-full hover:shadow-lg transition-all'>
                     <div className='aspect-square relative overflow-hidden'>
                       <Image

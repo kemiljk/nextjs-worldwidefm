@@ -205,8 +205,8 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
         response = await getEpisodesForShows(episodeParams);
       }
 
-      setShows((prev) => {
-        const existing = new Set(prev.map((s) => s.id || s.slug));
+      setShows(prev => {
+        const existing = new Set(prev.map(s => s.id || s.slug));
         const merged = [...prev];
         response.shows.forEach((s: any) => {
           const key = s.id || s.slug;
@@ -218,7 +218,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
         return merged;
       });
       setHasNext(response.hasNext);
-      setPage((prev) => prev + 1);
+      setPage(prev => prev + 1);
     } catch (error) {
       console.error('Error loading more data:', error);
     } finally {
@@ -230,7 +230,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   function mapShowToCanonicalGenres(show: any): string[] {
     const genres = show.genres || show.enhanced_genres || [];
     return canonicalGenres
-      .filter((genre) =>
+      .filter(genre =>
         genres.some((showGenre: any) => {
           const genreName =
             showGenre.title?.toLowerCase() ||
@@ -240,14 +240,14 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
           return genre.slug.toLowerCase() === genreName || genre.title.toLowerCase() === genreName;
         })
       )
-      .map((genre) => genre.slug);
+      .map(genre => genre.slug);
   }
 
   // Map episode hosts to available hosts (by name or slug, case-insensitive)
   function mapShowToAvailableHosts(show: any): string[] {
     const hosts = show.hosts || show.enhanced_hosts || show.regular_hosts || [];
     return availableFilters.hosts
-      .filter((availableHost) =>
+      .filter(availableHost =>
         hosts.some((showHost: any) => {
           const showHostName = showHost.name?.toLowerCase() || showHost.title?.toLowerCase() || '';
           const showHostSlug =
@@ -262,14 +262,14 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
           );
         })
       )
-      .map((host) => host.slug);
+      .map(host => host.slug);
   }
 
   // Map episode locations to available locations (by name or slug, case-insensitive)
   function mapShowToAvailableLocations(show: any): string[] {
     const locations = show.locations || [];
     return availableFilters.locations
-      .filter((availableLocation) =>
+      .filter(availableLocation =>
         locations.some((showLocation: any) => {
           const showLocationName =
             showLocation.name?.toLowerCase() || showLocation.title?.toLowerCase() || '';
@@ -282,7 +282,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
           );
         })
       )
-      .map((location) => location.slug);
+      .map(location => location.slug);
   }
 
   // Handle navigation to different filter types
@@ -331,7 +331,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
 
   // Handle clear individual genre chip
   const handleClearGenre = (genreId: string) => {
-    const newGenres = selectedGenres.filter((g) => g !== genreId);
+    const newGenres = selectedGenres.filter(g => g !== genreId);
     const params = new URLSearchParams(searchParams.toString());
 
     if (newGenres.length === 0) {
@@ -345,7 +345,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
 
   // Handle clear individual location chip
   const handleClearLocation = (locationId: string) => {
-    const newLocations = selectedLocations.filter((l) => l !== locationId);
+    const newLocations = selectedLocations.filter(l => l !== locationId);
     const params = new URLSearchParams(searchParams.toString());
 
     if (newLocations.length === 0) {
@@ -371,7 +371,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   };
 
   // No need for client-side filtering since we fetch the correct data based on type
-  const filteredShows = shows;
+  const filteredShows = shows || [];
 
   const hasActiveFilters = selectedGenres.length > 0 || selectedLocations.length > 0;
 
@@ -420,7 +420,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
           {/* Show genre and location filters for all content types */}
           {/* Genres Dropdown */}
           <Combobox
-            options={canonicalGenres.map((genre) => ({
+            options={canonicalGenres.map(genre => ({
               value: genre.id,
               label: genre.title.toUpperCase(),
             }))}
@@ -434,7 +434,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
 
           {/* Locations Dropdown */}
           <Combobox
-            options={availableFilters.locations.map((location) => ({
+            options={availableFilters.locations.map(location => ({
               value: location.id,
               label: location.title.toUpperCase(),
             }))}
@@ -502,7 +502,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
               'X',
               'Y',
               'Z',
-            ].map((letter) => (
+            ].map(letter => (
               <Button
                 key={letter}
                 variant='outline'
@@ -524,7 +524,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
         {hasActiveFilters && (
           <div className='w-full border-t border-almostblack flex gap-2 pt-4 pb-2 text-m7 overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700'>
             {selectedGenres.map((genreId, index) => {
-              const genre = canonicalGenres.find((g) => g.id === genreId);
+              const genre = canonicalGenres.find(g => g.id === genreId);
               return (
                 <Badge
                   key={`genre-${genreId}-${index}`}
@@ -534,7 +534,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
                   {genre?.title.toUpperCase() || genreId}
                   <X
                     className='h-3 w-3'
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
                       handleClearGenre(genreId);
                     }}
@@ -543,7 +543,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
               );
             })}
             {selectedLocations.map((locationId, index) => {
-              const location = availableFilters.locations.find((l) => l.id === locationId);
+              const location = availableFilters.locations.find(l => l.id === locationId);
               return (
                 <Badge
                   key={`location-${locationId}-${index}`}
@@ -553,7 +553,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
                   {location?.title.toUpperCase() || locationId}
                   <X
                     className='h-3 w-3'
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
                       handleClearLocation(locationId);
                     }}

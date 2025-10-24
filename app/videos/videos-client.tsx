@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import VideoGrid from "@/components/video/video-grid";
-import { VideoObject } from "@/lib/cosmic-config";
-import { subDays } from "date-fns";
-import { VideoFilterToolbar } from "./components/video-filter-toolbar";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import VideoGrid from '@/components/video/video-grid';
+import { VideoObject } from '@/lib/cosmic-config';
+import { subDays } from 'date-fns';
+import { VideoFilterToolbar } from './components/video-filter-toolbar';
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface VideoCategory {
   id: string;
@@ -28,24 +28,24 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [activeFilter, setActiveFilter] = useState("");
+  const [activeFilter, setActiveFilter] = useState('');
   const [selectedFilters, setSelectedFilters] = useState<{ [key: string]: string[] }>({
     categories: [],
   });
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 1000);
 
   // Load URL query parameters on initial render
   useEffect(() => {
-    const categoriesParam = searchParams.get("categories")?.split(",").filter(Boolean) || [];
-    const searchParam = searchParams.get("search") || "";
-    const newParam = searchParams.get("new");
+    const categoriesParam = searchParams.get('categories')?.split(',').filter(Boolean) || [];
+    const searchParam = searchParams.get('search') || '';
+    const newParam = searchParams.get('new');
 
     // Set active filter if any are present
-    if (newParam === "true") {
-      setActiveFilter("new");
+    if (newParam === 'true') {
+      setActiveFilter('new');
     } else if (categoriesParam.length) {
-      setActiveFilter("categories");
+      setActiveFilter('categories');
     }
 
     // Set filter values
@@ -64,21 +64,21 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
     const params = new URLSearchParams();
 
     // Add active filters to URL
-    if (activeFilter === "new") {
-      params.set("new", "true");
+    if (activeFilter === 'new') {
+      params.set('new', 'true');
     } else {
       if (selectedFilters.categories.length) {
-        params.set("categories", selectedFilters.categories.join(","));
+        params.set('categories', selectedFilters.categories.join(','));
       }
     }
 
     // Add search term to URL
     if (debouncedSearchTerm) {
-      params.set("search", debouncedSearchTerm);
+      params.set('search', debouncedSearchTerm);
     }
 
     // Update URL without refreshing the page
-    router.push(`/videos${params.toString() ? `?${params.toString()}` : ""}`, { scroll: false });
+    router.push(`/videos${params.toString() ? `?${params.toString()}` : ''}`, { scroll: false });
   }, [activeFilter, selectedFilters, debouncedSearchTerm, router]);
 
   // Update URL when filters change
@@ -89,7 +89,7 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
   const handleFilterChange = (filter: string, subfilter?: string) => {
     // Clear all filters
     if (!filter) {
-      setActiveFilter("");
+      setActiveFilter('');
       setSelectedFilters({
         categories: [],
       });
@@ -97,7 +97,7 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
     }
 
     // Handle "new" filter (exclusive)
-    if (filter === "new") {
+    if (filter === 'new') {
       setActiveFilter(filter);
       setSelectedFilters({
         categories: [],
@@ -107,8 +107,8 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
 
     // Always set activeFilter to 'categories' if a subfilter is selected
     if (subfilter) {
-      setActiveFilter("categories");
-      setSelectedFilters((prev) => {
+      setActiveFilter('categories');
+      setSelectedFilters(prev => {
         const currentFilters = [...prev.categories];
         const index = currentFilters.indexOf(subfilter);
         // Toggle the filter
@@ -136,9 +136,9 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
     let filtered = [...initialVideos];
 
     // Apply "new" filter if active
-    if (activeFilter === "new") {
+    if (activeFilter === 'new') {
       const thirtyDaysAgo = subDays(new Date(), 30);
-      filtered = filtered.filter((video) => {
+      filtered = filtered.filter(video => {
         if (!video.metadata?.date) return false;
         const videoDate = new Date(video.metadata.date);
         return !isNaN(videoDate.getTime()) && videoDate >= thirtyDaysAgo;
@@ -147,18 +147,30 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
 
     // Apply categories filter if there are selected categories
     if (selectedFilters.categories.length > 0) {
-      filtered = filtered.filter((video) => {
+      filtered = filtered.filter(video => {
         if (!video.metadata?.categories) return false;
         // Map category IDs to full objects
-        const categoryObjects = Array.isArray(video.metadata.categories) ? video.metadata.categories.map((catId) => availableCategories.find((cat) => cat.id === (typeof catId === "string" ? catId : catId?.id))).filter(Boolean) : [];
-        return categoryObjects.some((cat) => cat && selectedFilters.categories.includes(cat.title));
+        const categoryObjects = Array.isArray(video.metadata.categories)
+          ? video.metadata.categories
+              .map(catId =>
+                availableCategories.find(
+                  cat => cat.id === (typeof catId === 'string' ? catId : catId?.id)
+                )
+              )
+              .filter(Boolean)
+          : [];
+        return categoryObjects.some(cat => cat && selectedFilters.categories.includes(cat.title));
       });
     }
 
     // Apply search term if any
     if (debouncedSearchTerm) {
       const search = debouncedSearchTerm.toLowerCase();
-      filtered = filtered.filter((video) => video.title.toLowerCase().includes(search) || (video.metadata.description && video.metadata.description.toLowerCase().includes(search)));
+      filtered = filtered.filter(
+        video =>
+          video.title.toLowerCase().includes(search) ||
+          (video.metadata.description && video.metadata.description.toLowerCase().includes(search))
+      );
     }
 
     return filtered;
@@ -166,16 +178,25 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
 
   return (
     <>
-      <div className="pb-5">
-        <VideoFilterToolbar availableCategories={availableCategories} activeFilter={activeFilter} selectedFilters={selectedFilters} onFilterChange={handleFilterChange} searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+      <div className='pb-5'>
+        <VideoFilterToolbar
+          availableCategories={availableCategories}
+          activeFilter={activeFilter}
+          selectedFilters={selectedFilters}
+          onFilterChange={handleFilterChange}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+        />
       </div>
 
       {filteredVideos.length > 0 ? (
         <VideoGrid videos={filteredVideos} availableCategories={availableCategories} />
       ) : (
-        <div className="text-center">
-          <h3 className="text-m5 font-mono font-normal text-almostblack dark:text-white">No videos found</h3>
-          <p className="text-gray-500 mt-2">Try adjusting your filters or search term.</p>
+        <div className='text-center'>
+          <h3 className='text-m5 font-mono font-normal text-almostblack dark:text-white'>
+            No videos found
+          </h3>
+          <p className='text-gray-500 mt-2'>Try adjusting your filters or search term.</p>
         </div>
       )}
     </>

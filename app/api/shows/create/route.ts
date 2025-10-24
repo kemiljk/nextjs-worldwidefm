@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
     // Handle genres - the tags field now contains Cosmic genre IDs
     const genreObjects = [];
     for (const genreId of validatedData.tags) {
-      const genre = allGenres.find((g) => g.id === genreId);
+      const genre = allGenres.find(g => g.id === genreId);
       if (genre) {
         console.log(`🎵 Adding genre: "${genre.title}" (ID: ${genre.id})`);
         // For Cosmic object relationships, we need to send the ID

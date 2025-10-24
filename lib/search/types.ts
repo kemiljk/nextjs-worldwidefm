@@ -8,12 +8,12 @@
 /**
  * ContentTypes represents all possible content types in the system
  */
-export type ContentType = "episodes" | "posts" | "events" | "videos" | "takeovers";
+export type ContentType = 'episodes' | 'posts' | 'events' | 'videos' | 'takeovers';
 
 /**
  * FilterCategories represents all possible filter categories
  */
-export type FilterCategory = "genres" | "locations" | "hosts" | "takeovers" | "types";
+export type FilterCategory = 'genres' | 'locations' | 'hosts' | 'takeovers' | 'types';
 
 /**
  * FilterItem represents a single filter option within a category

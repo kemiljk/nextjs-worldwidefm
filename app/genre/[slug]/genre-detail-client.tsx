@@ -3,7 +3,7 @@
 import React from 'react';
 import { PageHeader } from '@/components/shared/page-header';
 import { ShowsGrid } from '@/components/shows-grid';
-import { Loader, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';

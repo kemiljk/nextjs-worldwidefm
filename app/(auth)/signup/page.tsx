@@ -1,19 +1,19 @@
-import { Metadata } from "next";
-import SignUpClient from "@/cosmic/blocks/user-management/SignUpClient";
-import { signUp } from "@/cosmic/blocks/user-management/actions";
-import { generateBaseMetadata } from "@/lib/metadata-utils";
+import { Metadata } from 'next';
+import SignUpClient from '@/cosmic/blocks/user-management/SignUpClient';
+import { signUp } from '@/cosmic/blocks/user-management/actions';
+import { generateBaseMetadata } from '@/lib/metadata-utils';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateBaseMetadata({
-    title: "Sign Up - Worldwide FM",
-    description: "Create a new Worldwide FM account to access personalized content and features.",
+    title: 'Sign Up - Worldwide FM',
+    description: 'Create a new Worldwide FM account to access personalized content and features.',
     noIndex: true, // Don't index authentication pages
   });
 };
 
 export default function SignUpPage() {
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className='container mx-auto py-8 px-4'>
       <SignUpClient onSubmit={signUp} />
     </div>
   );

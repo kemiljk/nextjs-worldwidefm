@@ -1,11 +1,10 @@
 'use client';
 
-import { getPosts } from '@/lib/cosmic-service';
+import { getPostsWithFilters } from '@/lib/actions';
 import { PageHeader } from '@/components/shared/page-header';
-import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PostObject } from '@/lib/cosmic-config';
-import { subDays } from 'date-fns';
 import FeaturedContent from '../../components/editorial/featured-content';
 import EditorialSection from '../../components/editorial/editorial-section';
 import { FilterItem as BaseFilterItem } from '@/lib/filter-types';
@@ -26,97 +25,54 @@ function EditorialContent() {
   const searchParams = useSearchParams();
 
   const [posts, setPosts] = useState<PostObject[]>([]);
-  const [activeFilter, setActiveFilter] = useState('');
-  const [selectedFilters, setSelectedFilters] = useState<{ [key: string]: string[] }>({
-    article: [],
-    video: [],
-    categories: [],
-  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [availableFilters, setAvailableFilters] = useState<AvailableFilters>({
     article: [],
     video: [],
     categories: [],
   });
 
-  // Load URL query parameters on initial render
-  useEffect(() => {
-    // Get filters from URL
-    const categoriesParam = searchParams.get('categories')?.split(',').filter(Boolean) || [];
-    const articleParam = searchParams.get('article')?.split(',').filter(Boolean) || [];
-    const videoParam = searchParams.get('video')?.split(',').filter(Boolean) || [];
-    const searchParam = searchParams.get('search') || '';
-    const newParam = searchParams.get('new');
+  // Get current filters from URL
+  const currentFilters = useMemo(() => {
+    const categories = searchParams.get('categories')?.split(',').filter(Boolean) || [];
+    const article = searchParams.get('article') === 'true';
+    const video = searchParams.get('video') === 'true';
+    const search = searchParams.get('search') || '';
 
-    // Set active filter if any are present
-    if (newParam === 'true') {
-      setActiveFilter('new');
-    } else if (categoriesParam.length) {
-      setActiveFilter('categories');
-    } else if (articleParam.length) {
-      setActiveFilter('article');
-    } else if (videoParam.length) {
-      setActiveFilter('video');
-    }
-
-    // Set filter values
-    setSelectedFilters({
-      article: articleParam,
-      video: videoParam,
-      categories: categoriesParam,
-    });
-
-    // Set search term
-    if (searchParam) {
-      setSearchTerm(searchParam);
-    }
+    return {
+      categories,
+      article,
+      video,
+      search,
+    };
   }, [searchParams]);
 
-  // Update URL when filters change
-  const updateUrlParams = useCallback(() => {
-    const params = new URLSearchParams();
+  // Fetch posts based on current filters
+  const fetchPosts = async () => {
+    setIsLoading(true);
+    try {
+      // Convert category slugs to IDs for the Cosmic query
+      const categoryIds = currentFilters.categories
+        .map(slug => {
+          const category = availableFilters.categories.find(cat => cat.slug === slug);
+          return category?.id;
+        })
+        .filter(Boolean) as string[];
 
-    // Add active filters to URL
-    if (activeFilter === 'new') {
-      params.set('new', 'true');
-    } else {
-      if (selectedFilters.categories.length) {
-        params.set('categories', selectedFilters.categories.join(','));
-      }
-      if (selectedFilters.article.length) {
-        params.set('article', selectedFilters.article.join(','));
-      }
-      if (selectedFilters.video.length) {
-        params.set('video', selectedFilters.video.join(','));
-      }
-    }
-
-    // Add search term to URL
-    if (debouncedSearchTerm) {
-      params.set('search', debouncedSearchTerm);
-    }
-
-    // Update URL without refreshing the page
-    router.push(`?${params.toString()}`, { scroll: false });
-  }, [activeFilter, selectedFilters, debouncedSearchTerm, router]);
-
-  // Update URL when filters change
-  useEffect(() => {
-    updateUrlParams();
-  }, [activeFilter, selectedFilters, debouncedSearchTerm, updateUrlParams]);
-
-  // Fetch posts on mount
-  useEffect(() => {
-    const fetchPosts = async () => {
-      const postsResponse = await getPosts({
+      const result = await getPostsWithFilters({
         limit: 50,
-        sort: '-metadata.date',
+        searchTerm: currentFilters.search,
+        categories: categoryIds,
+        postType: currentFilters.article ? 'article' : currentFilters.video ? 'video' : undefined,
       });
-      const fetchedPosts = postsResponse.objects || [];
-      setPosts(fetchedPosts);
 
-      // Extract available filters
+      setPosts(result.posts);
+      setTotal(result.total);
+
+      // Extract available filters from posts
       const allFilters: AvailableFilters = {
         article: [],
         video: [],
@@ -152,9 +108,9 @@ function EditorialContent() {
 
       // Collect categories using Map to deduplicate
       const uniqueCategories = new Map<string, FilterItem>();
-      fetchedPosts.forEach((post) => {
+      result.posts.forEach(post => {
         if (post.metadata.categories) {
-          post.metadata.categories.forEach((category) => {
+          post.metadata.categories.forEach(category => {
             uniqueCategories.set(category.id, {
               id: category.id,
               title: category.title,
@@ -175,117 +131,109 @@ function EditorialContent() {
       );
 
       setAvailableFilters(allFilters);
-    };
-
-    fetchPosts();
-  }, []);
-
-  const handleFilterChange = (filter: string, subfilter?: string) => {
-    // Clear all filters
-    if (!filter) {
-      setActiveFilter('');
-      setSelectedFilters({
-        article: [],
-        video: [],
-        categories: [],
-      });
-      return;
-    }
-
-    // Handle "new" filter (exclusive)
-    if (filter === 'new') {
-      setActiveFilter(filter);
-      setSelectedFilters({
-        article: [],
-        video: [],
-        categories: [],
-      });
-      return;
-    }
-
-    // Set active filter category
-    setActiveFilter(filter);
-
-    // Handle subfilter selection (add/remove from the corresponding array)
-    if (subfilter) {
-      setSelectedFilters((prev) => {
-        const filterKey =
-          filter === 'categories'
-            ? 'categories'
-            : filter === 'article'
-              ? 'article'
-              : filter === 'video'
-                ? 'video'
-                : '';
-
-        if (!filterKey) return prev;
-
-        const currentFilters = [...prev[filterKey]];
-        const index = currentFilters.indexOf(subfilter);
-
-        // Toggle the filter
-        if (index > -1) {
-          currentFilters.splice(index, 1);
-        } else {
-          currentFilters.push(subfilter);
-        }
-
-        return {
-          ...prev,
-          [filterKey]: currentFilters,
-        };
-      });
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      setPosts([]);
+      setTotal(0);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Filter posts based on active filter
-  const filteredPosts = useMemo(() => {
-    if (!posts.length) return [];
+  // Fetch posts when filters change
+  useEffect(() => {
+    fetchPosts();
+  }, [currentFilters]);
 
-    let filtered = [...posts];
+  // Update search term from URL
+  useEffect(() => {
+    setSearchTerm(currentFilters.search);
+  }, [currentFilters.search]);
 
-    // Apply "new" filter if active
-    if (activeFilter === 'new') {
-      const thirtyDaysAgo = subDays(new Date(), 30);
-      filtered = filtered.filter((post) => {
-        if (!post.metadata?.date) return false;
-        const postDate = new Date(post.metadata.date);
-        return !isNaN(postDate.getTime()) && postDate >= thirtyDaysAgo;
-      });
+  // Update URL when search term changes (debounced)
+  useEffect(() => {
+    if (debouncedSearchTerm !== currentFilters.search) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (debouncedSearchTerm) {
+        params.set('search', debouncedSearchTerm);
+      } else {
+        params.delete('search');
+      }
+      router.push(`?${params.toString()}`, { scroll: false });
+    }
+  }, [debouncedSearchTerm, currentFilters.search, router, searchParams]);
+
+  const handleFilterChange = (filter: string, subfilter?: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    // Clear all filters
+    if (!filter) {
+      params.delete('categories');
+      params.delete('article');
+      params.delete('video');
+    } else if (filter === 'article') {
+      // Toggle article filter
+      if (params.get('article') === 'true') {
+        params.delete('article');
+      } else {
+        params.set('article', 'true');
+        params.delete('video'); // Remove video if article is selected
+      }
+      params.delete('categories');
+    } else if (filter === 'video') {
+      // Toggle video filter
+      if (params.get('video') === 'true') {
+        params.delete('video');
+      } else {
+        params.set('video', 'true');
+        params.delete('article'); // Remove article if video is selected
+      }
+      params.delete('categories');
+    } else if (subfilter) {
+      // Handle subfilter selection (categories)
+      const currentValues = params.get(filter)?.split(',').filter(Boolean) || [];
+      const index = currentValues.indexOf(subfilter);
+
+      if (index > -1) {
+        currentValues.splice(index, 1);
+      } else {
+        currentValues.push(subfilter);
+      }
+
+      if (currentValues.length > 0) {
+        params.set(filter, currentValues.join(','));
+      } else {
+        params.delete(filter);
+      }
+
+      // Clear article/video filters when selecting categories
+      params.delete('article');
+      params.delete('video');
     }
 
-    // Apply article filter if there are selected article filters
-    if (selectedFilters.article.length > 0) {
-      filtered = filtered.filter((post) => post.metadata.type?.key === 'article');
-    }
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
 
-    // Apply video filter if there are selected video filters
-    if (selectedFilters.video.length > 0) {
-      filtered = filtered.filter((post) => post.metadata.type?.key === 'video');
-    }
+  const handleSearchChange = (term: string) => {
+    setSearchTerm(term);
+  };
 
-    // Apply categories filter if there are selected categories
-    if (selectedFilters.categories.length > 0) {
-      filtered = filtered.filter((post) => {
-        if (!post.metadata.categories) return false;
-        return post.metadata.categories.some((category) =>
-          selectedFilters.categories.includes(category.slug)
-        );
-      });
-    }
+  // Determine active filter for UI
+  const activeFilter =
+    currentFilters.categories.length > 0
+      ? 'categories'
+      : currentFilters.article
+        ? 'article'
+        : currentFilters.video
+          ? 'video'
+          : '';
 
-    // Apply search term if any
-    if (debouncedSearchTerm) {
-      const search = debouncedSearchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (post) =>
-          post.title.toLowerCase().includes(search) ||
-          (post.metadata.excerpt && post.metadata.excerpt.toLowerCase().includes(search))
-      );
-    }
-
-    return filtered;
-  }, [posts, activeFilter, selectedFilters, debouncedSearchTerm]);
+  // Convert URL params to selected filters format for UI
+  const selectedFilters = {
+    article: currentFilters.article ? ['article'] : [],
+    video: currentFilters.video ? ['video'] : [],
+    categories: currentFilters.categories,
+  };
 
   return (
     <div className='w-full overflow-x-hidden mb-20'>
@@ -319,14 +267,43 @@ function EditorialContent() {
           selectedFilters={selectedFilters}
           onFilterChange={handleFilterChange}
           searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
+          onSearchChange={handleSearchChange}
         />
       </div>
 
-      {filteredPosts.length > 0 ? (
+      {isLoading ? (
+        <div className='py-5 text-center'>
+          <h3 className='text-m5 font-mono font-normal text-almostblack dark:text-white'>
+            Loading...
+          </h3>
+        </div>
+      ) : posts.length > 0 ? (
         <>
-          <FeaturedContent posts={filteredPosts.slice(0, 1)} />
-          <EditorialSection posts={filteredPosts.slice(filteredPosts[0] ? 1 : 0)} />
+          {/* Only show featured content when no filters are active */}
+          {!currentFilters.article &&
+          !currentFilters.video &&
+          currentFilters.categories.length === 0 &&
+          !currentFilters.search ? (
+            <>
+              <FeaturedContent posts={posts.slice(0, 1)} />
+              <EditorialSection title='All Posts' posts={posts.slice(1)} />
+            </>
+          ) : (
+            <EditorialSection
+              title={
+                currentFilters.article
+                  ? 'Articles'
+                  : currentFilters.video
+                    ? 'Videos'
+                    : currentFilters.categories.length > 0
+                      ? 'Filtered Posts'
+                      : currentFilters.search
+                        ? 'Search Results'
+                        : 'All Posts'
+              }
+              posts={posts}
+            />
+          )}
         </>
       ) : (
         <div className='py-5 text-center'>

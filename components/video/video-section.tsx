@@ -59,10 +59,7 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
         {/* First video card - 65% width */}
         {firstVideo && (
           <div className='w-full sm:w-[65%] h-full'>
-            <Link
-              href={`/videos/${firstVideo.slug}`}
-              className='w-full h-full'
-            >
+            <Link href={`/videos/${firstVideo.slug}`} className='w-full h-full'>
               <Card className='overflow-hidden transition-shadow border border-white group hover:bg-white hover:text-almostblack h-full'>
                 <CardContent className='p-0 flex flex-col h-full w-full'>
                   {/* Image takes remaining space */}
@@ -100,7 +97,7 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
           </div>
         )}
         <div className='w-full h-full sm:w-[35%] flex flex-row sm:flex-col gap-3 justify-between'>
-          {otherVideos.map((video) => {
+          {otherVideos.map(video => {
             const youtubeId = video.metadata?.video_url
               ? getYouTubeThumbnail(video.metadata.video_url)
               : '';
@@ -111,20 +108,11 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
               video.metadata?.image?.imgix_url || youtubeId || vimeoId || '/image-placeholder.png';
 
             return (
-              <Link
-                key={video.id}
-                href={`/videos/${video.slug}`}
-                className='w-full flex-1'
-              >
+              <Link key={video.id} href={`/videos/${video.slug}`} className='w-full flex-1'>
                 <Card className='overflow-hidden transition-shadow border border-white group hover:bg-white hover:text-almostblack h-full'>
                   <CardContent className='p-0 flex flex-col h-full w-full'>
                     <div className='relative flex-1'>
-                      <Image
-                        src={thumbnailUrl}
-                        alt={video.title}
-                        fill
-                        className='object-cover'
-                      />
+                      <Image src={thumbnailUrl} alt={video.title} fill className='object-cover' />
                     </div>
                     <div className='relative border-t border-white flex-row flex justify-between pl-2 h-auto w-auto bg-almostblack text-white items-center group-hover:bg-white group-hover:text-almostblack group-hover:border-black'>
                       <h3 className='text-[25px] font-bold line-clamp-1 group-hover:text-almostblack'>

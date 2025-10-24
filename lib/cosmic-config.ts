@@ -173,6 +173,16 @@ export interface PostObject {
   type: string;
   created_at: string;
   metadata: {
+    seo?: {
+      title?: string;
+      description?: string;
+      og_title?: string;
+      og_description?: string;
+      og_image?: {
+        url: string;
+        imgix_url: string;
+      };
+    };
     type?: {
       key: string;
       value: string;
@@ -242,6 +252,13 @@ export interface PostObject {
       key: string;
       value: string;
     };
+    image_gallery?: {
+      image: {
+        url: string;
+        imgix_url: string;
+      };
+    }[];
+    tags?: string[];
   };
 }
 

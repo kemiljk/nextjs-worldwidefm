@@ -1,5 +1,5 @@
-import { cosmic } from "./cosmic-config";
-import { EpisodeObject } from "./cosmic-types";
+import { cosmic } from './cosmic-config';
+import { EpisodeObject } from './cosmic-types';
 
 export interface EpisodeParams {
   limit?: number;
@@ -8,8 +8,8 @@ export interface EpisodeParams {
   searchTerm?: string;
   isNew?: boolean;
   genre?: string | string[];
-  host?: string | string[] | "*";
-  takeover?: string | string[] | "*";
+  host?: string | string[] | '*';
+  takeover?: string | string[] | '*';
   location?: string | string[];
   showType?: string | string[];
 }
@@ -32,8 +32,8 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     if (params.random) {
       const response = await cosmic.objects
         .find({
-          type: "episode",
-          status: "published",
+          type: 'episode',
+          status: 'published',
         })
         .limit(Math.min(baseLimit * 5, 200))
         .depth(2);
@@ -51,8 +51,8 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
 
     // Build query for Cosmic
     const query: any = {
-      type: "episode",
-      status: "published",
+      type: 'episode',
+      status: 'published',
     };
 
     // Add filters
@@ -60,56 +60,61 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
       const validGenres = genres.filter(Boolean);
       if (validGenres.length > 0) {
-        query["metadata.genres.id"] = { $in: validGenres };
-        console.log("[getEpisodes] Genre filter applied:", {
-          "metadata.genres.id": { $in: validGenres },
+        query['metadata.genres.id'] = { $in: validGenres };
+        console.log('[getEpisodes] Genre filter applied:', {
+          'metadata.genres.id': { $in: validGenres },
         });
       }
     }
 
     if (params.location) {
       const locations = Array.isArray(params.location) ? params.location : [params.location];
-      query["metadata.locations.id"] = { $in: locations };
+      query['metadata.locations.id'] = { $in: locations };
     }
 
     if (params.host) {
-      if (params.host === "*") {
-        query["metadata.regular_hosts"] = { $exists: true, $ne: [] };
+      if (params.host === '*') {
+        query['metadata.regular_hosts'] = { $exists: true, $ne: [] };
       } else {
         const hosts = Array.isArray(params.host) ? params.host : [params.host];
-        query["metadata.regular_hosts.id"] = { $in: hosts };
+        query['metadata.regular_hosts.id'] = { $in: hosts };
       }
     }
 
     if (params.takeover) {
-      if (params.takeover === "*") {
-        query["metadata.takeovers"] = { $exists: true, $ne: [] };
+      if (params.takeover === '*') {
+        query['metadata.takeovers'] = { $exists: true, $ne: [] };
       } else {
         const takeovers = Array.isArray(params.takeover) ? params.takeover : [params.takeover];
-        query["metadata.takeovers.id"] = { $in: takeovers };
+        query['metadata.takeovers.id'] = { $in: takeovers };
       }
     }
 
     if (params.showType) {
       const showTypes = Array.isArray(params.showType) ? params.showType : [params.showType];
-      query["metadata.type.id"] = { $in: showTypes };
+      query['metadata.type.id'] = { $in: showTypes };
     }
 
     if (params.searchTerm) {
       const term = String(params.searchTerm).trim();
       if (term) {
-        query.title = { $regex: term, $options: "i" };
+        query.title = { $regex: term, $options: 'i' };
       }
     }
 
     if (params.isNew) {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      query["metadata.broadcast_date"] = { $gte: thirtyDaysAgo.toISOString().slice(0, 10) };
+      query['metadata.broadcast_date'] = { $gte: thirtyDaysAgo.toISOString().slice(0, 10) };
     }
 
     // Fetch episodes from Cosmic
-    const response = await cosmic.objects.find(query).limit(baseLimit).skip(offset).sort("-order").depth(2);
+    const response = await cosmic.objects
+      .find(query)
+      .limit(baseLimit)
+      .skip(offset)
+      .sort('-order')
+      .depth(2);
 
     const episodes = response.objects || [];
     const total = response.total || episodes.length;
@@ -121,7 +126,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       hasNext,
     };
   } catch (error) {
-    console.error("Error fetching episodes:", error);
+    console.error('Error fetching episodes:', error || 'Unknown error');
     return {
       episodes: [],
       total: 0,
@@ -151,40 +156,100 @@ export async function getEpisodesForShows(params: EpisodeParams = {}): Promise<{
 /**
  * Get regular hosts from Cosmic
  */
-export async function getRegularHosts(): Promise<any[]> {
+export async function getRegularHosts(
+  params: {
+    limit?: number;
+    offset?: number;
+    genre?: string[];
+    location?: string[];
+    letter?: string;
+  } = {}
+): Promise<{
+  shows: any[];
+  total: number;
+  hasNext: boolean;
+}> {
   try {
-    const response = await cosmic.objects
-      .find({
-        type: "regular-hosts",
-        status: "published",
-      })
-      .limit(100)
-      .depth(1);
+    const { limit = 100, offset = 0, genre, location, letter } = params;
 
-    return response.objects || [];
+    // Build the query
+    const query: any = {
+      type: 'regular-hosts',
+      status: 'published',
+    };
+
+    // Add genre filter
+    if (genre && genre.length > 0) {
+      query['metadata.genre.slug'] = { $in: genre };
+    }
+
+    // Add location filter
+    if (location && location.length > 0) {
+      query['metadata.location.slug'] = { $in: location };
+    }
+
+    // Add letter filter (starts with)
+    if (letter) {
+      query.title = { $regex: `^${letter}`, $options: 'i' };
+    }
+
+    const response = await cosmic.objects.find(query).limit(limit).skip(offset).depth(1);
+
+    const shows = response.objects || [];
+    const total = response.total || shows.length;
+    const hasNext = shows.length === limit && offset + limit < total;
+
+    return { shows, total, hasNext };
   } catch (error) {
-    console.error("Error fetching regular hosts:", error);
-    return [];
+    console.error('Error fetching regular hosts:', error);
+    return { shows: [], total: 0, hasNext: false };
   }
 }
 
 /**
  * Get takeovers from Cosmic
  */
-export async function getTakeovers(): Promise<any[]> {
+export async function getTakeovers(
+  params: {
+    limit?: number;
+    offset?: number;
+    genre?: string[];
+    location?: string[];
+  } = {}
+): Promise<{
+  shows: any[];
+  total: number;
+  hasNext: boolean;
+}> {
   try {
-    const response = await cosmic.objects
-      .find({
-        type: "takeovers",
-        status: "published",
-      })
-      .limit(100)
-      .depth(1);
+    const { limit = 100, offset = 0, genre, location } = params;
 
-    return response.objects || [];
+    // Build the query
+    const query: any = {
+      type: 'takeovers',
+      status: 'published',
+    };
+
+    // Add genre filter
+    if (genre && genre.length > 0) {
+      query['metadata.genre.slug'] = { $in: genre };
+    }
+
+    // Add location filter
+    if (location && location.length > 0) {
+      query['metadata.location.slug'] = { $in: location };
+    }
+
+    const response = await cosmic.objects.find(query).limit(limit).skip(offset).depth(1);
+
+    const shows = response.objects || [];
+    const total = response.total || shows.length;
+    const hasNext = shows.length === limit && offset + limit < total;
+
+    return { shows, total, hasNext };
   } catch (error) {
-    console.error("Error fetching takeovers:", error);
-    return [];
+    console.error('Error fetching takeovers:', error);
+    return { shows: [], total: 0, hasNext: false };
   }
 }
 
@@ -195,15 +260,15 @@ export async function getEpisodeBySlug(slug: string): Promise<any | null> {
   try {
     const response = await cosmic.objects
       .findOne({
-        type: "episode",
+        type: 'episode',
         slug: slug,
-        status: "published",
+        status: 'published',
       })
       .depth(2);
 
     return response.object || null;
   } catch (error) {
-    console.error("Error fetching episode by slug:", error);
+    console.error('Error fetching episode by slug:', error);
     return null;
   }
 }
@@ -216,9 +281,9 @@ export async function getRelatedEpisodes(episodeId: string, limit: number = 5): 
     // First get the current episode to extract its genres and hosts
     const currentEpisode = await cosmic.objects
       .findOne({
-        type: "episode",
+        type: 'episode',
         id: episodeId,
-        status: "published",
+        status: 'published',
       })
       .depth(2);
 
@@ -234,8 +299,8 @@ export async function getRelatedEpisodes(episodeId: string, limit: number = 5): 
     if (genres.length === 0 && hosts.length === 0) {
       const response = await cosmic.objects
         .find({
-          type: "episode",
-          status: "published",
+          type: 'episode',
+          status: 'published',
           id: { $ne: episodeId },
         })
         .limit(limit)
@@ -246,24 +311,27 @@ export async function getRelatedEpisodes(episodeId: string, limit: number = 5): 
 
     // Build query to find episodes with shared genres or hosts
     const query: any = {
-      type: "episode",
-      status: "published",
+      type: 'episode',
+      status: 'published',
       id: { $ne: episodeId },
     };
 
     // Add genre or host filters
     if (genres.length > 0) {
-      query["metadata.genres.id"] = { $in: genres };
+      query['metadata.genres.id'] = { $in: genres };
     }
     if (hosts.length > 0) {
-      query["metadata.regular_hosts.id"] = { $in: hosts };
+      query['metadata.regular_hosts.id'] = { $in: hosts };
     }
 
     // If we have both genres and hosts, use OR logic
     if (genres.length > 0 && hosts.length > 0) {
-      query.$or = [{ "metadata.genres.id": { $in: genres } }, { "metadata.regular_hosts.id": { $in: hosts } }];
-      delete query["metadata.genres.id"];
-      delete query["metadata.regular_hosts.id"];
+      query.$or = [
+        { 'metadata.genres.id': { $in: genres } },
+        { 'metadata.regular_hosts.id': { $in: hosts } },
+      ];
+      delete query['metadata.genres.id'];
+      delete query['metadata.regular_hosts.id'];
     }
 
     const response = await cosmic.objects
@@ -277,8 +345,8 @@ export async function getRelatedEpisodes(episodeId: string, limit: number = 5): 
     if (episodes.length < limit) {
       const randomResponse = await cosmic.objects
         .find({
-          type: "episode",
-          status: "published",
+          type: 'episode',
+          status: 'published',
           id: { $nin: [episodeId, ...episodes.map((e: EpisodeObject) => e.id)] },
         })
         .limit(limit - episodes.length)
@@ -289,7 +357,7 @@ export async function getRelatedEpisodes(episodeId: string, limit: number = 5): 
 
     return episodes.slice(0, limit) as EpisodeObject[];
   } catch (error) {
-    console.error("Error fetching related episodes:", error);
+    console.error('Error fetching related episodes:', error);
     return [];
   }
 }

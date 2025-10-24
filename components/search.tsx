@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import { Search as SearchIcon } from "lucide-react";
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { Search as SearchIcon } from 'lucide-react';
 
 interface SearchProps {
   value: string;
@@ -11,11 +11,17 @@ interface SearchProps {
   className?: string;
 }
 
-export function Search({ value, onChange, placeholder = "Search...", className }: SearchProps) {
+export function Search({ value, onChange, placeholder = 'Search...', className }: SearchProps) {
   return (
-    <div className={cn("relative", className)}>
-      <SearchIcon className="absolute h-4 w-4 text-muted-foreground" />
-      <Input type="search" placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} className="" />
+    <div className={cn('relative', className)}>
+      <SearchIcon className='absolute h-4 w-4 text-muted-foreground' />
+      <Input
+        type='search'
+        placeholder={placeholder}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className=''
+      />
     </div>
   );
 }

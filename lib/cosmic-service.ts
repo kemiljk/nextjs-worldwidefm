@@ -1,11 +1,5 @@
 import { createBucketClient } from '@cosmicjs/sdk';
-import {
-  CosmicResponse,
-  RadioShowObject,
-  CategoryObject,
-  PostObject,
-  AboutObject,
-} from './cosmic-config';
+import { CosmicResponse, RadioShowObject, CategoryObject, PostObject } from './cosmic-config';
 import { broadcastToISOString, extractDatePart } from './date-utils';
 
 const cosmic = createBucketClient({
@@ -323,7 +317,7 @@ export function transformShowToViewData(show: RadioShowObject) {
     // Preserve original metadata object
     metadata: show.metadata || {},
     // Map all metadata fields with their full object structure
-    genres: (show.metadata?.genres || []).map((genre) => ({
+    genres: (show.metadata?.genres || []).map(genre => ({
       id: genre.id,
       slug: genre.slug,
       title: genre.title,
@@ -337,7 +331,7 @@ export function transformShowToViewData(show: RadioShowObject) {
     })),
 
     // Tags format for ShowCard compatibility
-    tags: (show.metadata?.genres || []).map((genre) => ({
+    tags: (show.metadata?.genres || []).map(genre => ({
       name: genre.title,
       title: genre.title,
     })),
@@ -355,7 +349,7 @@ export function transformShowToViewData(show: RadioShowObject) {
       name: show.metadata?.regular_hosts?.[0]?.title || '',
     },
     host: show.metadata?.regular_hosts?.[0]?.title || '',
-    locations: (show.metadata?.locations || []).map((location) => ({
+    locations: (show.metadata?.locations || []).map(location => ({
       id: location.id,
       slug: location.slug,
       title: location.title,
@@ -367,7 +361,7 @@ export function transformShowToViewData(show: RadioShowObject) {
       modified_at: location.modified_at,
       published_at: location.published_at,
     })),
-    regular_hosts: (show.metadata?.regular_hosts || []).map((host) => ({
+    regular_hosts: (show.metadata?.regular_hosts || []).map(host => ({
       id: host.id,
       slug: host.slug,
       title: host.title,
@@ -379,7 +373,7 @@ export function transformShowToViewData(show: RadioShowObject) {
       modified_at: host.modified_at,
       published_at: host.published_at,
     })),
-    takeovers: (show.metadata?.takeovers || []).map((takeover) => ({
+    takeovers: (show.metadata?.takeovers || []).map(takeover => ({
       id: takeover.id,
       slug: takeover.slug,
       title: takeover.title,
@@ -463,7 +457,7 @@ export async function getPosts(
 ): Promise<CosmicResponse<PostObject>> {
   try {
     // Build the query
-    let query: any = {
+    const query: any = {
       type: 'posts',
       status: params.status || 'published',
     };

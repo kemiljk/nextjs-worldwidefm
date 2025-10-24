@@ -1,9 +1,9 @@
-"use server";
+'use server';
 
-import { RadioCultArtist } from "./radiocult-service";
+import { RadioCultArtist } from './radiocult-service';
 
 // Base URL for the RadioCult API
-const RADIOCULT_API_BASE_URL = "https://api.radiocult.fm";
+const RADIOCULT_API_BASE_URL = 'https://api.radiocult.fm';
 
 // Function to create a new artist in RadioCult if they don't exist
 export async function createArtist(artistData: {
@@ -25,8 +25,8 @@ export async function createArtist(artistData: {
     const STATION_ID = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
 
     if (!RADIOCULT_SECRET_KEY || !STATION_ID) {
-      console.error("Missing RadioCult API credentials");
-      throw new Error("Missing API credentials");
+      console.error('Missing RadioCult API credentials');
+      throw new Error('Missing API credentials');
     }
 
     // Prepare the data for creating a new artist
@@ -38,11 +38,16 @@ export async function createArtist(artistData: {
     // Add socials if provided (using correct RadioCult field names)
     if (artistData.socialLinks && Object.keys(artistData.socialLinks).length > 0) {
       createData.socials = {};
-      if (artistData.socialLinks.instagram) createData.socials.instagramHandle = artistData.socialLinks.instagram;
-      if (artistData.socialLinks.twitter) createData.socials.twitterHandle = artistData.socialLinks.twitter;
-      if (artistData.socialLinks.facebook) createData.socials.facebook = artistData.socialLinks.facebook;
-      if (artistData.socialLinks.mixcloud) createData.socials.mixcloud = artistData.socialLinks.mixcloud;
-      if (artistData.socialLinks.soundcloud) createData.socials.soundcloud = artistData.socialLinks.soundcloud;
+      if (artistData.socialLinks.instagram)
+        createData.socials.instagramHandle = artistData.socialLinks.instagram;
+      if (artistData.socialLinks.twitter)
+        createData.socials.twitterHandle = artistData.socialLinks.twitter;
+      if (artistData.socialLinks.facebook)
+        createData.socials.facebook = artistData.socialLinks.facebook;
+      if (artistData.socialLinks.mixcloud)
+        createData.socials.mixcloud = artistData.socialLinks.mixcloud;
+      if (artistData.socialLinks.soundcloud)
+        createData.socials.soundcloud = artistData.socialLinks.soundcloud;
       if (artistData.socialLinks.website) createData.socials.site = artistData.socialLinks.website;
     }
 
@@ -51,10 +56,10 @@ export async function createArtist(artistData: {
 
     // Send the creation request to RadioCult
     const response = await fetch(`${RADIOCULT_API_BASE_URL}/api/station/${STATION_ID}/artists`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "x-api-key": RADIOCULT_SECRET_KEY,
+        'Content-Type': 'application/json',
+        'x-api-key': RADIOCULT_SECRET_KEY,
       },
       body: JSON.stringify(createData),
     });
@@ -70,8 +75,8 @@ export async function createArtist(artistData: {
     const data = await response.json();
 
     if (!data.artist) {
-      console.error("No artist in creation response:", data);
-      throw new Error("Invalid response from API");
+      console.error('No artist in creation response:', data);
+      throw new Error('Invalid response from API');
     }
 
     console.log(`Successfully created artist ${data.artist.id} - ${data.artist.name}`);
@@ -104,16 +109,19 @@ export async function findOrCreateArtist(
     const STATION_ID = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
 
     if (!RADIOCULT_PUBLISHABLE_KEY || !STATION_ID) {
-      console.error("Missing RadioCult API credentials");
-      throw new Error("Missing API credentials");
+      console.error('Missing RadioCult API credentials');
+      throw new Error('Missing API credentials');
     }
 
     // Try to find the artist by name
-    const searchResponse = await fetch(`${RADIOCULT_API_BASE_URL}/api/station/${STATION_ID}/artists?search=${encodeURIComponent(name)}`, {
-      headers: {
-        "x-api-key": RADIOCULT_PUBLISHABLE_KEY,
-      },
-    });
+    const searchResponse = await fetch(
+      `${RADIOCULT_API_BASE_URL}/api/station/${STATION_ID}/artists?search=${encodeURIComponent(name)}`,
+      {
+        headers: {
+          'x-api-key': RADIOCULT_PUBLISHABLE_KEY,
+        },
+      }
+    );
 
     if (!searchResponse.ok) {
       const errorText = await searchResponse.text();
@@ -124,7 +132,9 @@ export async function findOrCreateArtist(
     const searchData = await searchResponse.json();
 
     // Check if we found an exact match
-    const exactMatch = (searchData.artists || []).find((artist: RadioCultArtist) => artist.name.toLowerCase() === name.toLowerCase());
+    const exactMatch = (searchData.artists || []).find(
+      (artist: RadioCultArtist) => artist.name.toLowerCase() === name.toLowerCase()
+    );
 
     if (exactMatch) {
       console.log(`Found existing artist: ${exactMatch.id} - ${exactMatch.name}`);

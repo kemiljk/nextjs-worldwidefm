@@ -47,9 +47,9 @@ export default function VideoGrid({ videos, availableCategories }: VideoGridProp
         // Map category IDs to full objects
         const categoryObjects = Array.isArray(video.metadata.categories)
           ? video.metadata.categories
-              .map((catId) =>
+              .map(catId =>
                 availableCategories.find(
-                  (cat) => cat.id === (typeof catId === 'string' ? catId : catId?.id)
+                  cat => cat.id === (typeof catId === 'string' ? catId : catId?.id)
                 )
               )
               .filter(Boolean)
@@ -59,27 +59,16 @@ export default function VideoGrid({ videos, availableCategories }: VideoGridProp
 
         return (
           <div key={`video-grid-${video.id}-${video.slug}-${video.metadata?.date || ''}-${index}`}>
-            <Link
-              href={`/videos/${video.slug}`}
-              className='group block'
-            >
+            <Link href={`/videos/${video.slug}`} className='group block'>
               <Card className='flex flex-col h-full'>
                 <CardContent className='flex flex-col flex-1 p-0 border border-white group-hover:border-almostblack'>
                   <div className='relative aspect-video'>
-                    <Image
-                      src={thumbnailUrl}
-                      alt={video.title}
-                      fill
-                      className='object-cover'
-                    />
+                    <Image src={thumbnailUrl} alt={video.title} fill className='object-cover' />
                     {categoryObjects.length > 0 && (
                       <div className='absolute top-3 left-3 flex flex-wrap gap-1'>
-                        {categoryObjects.map((cat) =>
+                        {categoryObjects.map(cat =>
                           cat ? (
-                            <GenreTag
-                              key={cat.id}
-                              className='border-white text-white'
-                            >
+                            <GenreTag key={cat.id} className='border-white text-white'>
                               {cat.title}
                             </GenreTag>
                           ) : null

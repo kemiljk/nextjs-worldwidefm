@@ -1,5 +1,5 @@
-import { getNavigation } from "@/lib/cosmic-service";
-import Navbar from "./navbar";
+import { getNavigation } from '@/lib/cosmic-service';
+import Navbar from './navbar';
 
 export default async function NavWrapper() {
   let navItems = [];
@@ -10,7 +10,7 @@ export default async function NavWrapper() {
       navItems = response.object.metadata.item;
     }
   } catch (error) {
-    console.error("Error fetching navigation:", error);
+    console.error('Error fetching navigation:', error);
     // Use default navItems as fallback
   }
 

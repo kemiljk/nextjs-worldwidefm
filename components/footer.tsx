@@ -40,22 +40,14 @@ export default async function Footer() {
 
                   if (!icon) {
                     return (
-                      <span
-                        key={index}
-                        className='text-red-500'
-                      >
+                      <span key={index} className='text-red-500'>
                         ❌ {link.icon}
                       </span>
                     );
                   }
 
                   return (
-                    <Link
-                      key={index}
-                      href={link.link}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                    >
+                    <Link key={index} href={link.link} target='_blank' rel='noopener noreferrer'>
                       <div
                         dangerouslySetInnerHTML={{
                           __html: icon.svg.replace(/<path /g, '<path fill="currentColor" '),
@@ -78,42 +70,27 @@ export default async function Footer() {
               </h3>
               <ul className='w-full flex flex-col '>
                 <li className='w-full hover:underline'>
-                  <Link
-                    href='/shows'
-                    className='font-sans text-b3 w-full'
-                  >
+                  <Link href='/shows' className='font-sans text-b3 w-full'>
                     Archive
                   </Link>
                 </li>
                 <li className='inline hover:underline'>
-                  <Link
-                    href='/about'
-                    className='font-sans text-b3 w-full'
-                  >
+                  <Link href='/about' className='font-sans text-b3 w-full'>
                     About
                   </Link>
                 </li>
                 <li className='inline hover:underline'>
-                  <Link
-                    href='/contact'
-                    className='font-sans text-b3 w-full'
-                  >
+                  <Link href='/contact' className='font-sans text-b3 w-full'>
                     Contact
                   </Link>
                 </li>
                 <li className='inline hover:underline'>
-                  <Link
-                    href='/privacy-policy'
-                    className='font-sans text-b3 w-full'
-                  >
+                  <Link href='/privacy-policy' className='font-sans text-b3 w-full'>
                     Privacy Policy
                   </Link>
                 </li>
                 <li className='inline hover:underline'>
-                  <Link
-                    href='/terms-and-conditions'
-                    className='font-sans text-b3 w-full'
-                  >
+                  <Link href='/terms-and-conditions' className='font-sans text-b3 w-full'>
                     Terms & Conditions
                   </Link>
                 </li>

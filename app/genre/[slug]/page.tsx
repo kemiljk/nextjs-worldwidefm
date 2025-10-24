@@ -16,7 +16,7 @@ export default async function GenreDetailPage({
   const resolvedSearchParams = await searchParams;
 
   const canonicalGenres = await getCanonicalGenres();
-  const genre = canonicalGenres.find((g) => g.slug === slug);
+  const genre = canonicalGenres.find(g => g.slug === slug);
   if (!genre) {
     notFound();
   }
@@ -59,5 +59,5 @@ export default async function GenreDetailPage({
 
 export async function generateStaticParams() {
   const canonicalGenres = await getCanonicalGenres();
-  return canonicalGenres.map((genre) => ({ slug: genre.slug }));
+  return canonicalGenres.map(genre => ({ slug: genre.slug }));
 }

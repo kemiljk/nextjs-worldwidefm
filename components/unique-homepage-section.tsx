@@ -46,10 +46,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
   return (
     <section className='relative w-full h-full overflow-visible'>
       {/* Solid Color Background*/}
-      <div
-        className='absolute inset-0'
-        style={{ backgroundColor: sectionColor }}
-      />
+      <div className='absolute inset-0' style={{ backgroundColor: sectionColor }} />
 
       {/*Linear white gradient*/}
       <div

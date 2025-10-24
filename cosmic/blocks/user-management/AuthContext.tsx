@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { getAuthUser, logoutUser } from "./actions";
+import { createContext, useContext, useEffect, useState } from 'react';
+import { getAuthUser, logoutUser } from './actions';
 
 type User = {
   id: string;
@@ -30,13 +30,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     getAuthUser()
-      .then((userData) => {
+      .then(userData => {
         if (userData) {
           setUser(userData);
         }
       })
-      .catch((error) => {
-        console.error("Error fetching user data:", error);
+      .catch(error => {
+        console.error('Error fetching user data:', error);
       })
       .finally(() => {
         setIsLoading(false);
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await logoutUser();
       setUser(null);
     } catch (error) {
-      console.error("Error logging out:", error);
+      console.error('Error logging out:', error);
     }
   };
 

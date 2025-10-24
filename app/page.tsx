@@ -15,7 +15,7 @@ import ArchiveSection from '@/components/archive/archive-section';
 // Removed date-fns imports as they're no longer needed with simplified FeaturedSections
 import GenreSelector from '@/components/genre-selector';
 import FeaturedSections from '@/components/featured-sections';
-import { HomepageSectionItem, ProcessedHomepageSection, ColouredSection } from '@/lib/cosmic-types';
+import { HomepageSectionItem, ProcessedHomepageSection } from '@/lib/cosmic-types';
 import HomepageHero from '@/components/homepage-hero';
 import InsertedSection from '@/components/inserted-section';
 import LatestEpisodes from '@/components/latest-episodes';
@@ -61,8 +61,8 @@ export default async function Home() {
   const rawDynamicSections = homepageData?.metadata?.sections || [];
   const processedDynamicSections: ProcessedHomepageSection[] = await Promise.all(
     rawDynamicSections
-      .filter((section) => section.is_active && section.items && section.items.length > 0)
-      .map(async (section) => {
+      .filter(section => section.is_active && section.items && section.items.length > 0)
+      .map(async section => {
         const fetchedItemsPromises = section.items
           .map((item: any) => {
             let id: string = '';
@@ -78,8 +78,8 @@ export default async function Home() {
             }
             return id;
           })
-          .filter((id) => id && id.length > 0)
-          .map((id) => fetchCosmicObjectById(id));
+          .filter(id => id && id.length > 0)
+          .map(id => fetchCosmicObjectById(id));
 
         const fetchedItems = (await Promise.all(fetchedItemsPromises)).filter(
           Boolean
@@ -98,12 +98,7 @@ export default async function Home() {
       <div className='mt-4 mb-12'>
         {/* Hero Section: Conditionally render based on Cosmic data or fallback */}
         <Suspense>
-          {heroLayout && (
-            <HomepageHero
-              heroLayout={heroLayout}
-              heroItems={heroItems}
-            />
-          )}
+          {heroLayout && <HomepageHero heroLayout={heroLayout} heroItems={heroItems} />}
         </Suspense>
         <Suspense>
           <FeaturedSections shows={shows.slice(0, 2)} />
@@ -115,28 +110,17 @@ export default async function Home() {
 
         {/* Coloured Sections: horizontal swipe gallery (CSS-only, no client hooks) */}
         <Suspense>
-          <ColouredSectionGallery
-            colouredSections={colouredSections}
-            homepageData={homepageData}
-          />
+          <ColouredSectionGallery colouredSections={colouredSections} homepageData={homepageData} />
         </Suspense>
 
         {/* Static sections stacked below */}
         {processedDynamicSections.map((section, index) => (
-          <Suspense
-            key={`static-${section.title}-${index}`}
-            fallback={<div>Loading...</div>}
-          >
+          <Suspense key={`static-${section.title}-${index}`} fallback={<div>Loading...</div>}>
             <InsertedSection section={section} />
           </Suspense>
         ))}
         {/* From The Archive Section */}
-        {archiveShows.length > 0 && (
-          <ArchiveSection
-            shows={archiveShows}
-            className='pt-8'
-          />
-        )}
+        {archiveShows.length > 0 && <ArchiveSection shows={archiveShows} className='pt-8' />}
         {/* Genre Selector Section */}
         <Suspense>
           <GenreSelector shows={shows} />
@@ -144,10 +128,7 @@ export default async function Home() {
 
         {/* Video Section */}
         {videosData.videos.length > 0 && (
-          <VideoSection
-            videos={videosData.videos}
-            className='pt-8'
-          />
+          <VideoSection videos={videosData.videos} className='pt-8' />
         )}
 
         {/* Editorial section */}

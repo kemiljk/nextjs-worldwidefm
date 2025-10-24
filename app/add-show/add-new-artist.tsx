@@ -35,32 +35,32 @@ const artistFormSchema = z.object({
   instagram: z
     .string()
     .optional()
-    .refine((val) => !val || !val.includes('instagram.com'), {
+    .refine(val => !val || !val.includes('instagram.com'), {
       message: "Please enter just the handle (e.g., 'username'), not the full URL",
     }),
   twitter: z
     .string()
     .optional()
-    .refine((val) => !val || (!val.includes('twitter.com') && !val.includes('x.com')), {
+    .refine(val => !val || (!val.includes('twitter.com') && !val.includes('x.com')), {
       message: "Please enter just the handle (e.g., 'username'), not the full URL",
     }),
   facebook: z
     .string()
     .optional()
-    .refine((val) => !val || !val.includes('facebook.com'), {
+    .refine(val => !val || !val.includes('facebook.com'), {
       message: "Please enter just the handle (e.g., 'username'), not the full URL",
     }),
   website: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
   mixcloud: z
     .string()
     .optional()
-    .refine((val) => !val || !val.includes('mixcloud.com'), {
+    .refine(val => !val || !val.includes('mixcloud.com'), {
       message: "Please enter just the handle (e.g., 'username'), not the full URL",
     }),
   soundcloud: z
     .string()
     .optional()
-    .refine((val) => !val || !val.includes('soundcloud.com'), {
+    .refine(val => !val || !val.includes('soundcloud.com'), {
       message: "Please enter just the handle (e.g., 'username'), not the full URL",
     }),
 });
@@ -180,15 +180,9 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={setOpen}
-    >
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant='outline'
-          size='sm'
-        >
+        <Button variant='outline' size='sm'>
           Add New Artist
         </Button>
       </DialogTrigger>
@@ -198,10 +192,7 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
         </DialogHeader>
 
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='space-y-4'
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
             <FormField
               control={form.control}
               name='name'
@@ -209,10 +200,7 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
                 <FormItem>
                   <FormLabel>Name *</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder='Artist name'
-                      {...field}
-                    />
+                    <Input placeholder='Artist name' {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -261,11 +249,7 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
                   <FormItem>
                     <FormLabel>Instagram</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder='Instagram handle'
-                        {...field}
-                        value={field.value || ''}
-                      />
+                      <Input placeholder='Instagram handle' {...field} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -279,11 +263,7 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
                   <FormItem>
                     <FormLabel>Twitter</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder='Twitter handle'
-                        {...field}
-                        value={field.value || ''}
-                      />
+                      <Input placeholder='Twitter handle' {...field} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -299,11 +279,7 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
                   <FormItem>
                     <FormLabel>Facebook</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder='Facebook page'
-                        {...field}
-                        value={field.value || ''}
-                      />
+                      <Input placeholder='Facebook page' {...field} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -337,11 +313,7 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
                   <FormItem>
                     <FormLabel>Mixcloud</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder='Mixcloud handle'
-                        {...field}
-                        value={field.value || ''}
-                      />
+                      <Input placeholder='Mixcloud handle' {...field} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -355,11 +327,7 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
                   <FormItem>
                     <FormLabel>Soundcloud</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder='Soundcloud handle'
-                        {...field}
-                        value={field.value || ''}
-                      />
+                      <Input placeholder='Soundcloud handle' {...field} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -368,10 +336,7 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
             </div>
 
             <DialogFooter>
-              <Button
-                type='submit'
-                disabled={isLoading}
-              >
+              <Button type='submit' disabled={isLoading}>
                 {isLoading ? 'Creating...' : 'Create Artist'}
               </Button>
             </DialogFooter>

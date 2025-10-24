@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { SearchResult, FilterItem } from '@/lib/search-context';
+import { searchContent } from '@/lib/actions';
 
 interface UseSearchReturn {
   searchTerm: string;
@@ -67,38 +68,38 @@ export function useSearch(): UseSearchReturn {
         types: [] as FilterItem[],
       };
 
-      allContent.forEach((item) => {
+      allContent.forEach(item => {
         // Add genres
-        item.genres?.forEach((genre) => {
-          if (!newFilters.genres.some((g) => g.slug === genre.slug)) {
+        item.genres?.forEach(genre => {
+          if (!newFilters.genres.some(g => g.slug === genre.slug)) {
             newFilters.genres.push(genre);
           }
         });
 
         // Add locations
-        item.locations?.forEach((location) => {
-          if (!newFilters.locations.some((l) => l.slug === location.slug)) {
+        item.locations?.forEach(location => {
+          if (!newFilters.locations.some(l => l.slug === location.slug)) {
             newFilters.locations.push(location);
           }
         });
 
         // Add hosts
-        item.hosts?.forEach((host) => {
-          if (!newFilters.hosts.some((h) => h.slug === host.slug)) {
+        item.hosts?.forEach(host => {
+          if (!newFilters.hosts.some(h => h.slug === host.slug)) {
             newFilters.hosts.push(host);
           }
         });
 
         // Add takeovers
-        item.takeovers?.forEach((takeover) => {
-          if (!newFilters.takeovers.some((t) => t.slug === takeover.slug)) {
+        item.takeovers?.forEach(takeover => {
+          if (!newFilters.takeovers.some(t => t.slug === takeover.slug)) {
             newFilters.takeovers.push(takeover);
           }
         });
       });
 
       // Sort filters alphabetically by title
-      Object.keys(newFilters).forEach((key) => {
+      Object.keys(newFilters).forEach(key => {
         newFilters[key as keyof typeof newFilters].sort((a, b) => a.title.localeCompare(b.title));
       });
 
@@ -114,9 +115,9 @@ export function useSearch(): UseSearchReturn {
         setResults([]);
         return;
       }
-      const res = await fetch(`/api/search?q=${encodeURIComponent(term)}&source=cosmic`);
-      const data = await res.json();
-      setResults(Array.isArray(data.results) ? data.results : []);
+      // Use server action instead of API route
+      const results = await searchContent(term, 'cosmic', 100);
+      setResults(Array.isArray(results) ? results : []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -135,10 +136,10 @@ export function useSearch(): UseSearchReturn {
   }, [debouncedSearchTerm, performSearch]);
 
   const toggleFilter = useCallback((filter: FilterItem, type: keyof typeof filters) => {
-    setFilters((prev) => {
+    setFilters(prev => {
       const newFilters = { ...prev };
       if (newFilters[type].includes(filter.slug)) {
-        newFilters[type] = newFilters[type].filter((f) => f !== filter.slug);
+        newFilters[type] = newFilters[type].filter(f => f !== filter.slug);
       } else {
         newFilters[type] = [...newFilters[type], filter.slug];
       }

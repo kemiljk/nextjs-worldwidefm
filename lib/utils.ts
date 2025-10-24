@@ -1,5 +1,5 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -11,17 +11,17 @@ export function cn(...inputs: ClassValue[]) {
  * @returns Formatted date string (e.g. "Feb 24, 2025")
  */
 export function formatDate(dateString: string): string {
-  if (!dateString) return "";
+  if (!dateString) return '';
 
   const date = new Date(dateString);
 
   // Check if date is valid
   if (isNaN(date.getTime())) return dateString;
 
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   });
 }
 
@@ -31,16 +31,16 @@ export function formatDate(dateString: string): string {
  * @returns Formatted date string (e.g. 'Wed 01.11')
  */
 export function formatDateShort(dateString: string): string {
-  if (!dateString) return "";
+  if (!dateString) return '';
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;
   return date
-    .toLocaleDateString("en-GB", {
-      weekday: "short",
-      day: "2-digit",
-      month: "2-digit",
+    .toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
     })
-    .replace(",", "");
+    .replace(',', '');
 }
 
 /**
@@ -52,7 +52,7 @@ export function stripUrlsFromText(text: string): string {
   if (!text) return text;
   // Regex to match URLs (http, https, www, etc.)
   return text
-    .replace(/https?:\/\/\S+|www\.[a-zA-Z0-9./?=_-]+/g, "")
-    .replace(/\s{2,}/g, " ")
+    .replace(/https?:\/\/\S+|www\.[a-zA-Z0-9./?=_-]+/g, '')
+    .replace(/\s{2,}/g, ' ')
     .trim();
 }

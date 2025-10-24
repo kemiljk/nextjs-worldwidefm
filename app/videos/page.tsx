@@ -1,9 +1,9 @@
-import { Metadata } from "next";
-import { Suspense } from "react";
-import { PageHeader } from "@/components/shared/page-header";
-import { getVideos, getVideoCategories } from "@/lib/actions";
-import VideosClient from "./videos-client";
-import { generateVideosMetadata } from "@/lib/metadata-utils";
+import { Metadata } from 'next';
+import { Suspense } from 'react';
+import { PageHeader } from '@/components/shared/page-header';
+import { getVideos, getVideoCategories } from '@/lib/actions';
+import VideosClient from './videos-client';
+import { generateVideosMetadata } from '@/lib/metadata-utils';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateVideosMetadata();
@@ -16,39 +16,36 @@ export default async function VideosPage() {
   ]);
 
   return (
-    <div className="w-full overflow-x-hidden">
+    <div className='w-full overflow-x-hidden'>
       {/* Header (copied from shows-client but with Videos title) */}
-      <div className="relative w-full h-[25vh] sm:h-[35vh] overflow-hidden">
+      <div className='relative w-full h-[25vh] sm:h-[35vh] overflow-hidden'>
         {/* colour background */}
-        <div className="absolute inset-0 bg-soul" />
+        <div className='absolute inset-0 bg-soul' />
 
         {/* Linear white gradient */}
         <div
-          className="absolute inset-0 bg-gradient-to-b from-white via-white/0 to-white"
-          style={{ mixBlendMode: "hue" }}
+          className='absolute inset-0 bg-gradient-to-b from-white via-white/0 to-white'
+          style={{ mixBlendMode: 'hue' }}
         />
 
         {/* Noise Overlay */}
         <div
-          className="absolute inset-0"
+          className='absolute inset-0'
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-            backgroundSize: "50px 50px",
-            mixBlendMode: "screen",
+            backgroundSize: '50px 50px',
+            mixBlendMode: 'screen',
           }}
         />
-        <div className="absolute bottom-0 left-0 w-full px-5 z-10">
-          <PageHeader title="Videos" />
+        <div className='absolute bottom-0 left-0 w-full px-5 z-10'>
+          <PageHeader title='Videos' />
         </div>
       </div>
 
       {/* Content */}
-      <div className="px-5 pb-20 font-mono uppercase text-m8">
+      <div className='px-5 pb-20 font-mono uppercase text-m8'>
         <Suspense fallback={<div>Loading...</div>}>
-          <VideosClient
-            initialVideos={videos.videos}
-            availableCategories={videoCategories}
-          />
+          <VideosClient initialVideos={videos.videos} availableCategories={videoCategories} />
         </Suspense>
       </div>
     </div>

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from 'react';
 
 interface Show {
   key: string;
@@ -156,7 +156,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
 export function useMediaPlayer() {
   const context = useContext(MediaPlayerContext);
   if (context === undefined) {
-    throw new Error("useMediaPlayer must be used within a MediaPlayerProvider");
+    throw new Error('useMediaPlayer must be used within a MediaPlayerProvider');
   }
   return context;
 }

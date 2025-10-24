@@ -1,37 +1,44 @@
 let userConfig = undefined;
 try {
-  userConfig = await import("./v0-user-next.config");
+  userConfig = await import('./v0-user-next.config');
 } catch (e) {
   // ignore error
 }
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
   images: {
     unoptimized: true,
-    domains: ["thumbnailer.mixcloud.com", "i1.wp.com"],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'thumbnailer.mixcloud.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i1.wp.com',
+      },
+    ],
   },
   experimental: {
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
     serverActions: {
-      bodySizeLimit: "100mb",
+      bodySizeLimit: '100mb',
     },
   },
+  serverExternalPackages: ['prettier', '@react-email/render'],
   async headers() {
     return [
       {
-        source: "/(.*)",
+        source: '/(.*)',
         headers: [
           {
-            key: "Content-Security-Policy",
+            key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://widget.mixcloud.com https://player-widget.mixcloud.com https://static.cloudflareinsights.com https://connect.facebook.net https://www.googletagmanager.com https://cdn.socket.io",
@@ -42,7 +49,7 @@ const nextConfig = {
               "media-src 'self' https: blob:",
               "style-src 'self' 'unsafe-inline' https:",
               "font-src 'self' https: data:",
-            ].join("; "),
+            ].join('; '),
           },
         ],
       },
@@ -58,7 +65,7 @@ function mergeConfig(nextConfig, userConfig) {
   }
 
   for (const key in userConfig) {
-    if (typeof nextConfig[key] === "object" && !Array.isArray(nextConfig[key])) {
+    if (typeof nextConfig[key] === 'object' && !Array.isArray(nextConfig[key])) {
       nextConfig[key] = {
         ...nextConfig[key],
         ...userConfig[key],

@@ -1,21 +1,24 @@
-import { NextRequest, NextResponse } from "next/server";
-import { sanitizeTracklist, sanitizeEditorialContent } from "@/lib/sanitize-html";
+import { NextRequest, NextResponse } from 'next/server';
+import { sanitizeTracklist, sanitizeEditorialContent } from '@/lib/sanitize-html';
 
 export async function POST(request: NextRequest) {
   try {
-    const { content, type = "default" } = await request.json();
+    const { content, type = 'default' } = await request.json();
 
-    if (!content || typeof content !== "string") {
-      return NextResponse.json({ error: "Content is required and must be a string" }, { status: 400 });
+    if (!content || typeof content !== 'string') {
+      return NextResponse.json(
+        { error: 'Content is required and must be a string' },
+        { status: 400 }
+      );
     }
 
     let sanitizedContent: string;
 
     switch (type) {
-      case "tracklist":
+      case 'tracklist':
         sanitizedContent = sanitizeTracklist(content);
         break;
-      case "editorial":
+      case 'editorial':
         sanitizedContent = sanitizeEditorialContent(content);
         break;
       default:
@@ -30,17 +33,17 @@ export async function POST(request: NextRequest) {
       type,
     });
   } catch (error) {
-    console.error("Error sanitizing content:", error);
-    return NextResponse.json({ error: "Failed to sanitize content" }, { status: 500 });
+    console.error('Error sanitizing content:', error);
+    return NextResponse.json({ error: 'Failed to sanitize content' }, { status: 500 });
   }
 }
 
 export async function GET() {
   return NextResponse.json({
-    message: "Use POST method with content and type (tracklist|editorial|default)",
+    message: 'Use POST method with content and type (tracklist|editorial|default)',
     example: {
-      content: "<p>Your HTML content here</p>",
-      type: "tracklist",
+      content: '<p>Your HTML content here</p>',
+      type: 'tracklist',
     },
   });
 }

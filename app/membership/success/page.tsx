@@ -40,17 +40,10 @@ export default function MembershipSuccessPage() {
         </div>
 
         <div className='space-y-4'>
-          <Button
-            asChild
-            className='w-full'
-          >
+          <Button asChild className='w-full'>
             <Link href='/dashboard'>Go to Dashboard</Link>
           </Button>
-          <Button
-            variant='outline'
-            asChild
-            className='w-full'
-          >
+          <Button variant='outline' asChild className='w-full'>
             <Link href='/shows'>Start Listening</Link>
           </Button>
         </div>
@@ -58,10 +51,7 @@ export default function MembershipSuccessPage() {
         <div className='mt-8 text-sm text-muted-foreground'>
           <p>
             Need help? Contact us at{' '}
-            <a
-              href='mailto:support@worldwidefm.net'
-              className='text-primary hover:underline'
-            >
+            <a href='mailto:support@worldwidefm.net' className='text-primary hover:underline'>
               support@worldwidefm.net
             </a>
           </p>

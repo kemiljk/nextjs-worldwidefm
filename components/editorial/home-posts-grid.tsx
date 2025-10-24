@@ -11,16 +11,12 @@ interface HomePostsGridProps {
 export default function HomePostsGrid({ posts }: HomePostsGridProps) {
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-      {posts.map((post) => {
+      {posts.map(post => {
         const postDate = post.metadata?.date ? new Date(post.metadata.date) : null;
         const formattedDate = postDate ? format(postDate, 'dd-MM-yyyy') : '';
 
         return (
-          <Link
-            href={`/editorial/${post.slug}`}
-            key={post.slug}
-            className='group'
-          >
+          <Link href={`/editorial/${post.slug}`} key={post.slug} className='group'>
             <div className='relative'>
               <div className='relative aspect-square w-full overflow-hidden'>
                 <Image
@@ -38,7 +34,7 @@ export default function HomePostsGrid({ posts }: HomePostsGridProps) {
                   {post.title}
                 </h3>
                 <div className='flex flex-wrap mt-2'>
-                  {post.metadata.categories?.map((category) => (
+                  {post.metadata.categories?.map(category => (
                     <GenreTag key={category.slug}>{category.title}</GenreTag>
                   ))}
                 </div>

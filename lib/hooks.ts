@@ -1,7 +1,12 @@
-import { useState, useEffect } from "react";
-import { getRadioShows, getSchedule, transformShowToViewData, getRadioShowBySlug } from "./cosmic-service";
-import { RadioShowObject, ScheduleObject } from "./cosmic-config";
-import { addHours, isWithinInterval, isAfter } from "date-fns";
+import { useState, useEffect } from 'react';
+import {
+  getRadioShows,
+  getSchedule,
+  transformShowToViewData,
+  getRadioShowBySlug,
+} from './cosmic-service';
+import { ScheduleObject } from './cosmic-config';
+import { addHours, isWithinInterval, isAfter } from 'date-fns';
 
 export function useRadioShows(limit = 5) {
   const [shows, setShows] = useState<ReturnType<typeof transformShowToViewData>[]>([]);
@@ -19,7 +24,7 @@ export function useRadioShows(limit = 5) {
           setShows(transformedShows);
         }
       } catch (err) {
-        setError(err instanceof Error ? err : new Error("Unknown error fetching radio shows"));
+        setError(err instanceof Error ? err : new Error('Unknown error fetching radio shows'));
       } finally {
         setLoading(false);
       }
@@ -48,7 +53,9 @@ export function useRadioShowBySlug(slug: string) {
           setShow(transformShowToViewData(response.objects[0]));
         }
       } catch (err) {
-        setError(err instanceof Error ? err : new Error(`Unknown error fetching radio show: ${slug}`));
+        setError(
+          err instanceof Error ? err : new Error(`Unknown error fetching radio show: ${slug}`)
+        );
       } finally {
         setLoading(false);
       }
@@ -60,10 +67,14 @@ export function useRadioShowBySlug(slug: string) {
   return { show, loading, error };
 }
 
-export function useSchedule(slug = "main-schedule") {
+export function useSchedule(slug = 'main-schedule') {
   const [schedule, setSchedule] = useState<ScheduleObject | null>(null);
-  const [currentShow, setCurrentShow] = useState<ReturnType<typeof transformShowToViewData> | null>(null);
-  const [upcomingShow, setUpcomingShow] = useState<ReturnType<typeof transformShowToViewData> | null>(null);
+  const [currentShow, setCurrentShow] = useState<ReturnType<typeof transformShowToViewData> | null>(
+    null
+  );
+  const [upcomingShow, setUpcomingShow] = useState<ReturnType<
+    typeof transformShowToViewData
+  > | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -77,11 +88,11 @@ export function useSchedule(slug = "main-schedule") {
           setSchedule({
             slug: response.object.slug,
             title: response.object.title,
-            type: "schedule",
+            type: 'schedule',
             metadata: {
               shows: [],
               scheduled_shows: [],
-              is_active: response.object.metadata.is_active === "true",
+              is_active: response.object.metadata.is_active === 'true',
               special_scheduling_options: {
                 override_normal_schedule: false,
                 override_reason: null,
@@ -94,17 +105,17 @@ export function useSchedule(slug = "main-schedule") {
           // If no schedule, get shows based on broadcast dates
           const showsResponse = await getRadioShows({
             limit: 7,
-            sort: "-metadata.broadcast_date",
-            status: "published",
+            sort: '-metadata.broadcast_date',
+            status: 'published',
           });
 
           if (showsResponse.objects && showsResponse.objects.length > 0) {
             const now = new Date();
             const allShows = showsResponse.objects
-              .filter((show) => show.metadata?.broadcast_date)
+              .filter(show => show.metadata?.broadcast_date)
               .sort((a, b) => {
-                const dateA = new Date(a.metadata.broadcast_date || "");
-                const dateB = new Date(b.metadata.broadcast_date || "");
+                const dateA = new Date(a.metadata.broadcast_date || '');
+                const dateB = new Date(b.metadata.broadcast_date || '');
                 if (isNaN(dateA.getTime())) return 1;
                 if (isNaN(dateB.getTime())) return -1;
                 return dateB.getTime() - dateA.getTime();
@@ -112,8 +123,8 @@ export function useSchedule(slug = "main-schedule") {
 
             if (allShows.length > 0) {
               // Find current show (within last 2 hours)
-              const currentShowObj = allShows.find((show) => {
-                const startTime = new Date(show.metadata.broadcast_date || "");
+              const currentShowObj = allShows.find(show => {
+                const startTime = new Date(show.metadata.broadcast_date || '');
                 const endTime = addHours(startTime, 2);
                 return isWithinInterval(now, { start: startTime, end: endTime });
               });
@@ -124,13 +135,15 @@ export function useSchedule(slug = "main-schedule") {
 
               // Get upcoming shows (future shows)
               const upcomingShowsList = allShows
-                .filter((show) => {
-                  const startTime = new Date(show.metadata.broadcast_date || "");
-                  return isAfter(startTime, now) && (!currentShowObj || show.id !== currentShowObj.id);
+                .filter(show => {
+                  const startTime = new Date(show.metadata.broadcast_date || '');
+                  return (
+                    isAfter(startTime, now) && (!currentShowObj || show.id !== currentShowObj.id)
+                  );
                 })
                 .sort((a, b) => {
-                  const dateA = new Date(a.metadata.broadcast_date || "");
-                  const dateB = new Date(b.metadata.broadcast_date || "");
+                  const dateA = new Date(a.metadata.broadcast_date || '');
+                  const dateB = new Date(b.metadata.broadcast_date || '');
                   return dateA.getTime() - dateB.getTime();
                 });
 
@@ -141,7 +154,9 @@ export function useSchedule(slug = "main-schedule") {
           }
         }
       } catch (err) {
-        setError(err instanceof Error ? err : new Error(`Unknown error fetching schedule: ${slug}`));
+        setError(
+          err instanceof Error ? err : new Error(`Unknown error fetching schedule: ${slug}`)
+        );
       } finally {
         setLoading(false);
       }

@@ -502,7 +502,7 @@ export async function getEventBySlug(slug: string): Promise<RadioCultEvent | nul
       });
 
       // Find the event with matching slug
-      const event = (events || []).find((e) => e && e.slug === slug);
+      const event = (events || []).find(e => e && e.slug === slug);
 
       if (!event) {
         console.log(`No event found with slug "${slug}" in schedule`);
@@ -558,14 +558,14 @@ export async function getScheduleData(): Promise<{
 
     // Find the current event (one that's currently running)
     const currentEvent =
-      sortedEvents.find((event) => {
+      sortedEvents.find(event => {
         const startTime = new Date(event.startTime);
         const endTime = new Date(event.endTime);
         return now >= startTime && now <= endTime;
       }) || null;
 
     // Find upcoming events (excluding the current one)
-    const upcomingEvents = sortedEvents.filter((event) => {
+    const upcomingEvents = sortedEvents.filter(event => {
       const startTime = new Date(event.startTime);
       return startTime > now && (!currentEvent || event.id !== currentEvent.id);
     });
@@ -611,7 +611,7 @@ export function transformRadioCultEvent(
   const genreObjects: GenreObject[] = cosmicShow?.metadata?.genres || [];
 
   // Create host objects from artists
-  const hostObjects: HostObject[] = event.artists.map((artist) => ({
+  const hostObjects: HostObject[] = event.artists.map(artist => ({
     id: artist.id,
     slug: artist.slug,
     title: artist.name,

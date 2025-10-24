@@ -137,7 +137,7 @@ export function AddShowForm() {
           getArtists(),
           fetchGenres(),
           getCosmicLocations(),
-          fetch('/api/form-texts').then((res) => res.json()),
+          fetch('/api/form-texts').then(res => res.json()),
         ]);
 
         setArtists(artistList);
@@ -191,7 +191,7 @@ export function AddShowForm() {
   const handleArtistInputChange = (value: string) => {
     setArtistInput(value);
     setIsArtistListOpen(true);
-    const selectedArtist = artists.find((a) => a.id === form.watch('artistId'));
+    const selectedArtist = artists.find(a => a.id === form.watch('artistId'));
     if (selectedArtist && value !== selectedArtist.name) {
       form.setValue('artistId', '');
     }
@@ -206,7 +206,7 @@ export function AddShowForm() {
   useEffect(() => {
     const selectedArtistId = form.watch('artistId');
     if (selectedArtistId) {
-      const selectedArtist = artists.find((a) => a.id === selectedArtistId);
+      const selectedArtist = artists.find(a => a.id === selectedArtistId);
       if (selectedArtist) {
         setArtistInput(selectedArtist.name);
       }
@@ -216,7 +216,7 @@ export function AddShowForm() {
   // Handle newly created artist
   const handleArtistCreated = (newArtist: RadioCultArtist) => {
     // Add the new artist to the artists list
-    setArtists((prevArtists) => [newArtist, ...prevArtists]);
+    setArtists(prevArtists => [newArtist, ...prevArtists]);
 
     // Select the newly created artist
     form.setValue('artistId', newArtist.id);
@@ -235,12 +235,12 @@ export function AddShowForm() {
 
   // Handle genre removal
   const handleGenreRemove = (genreId: string) => {
-    setSelectedGenres(selectedGenres.filter((id) => id !== genreId));
+    setSelectedGenres(selectedGenres.filter(id => id !== genreId));
   };
 
   // Get genre title by ID
   const getGenreTitle = (genreId: string) => {
-    const genre = genres.find((g) => g.id === genreId);
+    const genre = genres.find(g => g.id === genreId);
     return genre ? genre.title : genreId;
   };
 
@@ -333,7 +333,7 @@ export function AddShowForm() {
           'metadata',
           JSON.stringify({
             title: values.title,
-            artist: artists.find((a) => a.id === values.artistId)?.name || undefined,
+            artist: artists.find(a => a.id === values.artistId)?.name || undefined,
           })
         );
 
@@ -514,17 +514,11 @@ export function AddShowForm() {
         </div>
 
         <div className='flex flex-col sm:flex-row gap-3'>
-          <Button
-            onClick={handleCreateAnother}
-            className='flex items-center gap-2'
-          >
+          <Button onClick={handleCreateAnother} className='flex items-center gap-2'>
             <ArrowLeft className='w-4 h-4' />
             Upload Another Show
           </Button>
-          <Button
-            variant='outline'
-            onClick={() => (window.location.href = '/')}
-          >
+          <Button variant='outline' onClick={() => (window.location.href = '/')}>
             Return to Home
           </Button>
         </div>
@@ -534,10 +528,7 @@ export function AddShowForm() {
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className='space-y-6'
-      >
+      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
         <div className='space-y-4 mb-12'>
           <h2 className='text-h7 font-display uppercase font-normal text-almostblack dark:text-white'>
             {formTexts['show-details']?.title || 'Show Details'}
@@ -550,11 +541,7 @@ export function AddShowForm() {
               <FormItem>
                 <FormLabel>Show Title</FormLabel>
                 <FormControl>
-                  <Input
-                    disabled={isLoading}
-                    placeholder='Enter show title'
-                    {...field}
-                  />
+                  <Input disabled={isLoading} placeholder='Enter show title' {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -589,11 +576,7 @@ export function AddShowForm() {
                 <FormItem>
                   <FormLabel>Date</FormLabel>
                   <FormControl>
-                    <Input
-                      disabled={isLoading}
-                      type='date'
-                      {...field}
-                    />
+                    <Input disabled={isLoading} type='date' {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -606,11 +589,7 @@ export function AddShowForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Start Time</FormLabel>
-                  <Select
-                    disabled={isLoading}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
+                  <Select disabled={isLoading} onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder='Select start time' />
@@ -646,11 +625,7 @@ export function AddShowForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Duration</FormLabel>
-                  <Select
-                    disabled={isLoading}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
+                  <Select disabled={isLoading} onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder='Select duration' />
@@ -749,10 +724,10 @@ export function AddShowForm() {
                   {artistInput && isArtistListOpen && (
                     <CommandList onClickOutside={() => setIsArtistListOpen(false)}>
                       {artists
-                        .filter((artist) =>
+                        .filter(artist =>
                           artist.name.toLowerCase().includes(artistInput.toLowerCase())
                         )
-                        .map((artist) => (
+                        .map(artist => (
                           <CommandItem
                             key={artist.id}
                             value={artist.id}
@@ -762,7 +737,7 @@ export function AddShowForm() {
                             {artist.name}
                           </CommandItem>
                         ))}
-                      {artists.filter((artist) =>
+                      {artists.filter(artist =>
                         artist.name.toLowerCase().includes(artistInput.toLowerCase())
                       ).length === 0 && (
                         <CommandEmpty>No artists found matching "{artistInput}"</CommandEmpty>
@@ -800,7 +775,7 @@ export function AddShowForm() {
                       <CommandInput
                         placeholder='Type to search for genres'
                         value={selectedGenreInput}
-                        onValueChange={(value) => {
+                        onValueChange={value => {
                           setSelectedGenreInput(value);
                           setIsGenreListOpen(true);
                         }}
@@ -812,11 +787,11 @@ export function AddShowForm() {
                       <CommandList onClickOutside={() => setIsGenreListOpen(false)}>
                         {genres
                           .filter(
-                            (genre) =>
+                            genre =>
                               !selectedGenres.includes(genre.id) &&
                               genre.title.toLowerCase().includes(selectedGenreInput.toLowerCase())
                           )
-                          .map((genre) => (
+                          .map(genre => (
                             <CommandItem
                               key={genre.id}
                               value={genre.id}
@@ -827,7 +802,7 @@ export function AddShowForm() {
                             </CommandItem>
                           ))}
                         {genres.filter(
-                          (genre) =>
+                          genre =>
                             !selectedGenres.includes(genre.id) &&
                             genre.title.toLowerCase().includes(selectedGenreInput.toLowerCase())
                         ).length === 0 && (
@@ -841,7 +816,7 @@ export function AddShowForm() {
 
                   {selectedGenres.length > 0 && (
                     <div className='flex flex-wrap gap-1 mt-2'>
-                      {selectedGenres.map((genreId) => (
+                      {selectedGenres.map(genreId => (
                         <Badge
                           key={genreId}
                           variant='secondary'
@@ -953,10 +928,10 @@ export function AddShowForm() {
                   {locationInput && isLocationListOpen && (
                     <CommandList onClickOutside={() => setIsLocationListOpen(false)}>
                       {locations
-                        .filter((location) =>
+                        .filter(location =>
                           location.title.toLowerCase().includes(locationInput.toLowerCase())
                         )
-                        .map((location) => (
+                        .map(location => (
                           <CommandItem
                             key={location.slug}
                             value={location.slug}
@@ -966,7 +941,7 @@ export function AddShowForm() {
                             {location.title}
                           </CommandItem>
                         ))}
-                      {locations.filter((location) =>
+                      {locations.filter(location =>
                         location.title.toLowerCase().includes(locationInput.toLowerCase())
                       ).length === 0 && (
                         <CommandEmpty>No locations found matching "{locationInput}"</CommandEmpty>
@@ -1006,11 +981,7 @@ export function AddShowForm() {
         </div>
 
         <div className='flex justify-end'>
-          <Button
-            type='submit'
-            className='px-2'
-            disabled={isLoading}
-          >
+          <Button type='submit' className='px-2' disabled={isLoading}>
             {isLoading
               ? phase === 'preparing'
                 ? 'Preparing submission…'

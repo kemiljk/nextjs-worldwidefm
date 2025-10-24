@@ -1,42 +1,46 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/cosmic/blocks/user-management/AuthContext";
-import AuthForm from "@/cosmic/blocks/user-management/AuthForm";
-import { Button } from "@/cosmic/elements/Button";
-import { Loader2, CheckCircle } from "lucide-react";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/cosmic/blocks/user-management/AuthContext';
+import AuthForm from '@/cosmic/blocks/user-management/AuthForm';
+import { Loader2, CheckCircle } from 'lucide-react';
 
 export default function SignUpClient({ onSubmit }: { onSubmit: any }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [isSignupComplete, setIsSignupComplete] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.push("/dashboard");
+      router.push('/dashboard');
     }
   }, [user, isLoading, router]);
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center p-4">
-        <Loader2 className="size-8 animate-spin text-primary" />
+      <div className='flex min-h-[50vh] items-center justify-center p-4'>
+        <Loader2 className='size-8 animate-spin text-primary' />
       </div>
     );
   }
 
   if (isSignupComplete) {
     return (
-      <div className="py-8">
-        <div className="mx-auto max-w-md">
-          <div className="bg-card p-8 shadow-xs text-center">
-            <CheckCircle className="mx-auto size-16 text-green-500 mb-4" />
-            <h2 className="font-display uppercase text-2xl font-normal tracking-tight mb-4">Check your email</h2>
-            <p className="text-muted-foreground mb-6">We've sent you a verification link. Please check your email to complete the signup process.</p>
-            <Link className="text-almostblack dark:text-white" href="/login">
+      <div className='py-8'>
+        <div className='mx-auto max-w-md'>
+          <div className='bg-card p-8 shadow-xs text-center'>
+            <CheckCircle className='mx-auto size-16 text-green-500 mb-4' />
+            <h2 className='font-display uppercase text-2xl font-normal tracking-tight mb-4'>
+              Check your email
+            </h2>
+            <p className='text-muted-foreground mb-6'>
+              We've sent you a verification link. Please check your email to complete the signup
+              process.
+            </p>
+            <Link className='text-almostblack dark:text-white' href='/login'>
               Go to login
             </Link>
           </div>
@@ -46,7 +50,7 @@ export default function SignUpClient({ onSubmit }: { onSubmit: any }) {
   }
 
   const handleSubmit = async (formData: FormData) => {
-    setError("");
+    setError('');
     const result = await onSubmit(formData);
 
     if (result && result.error) {
@@ -62,9 +66,13 @@ export default function SignUpClient({ onSubmit }: { onSubmit: any }) {
   };
 
   return (
-    <div className="py-8">
-      {error && <div className="mx-auto max-w-md mb-6 p-4 bg-crimson-50 border border-crimson-200 text-crimson-800 text-sm">{error}</div>}
-      <AuthForm type="signup" onSubmit={handleSubmit} />
+    <div className='py-8'>
+      {error && (
+        <div className='mx-auto max-w-md mb-6 p-4 bg-crimson-50 border border-crimson-200 text-crimson-800 text-sm'>
+          {error}
+        </div>
+      )}
+      <AuthForm type='signup' onSubmit={handleSubmit} />
     </div>
   );
 }

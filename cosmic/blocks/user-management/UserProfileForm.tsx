@@ -29,11 +29,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button
-      className='w-full'
-      type='submit'
-      disabled={pending}
-    >
+    <Button className='w-full' type='submit' disabled={pending}>
       {pending ? <Loader2 className='mr-2 h-5 w-5 animate-spin' /> : 'Update Profile'}
     </Button>
   );
@@ -82,10 +78,7 @@ export function UserProfileForm({ user }: UserProfileFormProps) {
   };
 
   return (
-    <form
-      action={handleSubmit}
-      className='w-full max-w-md mx-auto space-y-6'
-    >
+    <form action={handleSubmit} className='w-full max-w-md mx-auto space-y-6'>
       <div className='flex flex-col items-center gap-4'>
         <div className='relative h-32 w-32'>
           <img
@@ -141,13 +134,7 @@ export function UserProfileForm({ user }: UserProfileFormProps) {
 
       <div>
         <Label htmlFor='email'>Email</Label>
-        <Input
-          type='email'
-          id='email'
-          name='email'
-          defaultValue={user.metadata.email}
-          required
-        />
+        <Input type='email' id='email' name='email' defaultValue={user.metadata.email} required />
         {!user.metadata.email_verified && (
           <p className='mt-1 text-sm text-amber-600'>Email not verified</p>
         )}

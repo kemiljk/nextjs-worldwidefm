@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { createArtist } from "@/lib/radiocult-artist";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { createArtist } from '@/lib/radiocult-artist';
 
 // Input schema validation
 const createArtistSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().optional(),
-  imageUrl: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
+  imageUrl: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
   socialLinks: z.record(z.string()).optional(),
 });
 
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!artist) {
-      return NextResponse.json({ error: "Failed to create artist" }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to create artist' }, { status: 500 });
     }
 
     // Return the created artist
@@ -35,18 +35,18 @@ export async function POST(request: NextRequest) {
       artist,
     });
   } catch (error) {
-    console.error("Error creating artist:", error);
+    console.error('Error creating artist:', error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         {
-          error: "Validation error",
+          error: 'Validation error',
           details: error.errors,
         },
         { status: 400 }
       );
     }
 
-    return NextResponse.json({ error: "Failed to create artist" }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create artist' }, { status: 500 });
   }
 }

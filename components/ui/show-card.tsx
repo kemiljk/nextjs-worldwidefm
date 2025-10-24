@@ -102,7 +102,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   const getGenreLink = (genreId: string): string | undefined => {
     if (!canonicalGenres.length) return undefined;
 
-    const canonicalGenre = canonicalGenres.find((genre) => genre.id === genreId);
+    const canonicalGenre = canonicalGenres.find(genre => genre.id === genreId);
 
     return canonicalGenre ? `/genre/${canonicalGenre.slug}` : undefined;
   };
@@ -181,10 +181,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   return (
     <div className={`${borderClass} border p-2 ${className}`}>
       {/* Image and Play Button (hover group) */}
-      <Link
-        href={slug}
-        className='block'
-      >
+      <Link href={slug} className='block'>
         <div className='group relative aspect-square cursor-pointer'>
           {/* Overlay for dimming on hover */}
           <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-50 transition-opacity pointer-events-none z-10' />
@@ -212,15 +209,9 @@ export const ShowCard: React.FC<ShowCardProps> = ({
                 aria-label={isCurrentlyPlaying ? 'Pause show' : 'Play show'}
               >
                 {isCurrentlyPlaying ? (
-                  <Pause
-                    fill='white'
-                    className={`w-4 h-4 ${playButtonIconClass}`}
-                  />
+                  <Pause fill='white' className={`w-4 h-4 ${playButtonIconClass}`} />
                 ) : (
-                  <Play
-                    fill='white'
-                    className={`w-4 h-4 ${playButtonIconClass} pl-0.5`}
-                  />
+                  <Play fill='white' className={`w-4 h-4 ${playButtonIconClass} pl-0.5`} />
                 )}
               </button>
             </div>
@@ -231,10 +222,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
       {/* Details */}
       <div className='flex flex-col justify-between pt-3 pb-1 h-30'>
         {/* Title */}
-        <Link
-          href={slug}
-          className='block'
-        >
+        <Link href={slug} className='block'>
           <div className='w-auto h-auto flex-1 gap-1 flex flex-col cursor-pointer'>
             <div
               className={`font-mono text-m8 sm:text-m6 uppercase w-full line-clamp-2 break-words pr-10 ${textClass}`}
@@ -243,15 +231,13 @@ export const ShowCard: React.FC<ShowCardProps> = ({
               {subtitle ? ': ' : ''} {subtitle}
             </div>
 
-          {(formattedDate || formattedTime || primaryLocationName) && (
-            <span
-              className={`block overflow-hidden text-ellipsis whitespace-nowrap font-mono text-m8 uppercase pt-1 ${textClass}`}
-            >
-              {[formattedDate, formattedTime, primaryLocationName]
-                .filter(Boolean)
-                .join(' | ')}
-            </span>
-          )}
+            {(formattedDate || formattedTime || primaryLocationName) && (
+              <span
+                className={`block overflow-hidden text-ellipsis whitespace-nowrap font-mono text-m8 uppercase pt-1 ${textClass}`}
+              >
+                {[formattedDate, formattedTime, primaryLocationName].filter(Boolean).join(' | ')}
+              </span>
+            )}
           </div>
         </Link>
 
@@ -264,7 +250,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
                 <GenreTag
                   key={tag.id + idx}
                   variant={genreTagVariant as 'default' | 'transparent' | 'white' | 'light'}
-                  onClick={(e) => {
+                  onClick={e => {
                     if (genreLink) {
                       router.push(genreLink);
                     } else {

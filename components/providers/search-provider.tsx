@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { ReactNode } from "react";
-import { SearchResult, FilterItem, SearchContextType, SearchContext } from "@/lib/search-context";
-import { useState, useCallback, useEffect } from "react";
-import { getAllSearchResultsAndFilters } from "@/lib/search-engine";
-import { SearchFilters } from "@/lib/search/types";
-import { ContentType } from "@/lib/search/types";
+import { ReactNode } from 'react';
+import { SearchResult, FilterItem, SearchContextType, SearchContext } from '@/lib/search-context';
+import { useState, useCallback, useEffect } from 'react';
+import { getAllSearchResultsAndFilters } from '@/lib/search-engine';
+import { SearchFilters } from '@/lib/search/types';
+import { ContentType } from '@/lib/search/types';
 
 interface SearchProviderProps {
   children: ReactNode;
 }
 
 export default function SearchProvider({ children }: SearchProviderProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({});
   const [results, setResults] = useState<SearchResult[]>([]);
   const [allContent, setAllContent] = useState<SearchResult[]>([]);
@@ -63,16 +63,16 @@ export default function SearchProvider({ children }: SearchProviderProps) {
           hosts: filters.hosts,
           takeovers: [],
           types: [
-            { slug: "episodes", title: "Episodes", type: "types" },
-            { slug: "posts", title: "Posts", type: "types" },
-            { slug: "events", title: "Events", type: "types" },
-            { slug: "videos", title: "Videos", type: "types" },
-            { slug: "takeovers", title: "Takeovers", type: "types" },
+            { slug: 'episodes', title: 'Episodes', type: 'types' },
+            { slug: 'posts', title: 'Posts', type: 'types' },
+            { slug: 'events', title: 'Events', type: 'types' },
+            { slug: 'videos', title: 'Videos', type: 'types' },
+            { slug: 'takeovers', title: 'Takeovers', type: 'types' },
           ],
         });
       })
-      .catch((error) => {
-        setError("Failed to load content. Please try again later.");
+      .catch(error => {
+        setError('Failed to load content. Please try again later.');
         setAllContent([]);
         setResults([]);
         setAvailableFilters({ genres: [], locations: [], hosts: [], takeovers: [], types: [] });
@@ -89,85 +89,142 @@ export default function SearchProvider({ children }: SearchProviderProps) {
 
       try {
         if (allContent.length > 0) {
-          console.log(`Filtering existing ${allContent.length} items with term: "${term}" and filters:`, filters);
+          console.log(
+            `Filtering existing ${allContent.length} items with term: "${term}" and filters:`,
+            filters
+          );
 
           let filtered = [...allContent];
 
           // Filter by search term if provided
           if (term) {
             const lowercaseTerm = term.toLowerCase();
-            filtered = filtered.filter((item) => {
+            filtered = filtered.filter(item => {
               const titleMatch = item.title?.toLowerCase().includes(lowercaseTerm) ?? false;
-              const descriptionMatch = item.description?.toLowerCase().includes(lowercaseTerm) ?? false;
+              const descriptionMatch =
+                item.description?.toLowerCase().includes(lowercaseTerm) ?? false;
               const excerptMatch = item.excerpt?.toLowerCase().includes(lowercaseTerm) ?? false;
 
-              const hostsMatch = Array.isArray(item.hosts) && item.hosts.some((host) => host.title?.toLowerCase().includes(lowercaseTerm));
-              const takeoversMatch = Array.isArray(item.takeovers) && item.takeovers.some((takeover) => takeover.title?.toLowerCase().includes(lowercaseTerm));
-              const genresMatch = Array.isArray(item.genres) && item.genres.some((genre) => genre.title?.toLowerCase().includes(lowercaseTerm));
+              const hostsMatch =
+                Array.isArray(item.hosts) &&
+                item.hosts.some(host => host.title?.toLowerCase().includes(lowercaseTerm));
+              const takeoversMatch =
+                Array.isArray(item.takeovers) &&
+                item.takeovers.some(takeover =>
+                  takeover.title?.toLowerCase().includes(lowercaseTerm)
+                );
+              const genresMatch =
+                Array.isArray(item.genres) &&
+                item.genres.some(genre => genre.title?.toLowerCase().includes(lowercaseTerm));
 
               // Search metadata fields
-              const metadataMatch = item.metadata && typeof item.metadata === "object" ? Object.entries(item.metadata).some(([_, value]) => typeof value === "string" && value.toLowerCase().includes(lowercaseTerm)) : false;
+              const metadataMatch =
+                item.metadata && typeof item.metadata === 'object'
+                  ? Object.entries(item.metadata).some(
+                      ([_, value]) =>
+                        typeof value === 'string' && value.toLowerCase().includes(lowercaseTerm)
+                    )
+                  : false;
 
               // Check people-related fields in metadata
               let peopleMatch = false;
-              if (item.metadata && typeof item.metadata === "object") {
-                const peopleFields = ["regular_hosts", "guest_hosts", "guests", "artists", "people", "contributors"];
-                peopleMatch = peopleFields.some((field) => {
+              if (item.metadata && typeof item.metadata === 'object') {
+                const peopleFields = [
+                  'regular_hosts',
+                  'guest_hosts',
+                  'guests',
+                  'artists',
+                  'people',
+                  'contributors',
+                ];
+                peopleMatch = peopleFields.some(field => {
                   const arr = Array.isArray(item.metadata[field]) ? item.metadata[field] : [];
                   return arr.some((person: any) => {
-                    if (typeof person === "string") {
+                    if (typeof person === 'string') {
                       return person.toLowerCase().includes(lowercaseTerm);
-                    } else if (person && typeof person === "object") {
-                      return Object.values(person).some((val) => typeof val === "string" && val.toLowerCase().includes(lowercaseTerm));
+                    } else if (person && typeof person === 'object') {
+                      return Object.values(person).some(
+                        val => typeof val === 'string' && val.toLowerCase().includes(lowercaseTerm)
+                      );
                     }
                     return false;
                   });
                 });
               }
 
-              return titleMatch || descriptionMatch || excerptMatch || hostsMatch || takeoversMatch || genresMatch || metadataMatch || peopleMatch;
+              return (
+                titleMatch ||
+                descriptionMatch ||
+                excerptMatch ||
+                hostsMatch ||
+                takeoversMatch ||
+                genresMatch ||
+                metadataMatch ||
+                peopleMatch
+              );
             });
           }
 
           // Apply filters
           if (Array.isArray(filters.contentType) && filters.contentType.length > 0) {
-            filtered = filtered.filter((item) => filters.contentType?.includes(item.type));
+            filtered = filtered.filter(item => filters.contentType?.includes(item.type));
           }
 
           if (Array.isArray(filters.genres) && filters.genres.length > 0) {
-            filtered = filtered.filter((item) => Array.isArray(item.genres) && item.genres.some((genre) => filters.genres?.includes(genre.slug)));
+            filtered = filtered.filter(
+              item =>
+                Array.isArray(item.genres) &&
+                item.genres.some(genre => filters.genres?.includes(genre.slug))
+            );
           }
 
           if (Array.isArray(filters.locations) && filters.locations.length > 0) {
-            filtered = filtered.filter((item) => Array.isArray(item.locations) && item.locations.some((location) => filters.locations?.includes(location.slug)));
+            filtered = filtered.filter(
+              item =>
+                Array.isArray(item.locations) &&
+                item.locations.some(location => filters.locations?.includes(location.slug))
+            );
           }
 
           if (Array.isArray(filters.hosts) && filters.hosts.length > 0) {
-            filtered = filtered.filter((item) => Array.isArray(item.hosts) && item.hosts.some((host) => filters.hosts?.includes(host.slug)));
+            filtered = filtered.filter(
+              item =>
+                Array.isArray(item.hosts) &&
+                item.hosts.some(host => filters.hosts?.includes(host.slug))
+            );
           }
 
           if (Array.isArray(filters.takeovers) && filters.takeovers.length > 0) {
-            filtered = filtered.filter((item) => Array.isArray(item.takeovers) && item.takeovers.some((takeover) => filters.takeovers?.includes(takeover.slug)));
+            filtered = filtered.filter(
+              item =>
+                Array.isArray(item.takeovers) &&
+                item.takeovers.some(takeover => filters.takeovers?.includes(takeover.slug))
+            );
           }
 
           setResults(filtered);
         } else {
           // If we don't have content, fetch it from the API
-          console.log("No cached content available, fetching from API");
+          console.log('No cached content available, fetching from API');
           const content = await getAllSearchResultsAndFilters();
           setAllContent(content.results);
 
           if (term) {
             const lowercaseTerm = term.toLowerCase();
-            const filtered = content.results.filter((item) => (item.title?.toLowerCase().includes(lowercaseTerm) ?? false) || (item.description?.toLowerCase().includes(lowercaseTerm) ?? false) || (item.excerpt?.toLowerCase().includes(lowercaseTerm) ?? false));
+            const filtered = content.results.filter(
+              item =>
+                (item.title?.toLowerCase().includes(lowercaseTerm) ?? false) ||
+                (item.description?.toLowerCase().includes(lowercaseTerm) ?? false) ||
+                (item.excerpt?.toLowerCase().includes(lowercaseTerm) ?? false)
+            );
             setResults(filtered);
           } else {
             setResults(content.results);
           }
         }
       } catch (error) {
-        console.error("Error performing search:", error);
-        setError("Failed to perform search. Please try again later.");
+        console.error('Error performing search:', error);
+        setError('Failed to perform search. Please try again later.');
       } finally {
         setIsLoading(false);
       }
@@ -177,7 +234,7 @@ export default function SearchProvider({ children }: SearchProviderProps) {
 
   // Toggle filter functions
   const toggleGenreFilter = useCallback((genre: FilterItem) => {
-    setFilters((prev) => {
+    setFilters(prev => {
       const genreFilters = prev.genres || [];
       const genreIndex = genreFilters.indexOf(genre.slug);
 
@@ -198,7 +255,7 @@ export default function SearchProvider({ children }: SearchProviderProps) {
   }, []);
 
   const toggleLocationFilter = useCallback((location: FilterItem) => {
-    setFilters((prev) => {
+    setFilters(prev => {
       const locationFilters = prev.locations || [];
       const locationIndex = locationFilters.indexOf(location.slug);
 
@@ -219,7 +276,7 @@ export default function SearchProvider({ children }: SearchProviderProps) {
   }, []);
 
   const toggleHostFilter = useCallback((host: FilterItem) => {
-    setFilters((prev) => {
+    setFilters(prev => {
       const hostFilters = prev.hosts || [];
       const hostIndex = hostFilters.indexOf(host.slug);
 
@@ -240,7 +297,7 @@ export default function SearchProvider({ children }: SearchProviderProps) {
   }, []);
 
   const toggleTakeoverFilter = useCallback((takeover: FilterItem) => {
-    setFilters((prev) => {
+    setFilters(prev => {
       const takeoverFilters = prev.takeovers || [];
       const takeoverIndex = takeoverFilters.indexOf(takeover.slug);
 
