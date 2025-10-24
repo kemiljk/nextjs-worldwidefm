@@ -2,10 +2,10 @@
 
 import { Loader2, ChevronRight } from 'lucide-react';
 import { ArticleCard } from '@/components/ui/article-card';
-import { getAllPosts } from '@/lib/actions';
+import { getPostsWithFilters } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { PostObject } from '@/lib/cosmic-config';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 
 import Link from 'next/link';
@@ -18,6 +18,15 @@ interface EditorialSectionProps {
   className?: string;
   isHomepage?: boolean;
   layout?: 'grid' | 'list';
+  // Add filter props for pagination
+  currentFilters?: {
+    searchTerm?: string;
+    categories?: string[];
+    postType?: 'article' | 'video';
+  };
+  availableFilters?: {
+    categories: Array<{ id: string; slug: string; title: string }>;
+  };
 }
 
 export default function EditorialSection({
@@ -25,19 +34,86 @@ export default function EditorialSection({
   posts,
   className,
   isHomepage = false,
+  currentFilters,
+  availableFilters,
 }: EditorialSectionProps) {
   const [displayedPosts, setDisplayedPosts] = useState<Post[]>(posts);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false); // Start with false, only show if we have a full batch
+  const [currentOffset, setCurrentOffset] = useState(0);
+
+  // Update displayedPosts when posts prop changes
+  useEffect(() => {
+    setDisplayedPosts(posts);
+    // Set initial offset based on posts length
+    setCurrentOffset(posts.length);
+
+    // Only show "Load More" if we loaded a full batch (20 posts)
+    // This indicates there might be more posts available
+    setHasMore(posts.length >= 20);
+  }, [posts]);
 
   async function loadMorePosts() {
     try {
       setIsLoading(true);
-      const newPosts = await getAllPosts({ limit: 20, offset: displayedPosts.length });
 
-      if (newPosts.posts.length > 0) {
-        setDisplayedPosts(prev => [...prev, ...newPosts.posts]);
+      console.log(
+        'Loading more posts with offset:',
+        currentOffset,
+        'current posts:',
+        displayedPosts.length
+      );
+
+      // Convert category slugs to IDs for the Cosmic query
+      const categoryIds =
+        (currentFilters?.categories
+          ?.map(slug => {
+            const category = availableFilters?.categories.find(cat => cat.slug === slug);
+            return category?.id;
+          })
+          .filter(Boolean) as string[]) || [];
+
+      const result = await getPostsWithFilters({
+        limit: 20,
+        offset: currentOffset,
+        searchTerm: currentFilters?.searchTerm || '',
+        categories: categoryIds,
+        postType: currentFilters?.postType,
+      });
+
+      console.log(
+        'Received',
+        result.posts.length,
+        'new posts, total offset will be:',
+        currentOffset + result.posts.length
+      );
+
+      if (result.posts.length > 0) {
+        // Filter out any posts that already exist to prevent duplicates
+        const existingIds = new Set(displayedPosts.map(post => post.id));
+        const newPosts = result.posts.filter(post => !existingIds.has(post.id));
+
+        console.log(
+          'Filtered out',
+          result.posts.length - newPosts.length,
+          'duplicate posts, adding',
+          newPosts.length,
+          'new posts'
+        );
+
+        if (newPosts.length > 0) {
+          setDisplayedPosts(prev => [...prev, ...newPosts]);
+          setCurrentOffset(prev => prev + newPosts.length);
+
+          // Only show "Load More" if we received a full batch (20 posts)
+          // This indicates there might be more posts available
+          setHasMore(newPosts.length >= 20);
+        } else {
+          // If all posts were duplicates, we've reached the end
+          setHasMore(false);
+        }
       } else {
+        // No more posts available
         setHasMore(false);
       }
     } catch (error) {

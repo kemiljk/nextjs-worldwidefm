@@ -63,12 +63,14 @@ function EditorialContent() {
         .filter(Boolean) as string[];
 
       const result = await getPostsWithFilters({
-        limit: 50,
+        limit: 20,
+        offset: 0,
         searchTerm: currentFilters.search,
         categories: categoryIds,
         postType: currentFilters.article ? 'article' : currentFilters.video ? 'video' : undefined,
       });
 
+      console.log('Initial load - received', result.posts.length, 'posts, total:', result.total);
       setPosts(result.posts);
       setTotal(result.total);
 
@@ -286,7 +288,20 @@ function EditorialContent() {
           !currentFilters.search ? (
             <>
               <FeaturedContent posts={posts.slice(0, 1)} />
-              <EditorialSection title='All Posts' posts={posts.slice(1)} />
+              <EditorialSection
+                title='All Posts'
+                posts={posts.slice(1)}
+                currentFilters={{
+                  searchTerm: currentFilters.search,
+                  categories: currentFilters.categories,
+                  postType: currentFilters.article
+                    ? 'article'
+                    : currentFilters.video
+                      ? 'video'
+                      : undefined,
+                }}
+                availableFilters={availableFilters}
+              />
             </>
           ) : (
             <EditorialSection
@@ -302,6 +317,16 @@ function EditorialContent() {
                         : 'All Posts'
               }
               posts={posts}
+              currentFilters={{
+                searchTerm: currentFilters.search,
+                categories: currentFilters.categories,
+                postType: currentFilters.article
+                  ? 'article'
+                  : currentFilters.video
+                    ? 'video'
+                    : undefined,
+              }}
+              availableFilters={availableFilters}
             />
           )}
         </>
