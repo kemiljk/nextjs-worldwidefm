@@ -137,7 +137,7 @@ export default async function EditorialArticlePage({
     <>
       {/* Preview Banner - show when post is a draft */}
       {isDraft && <PreviewBanner />}
-      
+
       <div className={isDraft ? 'pt-12' : ''}>
         {getLayoutComponent()}
 
