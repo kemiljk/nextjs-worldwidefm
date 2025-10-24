@@ -11,6 +11,7 @@ import {
   GalleryLayout,
   MinimalLayout,
 } from '@/components/editorial/editorial-layouts';
+import { PreviewBanner } from '@/components/ui/preview-banner';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -131,16 +132,21 @@ export default async function EditorialArticlePage({
 
   return (
     <>
-      {getLayoutComponent()}
+      {/* Preview Banner - only show when in preview mode */}
+      {preview && <PreviewBanner />}
 
-      {/* Related Articles */}
-      {relatedPosts.length > 0 && (
-        <div className='border-t'>
-          <div className='max-w-7xl mx-auto px-4 py-16'>
-            <EditorialSection title='Related Articles' posts={relatedPosts} layout='grid' />
+      <div className={preview ? 'pt-12' : ''}>
+        {getLayoutComponent()}
+
+        {/* Related Articles */}
+        {relatedPosts.length > 0 && (
+          <div className='border-t'>
+            <div className='max-w-7xl mx-auto px-4 py-16'>
+              <EditorialSection title='Related Articles' posts={relatedPosts} layout='grid' />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 }
