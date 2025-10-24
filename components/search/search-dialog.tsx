@@ -42,6 +42,26 @@ const typeLabels: Record<ContentType, { label: string; icon: React.ElementType; 
   takeovers: { label: 'Takeovers', icon: MicVocal, color: 'text-foreground' },
 };
 
+// Helper function to extract YouTube video ID from URL
+function getYouTubeThumbnail(url: string): string {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) {
+    return `https://img.youtube.com/vi/${match[2]}/maxresdefault.jpg`;
+  }
+  return '';
+}
+
+// Helper function to extract Vimeo video ID from URL
+function getVimeoThumbnail(url: string): string {
+  const regExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
+  const match = url.match(regExp);
+  if (match && match[1]) {
+    return `https://vumbnail.com/${match[1]}.jpg`;
+  }
+  return '';
+}
+
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -648,70 +668,150 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 <div className='p-8 space-y-6 min-h-0'>
                   {results.length > 0 ? (
                     <>
-                      {results.map(
-                        (result, idx) =>
-                          selectedType === 'episodes' && (
-                            <Link
-                              key={`${result.key}-${result.slug}-${idx}`}
-                              href={`/episode/${result.slug}`}
-                              onClick={() => onOpenChange(false)}
-                              className='group block w-full'
-                            >
-                              <div className='flex items-start gap-6 w-full pb-6  '>
-                                <div className='size-32 relative shrink-0 overflow-hidden'>
-                                  <Image
-                                    src={
-                                      result.metadata?.image?.imgix_url ||
-                                      result.metadata?.image?.url ||
-                                      '/image-placeholder.png'
-                                    }
-                                    alt={result.title || 'Radio Show Cover'}
-                                    fill
-                                    className='object-cover transition-opacity duration-200 group-hover:opacity-70'
-                                  />
+                      {results.map((result, idx) => {
+                        const TypeIcon =
+                          typeLabels[selectedType as keyof typeof typeLabels]?.icon || Music2;
+                        const typeLabel =
+                          typeLabels[selectedType as keyof typeof typeLabels]?.label || 'Content';
+
+                        // Determine the correct link based on content type
+                        let linkHref = '';
+                        switch (selectedType) {
+                          case 'episodes':
+                            linkHref = `/episode/${result.slug}`;
+                            break;
+                          case 'posts':
+                            linkHref = `/editorial/${result.slug}`;
+                            break;
+                          case 'videos':
+                            linkHref = `/videos/${result.slug}`;
+                            break;
+                          case 'events':
+                            linkHref = `/events/${result.slug}`;
+                            break;
+                          case 'takeovers':
+                            linkHref = `/takeovers/${result.slug}`;
+                            break;
+                          default:
+                            linkHref = `/episode/${result.slug}`;
+                        }
+
+                        // Enhanced image handling for videos (YouTube/Vimeo thumbnails)
+                        let imageUrl =
+                          result.metadata?.image?.imgix_url ||
+                          result.metadata?.image?.url ||
+                          '/image-placeholder.png';
+
+                        if (selectedType === 'videos' && result.metadata?.video_url) {
+                          const youtubeThumbnail = getYouTubeThumbnail(result.metadata.video_url);
+                          const vimeoThumbnail = getVimeoThumbnail(result.metadata.video_url);
+                          imageUrl =
+                            result.metadata?.image?.imgix_url ||
+                            youtubeThumbnail ||
+                            vimeoThumbnail ||
+                            '/image-placeholder.png';
+                        }
+
+                        return (
+                          <Link
+                            key={`${result.id}-${result.slug}-${idx}`}
+                            href={linkHref}
+                            onClick={() => onOpenChange(false)}
+                            className='group block w-full'
+                          >
+                            <div className='flex items-start gap-6 w-full pb-6'>
+                              <div className='size-32 relative shrink-0 overflow-hidden'>
+                                <Image
+                                  src={imageUrl}
+                                  alt={result.title || 'Content Cover'}
+                                  fill
+                                  className='object-cover transition-opacity duration-200 group-hover:opacity-70'
+                                />
+                              </div>
+                              <div className='flex-1 flex flex-col font-mono uppercase min-w-0 h-32 pb-1 justify-between gap-2'>
+                                <div className='flex flex-col gap-.5'>
+                                  <div className='flex items-center gap-2 text-m8 text-muted-foreground mb-1'>
+                                    <TypeIcon className='w-3 h-3 text-foreground' />
+                                    <span>{typeLabel}</span>
+                                  </div>
+                                  <h3 className='w-[90%] pl-1 text-[16px] sm:text-[18px] font-mono line-clamp-2'>
+                                    {result.title}
+                                  </h3>
                                 </div>
-                                <div className='flex-1 flex flex-col font-mono uppercase min-w-0 h-32 pb-1 justify-between gap-2'>
-                                  <div className='flex flex-col gap-.5'>
-                                    <div className='flex items-center gap-2 text-m8 text-muted-foreground mb-1'>
-                                      <Music2 className='w-3 h-3 text-foreground' />
-                                      <span>Episodes</span>
-                                    </div>
-                                    <h3 className='w-[90%] pl-1 text-[16px] sm:text-[18px] font-mono line-clamp-2'>
-                                      {result.title}
-                                    </h3>
-                                  </div>
-                                  <div className='flex flex-col gap-2'>
-                                    {result.metadata?.broadcast_date && (
-                                      <span className='pl-1 text-m8'>
-                                        {format(
-                                          new Date(result.metadata.broadcast_date),
-                                          'MMM d, yyyy'
-                                        )}
-                                      </span>
-                                    )}
-                                    {Array.isArray(result.metadata?.genres) &&
-                                      result.metadata.genres.length > 0 && (
-                                        <div className='flex flex-row sm:flex-wrap '>
-                                          {result.metadata.genres.map((genre: any) => (
-                                            <Badge
-                                              key={genre.id}
-                                              variant='outline'
-                                              className='text-m8 uppercase'
-                                            >
-                                              {genre.title}
-                                            </Badge>
-                                          ))}
-                                        </div>
+                                <div className='flex flex-col gap-2'>
+                                  {/* Date display - different fields for different content types */}
+                                  {(result.metadata?.broadcast_date ||
+                                    result.metadata?.date ||
+                                    result.created_at) && (
+                                    <span className='pl-1 text-m8'>
+                                      {format(
+                                        new Date(
+                                          result.metadata?.broadcast_date ||
+                                            result.metadata?.date ||
+                                            result.created_at
+                                        ),
+                                        'MMM d, yyyy'
                                       )}
-                                  </div>
+                                    </span>
+                                  )}
+
+                                  {/* Categories/Tags display - different for different content types */}
+                                  {selectedType === 'episodes' &&
+                                    Array.isArray(result.metadata?.genres) &&
+                                    result.metadata.genres.length > 0 && (
+                                      <div className='flex flex-row sm:flex-wrap'>
+                                        {result.metadata.genres.map((genre: any) => (
+                                          <Badge
+                                            key={genre.id}
+                                            variant='outline'
+                                            className='text-m8 uppercase'
+                                          >
+                                            {genre.title}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                  {(selectedType === 'posts' || selectedType === 'videos') &&
+                                    Array.isArray(result.metadata?.categories) &&
+                                    result.metadata.categories.length > 0 && (
+                                      <div className='flex flex-row sm:flex-wrap'>
+                                        {result.metadata.categories.map((category: any) => (
+                                          <Badge
+                                            key={category.id}
+                                            variant='outline'
+                                            className='text-m8 uppercase'
+                                          >
+                                            {category.title}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                  {selectedType === 'takeovers' &&
+                                    Array.isArray(result.metadata?.hosts) &&
+                                    result.metadata.hosts.length > 0 && (
+                                      <div className='flex flex-row sm:flex-wrap'>
+                                        {result.metadata.hosts.map((host: any) => (
+                                          <Badge
+                                            key={host.id}
+                                            variant='outline'
+                                            className='text-m8 uppercase'
+                                          >
+                                            {host.title}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
                                 </div>
                               </div>
-                              {idx < results.length - 1 && (
-                                <div className='border-b border-default w-full' />
-                              )}
-                            </Link>
-                          )
-                      )}
+                            </div>
+                            {idx < results.length - 1 && (
+                              <div className='border-b border-default w-full' />
+                            )}
+                          </Link>
+                        );
+                      })}
                       {/* Sentinel for Intersection Observer infinite scroll */}
                       <div
                         ref={observerTarget}

@@ -226,26 +226,10 @@ export interface PostObject {
       | string;
     date?: string;
     excerpt?: string | null;
-    description?: string | null;
     content?: string;
-    featured_on_homepage?: boolean;
     is_featured?: boolean;
+    text_focus?: boolean;
     featured_size?: {
-      key: string;
-      value: string;
-    };
-    section_name?: string | null;
-    section_priority?: number;
-    section?: {
-      id: string;
-      slug: string;
-      title: string;
-      content?: string;
-      metadata?: {
-        priority?: number;
-      } | null;
-    } | null;
-    display_style?: {
       key: string;
       value: string;
     };

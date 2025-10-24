@@ -1,64 +1,18 @@
 'use client';
 
 import { createContext, useContext } from 'react';
+import {
+  SearchResult,
+  SearchFilters,
+  SearchContextType as UnifiedSearchContextType,
+  FilterItem,
+} from './search/unified-types';
 
-export interface FilterItem {
-  title: string;
-  slug: string;
-  type: string;
-}
+// Re-export types for backward compatibility
+export type { SearchResult, SearchFilters, FilterItem } from './search/unified-types';
 
-export type SearchResultType = 'posts' | 'episodes' | 'events' | 'videos' | 'takeovers';
-
-export interface SearchResult {
-  id: string;
-  title: string;
-  type: SearchResultType;
-  description?: string;
-  excerpt?: string;
-  image?: string;
-  slug: string;
-  date?: string;
-  genres: FilterItem[];
-  locations: FilterItem[];
-  hosts: FilterItem[];
-  takeovers: FilterItem[];
-  featured?: boolean;
-  metadata?: any;
-}
-
-export interface SearchFilters {
-  type?: SearchResultType;
-  genres?: string[];
-  locations?: string[];
-  hosts?: string[];
-  takeovers?: string[];
-}
-
-export interface SearchContextType {
-  searchTerm: string;
-  setSearchTerm: (term: string) => void;
-  filters: SearchFilters;
-  setFilters: (filters: SearchFilters) => void;
-  results: SearchResult[];
-  setResults: (results: SearchResult[]) => void;
-  isLoading: boolean;
-  performSearch: (term: string) => Promise<void>;
-  availableFilters: {
-    genres: FilterItem[];
-    locations: FilterItem[];
-    hosts: FilterItem[];
-    takeovers: FilterItem[];
-    types: FilterItem[];
-  };
-  toggleGenreFilter: (genre: FilterItem) => void;
-  toggleLocationFilter: (location: FilterItem) => void;
-  toggleHostFilter: (host: FilterItem) => void;
-  toggleTakeoverFilter: (takeover: FilterItem) => void;
-  toggleTypeFilter: (type: FilterItem) => void;
-  allContent: SearchResult[];
-  error: string | null;
-}
+// Use the unified search context type
+export type SearchContextType = UnifiedSearchContextType;
 
 export const SearchContext = createContext<SearchContextType>({
   searchTerm: '',
@@ -74,12 +28,14 @@ export const SearchContext = createContext<SearchContextType>({
     locations: [],
     hosts: [],
     takeovers: [],
+    categories: [],
     types: [],
   },
   toggleGenreFilter: () => {},
   toggleLocationFilter: () => {},
   toggleHostFilter: () => {},
   toggleTakeoverFilter: () => {},
+  toggleCategoryFilter: () => {},
   toggleTypeFilter: () => {},
   allContent: [],
   error: null,

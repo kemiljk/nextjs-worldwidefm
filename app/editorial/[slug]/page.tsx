@@ -36,22 +36,6 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   }
 }
 
-interface Category {
-  id: string;
-  slug: string;
-  title: string;
-  content: string;
-  bucket: string;
-  created_at: string;
-  modified_at: string;
-  status: string;
-  published_at: string;
-  modified_by: string;
-  created_by: string;
-  type: string;
-  metadata: null;
-}
-
 export default async function EditorialArticlePage({
   params,
   searchParams,
@@ -83,46 +67,34 @@ export default async function EditorialArticlePage({
   // Format the date
   const postDate = post.metadata?.date ? new Date(post.metadata.date) : null;
   const formattedDate = postDate ? format(postDate, 'dd-MM-yyyy') : '';
-
-  // Determine layout style from metadata with defaults
-  const imageUrl = post.metadata?.image?.imgix_url || '';
-  const description = post.metadata?.excerpt || '';
-  const content = post.metadata?.content || '';
-  const categories = post.metadata?.categories || [];
-  const author = post.metadata?.author;
   const imageGallery = post.metadata?.image_gallery || [];
 
   // Smart props for layout control
   const postType = post.metadata?.type?.key || 'article';
+  const isFeatured = post.metadata?.is_featured || false;
   const featuredSize = post.metadata?.featured_size?.key || 'small';
   const imageAspectRatio = post.metadata?.image_aspect_ratio?.key || '1_1';
-  const displayStyle = post.metadata?.display_style?.key || 'standard';
-  const isFeatured = post.metadata?.is_featured || false;
-
-  // Generate alt text for the hero image
-  const heroImageAlt = `${post.title} - Featured image`;
-
-  // Define breadcrumbs
-  const breadcrumbs = [
-    { href: '/', label: 'Home' },
-    { href: '/editorial', label: 'Editorial' },
-    { label: post.title },
-  ];
+  const textFocus = post.metadata?.text_focus || false;
 
   // Determine which layout to use based on smart props
   const getLayoutComponent = () => {
-    // Featured posts get special treatment
+    // Video posts get special treatment - use Gallery layout for better video display
+    if (postType === 'video') {
+      return <GalleryLayout post={post} formattedDate={formattedDate} />;
+    }
+
+    // Featured posts get special treatment (only large featured posts use FeaturedLayout)
     if (isFeatured && featuredSize === 'large') {
       return <FeaturedLayout post={post} formattedDate={formattedDate} />;
     }
 
-    // Gallery-focused posts
+    // Gallery-focused posts (with image gallery and 4:3 aspect ratio)
     if (imageGallery.length > 0 && imageAspectRatio === '4_3') {
       return <GalleryLayout post={post} formattedDate={formattedDate} />;
     }
 
-    // Minimal layout for text-heavy posts
-    if (displayStyle === 'minimal' || (!post.metadata?.image?.imgix_url && !imageGallery.length)) {
+    // Minimal layout for text-focused posts or posts with no image/gallery
+    if (textFocus || (!post.metadata?.image?.imgix_url && !imageGallery.length)) {
       return <MinimalLayout post={post} formattedDate={formattedDate} />;
     }
 

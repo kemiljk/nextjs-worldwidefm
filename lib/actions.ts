@@ -1,7 +1,12 @@
 'use server';
 
 import { getPosts, getEditorialHomepage, getRadioShowBySlug } from './cosmic-service';
-import { SearchResult, FilterItem } from './search-context';
+import {
+  SearchResult,
+  PostSearchResult,
+  EpisodeSearchResult,
+  FilterItem,
+} from './search/unified-types';
 import { PostObject, VideoObject } from './cosmic-config';
 import { cosmic } from './cosmic-config';
 import {
@@ -473,45 +478,48 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
     };
 
     const allContent: SearchResult[] = [
-      ...postsResponse.posts.map((post: PostObject) => {
-        // For posts, categories may be stored differently than in shows
-        // We'll extract categories from post.metadata.categories if available
+      ...postsResponse.posts.map((post: PostObject): PostSearchResult => {
         const categories = post.metadata?.categories || [];
 
-        // Create empty arrays for filter types that posts might not have
         return {
           id: post.id,
           title: post.title,
-          type: 'posts' as const,
-          description: post.metadata?.description || '',
-          excerpt: post.metadata?.content || '',
-          image: post.metadata?.image?.imgix_url || '/image-placeholder.png',
           slug: post.slug,
+          type: 'posts',
+          description: post.metadata?.content || '',
+          excerpt: post.metadata?.excerpt || '',
+          image: post.metadata?.image?.imgix_url || '/image-placeholder.png',
           date: post.metadata?.date || '',
-          // Map categories to their appropriate filter arrays based on category type if known
-          // For simplicity, we'll just put all categories in genres for now
-          genres: normalizeFilterItems(categories),
-          locations: [], // Posts typically don't have locations
-          hosts: [], // Posts typically don't have hosts
-          takeovers: [], // Posts typically don't have takeovers
-          featured: post.metadata?.featured_on_homepage,
+          categories: normalizeFilterItems(categories),
+          author:
+            typeof post.metadata?.author === 'string'
+              ? post.metadata.author
+              : post.metadata?.author?.title,
+          postType: post.metadata?.type?.key as 'article' | 'video' | 'event',
+          featured: post.metadata?.is_featured,
+          metadata: post.metadata,
         };
       }),
-      ...showsResponse.shows.map(show => ({
-        id: show.id,
-        title: show.title,
-        type: 'episodes' as const,
-        description: show.metadata?.description || '',
-        excerpt: show.metadata?.subtitle || '',
-        image: show.metadata?.image?.imgix_url || '/image-placeholder.png',
-        slug: show.slug,
-        date: show.metadata?.broadcast_date || '',
-        genres: normalizeFilterItems(show.metadata?.genres || []),
-        locations: normalizeFilterItems(show.metadata?.locations || []),
-        hosts: normalizeFilterItems(show.metadata?.regular_hosts || []),
-        takeovers: normalizeFilterItems(show.metadata?.takeovers || []),
-        metadata: show.metadata,
-      })),
+      ...showsResponse.shows.map(
+        (show): EpisodeSearchResult => ({
+          id: show.id,
+          title: show.title,
+          slug: show.slug,
+          type: 'episodes',
+          description: show.metadata?.description || '',
+          excerpt: show.metadata?.subtitle || '',
+          image: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+          date: show.metadata?.broadcast_date || '',
+          genres: normalizeFilterItems(show.metadata?.genres || []),
+          locations: normalizeFilterItems(show.metadata?.locations || []),
+          hosts: normalizeFilterItems(show.metadata?.regular_hosts || []),
+          takeovers: normalizeFilterItems(show.metadata?.takeovers || []),
+          duration: show.metadata?.duration,
+          broadcastTime: show.metadata?.broadcast_time,
+          featured: show.metadata?.featured_on_homepage,
+          metadata: show.metadata,
+        })
+      ),
     ].sort((a, b) => {
       const dateA = new Date(a.date || '');
       const dateB = new Date(b.date || '');
