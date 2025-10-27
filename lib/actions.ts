@@ -583,6 +583,40 @@ export async function getVideoCategories(): Promise<any[]> {
   }
 }
 
+export async function getPostCategories(): Promise<any[]> {
+  try {
+    // Categories are embedded in posts as relationships, not standalone objects
+    // Fetch all posts to extract unique categories
+    const response = await cosmic.objects
+      .find({
+        type: 'posts',
+        status: 'published',
+      })
+      .props('id,metadata')
+      .limit(1000)
+      .depth(2); // depth 2 to get full category objects
+
+    const posts = response.objects || [];
+
+    // Extract all unique categories from posts
+    const categoryMap = new Map<string, any>();
+    posts.forEach((post: any) => {
+      if (post.metadata?.categories && Array.isArray(post.metadata.categories)) {
+        post.metadata.categories.forEach((category: any) => {
+          if (category.id && !categoryMap.has(category.id)) {
+            categoryMap.set(category.id, category);
+          }
+        });
+      }
+    });
+
+    return Array.from(categoryMap.values());
+  } catch (error) {
+    console.error('Error in getPostCategories:', error);
+    return [];
+  }
+}
+
 export async function getVideoBySlug(slug: string): Promise<VideoObject | null> {
   try {
     const response = await cosmic.objects

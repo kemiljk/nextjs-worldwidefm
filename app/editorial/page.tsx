@@ -1,6 +1,6 @@
 'use client';
 
-import { getPostsWithFilters } from '@/lib/actions';
+import { getPostsWithFilters, getPostCategories } from '@/lib/actions';
 import { PageHeader } from '@/components/shared/page-header';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -34,6 +34,7 @@ function EditorialContent() {
     video: [],
     categories: [],
   });
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
 
   // Get current filters from URL
   const currentFilters = useMemo(() => {
@@ -50,102 +51,105 @@ function EditorialContent() {
     };
   }, [searchParams]);
 
-  // Fetch posts based on current filters
-  const fetchPosts = async () => {
-    setIsLoading(true);
-    try {
-      // Convert category slugs to IDs for the Cosmic query
-      const categoryIds = currentFilters.categories
-        .map(slug => {
-          const category = availableFilters.categories.find(cat => cat.slug === slug);
-          return category?.id;
-        })
-        .filter(Boolean) as string[];
-
-      const result = await getPostsWithFilters({
-        limit: 20,
-        offset: 0,
-        searchTerm: currentFilters.search,
-        categories: categoryIds,
-        postType: currentFilters.article ? 'article' : currentFilters.video ? 'video' : undefined,
-      });
-
-      console.log('Initial load - received', result.posts.length, 'posts, total:', result.total);
-      setPosts(result.posts);
-      setTotal(result.total);
-
-      // Extract available filters from posts
-      const allFilters: AvailableFilters = {
-        article: [],
-        video: [],
-        categories: [],
-      };
-
-      // Create static type filters
-      allFilters.article = [
-        {
-          id: 'article',
-          title: 'Article',
-          slug: 'article',
-          type: 'type',
-          content: '',
-          status: 'published',
-          created_at: new Date().toISOString(),
-          metadata: null,
-        },
-      ];
-
-      allFilters.video = [
-        {
-          id: 'video',
-          title: 'Video',
-          slug: 'video',
-          type: 'type',
-          content: '',
-          status: 'published',
-          created_at: new Date().toISOString(),
-          metadata: null,
-        },
-      ];
-
-      // Collect categories using Map to deduplicate
-      const uniqueCategories = new Map<string, FilterItem>();
-      result.posts.forEach(post => {
-        if (post.metadata.categories) {
-          post.metadata.categories.forEach(category => {
-            uniqueCategories.set(category.id, {
-              id: category.id,
-              title: category.title,
-              slug: category.slug,
-              type: 'category',
-              content: category.content || '',
-              status: category.status || 'published',
-              created_at: category.created_at,
-              metadata: category.metadata,
-            });
-          });
-        }
-      });
-
-      // Sort categories alphabetically
-      allFilters.categories = Array.from(uniqueCategories.values()).sort((a, b) =>
-        a.title.localeCompare(b.title)
-      );
-
-      setAvailableFilters(allFilters);
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-      setPosts([]);
-      setTotal(0);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fetch posts when filters change
+  // Fetch all categories on mount to enable filtering
   useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const categoriesData = await getPostCategories();
+
+        setAvailableFilters(prev => ({
+          ...prev,
+          article: [
+            {
+              id: 'article',
+              title: 'Article',
+              slug: 'article',
+              type: 'type',
+              content: '',
+              status: 'published',
+              created_at: new Date().toISOString(),
+              metadata: null,
+            },
+          ],
+          video: [
+            {
+              id: 'video',
+              title: 'Video',
+              slug: 'video',
+              type: 'type',
+              content: '',
+              status: 'published',
+              created_at: new Date().toISOString(),
+              metadata: null,
+            },
+          ],
+          categories: categoriesData
+            .map(cat => ({
+              id: cat.id,
+              title: cat.title,
+              slug: cat.slug,
+              type: 'category',
+              content: cat.content || '',
+              status: cat.status || 'published',
+              created_at: cat.created_at,
+              metadata: cat.metadata,
+            }))
+            .sort((a, b) => a.title.localeCompare(b.title)),
+        }));
+
+        setCategoriesLoaded(true);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        setCategoriesLoaded(true);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  // Fetch posts when filters change (but only after categories are loaded)
+  useEffect(() => {
+    if (!categoriesLoaded) {
+      return;
+    }
+
+    const fetchPosts = async () => {
+      setIsLoading(true);
+      try {
+        // Convert category slugs to IDs for the Cosmic query
+        const categoryIds = currentFilters.categories
+          .map(slug => {
+            const category = availableFilters.categories.find(cat => cat.slug === slug);
+            return category?.id;
+          })
+          .filter(Boolean) as string[];
+
+        const result = await getPostsWithFilters({
+          limit: 20,
+          offset: 0,
+          searchTerm: currentFilters.search,
+          categories: categoryIds,
+          postType: currentFilters.article ? 'article' : currentFilters.video ? 'video' : undefined,
+        });
+
+        console.log('Fetched', result.posts.length, 'posts with filters:', {
+          categoryIds,
+          categorySlugs: currentFilters.categories,
+          postType: currentFilters.article ? 'article' : currentFilters.video ? 'video' : undefined,
+        });
+        setPosts(result.posts);
+        setTotal(result.total);
+      } catch (error) {
+        console.error('Error fetching posts:', error);
+        setPosts([]);
+        setTotal(0);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchPosts();
-  }, [currentFilters]);
+  }, [currentFilters, categoriesLoaded, availableFilters.categories]);
 
   // Update search term from URL
   useEffect(() => {
@@ -244,7 +248,7 @@ function EditorialContent() {
 
         {/* Linear white gradient */}
         <div
-          className='absolute inset-0 bg-gradient-to-b from-white via-white/0 to-white'
+          className='absolute inset-0 bg-linear-to-b from-white via-white/0 to-white'
           style={{ mixBlendMode: 'hue' }}
         />
 
