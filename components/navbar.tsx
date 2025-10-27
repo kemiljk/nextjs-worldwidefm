@@ -60,8 +60,8 @@ export default function Navbar({ navItems }: NavbarProps) {
     }
     return item;
   });
-  const processedVisibleNavItems = processedNavItems.slice(0, 6);
-  const processedOverflowNavItems = processedNavItems.slice(6);
+  const processedVisibleNavItems = processedNavItems.slice(0, 7);
+  const processedOverflowNavItems = processedNavItems.slice(7);
 
   return (
     <header className='w-full fixed top-7 left-0 right-0 z-50 transition-all border-b border-t border-almostblack dark:border-white duration-300 bg-background'>

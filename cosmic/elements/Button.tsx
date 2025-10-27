@@ -19,6 +19,7 @@ const buttonVariants = cva(
         ghost:
           'hover:bg-almostblack dark:hover:bg-white hover:text-white dark:hover:text-almostblack',
         link: 'underline-offset-4 hover:underline text-primary',
+        inverted: 'bg-almostblack text-white hover:bg-white hover:text-almostblack hover:border-1 hover:border-almostblack',
       },
       size: {
         default: 'h-10 py-2 px-4',
@@ -36,7 +37,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  VariantProps<typeof buttonVariants> {
   asChild?: boolean;
   renderAs?: string;
   iconRight?: React.ReactElement;

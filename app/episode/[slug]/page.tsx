@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import React from 'react';
 import Link from 'next/link';
 import { getEpisodeBySlug, getRelatedEpisodes } from '@/lib/episode-service';
 import { addMinutes } from 'date-fns';
@@ -129,16 +130,16 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
 
       {/* Main Content Container */}
 
-      <div className='w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-3'>
+      <div className='w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-8'>
         {/*LEFT CONTAINER*/}
-        <div className='w-full md:w-[40%] flex flex-col gap-1 pt-2'>
+        <div className='w-full md:w-[40%] lg:w-[35%] flex flex-col gap-3'>
           {/* Episode Description */}
           {(episode.metadata.body_text || episode.metadata.description) && (
-            <div className='prose dark:prose-invert max-w-none'>
+            <div className='max-w-none'>
               <SafeHtml
                 content={episode.metadata.body_text || episode.metadata.description || ''}
                 type='editorial'
-                className='text-b3 sm:text-[18px] leading-tight text-almostblack dark:text-white'
+                className='!text-[16px] leading-5 text-almostblack dark:text-white'
               />
             </div>
           )}
@@ -148,45 +149,61 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
             <div>
               <div className='flex flex-wrap select-none cursor-default my-3'>
                 {episode.metadata.genres.map((genre: any) => (
-                  <GenreTag key={genre.id || genre.slug}>{genre.title || genre.name}</GenreTag>
+                  <GenreTag key={genre.id || genre.slug} variant="large">{genre.title || genre.name}</GenreTag>
                 ))}
               </div>
             </div>
           )}
-          {/* Hosts Section */}
-          {episode.metadata.regular_hosts?.length > 0 && (
-            <div className='flex flex-wrap gap-1 pl-1'>
-              {episode.metadata.regular_hosts.map((host: any) => (
-                <HostLink
-                  key={host.id || host.slug}
-                  host={host}
-                  className='text-m7 font-mono uppercase text-muted-foreground hover:text-foreground transition-colors'
-                />
-              ))}
-            </div>
-          )}
+          
+          {/* Hosts, Duration, and Broadcast Info Row */}
+          {(episode.metadata.regular_hosts?.length > 0 ||
+            episode.metadata.duration ||
+            episode.metadata.broadcast_date ||
+            episode.metadata.broadcast_date_old) && (
+            <div className='flex flex-row flex-wrap items-center gap-2'>
+              {/* Hosts */}
+              {episode.metadata.regular_hosts?.length > 0 && (
+                <>
+                  <div className='flex flex-row flex-wrap items-center gap-1'>
+                    {episode.metadata.regular_hosts.map((host: any) => (
+                      <HostLink
+                        key={host.id || host.slug}
+                        host={host}
+                        className='text-m8 font-mono uppercase text-muted-foreground hover:text-foreground transition-colors'
+                      />
+                    ))}
+                  </div>
+                  {(episode.metadata.duration ||
+                    episode.metadata.broadcast_date ||
+                    episode.metadata.broadcast_date_old) && (
+                    <span className='text-muted-foreground text-m8'>|</span>
+                  )}
+                </>
+              )}
 
-          {/* Duration */}
-          {episode.metadata.duration && (
-            <div>
-              <span className='text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors'>
-                Duration: {episode.metadata.duration}
-              </span>
-            </div>
-          )}
+              {/* Duration */}
+              {episode.metadata.duration && (
+                <>
+                  <span className='text-m8 font-mono uppercase text-muted-foreground'>
+                    {episode.metadata.duration}
+                  </span>
+                  {(episode.metadata.broadcast_date || episode.metadata.broadcast_date_old) && (
+                    <span className='text-muted-foreground text-m8'>|</span>
+                  )}
+                </>
+              )}
 
-          {/* Broadcast Info */}
-          {(episode.metadata.broadcast_date || episode.metadata.broadcast_date_old) && (
-            <div>
-              <span className='text-m7 font-mono pl-1 uppercase text-muted-foreground hover:text-foreground transition-colors'>
-                Broadcast:{' '}
-                {parseBroadcastDateTime(
-                  episode.metadata.broadcast_date,
-                  episode.metadata.broadcast_time,
-                  episode.metadata.broadcast_date_old
-                )?.toLocaleDateString()}
-                {episode.metadata.broadcast_time && ` at ${episode.metadata.broadcast_time}`}
-              </span>
+              {/* Broadcast Info */}
+              {(episode.metadata.broadcast_date || episode.metadata.broadcast_date_old) && (
+                <span className='text-m8 font-mono uppercase text-muted-foreground'>
+                  {parseBroadcastDateTime(
+                    episode.metadata.broadcast_date,
+                    episode.metadata.broadcast_time,
+                    episode.metadata.broadcast_date_old
+                  )?.toLocaleDateString()}
+                  {episode.metadata.broadcast_time && ` | ${episode.metadata.broadcast_time}`}
+                </span>
+              )}
             </div>
           )}
 
@@ -223,10 +240,10 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
         </div>
 
         {/*RIGHT CONTAINER*/}
-        <div className='w-full md:w-[60%] flex flex-col mt-2 gap-2 h-auto'>
+        <div className='w-full md:w-[50%] flex flex-col gap-2 h-auto'>
           {relatedEpisodes.length > 0 && (
             <div>
-              <h2 className='text-h8 md:text-h7 font-bold tracking-tight'>RELATED EPISODES</h2>
+              <h2 className='text-h8 md:text-h7 font-bold tracking-tight leading-none'>RELATED EPISODES</h2>
               <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 justify-between pt-3'>
                 {relatedEpisodes.map(relatedEpisode => {
                   const slug = `/episode/${relatedEpisode.slug}`;

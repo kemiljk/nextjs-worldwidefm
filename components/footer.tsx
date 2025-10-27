@@ -100,7 +100,7 @@ export default async function Footer() {
             {/* Newsletter section */}
             <div className='w-80'>
               <h3 className='text-m7 font-mono uppercase font-normal text-almostblack dark:text-white pb-3'>
-                BECOME A MEMEBER
+                BECOME A MEMBER
               </h3>
               <p className='font-sans text-b3 pb-4'>
                 Become a member for exclusive content, ad-free listening, and early access to new

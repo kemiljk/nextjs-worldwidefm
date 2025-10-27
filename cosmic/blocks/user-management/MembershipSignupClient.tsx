@@ -57,7 +57,7 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
         <div
           className='absolute inset-0'
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
             backgroundSize: '50px 50px',
             mixBlendMode: 'multiply',
           }}
@@ -154,19 +154,20 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
       <div
         className='absolute inset-0'
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          backgroundSize: '50px 50px',
-          mixBlendMode: 'multiply',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+          backgroundSize: '200px 200px',
+          mixBlendMode: 'screen',
+          opacity: '40%',
         }}
       />
 
       {/* Content */}
-      <div className='relative z-10 text-center px-5 max-w-4xl mx-auto'>
-        <h1 className='font-display mx-auto uppercase text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-8 text-white leading-tight'>
+      <div className='relative z-10 text-center px-4 '>
+        <h1 className='font-display mx-20 uppercase text-5xl sm:text-6xl font-bold tracking-tight mb-8 text-white leading-12'>
           {heading}
         </h1>
         <div
-          className='text-white/90 text-base sm:text-lg leading-relaxed mb-12 max-w-[36rem] mx-auto'
+          className='text-white/90 text-body sm:text-md leading-tight mb-12 w-[70%] lg:w-[50%] mx-auto'
           dangerouslySetInnerHTML={{ __html: body }}
         />
 
@@ -228,7 +229,7 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
         <Button
           onClick={handleJoinClick}
           disabled={isProcessing}
-          className='bg-almostblack text-white hover:bg-almostblack/90 px-12 py-6 text-lg font-mono uppercase tracking-wider'
+          className='bg-almostblack text-white hover:bg-almostblack/90 px-10 py-3 text-md font-mono uppercase tracking-normal'
         >
           {isProcessing ? (
             <>

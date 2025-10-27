@@ -21,6 +21,7 @@ import HomepageHero from '@/components/homepage-hero';
 import InsertedSection from '@/components/inserted-section';
 import LatestEpisodes from '@/components/latest-episodes';
 import ColouredSectionGallery from '@/components/coloured-section-gallery';
+import MembershipPromo from '@/components/ui/membershippromo.tsx';
 
 // Revalidate frequently to show new shows quickly
 export const revalidate = 60; // 1 minute
@@ -162,6 +163,8 @@ export default async function Home() {
         <Suspense>
           <ColouredSectionGallery colouredSections={colouredSections} homepageData={homepageData} />
         </Suspense>
+
+        <MembershipPromo />
 
         {/* Static sections stacked below */}
         {processedDynamicSections.map((section, index) => (

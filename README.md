@@ -118,7 +118,7 @@ export function MyComponent({ className, ...props }) {
       )}
       {...props}
     >
-      <h2 className='text-h8 font-display uppercase'>Component Title</h2>
+      <h2 className='text-h8 font-display '>Component Title</h2>
       <p className='text-m6 text-gray-100 mt-2'>Component description</p>
     </div>
   );

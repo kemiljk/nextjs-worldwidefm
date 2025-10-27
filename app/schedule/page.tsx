@@ -129,8 +129,8 @@ export default async function SchedulePage() {
   return (
     <div className='min-h-screen bg-white dark:bg-black'>
       <div className=''>
-        <div className='relative w-full h-[25vh] sm:h-[35vh] overflow-hidden'>
-          <div className='absolute bottom-0 left-0 w-full px-5 z-10'>
+        <div className='relative w-full pt-20 overflow-hidden'>
+          <div className='relative left-0 w-full px-5 z-10'>
             <PageHeader title='schedule' />
           </div>
         </div>

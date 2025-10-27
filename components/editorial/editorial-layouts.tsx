@@ -39,7 +39,7 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
       {/* Hero Section */}
       <div className='w-full mt-20 mb-40 px-5 md:px-20 flex flex-col lg:flex-row gap-20 justify-center items-center md:items-start'>
         {/* Image */}
-        <div className='sm:w-[80vw] lg:w-[50vw] flex items-center justify-center overflow-hidden relative'>
+        <div className='sm:w-[80vw] lg:w-[50vw] flex fixed items-center justify-center overflow-hidden relative'>
           <Image
             src={imageUrl}
             alt={`${title} - Featured image`}
@@ -110,9 +110,9 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
         <Image src={imageUrl} alt={`${title} - Featured image`} fill className='object-cover' />
         <div className='absolute inset-0 bg-black bg-opacity-40 flex items-end'>
           <div className='w-full px-5 md:px-20 pb-20 text-white'>
-            <h1 className='font-sans text-[32px] md:text-[60px] lg:text-[80px] leading-none mb-6'>
+            <text className='text-[32px] md:text-[60px] lg:text-[80px] leading-none mb-6'>
               {title}
-            </h1>
+            </text>
             <p className='text-sans text-b2 mb-4 max-w-3xl'>{description}</p>
             <div className='flex items-center gap-4'>
               <div className='text-[14px] font-mono tracking-wider'>{formattedDate}</div>
@@ -167,9 +167,9 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
     <article className='w-full'>
       {/* Title Section */}
       <div className='w-full px-5 md:px-20 py-20 text-center'>
-        <h1 className='font-sans text-[32px] md:text-[50px] lg:text-[70px] leading-none mb-6 text-almostblack dark:text-white'>
+        <text className='font-sans text-[32px] md:text-[50px] lg:text-[60px] leading-none mb-4 text-almostblack dark:text-white'>
           {title}
-        </h1>
+        </text>
         <p className='text-sans text-b2 mb-6 max-w-3xl mx-auto'>{description}</p>
         <div className='flex items-center justify-center gap-4 mb-6'>
           <div className='text-[12px] font-mono tracking-wider text-muted-foreground'>
@@ -209,7 +209,7 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
         <div className='max-w-4xl mx-auto px-5 md:px-20 mb-20'>
           <div
             dangerouslySetInnerHTML={{ __html: content }}
-            className='break-words font-sans text-b6 space-y-6'
+            className='break-words font-sans text-b6 space-y-3'
           />
         </div>
       )}

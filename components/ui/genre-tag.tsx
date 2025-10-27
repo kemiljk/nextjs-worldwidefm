@@ -4,7 +4,7 @@ import Link from 'next/link';
 interface GenreTagProps {
   children: React.ReactNode;
   className?: string;
-  variant?: 'default' | 'white' | 'transparent' | 'light';
+  variant?: 'default' | 'white' | 'transparent' | 'light' | 'large';
   href?: string;
   onClick?: (e: React.MouseEvent) => void;
 }
@@ -24,6 +24,7 @@ export const GenreTag: React.FC<GenreTagProps> = ({
     transparent:
       'border-almostblack dark:border-white text-almostblack dark:text-white bg-transparent',
     light: 'border-black text-black',
+    large: 'border-almostblack dark:border-white text-almostblack dark:text-white text-[11px]',
   };
 
   const tagClasses = cn(baseClasses, variantClasses[variant], className);
