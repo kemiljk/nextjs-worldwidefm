@@ -25,8 +25,6 @@ export function ArticleCard({
 }: ArticleCardProps) {
   const borderClass = variant === 'white' ? '' : 'border-black';
   const dateTextClass = variant === 'white' ? 'text-white' : 'text-almostblack';
-  const tagBorderClass = variant === 'white' ? 'border-white' : 'border-black';
-  const tagTextClass = variant === 'white' ? 'text-white' : 'text-black';
 
   // Use categories if available, otherwise fall back to tags
   const displayTags =
@@ -42,7 +40,7 @@ export function ArticleCard({
           <img
             src={image}
             alt={title}
-            className={`w-full ${variant === 'featured' ? 'max-h-100 h-full object-cover' : 'h-full object-fill'} border-1 ${borderClass}`}
+            className={`w-full ${variant === 'featured' ? 'max-h-100 h-full object-cover' : 'h-full object-fill'} border ${borderClass}`}
           />
         </div>
         <div
@@ -65,7 +63,7 @@ export function ArticleCard({
             </p>
           )}
           {displayTags && displayTags.length > 0 && (
-            <div className='flex flex-wrap gap-2'>
+            <div className='flex flex-wrap'>
               {displayTags.map(tag => (
                 <CategoryTag
                   key={tag.slug}
