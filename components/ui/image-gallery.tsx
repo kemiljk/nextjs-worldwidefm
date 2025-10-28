@@ -38,7 +38,7 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
   // Grid Layout
   if (layout === 'grid') {
     return (
-      <div className={`w-full grid grid-cols-2 md:grid-cols-3 gap-4 ${className}`}>
+      <div className={`w-full grid grid-cols-1 md:grid-cols-2 gap-4 ${className}`}>
         {images.map((image, index) => (
           <div key={index} className='relative w-full aspect-square'>
             <Image
