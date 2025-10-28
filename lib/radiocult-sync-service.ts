@@ -1,4 +1,4 @@
-import { cosmic } from '@/lib/cosmic-client';
+import { cosmic } from '@/lib/cosmic-config';
 import { getEvents, RadioCultEvent } from '@/lib/radiocult-service';
 
 interface SyncResult {
@@ -58,10 +58,10 @@ async function createEpisodeFromRadioCultEvent(event: RadioCultEvent): Promise<b
   try {
     // Find or create the artist/host in Cosmic
     let hostId: string | undefined;
-    
+
     if (event.artists && event.artists.length > 0) {
       const artist = event.artists[0];
-      
+
       try {
         // Try to find existing host by name
         const existingHost = await cosmic.objects
@@ -70,7 +70,7 @@ async function createEpisodeFromRadioCultEvent(event: RadioCultEvent): Promise<b
           })
           .props('slug,title')
           .limit(1000);
-        
+
         const foundHost = existingHost.objects?.find(
           (h: any) => h.title?.toLowerCase() === artist.name.toLowerCase()
         );
@@ -93,7 +93,7 @@ async function createEpisodeFromRadioCultEvent(event: RadioCultEvent): Promise<b
                 : null,
             },
           });
-          
+
           hostId = newHost.object?.id;
         }
       } catch (error) {
@@ -182,7 +182,9 @@ export async function syncRadioCultToCosmicEpisodes(
     endDate.setDate(endDate.getDate() + daysAhead);
 
     // Fetch events from RadioCult
-    console.log(`Fetching RadioCult events from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+    console.log(
+      `Fetching RadioCult events from ${startDate.toISOString()} to ${endDate.toISOString()}`
+    );
     const { events } = await getEvents(
       {
         startDate: startDate.toISOString(),
@@ -248,4 +250,3 @@ export async function syncRadioCultToCosmicEpisodes(
     return result;
   }
 }
-
