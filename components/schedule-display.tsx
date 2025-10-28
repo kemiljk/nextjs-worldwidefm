@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { getUKTimezoneAbbreviation } from '@/lib/date-utils';
 
 interface ScheduleShow {
   show_key: string;
+  event_id: string;
   show_time: string;
   show_day: string;
   name: string;
@@ -18,20 +20,24 @@ interface ScheduleShow {
 
 interface ScheduleDisplayProps {
   scheduleItems: ScheduleShow[];
+  episodeSlugMap: Record<string, string>;
   isActive: boolean;
   error?: string;
 }
 
-export default function ScheduleDisplay({ scheduleItems, isActive, error }: ScheduleDisplayProps) {
-  const [userTimezone, setUserTimezone] = useState<string>('GMT');
-  const [userTimezoneAbbr, setUserTimezoneAbbr] = useState<string>('[GMT]');
+export default function ScheduleDisplay({
+  scheduleItems,
+  episodeSlugMap,
+  isActive,
+  error,
+}: ScheduleDisplayProps) {
+  const [userTimezone, setUserTimezone] = useState<string>('Europe/London');
+  const [userTimezoneAbbr, setUserTimezoneAbbr] = useState<string>(getUKTimezoneAbbreviation());
 
   useEffect(() => {
-    // Get user's timezone
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     setUserTimezone(tz);
 
-    // Get timezone abbreviation
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone: tz,
@@ -170,15 +176,8 @@ export default function ScheduleDisplay({ scheduleItems, isActive, error }: Sche
               {/* Show entries */}
               <div className='divide-y divide-gray-200 dark:divide-gray-700'>
                 {dayShows.map((show, index) => {
-                  let showPath = show.show_key;
-                  if (showPath.startsWith('worldwidefm/')) {
-                    showPath = showPath.replace(/^worldwidefm\//, '');
-                  }
-
-                  // Convert times to user timezone
                   const startTime = convertTime(show.show_time, show.show_day);
 
-                  // Calculate end time (assuming 2-hour shows by default)
                   const [hours, minutes] = show.show_time.split(':').map(Number);
                   const endHours = (hours + 2) % 24;
                   const endTimeUTC = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
@@ -186,25 +185,38 @@ export default function ScheduleDisplay({ scheduleItems, isActive, error }: Sche
 
                   const timeRange = `${startTime}-${endTime}`;
 
-                  // Format show name with host
                   const showName =
                     show.hosts.length > 0 ? `${show.name}: ${show.hosts.join(', ')}` : show.name;
 
-                  return (
+                  const episodeSlug = episodeSlugMap[show.event_id];
+                  const hasEpisode = !!episodeSlug;
+
+                  const content = (
+                    <div className='flex items-center'>
+                      <span className='w-[15vw] text-m6 font-mono text-black dark:text-white pr-8'>
+                        {timeRange}
+                      </span>
+                      <span className='w-[50vw] uppercase font-mono text-m6 text-almostblack dark:text-white flex-1 pl-8'>
+                        {showName}
+                      </span>
+                    </div>
+                  );
+
+                  return hasEpisode ? (
                     <Link
-                      href={`/episode/${showPath}`}
+                      href={`/episode/${episodeSlug}`}
                       key={`${show.show_day}-${show.show_time}-${show.name}`}
                       className='flex-row flex py-4'
                     >
-                      <div className='flex items-center'>
-                        <span className='w-[15vw] text-m6 font-mono text-black dark:text-white pr-8'>
-                          {timeRange}
-                        </span>
-                        <span className='w-[50vw] uppercase font-mono text-m6 text-almostblack dark:text-white flex-1 pl-8'>
-                          {showName}
-                        </span>
-                      </div>
+                      {content}
                     </Link>
+                  ) : (
+                    <div
+                      key={`${show.show_day}-${show.show_time}-${show.name}`}
+                      className='flex-row flex py-4 opacity-60 cursor-default'
+                    >
+                      {content}
+                    </div>
                   );
                 })}
               </div>

@@ -84,3 +84,21 @@ export function extractTimePart(dateString: string | null | undefined): string |
 
   return null;
 }
+
+/**
+ * Get the UK timezone abbreviation (BST or GMT) for a given date
+ * BST is British Summer Time (UTC+1), GMT is Greenwich Mean Time (UTC+0)
+ * @param date - The date to check (defaults to current date)
+ * @returns The timezone abbreviation with brackets, e.g., "[BST]" or "[GMT]"
+ */
+export function getUKTimezoneAbbreviation(date: Date = new Date()): string {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/London',
+    timeZoneName: 'short',
+  });
+
+  const parts = formatter.formatToParts(date);
+  const tzPart = parts.find(part => part.type === 'timeZoneName');
+
+  return tzPart ? `[${tzPart.value}]` : '[GMT]';
+}

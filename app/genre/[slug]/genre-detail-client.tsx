@@ -56,7 +56,7 @@ export default function GenreDetail({
 
         {/* Linear white gradient */}
         <div
-          className='absolute inset-0 bg-gradient-to-b from-white via-white/0 to-white'
+          className='absolute inset-0 bg-linear-to-b from-white via-white/0 to-white'
           style={{ mixBlendMode: 'hue' }}
         />
 

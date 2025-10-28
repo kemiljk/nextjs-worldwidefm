@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useMediaPlayer } from '../providers/media-player-provider';
 import { GenreTag } from './genre-tag';
 import type { CanonicalGenre } from '@/lib/get-canonical-genres';
+import { getUKTimezoneAbbreviation } from '@/lib/date-utils';
 
 interface ShowCardProps {
   show: any; // Using any to work with both episode and legacy show formats
@@ -101,14 +102,14 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   const formatShowTime = (dateString: string | undefined): string | null => {
     if (!dateString) return null;
     const date = new Date(dateString);
-    return (
-      date.toLocaleTimeString('en-GB', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'Europe/London',
-        hour12: false,
-      }) + ' [BST]'
-    );
+    const time = date.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/London',
+      hour12: false,
+    });
+    const timezone = getUKTimezoneAbbreviation(date);
+    return `${time} ${timezone}`;
   };
 
   const showImage = getShowImage(show);
