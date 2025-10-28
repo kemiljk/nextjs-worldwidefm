@@ -137,7 +137,7 @@ export default async function SchedulePage() {
         {/* Times note at top-left */}
         <div className='mb-3 pl-5 '>
           <p className='text-sm font-mono text-black dark:text-white'>
-            *TIMES ARE DISPLAYED IN [BST]
+            *TIMES ARE DISPLAYED IN [GMT]
           </p>
         </div>
 
@@ -157,7 +157,7 @@ export default async function SchedulePage() {
                 const dayAbbr = day.substring(0, 3).toUpperCase();
                 const dayNum = targetDate.getDate().toString().padStart(2, '0');
                 const monthNum = (targetDate.getMonth() + 1).toString().padStart(2, '0');
-                const dayHeader = `${dayAbbr} ${dayNum}/${monthNum}`;
+                const dayHeader = `${dayAbbr} ${dayNum}.${monthNum}`;
 
                 return (
                   <div key={day}>
