@@ -67,12 +67,22 @@ export async function POST(request: NextRequest) {
 
     console.error('Full error details:', errorDetails);
 
+    let statusCode = 500;
+    let userMessage = 'Failed to upload image';
+
+    if (errorMessage.includes('413') || errorMessage.toLowerCase().includes('too large')) {
+      statusCode = 413;
+      userMessage = 'Image file is too large. Please use a smaller image (under 2MB).';
+    } else if (errorMessage.includes('CORS') || errorMessage.includes('Access-Control')) {
+      userMessage = 'Connection error. Please check your network and try again.';
+    }
+
     return NextResponse.json(
       {
-        error: 'Failed to upload image',
+        error: userMessage,
         details: errorMessage,
       },
-      { status: 500 }
+      { status: statusCode }
     );
   }
 }

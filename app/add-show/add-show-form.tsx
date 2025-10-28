@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/command';
 import { Dropzone } from '@/components/ui/dropzone';
 import { FormTexts, getDefaultFormTexts } from '@/lib/form-text-service';
+import { compressImage } from '@/lib/image-compression';
 
 // Form schema using zod
 const formSchema = z.object({
@@ -278,10 +279,20 @@ export function AddShowForm() {
       if (imageFile) {
         setPhase('uploadingImage');
         console.log('📸 Starting image upload...');
-        const imageFormData = new FormData();
-        imageFormData.append('image', imageFile);
 
         try {
+          let fileToUpload = imageFile;
+
+          if (imageFile.size > 2 * 1024 * 1024) {
+            console.log('📸 Compressing image before upload...');
+            toast.info('Compressing image...');
+            fileToUpload = await compressImage(imageFile, 2, 2000);
+            console.log('📸 Image compressed successfully');
+          }
+
+          const imageFormData = new FormData();
+          imageFormData.append('image', fileToUpload);
+
           const imageUploadResponse = await fetch('/api/upload-image', {
             method: 'POST',
             body: imageFormData,
@@ -670,12 +681,12 @@ export function AddShowForm() {
               disabled={isLoading}
               onFileSelect={setImageFile}
               selectedFile={imageFile}
-              maxSize={10 * 1024 * 1024}
+              maxSize={5 * 1024 * 1024}
               placeholder='Drag and drop your show image here'
             />
             <FormDescription>
               {formTexts['show-image']?.descriptions['upload-image'] ||
-                'Upload a square image (1:1 aspect ratio recommended) for your show. Maximum file size is 10MB. Accepts JPG, PNG, or WebP.'}
+                'Upload a square image (1:1 aspect ratio recommended) for your show. Maximum file size is 5MB (images will be automatically compressed). Accepts JPG, PNG, or WebP.'}
             </FormDescription>
           </FormItem>
         </div>
