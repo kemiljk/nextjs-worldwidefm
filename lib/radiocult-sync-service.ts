@@ -144,7 +144,7 @@ async function createEpisodeFromRadioCultEvent(event: RadioCultEvent): Promise<b
     const episodeData: any = {
       title: event.showName || 'Untitled Show',
       type: 'episode',
-      status: 'published',
+      status: 'draft', // Set as draft so it can be reviewed before publishing
       metadata: metadata,
     };
 
