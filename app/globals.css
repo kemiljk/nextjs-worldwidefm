@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 @plugin "@tailwindcss/typography";
 
 @source '../*.{js,ts,jsx,tsxmdx}';
@@ -58,7 +58,7 @@
   --color-hyperpop: #e661a4;
   --color-soul: #1da0f8;
   --color-jazz: #ac98ec;
-  --color-soul-200: #0E0992;
+  --color-soul-200: #0e0992;
 
   --tracking-tight: -0.02em;
   --tracking-wide: 0.02em;
@@ -71,7 +71,8 @@
   --radius-xl: 20px;
   --radius-2xl: 24px;
 
-  --animate-marquee-move: marquee-move-text var(--speed, 15s) linear infinite var(--direction, forwards);
+  --animate-marquee-move: marquee-move-text var(--speed, 15s) linear infinite
+    var(--direction, forwards);
 
   --text-h4: 80px;
   --text-h4--line-height: 0.9;
@@ -294,7 +295,7 @@
   }
 
   .prose.prose-mono h3 {
-    @apply !text-b3 !font-mono;
+    @apply text-b3! font-mono!;
   }
 }
 
@@ -376,4 +377,65 @@
   .showcard {
     aspect-ratio: 5 / 8;
   }
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Editorial content styling */
+.editorial-content {
+  max-width: 100%;
+}
+
+/* Ensure images in editorial content are constrained to content width */
+.editorial-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Side-by-side images in tables */
+.editorial-content table {
+  width: 100%;
+  border-spacing: 1rem;
+  margin: 2rem 0;
+}
+
+.editorial-content table td {
+  vertical-align: top;
+  padding: 0.5rem;
+}
+
+.editorial-content table img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Videos should span full width of rich text content */
+.editorial-content iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 2rem 0;
+}
+
+/* Wide option with aspect-video and overflow hidden */
+.editorial-content .wide {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  margin: 2rem 0;
+}
+
+.editorial-content .wide img,
+.editorial-content .wide video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }

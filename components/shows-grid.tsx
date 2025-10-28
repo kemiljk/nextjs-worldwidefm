@@ -37,7 +37,7 @@ export function ShowsGrid({
   };
 
   return (
-    <div className='grid grid-cols-2 md:grid-cols-4 gap-3 w-full h-auto'>
+    <div className='grid grid-cols-2 md:grid-cols-5 gap-3 w-full h-auto'>
       {shows.filter(Boolean).map((show: any, index: number) => {
         const uniqueKey = `${show.id || show.slug}-${index}`;
         const slug = getSlugForShow(show);

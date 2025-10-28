@@ -60,14 +60,14 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
       {/* Content Container */}
       <div className='relative flex flex-col gap-6 p-5'>
         {/* Shows Grid */}
-        <div className='grid grid-cols-2 md:grid-cols-4 gap-3 overflow-hidden'>
+        <div className='grid grid-cols-2 md:grid-cols-5 gap-3 overflow-hidden'>
           {shows.map((show, index) => (
             <div
               key={show.key || index}
               className={`
              flex 
-              ${index >= 4 ? 'hidden md:flex' : ''}  /* hide 6+ on md and below */
-              ${index >= 8 ? 'hidden xl:flex' : ''}  /* hide 8+ on xl and below */
+              ${index >= 4 ? 'hidden md:flex' : ''}  /* hide 5+ on mobile */
+              ${index >= 10 ? 'hidden xl:flex' : ''}  /* hide 11+ on xl and below */
             `}
             >
               <ShowCard

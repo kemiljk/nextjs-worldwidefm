@@ -34,7 +34,7 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
           title={sortedPosts[0].title ?? ''}
           date={sortedPosts[0].metadata?.date ?? undefined}
           excerpt={sortedPosts[0].metadata?.excerpt ?? undefined}
-          image={sortedPosts[0].metadata?.image?.imgix_url ?? '/image-placeholder.png'}
+          image={sortedPosts[0].thumbnail?.imgix_url || sortedPosts[0].metadata?.image?.imgix_url || '/image-placeholder.png'}
           tags={sortedPosts[0].metadata.categories?.map(c => c.title) ?? []}
           variant='featured'
         />

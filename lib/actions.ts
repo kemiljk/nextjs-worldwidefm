@@ -17,7 +17,12 @@ import {
   getTags,
 } from './radiocult-service';
 import FormData from 'form-data';
-import { CosmicHomepageData, HomepageSectionItem, ProcessedHomepageSection } from './cosmic-types';
+import {
+  CosmicHomepageData,
+  HomepageSectionItem,
+  ProcessedHomepageSection,
+  EventType,
+} from './cosmic-types';
 import { stripUrlsFromText } from './utils';
 import { deduplicateFilters } from './filter-types';
 
@@ -124,6 +129,39 @@ export async function getAllPosts({
   } catch (error) {
     console.error('Error in getAllPosts:', error);
     return { posts: [], hasNext: false };
+  }
+}
+
+export async function getAllEvents({
+  limit = 20,
+  offset = 0,
+  searchTerm,
+}: { limit?: number; offset?: number; searchTerm?: string } = {}): Promise<{
+  events: EventType[];
+  hasNext: boolean;
+}> {
+  try {
+    const query: any = {
+      type: 'events',
+      status: 'published',
+      sort: '-metadata.event_date',
+      props: 'id,slug,title,type,metadata,created_at',
+      limit,
+      skip: offset,
+    };
+
+    if (searchTerm && searchTerm.trim()) {
+      query.title = { $regex: searchTerm.trim(), $options: 'i' };
+    }
+
+    const response = await cosmic.objects.find(query).depth(1);
+    const events = (response.objects || []) as EventType[];
+    const hasNext = events.length === limit;
+
+    return { events, hasNext };
+  } catch (error) {
+    console.error('Error in getAllEvents:', error);
+    return { events: [], hasNext: false };
   }
 }
 
@@ -1523,7 +1561,7 @@ export async function getCosmicHomepageData(): Promise<CosmicHomepageData | null
         slug: 'homepage',
       })
       .props('slug,title,metadata,type')
-      .depth(2);
+      .depth(4);
 
     if (response?.object) {
       return response.object as CosmicHomepageData;
@@ -1534,7 +1572,7 @@ export async function getCosmicHomepageData(): Promise<CosmicHomepageData | null
       const fallbackResponse = await cosmic.objects
         .findOne({ id: COSMIC_HOMEPAGE_ID })
         .props('slug,title,metadata,type')
-        .depth(2);
+        .depth(4);
 
       if (fallbackResponse?.object) {
         return fallbackResponse.object as CosmicHomepageData;
@@ -1765,7 +1803,7 @@ export async function createColouredSections(
           const { getEpisodes } = await import('./episode-service');
           const episodes = await getEpisodes({
             showType: showTypeIds,
-            limit: 8,
+            limit: 10,
           });
 
           // Transform episodes using the same function as other components
@@ -1780,7 +1818,7 @@ export async function createColouredSections(
         } else {
           // Fallback to recent episodes if no show_type specified
           const { getEpisodes } = await import('./episode-service');
-          const episodes = await getEpisodes({ limit: 8 });
+          const episodes = await getEpisodes({ limit: 10 });
           // Transform episodes using the same function as other components
           const { transformShowToViewData } = await import('./cosmic-service');
           shows = (episodes.episodes || []).map((episode: any) => {

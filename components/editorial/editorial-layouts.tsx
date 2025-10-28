@@ -39,7 +39,7 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
       {/* Hero Section */}
       <div className='w-full mt-20 mb-40 px-5 md:px-20 flex flex-col lg:flex-row gap-20 justify-center items-center md:items-start'>
         {/* Image */}
-        <div className='sm:w-[80vw] lg:w-[50vw] flex fixed items-center justify-center overflow-hidden relative'>
+        <div className='sm:w-[80vw] lg:w-[50vw] flex items-center justify-center overflow-hidden relative'>
           <Image
             src={imageUrl}
             alt={`${title} - Featured image`}
@@ -71,22 +71,29 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
               ))}
             </div>
           </div>
-          {/* Main Content */}
-          <div className=''>
-            {content && (
-              <div
-                dangerouslySetInnerHTML={{ __html: content }}
-                className='break-words font-sans text-b6 mt-10 md:mt-20 space-y-4'
-              />
-            )}
-          </div>
-
           {/* Image Gallery */}
           {imageGallery.length > 0 && (
             <div className='mt-10 md:mt-20'>
-              <ImageGallery images={imageGallery} />
+              <ImageGallery
+                images={imageGallery}
+                layout={
+                  metadata?.gallery_layout?.value?.toLowerCase() as
+                    | 'thumbnail'
+                    | 'grid'
+                    | 'carousel'
+                }
+              />
             </div>
           )}
+          {/* Main Content */}
+          <div>
+            {content && (
+              <div
+                dangerouslySetInnerHTML={{ __html: content }}
+                className='wrap-break-word font-sans text-b6 mt-10 md:mt-20 space-y-4 editorial-content'
+              />
+            )}
+          </div>
         </div>
       </div>
     </article>
@@ -138,14 +145,19 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
         {content && (
           <div
             dangerouslySetInnerHTML={{ __html: content }}
-            className='break-words font-sans text-b6 space-y-6'
+            className='wrap-break-word font-sans text-b6 space-y-6 editorial-content'
           />
         )}
 
         {/* Image Gallery */}
         {imageGallery.length > 0 && (
           <div className='mt-20'>
-            <ImageGallery images={imageGallery} />
+            <ImageGallery
+              images={imageGallery}
+              layout={
+                metadata?.gallery_layout?.value?.toLowerCase() as 'thumbnail' | 'grid' | 'carousel'
+              }
+            />
           </div>
         )}
       </div>
@@ -209,7 +221,7 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
         <div className='max-w-4xl mx-auto px-5 md:px-20 mb-20'>
           <div
             dangerouslySetInnerHTML={{ __html: content }}
-            className='break-words font-sans text-b6 space-y-3'
+            className='wrap-break-word font-sans text-b6 space-y-3 editorial-content'
           />
         </div>
       )}
@@ -217,7 +229,12 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
       {/* Image Gallery */}
       {imageGallery.length > 0 && (
         <div className='w-full'>
-          <ImageGallery images={imageGallery} />
+          <ImageGallery
+            images={imageGallery}
+            layout={
+              metadata?.gallery_layout?.value?.toLowerCase() as 'thumbnail' | 'grid' | 'carousel'
+            }
+          />
         </div>
       )}
     </article>
@@ -262,7 +279,7 @@ export function MinimalLayout({ post, formattedDate }: EditorialLayoutProps) {
         {content && (
           <div
             dangerouslySetInnerHTML={{ __html: content }}
-            className='break-words font-sans text-b6 space-y-6'
+            className='wrap-break-word font-sans text-b6 space-y-6 editorial-content'
           />
         )}
       </div>

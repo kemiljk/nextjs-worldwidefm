@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { Metadata } from 'next';
 import {
   getCosmicHomepageData,
@@ -13,15 +13,15 @@ import { transformShowToViewData } from '@/lib/cosmic-service';
 import EditorialSection from '@/components/editorial/editorial-section';
 import VideoSection from '@/components/video/video-section';
 import ArchiveSection from '@/components/archive/archive-section';
-// Removed date-fns imports as they're no longer needed with simplified FeaturedSections
 import GenreSelector from '@/components/genre-selector';
 import FeaturedSections from '@/components/featured-sections';
-import { HomepageSectionItem, ProcessedHomepageSection } from '@/lib/cosmic-types';
+import { PageOrderItem, HomepageSectionItem, ProcessedHomepageSection } from '@/lib/cosmic-types';
 import HomepageHero from '@/components/homepage-hero';
 import InsertedSection from '@/components/inserted-section';
 import LatestEpisodes from '@/components/latest-episodes';
 import ColouredSectionGallery from '@/components/coloured-section-gallery';
-import MembershipPromo from '@/components/ui/membershippromo.tsx';
+import MembershipPromoSection from '@/components/membership-promo-section';
+import { ShowCard } from '@/components/ui/show-card';
 
 // Revalidate frequently to show new shows quickly
 export const revalidate = 60; // 1 minute
@@ -37,6 +37,91 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
+// Helper function to render page order items
+function renderPageOrderItem(
+  item: PageOrderItem,
+  colouredSections: any[],
+  homepageData: any
+): React.ReactNode {
+  switch (item.type) {
+    case 'latest-episodes':
+      return <LatestEpisodes config={item.metadata} />;
+
+    case 'sections':
+      const sectionType = item.metadata?.type;
+      const items = item.metadata?.items || [];
+      const sectionTitle = item.title;
+
+      // Determine the content type based on items
+      if (items.length > 0) {
+        const firstItem = items[0];
+        const itemType = firstItem.type;
+
+        // For Editorial/Video posts, use EditorialSection
+        if (itemType === 'posts') {
+          return (
+            <EditorialSection
+              posts={items}
+              title={sectionTitle}
+              className='pt-8'
+              isHomepage={true}
+            />
+          );
+        }
+
+        // For Shows/Episodes, use ShowsGrid
+        if (itemType === 'episodes') {
+          return (
+            <section className='py-8 px-5'>
+              <h2 className='text-h8 md:text-h7 font-bold mb-4 tracking-tight uppercase'>
+                {sectionTitle}
+              </h2>
+              <div className='grid grid-cols-2 md:grid-cols-5 gap-3 w-full h-auto'>
+                {items.map((show: any, index: number) => {
+                  const transformed = transformShowToViewData(show);
+                  return (
+                    <ShowCard
+                      key={show.id || show.slug || index}
+                      show={{
+                        ...transformed,
+                        url: show.metadata?.player
+                          ? show.metadata.player.startsWith('http')
+                            ? show.metadata.player
+                            : `https://www.mixcloud.com${show.metadata.player}`
+                          : '',
+                        key: show.slug,
+                      }}
+                      slug={`/episode/${show.slug}`}
+                      playable
+                    />
+                  );
+                })}
+              </div>
+            </section>
+          );
+        }
+
+        // For Archive, use ArchiveSection or ShowsGrid
+        if (sectionType === 'Archive') {
+          return <ArchiveSection shows={items} className='pt-8' />;
+        }
+      }
+
+      return null;
+
+    case 'membership-promo':
+      return <MembershipPromoSection config={item.metadata} />;
+
+    case 'coloured-sections':
+      // Render carousel of coloured sections
+      // Note: colouredSections are pre-processed in the main Home component
+      return <ColouredSectionGallery colouredSections={colouredSections} homepageData={item} />;
+
+    default:
+      return null;
+  }
+}
+
 export default async function Home() {
   const [homepageData, videosData, postsData] = await Promise.all([
     getCosmicHomepageData(),
@@ -44,69 +129,137 @@ export default async function Home() {
     getAllPosts(),
   ]);
 
-  // Create coloured sections from homepage data
-  const colouredSections = await createColouredSections(homepageData);
+  // Get page order from Cosmic
+  const pageOrder = homepageData?.metadata?.page_order || [];
 
-  // Get recent published episodes from Cosmic (already sorted newest-first server-side)
+  // Process coloured sections from page_order items (NEW structure)
+  const colouredSectionItems = pageOrder.filter(item => item.type === 'coloured-sections');
+  let colouredSections: any[] = [];
+
+  if (colouredSectionItems.length > 0) {
+    // Process coloured sections from page_order
+    const allSections = await Promise.all(
+      colouredSectionItems.flatMap(item => {
+        const sectionData = item.metadata?.coloured_section || [];
+        return sectionData.map(async (section: any, idx: number) => {
+          // Color mapping from Cosmic color names to hex values
+          const colorMap: Record<string, string> = {
+            Orange: '#f8971d',
+            Green: '#88ca4f',
+            Pink: '#e661a4',
+            Blue: '#1da0f8',
+          };
+
+          try {
+            let shows: any[] = [];
+
+            if (section.show_type) {
+              // Extract ID from show_type object if it's an object, otherwise use as-is
+              const showTypeId =
+                typeof section.show_type === 'object' && section.show_type?.id
+                  ? section.show_type.id
+                  : section.show_type;
+
+              const { getEpisodes } = await import('@/lib/episode-service');
+              const episodes = await getEpisodes({
+                showType: [showTypeId],
+                limit: 10,
+              });
+
+              shows = (episodes.episodes || []).map((episode: any) => {
+                const transformed = transformShowToViewData(episode);
+                return {
+                  ...transformed,
+                  key: transformed.slug,
+                };
+              });
+            }
+
+            // Get color from section.colour or show_type metadata
+            const colorName =
+              section.colour || section.show_type?.metadata?.colour?.value || 'Orange';
+            const backgroundColor = colorMap[colorName] || '#f8971d';
+
+            return {
+              title: section.title,
+              type: 'Shows',
+              layout: 'Unique',
+              is_active: true,
+              description: section.description,
+              time: section.time,
+              items: shows,
+              color: backgroundColor,
+            };
+          } catch (error) {
+            console.error(`Error processing coloured section ${section.title}:`, error);
+            return null;
+          }
+        });
+      })
+    );
+
+    colouredSections = allSections.filter(Boolean);
+  } else {
+    // Fallback to OLD structure from createColouredSections
+    colouredSections = await createColouredSections(homepageData);
+  }
+
+  // Get recent published episodes from Cosmic
   const response = await getEpisodesForShows({ limit: 20 });
   const shows = (response?.shows || []).map(show => {
-    // Transform using the same function as other components
     const transformed = transformShowToViewData(show);
     return {
       ...transformed,
-      key: transformed.slug, // Add key for media player identification
+      key: transformed.slug,
     };
   });
-
-  // Removed getCurrentShow function and mostRecentShow variable as they're no longer needed with simplified FeaturedSections
 
   // Get shows from the archive
   const { shows: archiveShowsRaw } = await getEpisodesForShows({ random: true, limit: 20 });
   const archiveShows = archiveShowsRaw.map(show => {
-    // Transform using the same function as other components
     const transformed = transformShowToViewData(show);
     return {
       ...transformed,
-      key: transformed.slug, // Add key for media player identification
+      key: transformed.slug,
     };
   });
 
   const heroLayout = homepageData?.metadata?.heroLayout;
   const heroItemsRaw = homepageData?.metadata?.heroItems || [];
 
-  // Fetch full episode data for hero items (similar to dynamic sections)
-  const heroItems = await Promise.all(
-    heroItemsRaw
-      .filter(item => item.type === 'episodes') // Only process episodes
-      .map(async item => {
-        try {
-          // Fetch the full episode data
-          const fullEpisode = await getEpisodeBySlug(item.slug);
-          if (fullEpisode) {
-            // Transform using the same function as other components
-            const transformed = transformShowToViewData(fullEpisode);
-            return {
-              ...transformed,
-              key: transformed.slug,
-              url: transformed.url,
-            } as any; // Cast to any to avoid type issues
+  // Fetch full episode data for hero items
+  const heroItems = (
+    await Promise.all(
+      heroItemsRaw
+        .filter(item => item.type === 'episodes')
+        .map(async item => {
+          try {
+            const fullEpisode = await getEpisodeBySlug(item.slug);
+            if (fullEpisode) {
+              const transformed = transformShowToViewData(fullEpisode);
+              return {
+                ...transformed,
+                key: transformed.slug,
+                url: transformed.url,
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching hero episode ${item.slug}:`, error);
           }
-        } catch (error) {
-          console.error(`Error fetching hero episode ${item.slug}:`, error);
-        }
-        // Fallback to original item if fetch fails
-        const playerUrl = item.metadata?.player as unknown as string | undefined;
-        return {
-          ...item,
-          key: item.slug,
-          url: playerUrl
-            ? playerUrl.startsWith('http')
-              ? playerUrl
-              : `https://www.mixcloud.com${playerUrl}`
-            : '',
-        } as any; // Cast to any to avoid type issues
-      })
-  );
+
+          const playerUrl = item.metadata?.player as unknown as string | undefined;
+          return {
+            ...item,
+            key: item.slug,
+            url: playerUrl
+              ? playerUrl.startsWith('http')
+                ? playerUrl
+                : `https://www.mixcloud.com${playerUrl}`
+              : '',
+          };
+        })
+    )
+  ).filter(Boolean);
 
   // Process dynamic sections to fetch full item data
   const rawDynamicSections = homepageData?.metadata?.sections || [];
@@ -114,27 +267,25 @@ export default async function Home() {
     rawDynamicSections
       .filter(section => section.is_active && section.items && section.items.length > 0)
       .map(async section => {
+        const extractItemId = (item: unknown): string => {
+          if (typeof item === 'string') {
+            return item;
+          }
+          if (item && typeof item === 'object' && 'id' in item && typeof item.id === 'string') {
+            return item.id;
+          }
+          return '';
+        };
+
         const fetchedItemsPromises = section.items
-          .map((item: any) => {
-            let id: string = '';
-            if (typeof item === 'string') {
-              id = item;
-            } else if (
-              item &&
-              typeof item === 'object' &&
-              'id' in item &&
-              typeof item.id === 'string'
-            ) {
-              id = item.id;
-            }
-            return id;
-          })
-          .filter(id => id && id.length > 0)
+          .map(extractItemId)
+          .filter(id => id.length > 0)
           .map(id => fetchCosmicObjectById(id));
 
         const fetchedItems = (await Promise.all(fetchedItemsPromises)).filter(
           Boolean
         ) as HomepageSectionItem[];
+
         return {
           ...section,
           layout: section.layout || 'Grid',
@@ -143,37 +294,46 @@ export default async function Home() {
       })
   );
 
+  // Check if sections are in page_order (new system) or should use old system
+  const hasLatestEpisodesInOrder = pageOrder.some(item => item.type === 'latest-episodes');
+  const hasColouredSectionsInOrder = pageOrder.some(item => item.type === 'coloured-sections');
+  const hasMembershipInOrder = pageOrder.some(item => item.type === 'membership-promo');
+  const hasEditorialSectionsInOrder = pageOrder.some(
+    item => item.type === 'sections' && item.metadata?.type === 'Editorial'
+  );
+
   return (
     <div className='w-full min-h-screen'>
-      {/* Main content */}
       <div className='mt-4 mb-12'>
-        {/* Hero Section: Conditionally render based on Cosmic data or fallback */}
+        {/* Hero Section */}
         <Suspense>
           {heroLayout && <HomepageHero heroLayout={heroLayout} heroItems={heroItems} />}
         </Suspense>
+
         <Suspense>
           <FeaturedSections shows={shows.slice(0, 2)} />
         </Suspense>
 
-        <Suspense>
-          <LatestEpisodes />
-        </Suspense>
+        {/* Coloured Sections - use page_order if available, otherwise hardcoded */}
+        {!hasColouredSectionsInOrder && (
+          <Suspense>
+            <ColouredSectionGallery
+              colouredSections={colouredSections}
+              homepageData={homepageData}
+            />
+          </Suspense>
+        )}
 
-        {/* Coloured Sections: horizontal swipe gallery (CSS-only, no client hooks) */}
-        <Suspense>
-          <ColouredSectionGallery colouredSections={colouredSections} homepageData={homepageData} />
-        </Suspense>
-
-        <MembershipPromo />
-
-        {/* Static sections stacked below */}
-        {processedDynamicSections.map((section, index) => (
-          <Suspense key={`static-${section.title}-${index}`} fallback={<div>Loading...</div>}>
-            <InsertedSection section={section} />
+        {/* Dynamic page order rendering - ONLY render sections that ARE in page_order */}
+        {pageOrder.map((item, index) => (
+          <Suspense key={`${item.type}-${item.id}-${index}`} fallback={<div>Loading...</div>}>
+            {renderPageOrderItem(item, colouredSections, homepageData)}
           </Suspense>
         ))}
+
         {/* From The Archive Section */}
         {archiveShows.length > 0 && <ArchiveSection shows={archiveShows} className='pt-8' />}
+
         {/* Genre Selector Section */}
         <Suspense>
           <GenreSelector shows={shows} />
@@ -184,7 +344,6 @@ export default async function Home() {
           <VideoSection videos={videosData.videos} className='pt-8' />
         )}
 
-        {/* Editorial section */}
         {postsData.posts.length > 0 && (
           <EditorialSection
             posts={postsData.posts}

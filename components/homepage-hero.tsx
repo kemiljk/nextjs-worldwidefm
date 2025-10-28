@@ -6,37 +6,58 @@ import { formatDateShort } from '@/lib/utils';
 import { GenreObject } from '@/lib/cosmic-config';
 import { PlayButton } from '@/components/play-button';
 import { HighlightedText } from '@/components/ui/highlighted-text';
+import { useMediaPlayer } from '@/components/providers/media-player-provider';
 
+// Using any for now since heroItems come from transformed show data
 interface HomepageHeroProps {
   heroLayout: string;
-  heroItems: TransformedHeroItem[];
+  heroItems: any[];
 }
 
-const HeroItem = ({ item, isPriority }: { item: TransformedHeroItem; isPriority: boolean }) => {
+const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
   const { playShow, pauseShow, selectedShow, isArchivePlaying } = useMediaPlayer();
 
   const href =
     item.type === 'episodes'
-      ? `/episode${item.slug}`
+      ? `/episode/${item.slug}`
       : item.type === 'posts'
         ? `/editorial/${item.slug}`
         : '#';
 
+  // Check if this item has audio content and can be played
+  const isEpisode = item.type === 'episodes';
+  const hasAudioContent = item.url || item.metadata?.player;
+  const shouldShowPlayButton = isEpisode && hasAudioContent;
+
+  // Check if this specific episode is currently playing
+  const isCurrentlyPlaying = isArchivePlaying && selectedShow?.slug === item.slug;
+
+  const handlePlayPause = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isCurrentlyPlaying) {
+      pauseShow();
+    } else {
+      playShow(item);
+    }
+  };
+
   return (
     <Card
       key={item.slug}
-      className='overflow-hidden shadow-none rounded-none relative cursor-pointer h-full flex flex-col'
+      className='overflow-hidden shadow-none rounded-none relative cursor-pointer h-full flex flex-col group'
     >
       <Link href={href} className='flex flex-col h-full'>
         <CardContent className='p-0 grow flex flex-col'>
-          <div className='relative w-full h-[calc(100dvh-112px)] flex items-center justify-center'>
+          <div className='relative w-full h-[90vh] flex items-center justify-center'>
             <Image
               src={
-                item.metadata.image?.imgix_url ||
-                item.metadata.image?.url ||
+                item.metadata?.image?.imgix_url ||
+                item.metadata?.image?.url ||
                 '/image-placeholder.png'
               }
-              alt={item.title}
+              alt={item.title || 'Hero item'}
               fill
               className='object-cover'
               sizes='(max-width: 768px) 100vw, 50vw'
@@ -72,18 +93,18 @@ const HeroItem = ({ item, isPriority }: { item: TransformedHeroItem; isPriority:
           </div>
           <div className='absolute bottom-0 left-0 right-0 flex bg-linear-to-t from-almostblack to-transparent h-1/2 flex-col p-4 flex-1 justify-end'>
             <div className='bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-1 px-1 text-left'>
-              {(item.metadata.date && formatDateShort(item.metadata.date)) ||
-                formatDateShort(item.metadata.broadcast_date)}
+              {(item.metadata?.date && formatDateShort(item.metadata.date)) ||
+                (item.metadata?.broadcast_date && formatDateShort(item.metadata.broadcast_date))}
             </div>
             <h3 className='text-h7 max-w-2xl leading-none font-display w-fit'>
               <HighlightedText variant='white'>{item.title}</HighlightedText>
             </h3>
-            {item.metadata.broadcast_time && (
+            {item.metadata?.broadcast_time && (
               <p className='text-m5 font-mono text-white max-w-xl mt-2 line-clamp-3 text-left'>
                 {item.metadata.broadcast_time}
               </p>
             )}
-            {item.metadata.genres && (
+            {item.metadata?.genres && (
               <div className='flex items-center'>
                 {item.metadata.genres.map((genre: GenreObject) => (
                   <p
@@ -102,7 +123,7 @@ const HeroItem = ({ item, isPriority }: { item: TransformedHeroItem; isPriority:
   );
 };
 
-const renderHeroItem = (item: TransformedHeroItem, isPriority: boolean) => {
+const renderHeroItem = (item: any, isPriority: boolean) => {
   return <HeroItem item={item} isPriority={isPriority} />;
 };
 
@@ -123,10 +144,10 @@ const HomepageHero: React.FC<HomepageHeroProps> = ({ heroLayout, heroItems }) =>
         </div>
       </div>
     );
-  } else if (heroLayout === 'Full Width') {
+  } else if (heroLayout === 'Full Width' || heroLayout === 'FullWidth') {
     const item1 = heroItems[0];
     if (!item1) return null;
-    return <div className='relative z-10'>{renderHeroItem(item1, true)}</div>;
+    return <div className='relative z-10 w-full'>{renderHeroItem(item1, true)}</div>;
   }
   // TODO: Implement other layouts like 'Carousel'
   // For Carousel, you might use a library like Embla Carousel or similar.
@@ -168,7 +189,7 @@ export const EpisodeHero = ({
     (isEpisode || hasAudioContent) && (show?.metadata?.player || show?.url);
 
   return (
-    <div className='relative w-full h-200 aspect-[2/1] flex flex-col justify-center overflow-hidden'>
+    <div className='relative w-full h-200 aspect-2/1 flex flex-col justify-center overflow-hidden'>
       {/* Overlay: soft blur + blend */}
       <div className='absolute inset-0 w-full h-full z-10 bg-blend-multiply backdrop-blur-[20px] pointer-events-none' />
 

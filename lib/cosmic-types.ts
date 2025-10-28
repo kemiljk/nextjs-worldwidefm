@@ -122,15 +122,37 @@ export interface ProcessedHomepageSection extends Omit<HomepageSection, 'items' 
   layout: 'Grid' | 'Unique'; // Only Grid and Unique layouts supported
 }
 
+export interface PageOrderItem {
+  id: string;
+  slug: string;
+  title: string;
+  type: 'latest-episodes' | 'sections' | 'coloured-sections' | 'membership-promo' | string;
+  metadata: any;
+}
+
+export interface LatestEpisodesConfig {
+  number_of_latest_shows: number;
+}
+
+export interface MembershipPromoConfig {
+  title: string;
+  description: string;
+  button_text?: string;
+}
+
 export interface CosmicHomepageData {
   slug: 'homepage';
   title: 'Homepage';
   type: 'homepage';
   metadata: {
-    heroLayout: 'Split' | 'FullWidth' | 'Full Width' | 'Carousel' | string; // Added "Full Width" with a space
+    seo?: any;
+    display_announcement?: boolean;
+    announcement?: string;
+    heroLayout: 'Split' | 'FullWidth' | 'Full Width' | 'Carousel' | string;
     heroItems: HomepageHeroItem[];
-    sections: HomepageSection[];
-    coloured_sections?: ColouredSection[]; // Optional coloured sections
+    page_order: PageOrderItem[];
+    sections?: HomepageSection[]; // Keep for backwards compatibility
+    coloured_sections?: ColouredSection[];
   };
 }
 
@@ -140,11 +162,17 @@ export interface CosmicAPIObject<T> {
 }
 
 export type EventType = {
+  id: string;
   slug: string;
   title: string;
   type: 'events';
+  created_at: string;
+  modified_at?: string;
   metadata: {
-    image: null | string;
+    image: {
+      url: string;
+      imgix_url: string;
+    } | null;
     event_date: string;
     location: string;
     description: string;

@@ -173,6 +173,10 @@ export interface PostObject {
   type: string;
   created_at: string;
   status?: string;
+  thumbnail?: {
+    url: string;
+    imgix_url: string;
+  };
   metadata: {
     seo?: {
       title?: string;
@@ -243,6 +247,10 @@ export interface PostObject {
         imgix_url: string;
       };
     }[];
+    gallery_layout?: {
+      key: string;
+      value: string;
+    };
     tags?: string[];
   };
 }

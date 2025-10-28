@@ -2,10 +2,11 @@
 
 import { Loader2, ChevronRight } from 'lucide-react';
 import { ArticleCard } from '@/components/ui/article-card';
+import { EventCard } from '@/components/ui/event-card';
 import { getPostsWithFilters } from '@/lib/actions';
 import { cn } from '@/lib/utils';
 import { PostObject } from '@/lib/cosmic-config';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 
 import Link from 'next/link';
@@ -15,6 +16,21 @@ interface Post extends PostObject {}
 interface EditorialSectionProps {
   title: string;
   posts: Post[];
+  events?: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    metadata: {
+      event_date: string;
+      location: string;
+      description: string;
+      ticket_link: string;
+      image: {
+        url: string;
+        imgix_url: string;
+      } | null;
+    };
+  }>;
   className?: string;
   isHomepage?: boolean;
   layout?: 'grid' | 'list';
@@ -32,6 +48,7 @@ interface EditorialSectionProps {
 export default function EditorialSection({
   title,
   posts,
+  events = [],
   className,
   isHomepage = false,
   currentFilters,
@@ -41,6 +58,26 @@ export default function EditorialSection({
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false); // Start with false, only show if we have a full batch
   const [currentOffset, setCurrentOffset] = useState(0);
+
+  // Combine posts and events, sorting by date
+  const combinedItems = useMemo(() => {
+    const allItems = [
+      ...posts.map(post => ({
+        type: 'post' as const,
+        data: post,
+        date: post.metadata?.date,
+      })),
+      ...events.map(event => ({
+        type: 'event' as const,
+        data: event,
+        date: event.metadata?.event_date,
+      })),
+    ];
+    // Sort by date descending
+    return allItems.sort(
+      (a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime()
+    );
+  }, [posts, events]);
 
   // Update displayedPosts when posts prop changes
   useEffect(() => {
@@ -135,7 +172,7 @@ export default function EditorialSection({
       {isHomepage ? (
         <div className='px-5'>
           <div className='flex w-full justify-between items-end mb-2'>
-            <h2 className='text-h8 md:text-h7 font-bold tracking-tight'>EDITORIAL</h2>
+            <h2 className='text-h8 md:text-h7 font-bold tracking-tight'>{title}</h2>
             <Link
               href='/editorial'
               className='inline-flex items-center font-mono uppercase hover:underline transition-all text-sm'
@@ -161,7 +198,10 @@ export default function EditorialSection({
                 url: `/editorial/${post.slug}`,
                 slug: post.slug,
                 pictures: {
-                  large: post.metadata?.image?.imgix_url || '/image-placeholder.png',
+                  large:
+                    post.thumbnail?.imgix_url ||
+                    post.metadata?.image?.imgix_url ||
+                    '/image-placeholder.png',
                 },
                 created_time: post.metadata?.date || '',
                 tags,
@@ -187,38 +227,48 @@ export default function EditorialSection({
       ) : (
         <>
           <div className='grid grid-cols-1 md:grid-cols-3 gap-10'>
-            {displayedPosts.map(post => {
-              const tags = (post.metadata?.categories || [])
-                .map((cat: any) => {
-                  if (typeof cat === 'string') return cat;
-                  if (cat && typeof cat === 'object' && typeof (cat as any).title === 'string')
-                    return (cat as any).title;
-                  return '';
-                })
-                .filter((tag: string) => !!tag);
-              const article = {
-                key: post.slug,
-                name: post.title,
-                url: `/editorial/${post.slug}`,
-                slug: post.slug,
-                pictures: {
-                  large: post.metadata?.image?.imgix_url || '/image-placeholder.png',
-                },
-                created_time: post.metadata?.date || '',
-                tags,
-                excerpt: post.metadata?.excerpt || '',
-              };
-              return (
-                <ArticleCard
-                  key={post.id}
-                  title={article.name}
-                  slug={article.slug}
-                  image={article.pictures.large}
-                  date={article.created_time}
-                  tags={tags}
-                  categories={post.metadata?.categories || []}
-                />
-              );
+            {combinedItems.map((item, index) => {
+              if (item.type === 'event') {
+                const event = item.data;
+                return (
+                  <EventCard
+                    key={`event-${event.id}`}
+                    title={event.title}
+                    slug={event.slug}
+                    image={event.metadata?.image?.imgix_url || '/image-placeholder.png'}
+                    eventDate={event.metadata.event_date}
+                    location={event.metadata.location}
+                    ticketLink={event.metadata.ticket_link}
+                    description={event.metadata.description}
+                  />
+                );
+              } else {
+                const post = item.data;
+                const tags = (post.metadata?.categories || [])
+                  .map((cat: any) => {
+                    if (typeof cat === 'string') return cat;
+                    if (cat && typeof cat === 'object' && typeof (cat as any).title === 'string')
+                      return (cat as any).title;
+                    return '';
+                  })
+                  .filter((tag: string) => !!tag);
+
+                return (
+                  <ArticleCard
+                    key={`post-${post.id}`}
+                    title={post.title}
+                    slug={post.slug}
+                    image={
+                      post.thumbnail?.imgix_url ||
+                      post.metadata?.image?.imgix_url ||
+                      '/image-placeholder.png'
+                    }
+                    date={post.metadata?.date || ''}
+                    tags={tags}
+                    categories={post.metadata?.categories || []}
+                  />
+                );
+              }
             })}
           </div>
           {/* Load More Button */}

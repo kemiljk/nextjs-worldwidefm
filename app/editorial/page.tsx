@@ -1,10 +1,11 @@
 'use client';
 
-import { getPostsWithFilters, getPostCategories } from '@/lib/actions';
+import { getPostsWithFilters, getPostCategories, getAllEvents } from '@/lib/actions';
 import { PageHeader } from '@/components/shared/page-header';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PostObject } from '@/lib/cosmic-config';
+import { EventType } from '@/lib/cosmic-types';
 import FeaturedContent from '../../components/editorial/featured-content';
 import EditorialSection from '../../components/editorial/editorial-section';
 import { FilterItem as BaseFilterItem } from '@/lib/filter-types';
@@ -25,6 +26,7 @@ function EditorialContent() {
   const searchParams = useSearchParams();
 
   const [posts, setPosts] = useState<PostObject[]>([]);
+  const [events, setEvents] = useState<EventType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
@@ -124,24 +126,49 @@ function EditorialContent() {
           })
           .filter(Boolean) as string[];
 
-        const result = await getPostsWithFilters({
-          limit: 20,
-          offset: 0,
-          searchTerm: currentFilters.search,
-          categories: categoryIds,
-          postType: currentFilters.article ? 'article' : currentFilters.video ? 'video' : undefined,
-        });
+        // Fetch posts and events in parallel
+        const [postsResult, eventsResult] = await Promise.all([
+          getPostsWithFilters({
+            limit: 20,
+            offset: 0,
+            searchTerm: currentFilters.search,
+            categories: categoryIds,
+            postType: currentFilters.article
+              ? 'article'
+              : currentFilters.video
+                ? 'video'
+                : undefined,
+          }),
+          getAllEvents({
+            limit: 20,
+            offset: 0,
+            searchTerm: currentFilters.search,
+          }),
+        ]);
 
-        console.log('Fetched', result.posts.length, 'posts with filters:', {
-          categoryIds,
-          categorySlugs: currentFilters.categories,
-          postType: currentFilters.article ? 'article' : currentFilters.video ? 'video' : undefined,
-        });
-        setPosts(result.posts);
-        setTotal(result.total);
+        console.log(
+          'Fetched',
+          postsResult.posts.length,
+          'posts and',
+          eventsResult.events.length,
+          'events with filters:',
+          {
+            categoryIds,
+            categorySlugs: currentFilters.categories,
+            postType: currentFilters.article
+              ? 'article'
+              : currentFilters.video
+                ? 'video'
+                : undefined,
+          }
+        );
+        setPosts(postsResult.posts);
+        setEvents(eventsResult.events);
+        setTotal(postsResult.total);
       } catch (error) {
         console.error('Error fetching posts:', error);
         setPosts([]);
+        setEvents([]);
         setTotal(0);
       } finally {
         setIsLoading(false);
@@ -296,6 +323,7 @@ function EditorialContent() {
                 <EditorialSection
                   title='All Posts'
                   posts={posts.slice(1)}
+                  events={events}
                   currentFilters={{
                     searchTerm: currentFilters.search,
                     categories: currentFilters.categories,
@@ -322,6 +350,7 @@ function EditorialContent() {
                           : 'All Posts'
                 }
                 posts={posts}
+                events={events}
                 currentFilters={{
                   searchTerm: currentFilters.search,
                   categories: currentFilters.categories,

@@ -1,7 +1,20 @@
 import Link from 'next/link';
 import { Button } from '@/cosmic/elements/Button';
 
-export default function MembershipPromo() {
+interface MembershipPromoSectionProps {
+  config?: {
+    title?: string;
+    description?: string;
+    button_text?: string;
+  };
+}
+
+export default function MembershipPromoSection({ config }: MembershipPromoSectionProps) {
+  const title = config?.title || 'Become a Member';
+  const description =
+    config?.description || 'Support Worldwide FM and keep independent radio alive.';
+  const buttonText = config?.button_text || 'learn more';
+
   return (
     <section className='relative h-[80vh] mb-20 overflow-hidden'>
       <div className='absolute inset-0 bg-soul-200' />
@@ -20,15 +33,13 @@ export default function MembershipPromo() {
       />
       <div className='relative z-10 h-full w-full px-20 gap-4 flex-col flex justify-center'>
         <h2 className='relative font-display text-h6 md:text-h5 font-bold uppercase text-white'>
-          Become a Member
+          {title}
         </h2>
-        <p className='max-w-100 text-white leading-tight font-sans text-body'>
-          Support Worldwide FM and keep independent radio alive.
-        </p>
+        <p className='max-w-100 text-white leading-tight font-sans text-body'>{description}</p>
 
         <Link className='h-fit w-50 pt-5 ' href='/membership'>
           <Button variant='inverted' className='font-mono uppercase'>
-            learn more
+            {buttonText}
           </Button>
         </Link>
       </div>

@@ -1,20 +1,16 @@
 {
   "crons": [
     {
-      "path": "/api/shows/sync",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/migrate-episodes-with-images",
-      "schedule": "0 2 * * *"
-    },
-    {
       "path": "/api/cron/sync-episodes",
       "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/cron/sync-player-urls",
-      "schedule": "0 3 * * *"
+      "schedule": "0 */12 * * *"
+    },
+    {
+      "path": "/api/cron/sync-radiocult",
+      "schedule": "0 */6 * * *"
     }
   ]
 }

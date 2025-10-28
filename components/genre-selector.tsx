@@ -84,7 +84,7 @@ export default function GenreSelector({ shows, title = 'LISTEN BY GENRE' }: Genr
         .filter(Boolean);
 
   // Remove any duplicate shows that might occur across genres
-  const maxItems = 8; // max items to display
+  const maxItems = 10; // max items to display
   const uniqueShows = Array.from(new Set(displayedShows.map(episode => episode.id || episode.slug)))
     .map(id => displayedShows.find(episode => (episode.id || episode.slug) === id))
     .filter(Boolean)
@@ -117,13 +117,13 @@ export default function GenreSelector({ shows, title = 'LISTEN BY GENRE' }: Genr
         </a>
       </div>
 
-      <div className='grid grid-cols-2 md:grid-cols-4 gap-3 w-full h-auto'>
+      <div className='grid grid-cols-2 md:grid-cols-5 gap-3 w-full h-auto'>
         {uniqueShows.map((episode: any, index: number) => (
           <div
             key={`${episode.id || episode.slug}-${index}`}
             className={`
             flex
-            ${index >= 4 ? 'hidden md:flex' : ''}  /* show first 4 on sm, reveal 4+ on md+ */
+            ${index >= 4 ? 'hidden md:flex' : ''}  /* show first 4 on mobile, reveal 4+ on desktop */
           `}
           >
             <ShowCard
