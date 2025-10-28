@@ -3,19 +3,19 @@ import { syncRadioCultToCosmicEpisodes } from '@/lib/radiocult-sync-service';
 
 /**
  * Cron job endpoint to sync RadioCult shows to Cosmic episodes
- * 
+ *
  * This endpoint should be called periodically (e.g., every hour) by a cron job service
  * like Vercel Cron, GitHub Actions, or any external cron service.
- * 
+ *
  * Security:
  * - Uses a CRON_SECRET environment variable to authenticate requests
  * - Returns 401 if the secret doesn't match
- * 
+ *
  * Usage:
  * POST /api/cron/sync-radiocult
  * Headers:
  *   Authorization: Bearer YOUR_CRON_SECRET
- * 
+ *
  * Optional query parameters:
  *   daysBack: number (default: 7) - How many days back to sync
  *   daysAhead: number (default: 30) - How many days ahead to sync
@@ -28,19 +28,13 @@ export async function POST(request: NextRequest) {
 
     if (!cronSecret) {
       console.error('CRON_SECRET environment variable not set');
-      return NextResponse.json(
-        { error: 'Cron job not configured' },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: 'Cron job not configured' }, { status: 500 });
     }
 
     // Verify the request is authorized
     if (authHeader !== `Bearer ${cronSecret}`) {
       console.error('Unauthorized cron job attempt');
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get optional parameters from query string
@@ -48,7 +42,9 @@ export async function POST(request: NextRequest) {
     const daysBack = parseInt(searchParams.get('daysBack') || '7', 10);
     const daysAhead = parseInt(searchParams.get('daysAhead') || '30', 10);
 
-    console.log(`Starting RadioCult sync cron job (${daysBack} days back, ${daysAhead} days ahead)`);
+    console.log(
+      `Starting RadioCult sync cron job (${daysBack} days back, ${daysAhead} days ahead)`
+    );
 
     // Run the sync
     const result = await syncRadioCultToCosmicEpisodes(daysBack, daysAhead);
@@ -79,4 +75,3 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   return POST(request);
 }
-

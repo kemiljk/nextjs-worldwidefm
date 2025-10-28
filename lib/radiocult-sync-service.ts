@@ -110,33 +110,47 @@ async function createEpisodeFromRadioCultEvent(event: RadioCultEvent): Promise<b
     const durationMinutes = Math.floor(event.duration || 0);
     const duration = `${durationMinutes}:00`;
 
-    const episodeData: any = {
-      title: event.showName || 'Untitled Show',
-      type: 'episode',
-      slug: event.slug,
-      status: 'published',
-      metadata: {
-        subtitle: event.showName || null,
-        description: event.description || null,
-        broadcast_date: broadcastDate,
-        broadcast_time: broadcastTime,
-        duration: duration,
-        radiocult_event_id: event.id, // Store RadioCult event ID for future reference
-        source: 'radiocult-sync', // Mark as auto-synced
-        featured_on_homepage: false,
-      },
+    // Build metadata object - only include fields that have values
+    const metadata: any = {
+      broadcast_date: broadcastDate,
+      broadcast_time: broadcastTime,
+      description:
+        event.description && typeof event.description === 'string' ? event.description.trim() : '',
+      genres: [],
+      locations: [],
+      regular_hosts: [],
+      takeovers: [],
+      featured_on_homepage: false,
+      source: 'radiocult-sync',
+      radiocult_event_id: event.id,
     };
 
-    // Add image if available
+    // Add optional fields only if they have actual values
+    if (duration) {
+      metadata.duration = duration;
+    }
+
     if (event.imageUrl) {
-      episodeData.metadata.image = {
+      metadata.image = {
         url: event.imageUrl,
       };
     }
 
     // Add host relationship if we have one
     if (hostId) {
-      episodeData.metadata.regular_hosts = [hostId];
+      metadata.regular_hosts = [hostId];
+    }
+
+    const episodeData: any = {
+      title: event.showName || 'Untitled Show',
+      type: 'episode',
+      status: 'published',
+      metadata: metadata,
+    };
+
+    // Only set slug if RadioCult provides one (otherwise Cosmic auto-generates)
+    if (event.slug) {
+      episodeData.slug = event.slug;
     }
 
     // Create the episode
@@ -172,6 +186,28 @@ export async function syncRadioCultToCosmicEpisodes(
   };
 
   try {
+    // Check for required environment variables
+    const requiredEnvVars = {
+      NEXT_PUBLIC_RADIOCULT_STATION_ID: process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID,
+      NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY,
+      NEXT_PUBLIC_COSMIC_BUCKET_SLUG: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG,
+      COSMIC_WRITE_KEY: process.env.COSMIC_WRITE_KEY,
+    };
+
+    const missingVars = Object.entries(requiredEnvVars)
+      .filter(([_, value]) => !value)
+      .map(([key]) => key);
+
+    if (missingVars.length > 0) {
+      const errorMsg = `Missing required environment variables: ${missingVars.join(', ')}`;
+      console.error(errorMsg);
+      result.details.errors.push({
+        show: 'Environment Check',
+        error: errorMsg,
+      });
+      return result;
+    }
+
     console.log(`Starting RadioCult sync: ${daysBack} days back, ${daysAhead} days ahead`);
 
     // Calculate date range
@@ -205,16 +241,31 @@ export async function syncRadioCultToCosmicEpisodes(
     // Process each event
     for (const event of events) {
       try {
-        // Skip events without proper data
-        if (!event.showName || !event.slug) {
-          console.log(`Skipping event without name or slug:`, event.id);
+        // Extract show name - could be in different fields
+        const showName = event.showName || event.title || event.name;
+
+        // Skip events without proper data (must have at least a name)
+        if (!showName) {
+          console.log(`Skipping event without name:`, {
+            id: event.id,
+            showName: event.showName,
+            title: event.title,
+            name: event.name,
+          });
           result.skipped++;
-          result.details.skipped.push(`${event.id} (missing data)`);
+          result.details.skipped.push(`${event.id} (missing name)`);
           continue;
         }
 
-        // Check if episode already exists
-        const exists = await checkEpisodeExists(event.id, event.slug);
+        // Update event with correct showName
+        event.showName = showName;
+
+        // Generate a slug if one doesn't exist (Cosmic will auto-generate from title)
+        // For checking if episode exists, use the RadioCult event ID as primary identifier
+        const slugToCheck = event.slug || event.id;
+
+        // Check if episode already exists by RadioCult event ID
+        const exists = await checkEpisodeExists(event.id, slugToCheck);
 
         if (exists) {
           console.log(`Episode already exists: ${event.showName} (${event.slug})`);
@@ -229,11 +280,15 @@ export async function syncRadioCultToCosmicEpisodes(
         result.details.created.push(event.showName);
         console.log(`✅ Created episode: ${event.showName}`);
       } catch (error) {
-        console.error(`Error processing event ${event.showName}:`, error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorStack = error instanceof Error ? error.stack : '';
+        console.error(`Error processing event ${event.showName}:`, errorMessage);
+        console.error('Error stack:', errorStack);
+        console.error('Event data:', JSON.stringify(event, null, 2));
         result.errors++;
         result.details.errors.push({
           show: event.showName,
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: errorMessage,
         });
       }
     }
