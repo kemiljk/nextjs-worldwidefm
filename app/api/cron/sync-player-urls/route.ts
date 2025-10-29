@@ -57,13 +57,15 @@ async function getCosmicEpisodesNeedingPlayerUrls() {
   try {
     console.log('🔍 Fetching migrated episodes from Cosmic that need player URL updates...');
 
-    const response = await cosmic.objects.find({
-      type: 'episode',
-      status: 'published',
-      'metadata.source': 'migrated_from_craft',
-      limit: 1000,
-      props: 'id,title,slug,metadata',
-    });
+    const response = await cosmic.objects
+      .find({
+        type: 'episode',
+        status: 'published',
+        'metadata.source': 'migrated_from_craft',
+      })
+      .props('id,title,slug,metadata')
+      .sort('-metadata.broadcast_date')
+      .limit(1000);
 
     const episodes = response.objects || [];
 

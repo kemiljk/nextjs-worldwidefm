@@ -1121,7 +1121,7 @@ export async function searchContent(
             .find(episodeQuery)
             .props('id,slug,title,metadata,created_at')
             .limit(limit)
-            .sort('-order,-metadata.broadcast_date,-created_at')
+            .sort('-metadata.broadcast_date,-created_at')
             .depth(2),
           cosmic.objects.find({
             type: 'posts',

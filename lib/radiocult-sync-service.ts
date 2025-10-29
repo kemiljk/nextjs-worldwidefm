@@ -242,15 +242,13 @@ export async function syncRadioCultToCosmicEpisodes(
     for (const event of events) {
       try {
         // Extract show name - could be in different fields
-        const showName = event.showName || event.title || event.name;
+        const showName = event.showName;
 
         // Skip events without proper data (must have at least a name)
         if (!showName) {
           console.log(`Skipping event without name:`, {
             id: event.id,
             showName: event.showName,
-            title: event.title,
-            name: event.name,
           });
           result.skipped++;
           result.details.skipped.push(`${event.id} (missing name)`);

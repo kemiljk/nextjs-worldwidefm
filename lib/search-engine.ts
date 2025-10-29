@@ -89,12 +89,14 @@ const mapTakeoverToFilterItem = (takeover: TakeoverObject): FilterItem => ({
 // Fetch and normalize all content types from Cosmic
 export async function fetchAllCosmicContent(): Promise<SearchResult[]> {
   const [showsRes, eventsRes, postsRes, videosRes, takeoversRes] = await Promise.all([
-    cosmic.objects.find({
-      type: 'episodes',
-      props: 'id,slug,title,metadata,created_at',
-      status: 'published',
-      limit: 1000,
-    }),
+    cosmic.objects
+      .find({
+        type: 'episode',
+        props: 'id,slug,title,metadata,created_at',
+        status: 'published',
+        limit: 1000,
+      })
+      .sort('-metadata.broadcast_date'),
     cosmic.objects.find({
       type: 'events',
       props: 'id,slug,title,metadata,created_at',

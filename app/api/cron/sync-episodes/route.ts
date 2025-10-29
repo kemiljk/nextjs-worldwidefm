@@ -31,10 +31,11 @@ export async function GET(request: NextRequest) {
     // 3. Don't have a radiocult_event_id yet (not synced)
     const episodesToSync = await cosmic.objects
       .find({
-        type: 'episodes',
-        'metadata.status': 'published',
+        type: 'episode',
+        status: 'published',
       })
       .props('id,title,slug,metadata')
+      .sort('-metadata.broadcast_date')
       .limit(100);
 
     if (!episodesToSync.objects || episodesToSync.objects.length === 0) {

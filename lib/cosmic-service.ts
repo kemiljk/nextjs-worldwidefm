@@ -160,7 +160,7 @@ export async function getRadioShows(
       .props('slug,title,metadata,type')
       .limit(params.limit || 10)
       .skip(params.skip || 0)
-      .sort(params.sort || '-created_at')
+      .sort(params.sort || '-metadata.broadcast_date')
       .depth(3);
 
     return {
