@@ -56,11 +56,11 @@ export const dynamic = 'force-dynamic';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <PlausibleProvider domain='worldwidefm.net'>
-      <html lang='en' suppressHydrationWarning>
-        <body
-          className={`${sans.variable} ${display.variable} ${mono.variable} min-h-screen w-full bg-background font-sans`}
-        >
+    <html lang='en' suppressHydrationWarning>
+      <body
+        className={`${sans.variable} ${display.variable} ${mono.variable} min-h-screen w-full bg-background font-sans`}
+      >
+        <PlausibleProvider domain='worldwidefm.net'>
           <ThemeProvider
             attribute='class'
             defaultTheme='system'
@@ -81,8 +81,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </SearchProvider>
             </AuthProvider>
           </ThemeProvider>
-        </body>
-      </html>
-    </PlausibleProvider>
+        </PlausibleProvider>
+      </body>
+    </html>
   );
 }
