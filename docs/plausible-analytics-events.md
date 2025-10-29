@@ -158,6 +158,35 @@ Plausible is integrated at the root level in `app/layout.tsx` using `PlausiblePr
 
 ---
 
+### 10. Membership Events
+
+**Locations:** 
+- `components/membership-promo-section.tsx`
+- `cosmic/blocks/user-management/MembershipSignupClient.tsx`
+
+#### `Membership CTA Clicked`
+- **Trigger:** User clicks "Learn More" button in membership promo section
+- **Props:**
+  - `source`: Always "promo_section"
+
+#### `Membership Signup Initiated`
+- **Trigger:** User clicks "JOIN NOW" button on membership page (after filling form)
+- **Props:**
+  - `isLoggedIn`: Boolean indicating if user is logged in
+
+#### `Membership Checkout Started`
+- **Trigger:** User is successfully redirected to Stripe checkout
+- **Props:**
+  - `isLoggedIn`: Boolean indicating if user is logged in
+
+#### `Membership Signup Error`
+- **Trigger:** Error occurs during membership signup process
+- **Props:**
+  - `error`: Error message description
+  - `stage`: Which stage failed (checkout_session/network)
+
+---
+
 ## Event Naming Convention
 
 All custom events follow a consistent naming pattern:
@@ -178,7 +207,7 @@ Consider adding events for:
 - Video player interactions
 - Newsletter signups
 - Social media link clicks
-- Membership purchases/interactions
 - Schedule interactions
 - Editorial content engagement
+- Membership conversion completion (via Stripe webhook)
 
