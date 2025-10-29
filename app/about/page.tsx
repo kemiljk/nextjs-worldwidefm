@@ -22,7 +22,7 @@ export default async function AboutPage() {
       <div className='relative w-full h-[25vh] sm:h-[35vh] overflow-hidden'>
         <div className='absolute inset-0 bg-jazz' />
         <div
-          className='absolute inset-0 bg-gradient-to-b from-white via-white/0 to-white'
+          className='absolute inset-0 bg-linear-to-b from-white via-white/0 to-white'
           style={{ mixBlendMode: 'hue' }}
         />
         <div
@@ -69,10 +69,6 @@ export default async function AboutPage() {
               </h2>
               <p className='w-70 prose dark:prose-invert text-b3'>
                 {about.metadata.contact_info.metadata.email}
-                <br />
-                {about.metadata.contact_info.metadata.phone}
-                <br />
-                {about.metadata.contact_info.metadata.location}
               </p>
             </div>
 
