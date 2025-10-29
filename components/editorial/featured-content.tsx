@@ -26,7 +26,7 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
   });
 
   return (
-    <div className='my-4 w-full items-center justify-center flex h-90'>
+    <div className='py-20 w-full items-center justify-center flex h-auto'>
       <div className=''>
         <ArticleCard
           key={sortedPosts[0].slug}

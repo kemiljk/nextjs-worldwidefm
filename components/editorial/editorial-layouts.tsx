@@ -78,9 +78,9 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
                 images={imageGallery}
                 layout={
                   metadata?.gallery_layout?.value?.toLowerCase() as
-                    | 'thumbnail'
-                    | 'grid'
-                    | 'carousel'
+                  | 'thumbnail'
+                  | 'grid'
+                  | 'carousel'
                 }
               />
             </div>
@@ -178,28 +178,30 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
   return (
     <article className='w-full'>
       {/* Title Section */}
-      <div className='w-full px-5 md:px-20 py-20 text-center'>
-        <text className='font-sans text-[32px] md:text-[50px] lg:text-[60px] leading-none mb-4 text-almostblack dark:text-white'>
+      <div className='w-full px-10 md:px-20 py-20 text-center'>
+
+        <text className='font-sans text-[32px] sm:text-[50px] lg:text-[60px] leading-none mb-4 text-almostblack dark:text-white'>
           {title}
         </text>
-        <p className='text-sans text-b2 mb-6 max-w-3xl mx-auto'>{description}</p>
-        <div className='flex items-center justify-center gap-4 mb-6'>
+        <p className='text-sans text-[15px] leading-tight py-12 max-w-2xl mx-auto'>{description}</p>
+        <div className='flex flex-col md:flex-row items-center justify-center gap-4 md:gap-10 mb-6'>
+          <div className='flex justify-center flex-wrap gap-3'>
+            {categories.map((category: Category) => (
+              <CategoryTag key={category.slug} categorySlug={category.slug}>
+                {category.title}
+              </CategoryTag>
+            ))}
+          </div>
           <div className='text-[12px] font-mono tracking-wider text-muted-foreground'>
             {formattedDate}
           </div>
           {author && (
             <div className='text-[12px] font-mono uppercase tracking-wider text-muted-foreground'>
-              By {typeof author === 'string' ? author : author.title || 'Unknown'}
+              WRITTEN BY: {typeof author === 'string' ? author : author.title || 'Unknown'}
             </div>
           )}
         </div>
-        <div className='flex justify-center flex-wrap gap-3'>
-          {categories.map((category: Category) => (
-            <CategoryTag key={category.slug} categorySlug={category.slug}>
-              {category.title}
-            </CategoryTag>
-          ))}
-        </div>
+
       </div>
 
       {/* Main Image */}
@@ -219,11 +221,11 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
       {/* Content */}
       {content && (
         <div
-          className={`max-w-4xl mx-auto px-5 md:px-20 ${imageGallery.length > 0 ? '' : 'mb-20'}`}
+          className={`max-w-4xl mx-auto px-5 md:px-40 ${imageGallery.length > 0 ? '' : 'mb-20'}`}
         >
           <div
             dangerouslySetInnerHTML={{ __html: content }}
-            className='wrap-break-word font-sans text-b6 space-y-3 editorial-content'
+            className='wrap-break-word font-sans text-b6 leading-6 space-y-3 editorial-content'
           />
         </div>
       )}

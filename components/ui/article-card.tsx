@@ -34,13 +34,13 @@ export function ArticleCard({
   return (
     <Link href={`/editorial/${slug}`} className='block group'>
       <div
-        className={`relative w-full ${variant === 'featured' ? 'flex flex-col md:flex-row gap-6 items-start' : ''}`}
+        className={`relative w-full ${variant === 'featured' ? 'flex flex-col gap-4 items-start' : ''}`}
       >
         <div className={`flex-1 relative ${variant === 'featured' ? 'h-auto' : ''}`}>
           <img
             src={image}
             alt={title}
-            className={`w-full ${variant === 'featured' ? 'max-h-100 h-full object-cover' : 'h-full object-fill'} border ${borderClass}`}
+            className={`w-full ${variant === 'featured' ? 'max-h-150 h-full object-cover' : 'h-full object-fill'} border ${borderClass}`}
           />
         </div>
         <div
