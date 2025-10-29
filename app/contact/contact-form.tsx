@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Mail, Phone, MapPin, MessageCircle, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePlausible } from 'next-plausible';
 
 interface ContactFormProps {
   contactInfo: {
@@ -24,6 +25,7 @@ export default function ContactForm({ contactInfo }: ContactFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [submitMessage, setSubmitMessage] = useState('');
+  const plausible = usePlausible();
 
   const { email, phone, location } = contactInfo.metadata;
 
@@ -49,14 +51,29 @@ export default function ContactForm({ contactInfo }: ContactFormProps) {
       const result = await response.json();
 
       if (response.ok) {
+        plausible('Contact Form Submitted', {
+          props: {
+            subject: formData.subject,
+          },
+        });
         setSubmitStatus('success');
         setSubmitMessage("Message sent successfully! We'll get back to you soon.");
         setFormData({ name: '', email: '', subject: '', message: '' });
       } else {
+        plausible('Contact Form Error', {
+          props: {
+            error: result.error || 'Unknown error',
+          },
+        });
         setSubmitStatus('error');
         setSubmitMessage(result.error || 'Failed to send message. Please try again.');
       }
     } catch (error) {
+      plausible('Contact Form Error', {
+        props: {
+          error: 'Network error',
+        },
+      });
       setSubmitStatus('error');
       setSubmitMessage('Network error. Please check your connection and try again.');
     } finally {
@@ -81,7 +98,7 @@ export default function ContactForm({ contactInfo }: ContactFormProps) {
 
           <div className='space-y-4'>
             <div className='flex items-center space-x-3'>
-              <div className='flex-shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center'>
+              <div className='shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center'>
                 <Mail className='h-5 w-5 text-primary' />
               </div>
               <div>
@@ -96,7 +113,7 @@ export default function ContactForm({ contactInfo }: ContactFormProps) {
             </div>
 
             <div className='flex items-center space-x-3'>
-              <div className='flex-shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center'>
+              <div className='shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center'>
                 <Phone className='h-5 w-5 text-primary' />
               </div>
               <div>
@@ -111,7 +128,7 @@ export default function ContactForm({ contactInfo }: ContactFormProps) {
             </div>
 
             <div className='flex items-center space-x-3'>
-              <div className='flex-shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center'>
+              <div className='shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center'>
                 <MapPin className='h-5 w-5 text-primary' />
               </div>
               <div>

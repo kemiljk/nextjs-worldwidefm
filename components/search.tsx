@@ -3,6 +3,8 @@
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { Search as SearchIcon } from 'lucide-react';
+import { usePlausible } from 'next-plausible';
+import { useEffect, useRef } from 'react';
 
 interface SearchProps {
   value: string;
@@ -12,6 +14,33 @@ interface SearchProps {
 }
 
 export function Search({ value, onChange, placeholder = 'Search...', className }: SearchProps) {
+  const plausible = usePlausible();
+  const previousValueRef = useRef('');
+  const timeoutRef = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    if (value && value.length >= 3 && value !== previousValueRef.current) {
+      timeoutRef.current = setTimeout(() => {
+        plausible('Search Query Entered', {
+          props: {
+            searchLength: value.length,
+          },
+        });
+        previousValueRef.current = value;
+      }, 1000);
+    }
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [value, plausible]);
+
   return (
     <div className={cn('relative', className)}>
       <SearchIcon className='absolute h-4 w-4 text-muted-foreground' />

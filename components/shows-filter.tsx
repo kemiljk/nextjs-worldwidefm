@@ -5,6 +5,7 @@ import { FilterItem } from '@/lib/search-context';
 import { useCallback, useState, useEffect } from 'react';
 import { X, Filter } from 'lucide-react';
 import { useDebounce } from '@/hooks/use-debounce';
+import { usePlausible } from 'next-plausible';
 
 interface ShowsFilterProps {
   genres: FilterItem[];
@@ -30,6 +31,7 @@ export function ShowsFilter({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const plausible = usePlausible();
   const [isOpen, setIsOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm || '');
@@ -77,12 +79,15 @@ export function ShowsFilter({
       // Create a new params object to avoid modifying the original
       const params = new URLSearchParams(searchParams.toString());
 
+      let isRemoving = false;
+
       // Clear other filters when selecting a new one
       if (type === 'genre') {
         params.delete('host');
         params.delete('takeover');
         if (params.get('genre') === value) {
           params.delete('genre');
+          isRemoving = true;
         } else {
           params.set('genre', value);
         }
@@ -91,6 +96,7 @@ export function ShowsFilter({
         params.delete('takeover');
         if (params.get('host') === value) {
           params.delete('host');
+          isRemoving = true;
         } else {
           params.set('host', value);
         }
@@ -99,15 +105,26 @@ export function ShowsFilter({
         params.delete('host');
         if (params.get('takeover') === value) {
           params.delete('takeover');
+          isRemoving = true;
         } else {
           params.set('takeover', value);
         }
       }
 
+      // Track filter usage
+      if (!isRemoving) {
+        plausible('Shows Filter Applied', {
+          props: {
+            filterType: type,
+            filterValue: value,
+          },
+        });
+      }
+
       // Update the URL with replace instead of push to avoid stacking history entries
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [searchParams, router, pathname]
+    [searchParams, router, pathname, plausible]
   );
 
   const updateSearch = useCallback(
@@ -121,15 +138,29 @@ export function ShowsFilter({
 
   // Update URL when debounced search term changes
   useEffect(() => {
+    if (debouncedSearchTerm && debouncedSearchTerm !== searchTerm) {
+      plausible('Shows Search Used', {
+        props: {
+          searchLength: debouncedSearchTerm.length,
+        },
+      });
+    }
     updateSearch(debouncedSearchTerm);
-  }, [debouncedSearchTerm, updateSearch]);
+  }, [debouncedSearchTerm, updateSearch, plausible, searchTerm]);
 
   const toggleNew = useCallback(() => {
-    router.replace(
-      `${pathname}?${createQueryString('isNew', searchParams.get('isNew') === 'true' ? null : 'true')}`,
-      { scroll: false }
-    );
-  }, [createQueryString, router, pathname, searchParams]);
+    const isCurrentlyNew = searchParams.get('isNew') === 'true';
+    if (!isCurrentlyNew) {
+      plausible('New Shows Filter Toggled', {
+        props: {
+          enabled: 'true',
+        },
+      });
+    }
+    router.replace(`${pathname}?${createQueryString('isNew', isCurrentlyNew ? null : 'true')}`, {
+      scroll: false,
+    });
+  }, [createQueryString, router, pathname, searchParams, plausible]);
 
   const clearFilters = useCallback(() => {
     router.replace(pathname, { scroll: false });

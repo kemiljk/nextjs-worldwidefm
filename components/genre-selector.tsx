@@ -4,6 +4,7 @@ import { GenreDropdown } from '@/components/genre-dropdown';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { ShowCard } from '@/components/ui/show-card';
+import { usePlausible } from 'next-plausible';
 
 interface GenreSelectorProps {
   shows: any[]; // Episodes from Cosmic
@@ -25,6 +26,7 @@ export default function GenreSelector({ shows, title = 'LISTEN BY GENRE' }: Genr
   const searchParams = useSearchParams();
   const selectedGenre = searchParams.get('genre');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const plausible = usePlausible();
 
   // Get unique genres and their counts
   const genreCounts = shows.reduce(
@@ -61,6 +63,14 @@ export default function GenreSelector({ shows, title = 'LISTEN BY GENRE' }: Genr
   );
 
   const handleGenreSelect = (genre: string | null) => {
+    if (genre) {
+      plausible('Genre Selected', {
+        props: {
+          genre: genre,
+          source: 'genre_selector',
+        },
+      });
+    }
     router.replace(`${pathname}?${createQueryString('genre', genre)}`, { scroll: false });
   };
 

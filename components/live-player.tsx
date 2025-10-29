@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { Play, Pause } from 'lucide-react';
 import { useMediaPlayer } from '@/components/providers/media-player-provider';
+import { usePlausible } from 'next-plausible';
 
 declare global {
   interface Window {
@@ -37,6 +38,7 @@ export const runtime = 'nodejs';
 export default function LivePlayer() {
   const { currentLiveEvent, isLivePlaying, playLive, pauseLive, liveVolume, setLiveVolume } =
     useMediaPlayer();
+  const plausible = usePlausible();
 
   const [streamState, setStreamState] = useState<StreamState>({
     loading: false,
@@ -338,8 +340,18 @@ export default function LivePlayer() {
     }
 
     if (isLivePlaying) {
+      plausible('Live Stream Paused', {
+        props: {
+          show: eventToPlay.showName || 'Unknown',
+        },
+      });
       pauseLive();
     } else {
+      plausible('Live Stream Played', {
+        props: {
+          show: eventToPlay.showName || 'Unknown',
+        },
+      });
       playLive(eventToPlay);
     }
   };
