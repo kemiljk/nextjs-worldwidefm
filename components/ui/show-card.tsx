@@ -118,11 +118,10 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   // Prefer broadcast_date for date display and created_time (combined with broadcast_time) for time display
   const broadcastDate: string | undefined =
     show.broadcast_date || show.metadata?.broadcast_date || show.date;
-  const createdTime: string | undefined =
-    show.created_time || show.metadata?.created_time || show.created_at || broadcastDate;
+  const broadcastTime: string | undefined = show.metadata?.broadcast_time;
   const showName = show.name || show.title || 'Untitled Show';
   const showHost = show.user?.name || show.host || '';
-  const formattedTime = formatShowTime(createdTime);
+  const formattedTime = formatShowTime(broadcastTime);
   const formattedDate = broadcastDate
     ? (() => {
         const date = new Date(broadcastDate);
