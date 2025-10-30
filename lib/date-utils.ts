@@ -92,13 +92,23 @@ export function extractTimePart(dateString: string | null | undefined): string |
  * @returns The timezone abbreviation with brackets, e.g., "[BST]" or "[GMT]"
  */
 export function getUKTimezoneAbbreviation(date: Date = new Date()): string {
-  const formatter = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Europe/London',
-    timeZoneName: 'short',
-  });
+  // Validate date - check if it's a valid, finite date
+  if (!(date instanceof Date) || isNaN(date.getTime()) || !isFinite(date.getTime())) {
+    return '[GMT]';
+  }
 
-  const parts = formatter.formatToParts(date);
-  const tzPart = parts.find(part => part.type === 'timeZoneName');
+  try {
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/London',
+      timeZoneName: 'short',
+    });
 
-  return tzPart ? `[${tzPart.value}]` : '[GMT]';
+    const parts = formatter.formatToParts(date);
+    const tzPart = parts.find(part => part.type === 'timeZoneName');
+
+    return tzPart ? `[${tzPart.value}]` : '[GMT]';
+  } catch (error) {
+    console.error('Error formatting timezone abbreviation:', error);
+    return '[GMT]';
+  }
 }
