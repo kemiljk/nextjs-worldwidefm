@@ -99,9 +99,36 @@ export const ShowCard: React.FC<ShowCardProps> = ({
     return canonicalGenre ? `/genre/${canonicalGenre.slug}` : undefined;
   };
 
-  const formatShowTime = (dateString: string | undefined): string | null => {
-    if (!dateString) return null;
+  const formatShowTime = (
+    broadcastDate: string | undefined,
+    broadcastTime: string | undefined
+  ): string | null => {
+    if (!broadcastDate) return null;
+
+    // Combine date and time to create a valid datetime
+    let dateString = broadcastDate;
+    if (broadcastTime) {
+      // If broadcastDate is just "YYYY-MM-DD", combine with time
+      if (/^\d{4}-\d{2}-\d{2}$/.test(broadcastDate)) {
+        dateString = `${broadcastDate}T${broadcastTime}:00Z`;
+      } else if (broadcastDate.includes('T')) {
+        // If it already has time info, use it
+        dateString = broadcastDate;
+      } else {
+        dateString = `${broadcastDate}T${broadcastTime}:00Z`;
+      }
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(broadcastDate)) {
+      // If no time provided, use midnight UTC
+      dateString = `${broadcastDate}T00:00:00Z`;
+    }
+
     const date = new Date(dateString);
+
+    // Validate date
+    if (isNaN(date.getTime()) || !isFinite(date.getTime())) {
+      return null;
+    }
+
     const time = date.toLocaleTimeString('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
@@ -121,10 +148,22 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   const broadcastTime: string | undefined = show.metadata?.broadcast_time;
   const showName = show.name || show.title || 'Untitled Show';
   const showHost = show.user?.name || show.host || '';
-  const formattedTime = formatShowTime(broadcastTime);
+  const formattedTime = formatShowTime(broadcastDate, broadcastTime);
   const formattedDate = broadcastDate
     ? (() => {
-        const date = new Date(broadcastDate);
+        // Handle date in YYYY-MM-DD format
+        let date: Date;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(broadcastDate)) {
+          date = new Date(`${broadcastDate}T00:00:00Z`);
+        } else {
+          date = new Date(broadcastDate);
+        }
+
+        // Validate date
+        if (isNaN(date.getTime()) || !isFinite(date.getTime())) {
+          return null;
+        }
+
         const months = [
           'Jan',
           'Feb',
@@ -139,9 +178,9 @@ export const ShowCard: React.FC<ShowCardProps> = ({
           'Nov',
           'Dec',
         ];
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = months[date.getMonth()];
-        const year = date.getFullYear();
+        const day = date.getUTCDate().toString().padStart(2, '0');
+        const month = months[date.getUTCMonth()];
+        const year = date.getUTCFullYear();
         return `${day} ${month} ${year}`;
       })()
     : null;
