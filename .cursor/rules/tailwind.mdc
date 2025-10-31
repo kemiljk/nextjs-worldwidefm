@@ -350,7 +350,6 @@ ul {
 }
 ```
 
-
 ## Common Pitfalls to Avoid
 
 1. **Using old opacity utilities** - Always use `/opacity` syntax like `bg-red-500/60`
