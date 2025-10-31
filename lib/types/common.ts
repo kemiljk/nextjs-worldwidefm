@@ -1,17 +1,11 @@
 /**
  * Common type utilities to replace 'any' usage
- * 
+ *
  * These types help improve type safety throughout the codebase
  * by providing specific types for common patterns.
  */
 
-import {
-  GenreObject,
-  HostObject,
-  LocationObject,
-  TakeoverObject,
-  EpisodeObject,
-} from '../cosmic-types';
+import { GenreObject, HostObject, LocationObject, TakeoverObject } from '../cosmic-types';
 
 /**
  * Type for Cosmic query objects
@@ -102,4 +96,3 @@ export type CosmicResponseObject<T = unknown> = {
   published_at?: string;
   status?: string;
 };
-

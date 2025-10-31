@@ -9,6 +9,7 @@ import { usePlausible } from 'next-plausible';
 interface GenreSelectorProps {
   shows: any[]; // Episodes from Cosmic
   title?: string;
+  randomShowsByGenre?: Record<string, any>; // Pre-selected random shows per genre (genre title -> show)
 }
 
 // Helper function to extract genres from episodes
@@ -20,7 +21,11 @@ function getEpisodeGenres(episode: any): string[] {
     .filter((name: string) => name.toLowerCase() !== 'worldwide fm');
 }
 
-export default function GenreSelector({ shows, title = 'LISTEN BY GENRE' }: GenreSelectorProps) {
+export default function GenreSelector({
+  shows,
+  title = 'LISTEN BY GENRE',
+  randomShowsByGenre = {},
+}: GenreSelectorProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -74,7 +79,7 @@ export default function GenreSelector({ shows, title = 'LISTEN BY GENRE' }: Genr
     router.replace(`${pathname}?${createQueryString('genre', genre)}`, { scroll: false });
   };
 
-  // Get shows based on selection or default to random shows for top genres
+  // Get shows based on selection or default to pre-selected random shows for top genres
   const displayedShows = selectedGenre
     ? Array.from(
         new Set(
@@ -85,11 +90,33 @@ export default function GenreSelector({ shows, title = 'LISTEN BY GENRE' }: Genr
       )
         .map(id => shows.find(episode => (episode.id || episode.slug) === id))
         .filter(Boolean)
-        .sort(() => Math.random() - 0.5)
+        .sort((a, b) => {
+          // Sort by broadcast date (newest first), then by slug for stability
+          const dateA = a.metadata?.broadcast_date || a.created_at || '';
+          const dateB = b.metadata?.broadcast_date || b.created_at || '';
+          if (dateA && dateB) {
+            return new Date(dateB).getTime() - new Date(dateA).getTime();
+          }
+          return (a.slug || '').localeCompare(b.slug || '');
+        })
     : topGenres
         .map(genre => {
-          const genreShows = shows.filter(episode => getEpisodeGenres(episode).includes(genre));
-          return genreShows[Math.floor(Math.random() * genreShows.length)];
+          // Use pre-selected random show if available, otherwise fall back to newest
+          if (randomShowsByGenre[genre]) {
+            return randomShowsByGenre[genre];
+          }
+          // Fallback: pick newest show if no random selection available
+          const genreShows = shows
+            .filter(episode => getEpisodeGenres(episode).includes(genre))
+            .sort((a, b) => {
+              const dateA = a.metadata?.broadcast_date || a.created_at || '';
+              const dateB = b.metadata?.broadcast_date || b.created_at || '';
+              if (dateA && dateB) {
+                return new Date(dateB).getTime() - new Date(dateA).getTime();
+              }
+              return (a.slug || '').localeCompare(b.slug || '');
+            });
+          return genreShows[0];
         })
         .filter(Boolean);
 

@@ -38,15 +38,15 @@ function getWeekBounds(): { weekStart: Date; weekEnd: Date } {
   const now = new Date();
   const dayOfWeek = now.getDay();
   const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Handle Sunday as -6
-  
+
   const weekStart = new Date(now);
   weekStart.setDate(now.getDate() + daysToMonday);
   weekStart.setHours(0, 0, 0, 0);
-  
+
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23, 59, 59, 999);
-  
+
   return { weekStart, weekEnd };
 }
 
@@ -63,7 +63,7 @@ async function getWeeklySchedule(): Promise<{
     const { weekStart, weekEnd } = getWeekBounds();
     console.log('[Schedule] Week bounds:', {
       start: weekStart.toISOString(),
-      end: weekEnd.toISOString()
+      end: weekEnd.toISOString(),
     });
 
     // 1. Get all published episodes from Cosmic for this week
@@ -73,8 +73,8 @@ async function getWeeklySchedule(): Promise<{
         status: 'published',
         $or: [
           { 'metadata.broadcast_date': { $gte: weekStart.toISOString().split('T')[0] } },
-          { 'metadata.broadcast_date_old': { $gte: weekStart.toISOString() } }
-        ]
+          { 'metadata.broadcast_date_old': { $gte: weekStart.toISOString() } },
+        ],
       })
       .props('id,slug,title,metadata')
       .limit(200);
@@ -92,9 +92,7 @@ async function getWeeklySchedule(): Promise<{
     console.log('[Schedule] Found RadioCult events:', radiocultEvents.length);
 
     // 3. Create a map of RadioCult events by their event ID
-    const radiocultEventMap = new Map(
-      radiocultEvents.map(event => [event.id, event])
-    );
+    const radiocultEventMap = new Map(radiocultEvents.map(event => [event.id, event]));
 
     // 4. Process Cosmic episodes and merge with RadioCult data
     const scheduleItems: ScheduleShow[] = [];
@@ -119,15 +117,21 @@ async function getWeeklySchedule(): Promise<{
       }
 
       const dayName = [
-        'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
       ][broadcastDate.getDay()];
-      
+
       const hours = broadcastDate.getHours().toString().padStart(2, '0');
       const minutes = broadcastDate.getMinutes().toString().padStart(2, '0');
       const timeSlot = `${hours}:${minutes}`;
 
       // Check if there's a corresponding RadioCult event
-      const radiocultEvent = metadata.radiocult_event_id 
+      const radiocultEvent = metadata.radiocult_event_id
         ? radiocultEventMap.get(metadata.radiocult_event_id)
         : null;
 
@@ -139,14 +143,20 @@ async function getWeeklySchedule(): Promise<{
         show_day: dayName,
         name: radiocultEvent?.showName || episode.title,
         url: `/episode/${episode.slug}`, // Always link to episode page
-        picture: radiocultEvent?.imageUrl || 
-                (metadata.image?.url ? `https://imgix.cosmicjs.com/${metadata.image.url}` : '/image-placeholder.png'),
+        picture:
+          radiocultEvent?.imageUrl ||
+          (metadata.image?.url
+            ? `https://imgix.cosmicjs.com/${metadata.image.url}`
+            : '/image-placeholder.png'),
         created_time: episode.created_at,
         tags: radiocultEvent?.tags || metadata.genres?.map((g: any) => g.title) || [],
-        hosts: radiocultEvent?.artists?.map(artist => artist.name) || 
-               metadata.regular_hosts?.map((h: any) => h.title) || [],
-        duration: radiocultEvent?.duration || 
-                 (metadata.duration ? parseDurationToMinutes(metadata.duration) * 60 : 0),
+        hosts:
+          radiocultEvent?.artists?.map(artist => artist.name) ||
+          metadata.regular_hosts?.map((h: any) => h.title) ||
+          [],
+        duration:
+          radiocultEvent?.duration ||
+          (metadata.duration ? parseDurationToMinutes(metadata.duration) * 60 : 0),
         play_count: 0,
         favorite_count: 0,
         comment_count: 0,
@@ -160,16 +170,22 @@ async function getWeeklySchedule(): Promise<{
 
     // 5. Add any RadioCult events that don't have corresponding Cosmic episodes
     for (const event of radiocultEvents) {
-      const hasCosmicEpisode = Object.values(episodeSlugMap).some(
-        slug => scheduleItems.some(item => item.event_id === event.id)
+      const hasCosmicEpisode = Object.values(episodeSlugMap).some(slug =>
+        scheduleItems.some(item => item.event_id === event.id)
       );
 
       if (!hasCosmicEpisode) {
         const eventDate = new Date(event.startTime);
         const dayName = [
-          'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+          'Sunday',
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
         ][eventDate.getDay()];
-        
+
         const hours = eventDate.getHours().toString().padStart(2, '0');
         const minutes = eventDate.getMinutes().toString().padStart(2, '0');
         const timeSlot = `${hours}:${minutes}`;
@@ -199,12 +215,20 @@ async function getWeeklySchedule(): Promise<{
 
     // 6. Sort by day and time, ensuring no overlaps
     scheduleItems.sort((a, b) => {
-      const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      const dayOrder = [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ];
       const dayA = dayOrder.indexOf(a.show_day);
       const dayB = dayOrder.indexOf(b.show_day);
-      
+
       if (dayA !== dayB) return dayA - dayB;
-      
+
       const timeA = a.show_time.split(':').map(Number);
       const timeB = b.show_time.split(':').map(Number);
       return timeA[0] * 60 + timeA[1] - (timeB[0] * 60 + timeB[1]);
@@ -216,7 +240,7 @@ async function getWeeklySchedule(): Promise<{
 
     for (const item of scheduleItems) {
       const key = `${item.show_day}-${item.show_time}`;
-      
+
       if (!timeSlotMap.has(key)) {
         timeSlotMap.set(key, item);
         deduplicatedItems.push(item);
@@ -259,7 +283,8 @@ async function getWeeklySchedule(): Promise<{
       scheduleItems: [],
       episodeSlugMap: {},
       isActive: false,
-      error: error instanceof Error ? error.message : 'An error occurred while fetching the schedule',
+      error:
+        error instanceof Error ? error.message : 'An error occurred while fetching the schedule',
     };
   }
 }

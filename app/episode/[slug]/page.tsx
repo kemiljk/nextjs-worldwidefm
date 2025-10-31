@@ -149,12 +149,14 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
             <div>
               <div className='flex flex-wrap select-none cursor-default my-3'>
                 {episode.metadata.genres.map((genre: any) => (
-                  <GenreTag key={genre.id || genre.slug} variant="large">{genre.title || genre.name}</GenreTag>
+                  <GenreTag key={genre.id || genre.slug} variant='large'>
+                    {genre.title || genre.name}
+                  </GenreTag>
                 ))}
               </div>
             </div>
           )}
-          
+
           {/* Hosts, Duration, and Broadcast Info Row */}
           {(episode.metadata.regular_hosts?.length > 0 ||
             episode.metadata.duration ||
@@ -243,7 +245,9 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
         <div className='w-full md:w-[50%] flex flex-col gap-2 h-auto'>
           {relatedEpisodes.length > 0 && (
             <div>
-              <h2 className='text-h8 md:text-h7 font-bold tracking-tight leading-none'>RELATED EPISODES</h2>
+              <h2 className='text-h8 md:text-h7 font-bold tracking-tight leading-none'>
+                RELATED EPISODES
+              </h2>
               <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 justify-between pt-3'>
                 {relatedEpisodes.map(relatedEpisode => {
                   const slug = `/episode/${relatedEpisode.slug}`;

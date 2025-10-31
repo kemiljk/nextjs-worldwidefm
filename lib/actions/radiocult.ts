@@ -75,4 +75,3 @@ export async function getHostProfileUrl(hostName: string): Promise<string | null
     return null;
   }
 }
-

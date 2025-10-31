@@ -70,4 +70,3 @@ export async function getVideoBySlug(slug: string): Promise<VideoObject | null> 
     return null;
   }
 }
-

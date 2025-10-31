@@ -23,7 +23,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getAllPosts, getVideos, getEvents, getTakeovers, searchEpisodes } from '@/lib/actions';
+import { getAllPosts, getVideos, getAllEvents, getTakeovers, searchEpisodes } from '@/lib/actions';
 import type { ContentType } from '@/lib/search/types';
 import type { PostObject, VideoObject } from '@/lib/cosmic-config';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -94,7 +94,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           searchEpisodes({ limit: 1 }),
           getAllPosts({ limit: 1 }),
           getVideos({ limit: 1 }),
-          getEvents({ limit: 1 }),
+          getAllEvents({ limit: 1 }),
           getTakeovers({ limit: 1 }),
           import('@/lib/actions').then(m => m.getVideoCategories()),
         ]);

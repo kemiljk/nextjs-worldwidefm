@@ -75,7 +75,7 @@ export async function getAllPosts({
   hasNext: boolean;
 }> {
   try {
-    const filters: any = {
+    const filters: Record<string, unknown> = {
       limit,
       skip: offset,
       sort: '-metadata.date',
@@ -92,14 +92,14 @@ export async function getAllPosts({
     const hasNext = posts.length === limit;
     return { posts, hasNext };
   } catch (error) {
-    console.error('Error in getAllPosts:', error);
+    if (process.env.NODE_ENV === 'development' && error instanceof Error && error.message) {
+      console.debug('getAllPosts: No posts found or error occurred:', error.message);
+    }
     return { posts: [], hasNext: false };
   }
 }
 
-export async function getPostBySlug(
-  slug: string
-): Promise<PostObject | null> {
+export async function getPostBySlug(slug: string): Promise<PostObject | null> {
   try {
     const response = await cosmic.objects
       .findOne({
@@ -269,4 +269,3 @@ export async function getEditorialContent(): Promise<{
     };
   }
 }
-

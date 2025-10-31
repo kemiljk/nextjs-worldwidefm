@@ -17,7 +17,6 @@ import GenreSelector from '@/components/genre-selector';
 import FeaturedSections from '@/components/featured-sections';
 import { PageOrderItem, HomepageSectionItem, ProcessedHomepageSection } from '@/lib/cosmic-types';
 import HomepageHero from '@/components/homepage-hero';
-import InsertedSection from '@/components/inserted-section';
 import LatestEpisodes from '@/components/latest-episodes';
 import ColouredSectionGallery from '@/components/coloured-section-gallery';
 import MembershipPromoSection from '@/components/membership-promo-section';
@@ -214,6 +213,65 @@ export default async function Home() {
     };
   });
 
+  // Get top genres and fetch random shows per genre for GenreSelector
+  const genreCounts = shows.reduce(
+    (acc, episode) => {
+      const genres = episode.genres || episode.enhanced_genres || episode.metadata?.genres || [];
+      genres.forEach((genre: any) => {
+        const genreTitle = genre.title || genre.name;
+        if (genreTitle && genreTitle.toLowerCase() !== 'worldwide fm') {
+          acc[genreTitle] = (acc[genreTitle] || 0) + 1;
+        }
+      });
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+
+  const topGenres = Object.entries(genreCounts)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 10)
+    .map(([name]) => name);
+
+  // Fetch canonical genres to get genre IDs
+  const { getCanonicalGenres } = await import('@/lib/get-canonical-genres');
+  const canonicalGenres = await getCanonicalGenres();
+
+  // Fetch random shows for each top genre
+  const randomShowsByGenre: Record<string, any> = {};
+  await Promise.all(
+    topGenres.map(async genreTitle => {
+      try {
+        // Find the genre ID from canonical genres
+        const canonicalGenre = canonicalGenres.find(
+          g => g.title.toLowerCase() === genreTitle.toLowerCase()
+        );
+
+        if (canonicalGenre) {
+          // Fetch random episodes for this genre
+          const randomResponse = await getEpisodesForShows({
+            genre: [canonicalGenre.id],
+            random: true,
+            limit: 1,
+          });
+
+          if (randomResponse.shows && randomResponse.shows.length > 0) {
+            const transformed = transformShowToViewData(randomResponse.shows[0]);
+            randomShowsByGenre[genreTitle] = {
+              ...transformed,
+              key: transformed.slug,
+            };
+          }
+        }
+      } catch (error) {
+        // Silently fail for individual genres
+        if (process.env.NODE_ENV === 'development') {
+          console.debug(`Failed to fetch random show for genre ${genreTitle}:`, error);
+        }
+      }
+    })
+  );
+
   // Get shows from the archive
   const { shows: archiveShowsRaw } = await getEpisodesForShows({ random: true, limit: 20 });
   const archiveShows = archiveShowsRaw.map(show => {
@@ -336,7 +394,7 @@ export default async function Home() {
 
         {/* Genre Selector Section */}
         <Suspense>
-          <GenreSelector shows={shows} />
+          <GenreSelector shows={shows} randomShowsByGenre={randomShowsByGenre} />
         </Suspense>
 
         {/* Video Section */}

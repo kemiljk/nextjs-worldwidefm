@@ -30,7 +30,6 @@ import {
   getFeaturedShows,
   getSeries,
   getRegularHosts,
-  getEvents,
   getAllEvents,
   getTakeovers,
 } from './actions/shows';
@@ -71,7 +70,6 @@ export {
   getFeaturedShows,
   getSeries,
   getRegularHosts,
-  getEvents,
   getAllEvents,
   getTakeovers,
   getVideos,

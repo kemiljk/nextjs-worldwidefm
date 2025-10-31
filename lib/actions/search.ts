@@ -1,6 +1,11 @@
 'use server';
 
-import { SearchResult, PostSearchResult, EpisodeSearchResult, FilterItem } from '../search/unified-types';
+import {
+  SearchResult,
+  PostSearchResult,
+  EpisodeSearchResult,
+  FilterItem,
+} from '../search/unified-types';
 import { PostObject } from '../cosmic-config';
 import { getAllPosts } from './posts';
 import { getAllShows } from './shows';
@@ -96,76 +101,6 @@ export async function searchContent(
     const getDate = (meta: any, fallback: string): string | undefined =>
       safeString(meta?.date) || fallback;
 
-    if (source === 'cosmic') {
-      const regex = query ? { $regex: query.trim(), $options: 'i' } : undefined;
-
-      const { cosmic } = await import('../cosmic-config');
-      const [episodesResponse, postsResponse, eventsResponse, videosResponse, takeoversResponse] =
-        await Promise.all([
-          import('../episode-service').then(m => m.getEpisodesForShows({ searchTerm: query, limit })),
-          cosmic.objects.find({
-            type: 'posts',
-            ...(query && { q: query }),
-            props: 'id,title,slug,metadata,created_at',
-            limit,
-            status: 'published',
-          }),
-          cosmic.objects.find({
-            type: 'events',
-            ...(query && { q: query }),
-            props: 'id,title,slug,metadata,created_at',
-            limit,
-            status: 'published',
-          }),
-          cosmic.objects.find({
-            type: 'videos',
-            ...(query && { q: query }),
-            props: 'id,title,slug,metadata,created_at',
-            limit,
-            status: 'published',
-          }),
-          cosmic.objects.find({
-            type: 'takeovers',
-            ...(query && { q: query }),
-            props: 'id,title,slug,metadata,created_at',
-            limit,
-            status: 'published',
-          }),
-        ]);
-      const episodes = episodesResponse.shows || [];
-      const posts = postsResponse.objects || [];
-      const events = eventsResponse.objects || [];
-      const videos = videosResponse.objects || [];
-      const takeovers = takeoversResponse.objects || [];
-      const results = [
-        ...episodes.map((item: any) => ({
-          id: item.id || item.slug,
-          title: item.title || item.name || '',
-          slug: item.slug || '',
-          type: 'episodes' as const,
-          description: item.metadata?.description || '',
-          image: getImage(item.metadata || item),
-          date: item.metadata?.broadcast_date || item.created_at || '',
-          genres: getGenres(item.metadata || {}),
-        })),
-        ...posts
-          .map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            slug: item.slug,
-            type: 'posts' as const,
-            description: item.metadata?.content || '',
-            excerpt: item.metadata?.excerpt || '',
-            image: getImage(item.metadata),
-            date: getDate(item.metadata, item.created_at),
-            categories: getGenres(item.metadata || {}),
-          }))
-          .filter((item: any) => item.title),
-      ];
-
-      return results;
-    }
-
     const { cosmic } = await import('../cosmic-config');
     const [episodesResponse, postsResponse, eventsResponse, videosResponse, takeoversResponse] =
       await Promise.all([
@@ -236,4 +171,3 @@ export async function searchContent(
     return [];
   }
 }
-

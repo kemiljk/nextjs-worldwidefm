@@ -19,7 +19,6 @@ export {
   getFeaturedShows,
   getSeries,
   getRegularHosts,
-  getEvents,
   getAllEvents,
   getTakeovers,
 } from './shows';
@@ -30,11 +29,6 @@ export { getAllSearchableContent, searchContent } from './search';
 
 export { getAllFilters, getShowsFilters, fetchTags, fetchGenres } from './filters';
 
-export {
-  getCosmicHomepageData,
-  fetchCosmicObjectById,
-  createColouredSections,
-} from './homepage';
+export { getCosmicHomepageData, fetchCosmicObjectById, createColouredSections } from './homepage';
 
 export { uploadMediaToRadioCultAndCosmic, getHostProfileUrl } from './radiocult';
-

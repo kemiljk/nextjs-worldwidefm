@@ -30,13 +30,30 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
   try {
     // Handle random episodes
     if (params.random) {
-      const response = await cosmic.objects
-        .find({
-          type: 'episode',
-          status: 'published',
-        })
-        .limit(Math.min(baseLimit * 5, 200))
-        .depth(2);
+      // Build query with filters if provided
+      const query: Record<string, unknown> = {
+        type: 'episode',
+        status: 'published',
+      };
+
+      // Add genre filter if provided
+      if (params.genre) {
+        const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
+        const validGenres = genres.filter(Boolean);
+        if (validGenres.length > 0) {
+          query['metadata.genres.id'] = { $in: validGenres };
+        }
+      }
+
+      // Add location filter
+      if (params.location) {
+        const locations = Array.isArray(params.location) ? params.location : [params.location];
+        query['metadata.locations.id'] = { $in: locations };
+      }
+
+      // Fetch a larger set to randomize from
+      const fetchLimit = Math.min(baseLimit * 5, 200);
+      const response = await cosmic.objects.find(query).limit(fetchLimit).depth(2);
 
       const episodes = response.objects || [];
       const shuffled = [...episodes].sort(() => Math.random() - 0.5);

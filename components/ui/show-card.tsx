@@ -4,6 +4,7 @@ import { Play, Pause } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useMediaPlayer } from '../providers/media-player-provider';
 import { GenreTag } from './genre-tag';
 import type { CanonicalGenre } from '@/lib/get-canonical-genres';
@@ -27,10 +28,15 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   canonicalGenres = [],
 }) => {
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
   const isEpisode = show?.__source === 'episode' || show?.episodeData || show?.type === 'episode';
   const hasAudioContent = show?.url || show?.player || show?.metadata?.player;
   const shouldShowPlayButton = playable && show?.metadata?.player;
   const { playShow, pauseShow, selectedShow, isArchivePlaying } = useMediaPlayer();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const isCurrentShow = selectedShow?.key === show.key;
   const isCurrentlyPlaying = isCurrentShow && isArchivePlaying;
@@ -230,7 +236,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
               }
             }}
           />
-          {shouldShowPlayButton && (
+          {isMounted && shouldShowPlayButton && (
             <div className='absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20'>
               <button
                 className={`${playButtonBgClass} rounded-full w-10 h-10 flex items-center justify-center transition-colors cursor-pointer`}

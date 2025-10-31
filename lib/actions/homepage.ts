@@ -1,10 +1,6 @@
 'use server';
 
-import {
-  CosmicHomepageData,
-  HomepageSectionItem,
-  ProcessedHomepageSection,
-} from '../cosmic-types';
+import { CosmicHomepageData, HomepageSectionItem, ProcessedHomepageSection } from '../cosmic-types';
 import { cosmic } from '../cosmic-config';
 
 export async function getCosmicHomepageData(): Promise<CosmicHomepageData | null> {
@@ -96,4 +92,3 @@ export async function createColouredSections(
     return colouredSections;
   }
 }
-

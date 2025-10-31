@@ -16,7 +16,7 @@ export interface EpisodeShowsFilters {
   random?: boolean;
 }
 
-export async function getAllShows(skip = 0, limit = 20, filters?: any) {
+export async function getAllShows(skip = 0, limit = 20, filters?: EpisodeShowsFilters) {
   try {
     const { getEpisodesForShows } = await import('../episode-service');
     const response = await getEpisodesForShows({
@@ -37,7 +37,7 @@ export async function getAllShows(skip = 0, limit = 20, filters?: any) {
   }
 }
 
-export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
+export async function getEnhancedShowBySlug(slug: string): Promise<Record<string, unknown> | null> {
   try {
     const { getEpisodeBySlug } = await import('../episode-service');
     const episode = await getEpisodeBySlug(slug);
@@ -61,7 +61,7 @@ export async function getEnhancedShowBySlug(slug: string): Promise<any | null> {
   return null;
 }
 
-export async function getShowBySlug(slug: string): Promise<any | null> {
+export async function getShowBySlug(slug: string): Promise<Record<string, unknown> | null> {
   const slugVariants = [
     slug,
     slug.startsWith('/') ? slug.slice(1) : '/' + slug,
@@ -120,26 +120,26 @@ export async function getShowBySlug(slug: string): Promise<any | null> {
           comment_count: 0,
           listener_count: 0,
           repost_count: 0,
-          tags: (show.metadata?.genres || []).map((genre: any) => ({
+          tags: (show.metadata?.genres || []).map(genre => ({
             key: genre.slug || genre.id || '',
             url: `/genres/${genre.slug || genre.id || ''}`,
             name: genre.title || '',
           })),
           slug: show.slug,
-          hosts: (show.metadata?.regular_hosts || []).map((host: any) => ({
+          hosts: (show.metadata?.regular_hosts || []).map(host => ({
             key: host.slug || host.id || '',
             url: `/hosts/${host.slug || host.id || ''}`,
             name: host.title || '',
             username: host.slug || host.id || '',
             pictures: {
-              small: host.image?.imgix_url || '/image-placeholder.png',
-              thumbnail: host.image?.imgix_url || '/image-placeholder.png',
-              medium_mobile: host.image?.imgix_url || '/image-placeholder.png',
-              medium: host.image?.imgix_url || '/image-placeholder.png',
-              large: host.image?.imgix_url || '/image-placeholder.png',
-              '320wx320h': host.image?.imgix_url || '/image-placeholder.png',
-              extra_large: host.image?.imgix_url || '/image-placeholder.png',
-              '640wx640h': host.image?.imgix_url || '/image-placeholder.png',
+              small: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              thumbnail: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              medium_mobile: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              medium: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              large: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              '320wx320h': host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              extra_large: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              '640wx640h': host.metadata?.image?.imgix_url || '/image-placeholder.png',
             },
           })),
           hidden_stats: false,
@@ -272,7 +272,7 @@ export async function getAllEvents({
   hasNext: boolean;
 }> {
   try {
-    const query: any = {
+    const query: Record<string, unknown> = {
       type: 'events',
       status: 'published',
       sort: '-metadata.event_date',
@@ -295,17 +295,6 @@ export async function getAllEvents({
     console.error('Error in getAllEvents:', error);
     return { events: [], hasNext: false };
   }
-}
-
-export async function getEvents({
-  limit = 20,
-  offset = 0,
-  searchTerm,
-}: { limit?: number; offset?: number; searchTerm?: string } = {}): Promise<{
-  events: EventType[];
-  hasNext: boolean;
-}> {
-  return getAllEvents({ limit, offset, searchTerm });
 }
 
 export async function getTakeovers({
@@ -410,7 +399,7 @@ export async function getRegularHosts({
 } = {}): Promise<{ shows: unknown[]; hasNext: boolean }> {
   try {
     const cosmicImport = await import('../cosmic-config');
-    const query: any = {
+    const query: Record<string, unknown> = {
       type: 'regular-hosts',
       status: 'published',
       limit,
@@ -440,7 +429,7 @@ export async function getRegularHosts({
 
 export async function getMixcloudShows(
   filters: EpisodeShowsFilters = {}
-): Promise<{ shows: any[]; total: number }> {
+): Promise<{ shows: Record<string, unknown>[]; total: number }> {
   try {
     const { getEpisodesForShows } = await import('../episode-service');
     const response = await getEpisodesForShows({
@@ -468,7 +457,7 @@ export async function searchEpisodes(params: {
   searchTerm?: string;
   limit?: number;
   offset?: number;
-}): Promise<{ shows: any[]; hasNext: boolean }> {
+}): Promise<{ shows: Record<string, unknown>[]; hasNext: boolean }> {
   try {
     const { getEpisodesForShows } = await import('../episode-service');
     const response = await getEpisodesForShows({

@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { CategoryTag } from './category-tag';
 
 interface EventCardProps {
   title: string;

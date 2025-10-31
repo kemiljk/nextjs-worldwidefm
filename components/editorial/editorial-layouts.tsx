@@ -78,9 +78,9 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
                 images={imageGallery}
                 layout={
                   metadata?.gallery_layout?.value?.toLowerCase() as
-                  | 'thumbnail'
-                  | 'grid'
-                  | 'carousel'
+                    | 'thumbnail'
+                    | 'grid'
+                    | 'carousel'
                 }
               />
             </div>
@@ -179,7 +179,6 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
     <article className='w-full'>
       {/* Title Section */}
       <div className='w-full px-10 md:px-20 py-20 text-center'>
-
         <text className='font-sans text-[32px] sm:text-[50px] lg:text-[60px] leading-none mb-4 text-almostblack dark:text-white'>
           {title}
         </text>
@@ -201,7 +200,6 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
             </div>
           )}
         </div>
-
       </div>
 
       {/* Main Image */}

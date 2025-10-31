@@ -7,7 +7,18 @@ import { usePlausible } from 'next-plausible';
 
 declare global {
   interface Window {
-    io?: any;
+    io?: (
+      url: string,
+      options?: {
+        auth?: Record<string, string>;
+        transports?: string[];
+        query?: Record<string, string>;
+      }
+    ) => {
+      on: (event: string, callback: (data?: unknown) => void) => void;
+      disconnect: () => void;
+      readyState: number;
+    };
   }
 }
 
@@ -31,8 +42,7 @@ interface LiveMetadata {
 }
 
 export default function LivePlayer() {
-  const { currentLiveEvent, isLivePlaying, playLive, pauseLive, liveVolume, setLiveVolume } =
-    useMediaPlayer();
+  const { currentLiveEvent, isLivePlaying, playLive, pauseLive, liveVolume } = useMediaPlayer();
   const plausible = usePlausible();
 
   const [streamState, setStreamState] = useState<StreamState>({
@@ -41,12 +51,10 @@ export default function LivePlayer() {
     connected: false,
   });
 
-  const [liveMetadata, setLiveMetadata] = useState<LiveMetadata>({
-    status: 'offline',
-  });
+  const [liveMetadata, setLiveMetadata] = useState<LiveMetadata>({ status: 'offline' });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const socketRef = useRef<any>(null);
+  const socketRef = useRef<ReturnType<NonNullable<typeof window.io>> | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const metadataTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -206,23 +214,32 @@ export default function LivePlayer() {
           setStreamState(prev => ({ ...prev, error: null }));
         });
 
-        socket.on('player-metadata', (data: any) => {
-          console.log('Received metadata:', data);
-          setLiveMetadata({
-            status: data.status || 'offline',
-            content: data.content,
-            metadata: data.metadata,
-          });
+        socket.on('player-metadata', (data?: unknown) => {
+          const metadata = data as
+            | {
+                status?: string;
+                content?: { title?: string; artist?: string; image?: string };
+                metadata?: { bitrate?: number; listeners?: number };
+              }
+            | undefined;
+          if (metadata) {
+            console.log('Received metadata:', metadata);
+            setLiveMetadata({
+              status: (metadata.status === 'live' ? 'live' : 'offline') as 'live' | 'offline',
+              content: metadata.content,
+              metadata: metadata.metadata,
+            });
 
-          // Reset metadata timeout
-          if (metadataTimeoutRef.current) {
-            clearTimeout(metadataTimeoutRef.current);
+            // Reset metadata timeout
+            if (metadataTimeoutRef.current) {
+              clearTimeout(metadataTimeoutRef.current);
+            }
+
+            // Set offline after 2 minutes of no updates
+            metadataTimeoutRef.current = setTimeout(() => {
+              setLiveMetadata(prev => ({ ...prev, status: 'offline' }));
+            }, 120000);
           }
-
-          // Set offline after 2 minutes of no updates
-          metadataTimeoutRef.current = setTimeout(() => {
-            setLiveMetadata(prev => ({ ...prev, status: 'offline' }));
-          }, 120000);
         });
 
         socket.on('disconnect', () => {
@@ -231,7 +248,7 @@ export default function LivePlayer() {
           reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
         });
 
-        socket.on('error', (error: any) => {
+        socket.on('error', (error?: unknown) => {
           console.error('RadioCult WebSocket error:', error);
         });
 
