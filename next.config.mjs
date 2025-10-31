@@ -7,6 +7,7 @@ try {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: false,
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -44,9 +45,9 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://widget.mixcloud.com https://player-widget.mixcloud.com https://static.cloudflareinsights.com https://connect.facebook.net https://www.googletagmanager.com https://cdn.socket.io https://plausible.io",
               "frame-src 'self' https://www.mixcloud.com https://widget.mixcloud.com https://player-widget.mixcloud.com https://www.youtube.com https://player.vimeo.com",
               "child-src 'self' https://www.mixcloud.com https://widget.mixcloud.com https://player-widget.mixcloud.com https://www.youtube.com https://player.vimeo.com",
-              "connect-src 'self' https://api.mixcloud.com https://widget.mixcloud.com https://player-widget.mixcloud.com https://api.radiocult.fm https://stream.radiocult.fm wss://api.radiocult.fm https://static.cloudflareinsights.com https://api.cosmicjs.com https://*.mixcloud.com https://plausible.io",
+              "connect-src 'self' https://api.mixcloud.com https://widget.mixcloud.com https://player-widget.mixcloud.com https://api.radiocult.fm https://stream.radiocult.fm http://worldwide-fm.radiocult.fm https://worldwide-fm.radiocult.fm wss://api.radiocult.fm https://static.cloudflareinsights.com https://api.cosmicjs.com https://*.mixcloud.com https://plausible.io",
               "img-src 'self' data: https: blob:",
-              "media-src 'self' https: blob:",
+              "media-src 'self' http://worldwide-fm.radiocult.fm https://worldwide-fm.radiocult.fm https: blob:",
               "style-src 'self' 'unsafe-inline' https:",
               "font-src 'self' https: data:",
             ].join('; '),

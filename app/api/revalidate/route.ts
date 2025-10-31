@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     // Revalidate by tag if specified
     if (tag || body.tag) {
       const tagToRevalidate = tag || body.tag;
-      revalidateTag(tagToRevalidate);
+      revalidateTag(tagToRevalidate, 'max');
       revalidatedItems.push(`tag:${tagToRevalidate}`);
       console.log(`Revalidated tag: ${tagToRevalidate}`);
     }
@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
     // If no specific tag or path, revalidate common show-related tags
     if (!tag && !path && !body.tag && !body.path) {
       // Default: revalidate shows and episodes
-      revalidateTag('episodes');
-      revalidateTag('shows');
+      revalidateTag('episodes', 'max');
+      revalidateTag('shows', 'max');
       revalidatePath('/', 'page');
       revalidatePath('/shows', 'page');
       revalidatedItems.push('tag:episodes', 'tag:shows', 'path:/(page)', 'path:/shows(page)');

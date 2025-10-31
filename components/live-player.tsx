@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Play, Pause } from 'lucide-react';
+import { Play, Pause, Loader2 } from 'lucide-react';
 import { useMediaPlayer } from '@/components/providers/media-player-provider';
 import { usePlausible } from 'next-plausible';
 
@@ -30,11 +30,6 @@ interface LiveMetadata {
   };
 }
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'no-store';
-export const runtime = 'nodejs';
-
 export default function LivePlayer() {
   const { currentLiveEvent, isLivePlaying, playLive, pauseLive, liveVolume, setLiveVolume } =
     useMediaPlayer();
@@ -59,6 +54,12 @@ export default function LivePlayer() {
   const streamUrl = process.env.NEXT_PUBLIC_RADIOCULT_STREAM_URL;
   const stationId = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
   const apiKey = process.env.NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('[LivePlayer] Stream URL:', streamUrl);
+    console.log('[LivePlayer] Station ID:', stationId);
+  }, [streamUrl, stationId]);
 
   // Poll for current live event from schedule
   const checkSchedule = useCallback(async () => {
@@ -112,7 +113,7 @@ export default function LivePlayer() {
       const audio = new Audio();
       audio.preload = 'none';
       audio.volume = liveVolume;
-      audio.crossOrigin = 'anonymous';
+      // Note: crossOrigin removed - not needed for audio streams and causes CORS issues
       audioRef.current = audio;
 
       // Set up audio event listeners
@@ -124,7 +125,7 @@ export default function LivePlayer() {
         setStreamState(prev => ({ ...prev, loading: false, connected: true }));
       });
 
-      audio.addEventListener('error', e => {
+      audio.addEventListener('error', () => {
         const error = audio.error;
         let errorMessage = 'Stream connection failed';
 
@@ -371,7 +372,9 @@ export default function LivePlayer() {
           disabled={!isActuallyLive}
           onClick={handlePlayPause}
         >
-          {isLivePlaying ? (
+          {isLivePlaying && streamState.loading ? (
+            <Loader2 className='h-3 w-3 animate-spin' />
+          ) : isLivePlaying ? (
             <Pause fill='white' className='h-3 w-3' />
           ) : (
             <Play fill='white' className='h-3 w-3' />

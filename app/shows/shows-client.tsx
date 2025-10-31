@@ -27,6 +27,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   const [shows, setShows] = useState<any[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
@@ -53,6 +54,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   useEffect(() => {
     let isMounted = true;
     setIsLoadingMore(true);
+    setIsInitialLoading(true);
 
     // Add a small delay to prevent rapid API calls
     const timeoutId = setTimeout(async () => {
@@ -133,16 +135,16 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
           setShows(transformedShows);
         } else if (activeType === 'hosts-series') {
           // For hosts, add key property
-          const hosts = (response as any).hosts || [];
-          const transformedHosts = hosts.map((host: any) => ({
+          const shows = (response as any).shows || [];
+          const transformedHosts = shows.map((host: any) => ({
             ...host,
             key: host.slug, // Add key for media player identification
           }));
           setShows(transformedHosts);
         } else if (activeType === 'takeovers') {
           // For takeovers, add key property
-          const takeovers = (response as any).takeovers || [];
-          const transformedTakeovers = takeovers.map((takeover: any) => ({
+          const shows = (response as any).shows || [];
+          const transformedTakeovers = shows.map((takeover: any) => ({
             ...takeover,
             key: takeover.slug, // Add key for media player identification
           }));
@@ -152,10 +154,12 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
         const hasNext = Array.isArray(response) ? false : response.hasNext;
         setHasNext(hasNext);
         setIsLoadingMore(false);
+        setIsInitialLoading(false);
         setPage(1);
       } catch (error) {
         console.error('Error fetching data:', error);
         setIsLoadingMore(false);
+        setIsInitialLoading(false);
         // Don't clear existing shows on error, just show loading state
       }
     }, 1000); // 1000ms delay to match debounce
@@ -252,14 +256,14 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
             };
           });
         } else if (activeType === 'hosts-series') {
-          const hosts = (response as any).hosts || [];
-          newShows = hosts.map((host: any) => ({
+          const shows = (response as any).shows || [];
+          newShows = shows.map((host: any) => ({
             ...host,
             key: host.slug, // Add key for media player identification
           }));
         } else if (activeType === 'takeovers') {
-          const takeovers = (response as any).takeovers || [];
-          newShows = takeovers.map((takeover: any) => ({
+          const shows = (response as any).shows || [];
+          newShows = shows.map((takeover: any) => ({
             ...takeover,
             key: takeover.slug, // Add key for media player identification
           }));
@@ -624,7 +628,12 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
 
       <div className='pt-2 w-full px-5 flex-col pb-20'>
         <main className=''>
-          {filteredShows.length > 0 ? (
+          {isInitialLoading ? (
+            <div className='flex flex-col items-center justify-center py-16 text-center'>
+              <Loader className='h-8 w-8 animate-spin mb-4' />
+              <p className='text-gray-600'>Loading shows...</p>
+            </div>
+          ) : filteredShows.length > 0 ? (
             <ShowsGrid
               shows={filteredShows}
               contentType={activeType as 'episodes' | 'hosts-series' | 'takeovers'}
