@@ -149,8 +149,6 @@ const HomepageHero: React.FC<HomepageHeroProps> = ({ heroLayout, heroItems }) =>
     if (!item1) return null;
     return <div className='relative z-10 w-full'>{renderHeroItem(item1, true)}</div>;
   }
-  // TODO: Implement other layouts like 'Carousel'
-  // For Carousel, you might use a library like Embla Carousel or similar.
 
   console.warn(
     `HomepageHero: Encountered an unexpected or not-yet-implemented heroLayout: "${heroLayout}"`

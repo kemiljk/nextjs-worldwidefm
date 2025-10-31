@@ -1,17 +1,16 @@
 import { Metadata } from 'next';
-import Image from 'next/image';
-import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import React from 'react';
 import { notFound } from 'next/navigation';
-import { PageHeader } from '@/components/shared/page-header';
 import { getRadioShows } from '@/lib/cosmic-service';
 import { cosmic } from '@/lib/cosmic-config';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
 import { transformShowToViewData } from '@/lib/cosmic-service';
-import HostClient from './host-client';
+import { EpisodeHero } from '@/components/homepage-hero';
+import { SafeHtml } from '@/components/ui/safe-html';
+import { GenreTag } from '@/components/ui/genre-tag';
+import { ShowCard } from '@/components/ui/show-card';
 
-// Revalidate frequently to show new shows quickly
-export const revalidate = 60; // 1 minute
+export const revalidate = 60;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -47,10 +46,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-// Generate static params for all hosts
 export async function generateStaticParams() {
   try {
-    // Get all hosts from Cosmic CMS
     const response = await cosmic.objects
       .find({
         type: 'regular-hosts',
@@ -60,7 +57,7 @@ export async function generateStaticParams() {
       .limit(1000);
 
     const params =
-      response.objects?.map((host: any) => ({
+      response.objects?.map((host: { slug: string }) => ({
         slug: host.slug,
       })) || [];
 
@@ -79,7 +76,7 @@ async function getHostBySlug(slug: string) {
         slug: slug,
       })
       .props('id,slug,title,content,metadata')
-      .depth(1);
+      .depth(2);
 
     return response?.object || null;
   } catch (error) {
@@ -88,21 +85,17 @@ async function getHostBySlug(slug: string) {
   }
 }
 
-async function getInitialShows(hostId: string) {
+async function getRelatedShows(hostId: string, limit: number = 12) {
   try {
     const response = await getRadioShows({
       filters: { host: hostId },
-      limit: 20, // Load initial batch of 20
+      limit,
       sort: '-metadata.broadcast_date',
     });
 
-    // Transform episodes to show format for ShowCard compatibility
-    const transformedShows = (response.objects || []).map(transformShowToViewData);
-    return transformedShows;
+    return (response.objects || []).map(transformShowToViewData);
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`Error fetching initial shows for host ${hostId}:`, error);
-    }
+    console.error(`Error fetching related shows for host ${hostId}:`, error);
     return [];
   }
 }
@@ -116,40 +109,72 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
     notFound();
   }
 
-  // Get initial shows hosted by this person
-  const initialShows = await getInitialShows(host.id);
+  const relatedShows = await getRelatedShows(host.id, 12);
 
-  const hostImage = host.metadata?.image?.imgix_url || '/image-placeholder.png';
-  const hostDescription = host.metadata?.description || host.content || '';
+  const displayName = host.title || 'Untitled Host';
+  const displayImage = host.metadata?.image?.imgix_url || '/image-placeholder.png';
+
+  const show = {
+    id: host.id,
+    slug: host.slug,
+    title: host.title,
+    url: null,
+    metadata: host.metadata,
+  };
 
   return (
-    <div className='space-y-8'>
-      <Link href='/shows' className='text-foreground flex items-center gap-1'>
-        <ChevronRight className='w-4 h-4 rotate-180' />
-        Back to Shows
-      </Link>
+    <div className='pb-50'>
+      <EpisodeHero
+        displayName={displayName}
+        displayImage={displayImage}
+        showDate={''}
+        show={show}
+      />
 
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-        <div className='aspect-square relative overflow-hidden'>
-          <Image src={hostImage} alt={host.title} fill className='object-cover rounded-none' />
-        </div>
+      <div className='w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-8'>
+        <div className='w-full md:w-[40%] lg:w-[35%] flex flex-col gap-3'>
+          {(host.metadata?.description || host.content) && (
+            <div className='max-w-none'>
+              <SafeHtml
+                content={host.metadata?.description || host.content || ''}
+                type='editorial'
+                className='!text-[16px] leading-5 text-almostblack dark:text-white'
+              />
+            </div>
+          )}
 
-        <div>
-          <PageHeader title={host.title} description={hostDescription} />
-
-          {initialShows.length > 0 && (
-            <div className='mt-8'>
-              <h3 className='text-m5 font-mono font-normal text-almostblack dark:text-white mb-4'>
-                Shows
-              </h3>
-              <p className='text-muted-foreground mb-4'>Recent shows hosted by {host.title}</p>
+          {host.metadata?.genres?.length > 0 && (
+            <div>
+              <div className='flex flex-wrap select-none cursor-default my-3'>
+                {host.metadata.genres.map((genre: { id?: string; slug?: string; title?: string; name?: string }) => (
+                  <GenreTag key={genre.id || genre.slug} variant="large">{genre.title || genre.name}</GenreTag>
+                ))}
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Hosted Shows with Infinite Scroll */}
-      <HostClient hostId={host.id} hostTitle={host.title} initialShows={initialShows} />
+      {relatedShows.length > 0 && (
+        <div className='w-full px-5 pt-8'>
+          <div>
+            <h2 className='text-h8 md:text-h7 font-bold tracking-tight leading-none mb-3'>RELATED EPISODES</h2>
+            <div className='grid grid-cols-2 lg:grid-cols-4 md:grid-cols-3 gap-3'>
+              {relatedShows.map(relatedShow => {
+                const slug = `/episode/${relatedShow.slug}`;
+                return (
+                  <ShowCard
+                    key={relatedShow.id || relatedShow.slug}
+                    show={relatedShow}
+                    slug={slug}
+                    playable
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

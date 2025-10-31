@@ -1,16 +1,16 @@
 import { Metadata } from 'next';
-import Image from 'next/image';
-import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import React from 'react';
 import { notFound } from 'next/navigation';
-import { PageHeader } from '@/components/shared/page-header';
-import { Card } from '@/components/ui/card';
 import { cosmic } from '@/lib/cosmic-config';
 import { getEpisodesForShows } from '@/lib/episode-service';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
+import { transformShowToViewData } from '@/lib/cosmic-service';
+import { EpisodeHero } from '@/components/homepage-hero';
+import { SafeHtml } from '@/components/ui/safe-html';
+import { GenreTag } from '@/components/ui/genre-tag';
+import { ShowCard } from '@/components/ui/show-card';
 
-// Revalidate frequently to show new shows quickly
-export const revalidate = 60; // 1 minute
+export const revalidate = 60;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -53,10 +53,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-// Generate static params for all takeovers
 export async function generateStaticParams() {
   try {
-    // Get all takeovers from Cosmic CMS
     const response = await cosmic.objects
       .find({
         type: 'takeovers',
@@ -66,7 +64,7 @@ export async function generateStaticParams() {
       .limit(1000);
 
     const params =
-      response.objects?.map((takeover: any) => ({
+      response.objects?.map((takeover: { slug: string }) => ({
         slug: takeover.slug,
       })) || [];
 
@@ -85,7 +83,7 @@ async function getTakeoverBySlug(slug: string) {
         slug: slug,
       })
       .props('id,slug,title,content,metadata')
-      .depth(1);
+      .depth(2);
 
     return response?.object || null;
   } catch (error) {
@@ -94,15 +92,14 @@ async function getTakeoverBySlug(slug: string) {
   }
 }
 
-async function getEpisodesByTakeover(takeoverId: string) {
+async function getRelatedEpisodes(takeoverId: string, limit: number = 12) {
   try {
-    // Get episodes that have this takeover
     const response = await getEpisodesForShows({
       takeover: takeoverId,
-      limit: 50,
+      limit,
     });
 
-    return response.shows || [];
+    return (response.shows || []).map(transformShowToViewData);
   } catch (error) {
     console.error(`Error fetching episodes for takeover ${takeoverId}:`, error);
     return [];
@@ -118,92 +115,76 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
     notFound();
   }
 
-  // Get episodes with this takeover
-  const takeoverEpisodes = await getEpisodesByTakeover(takeover.id);
+  const relatedEpisodes = await getRelatedEpisodes(takeover.id, 12);
 
-  const takeoverImage = takeover.metadata?.image?.imgix_url || '/image-placeholder.png';
-  const takeoverDescription = takeover.metadata?.description || takeover.content || '';
+  const displayName = takeover.title || 'Untitled Takeover';
+  const displayImage = takeover.metadata?.image?.imgix_url || '/image-placeholder.png';
+
+  const show = {
+    id: takeover.id,
+    slug: takeover.slug,
+    title: takeover.title,
+    url: null,
+    metadata: takeover.metadata,
+  };
 
   return (
-    <div className='space-y-8 mt-8'>
-      <Link href='/shows' className='text-foreground flex items-center gap-1'>
-        <ChevronRight className='w-4 h-4 rotate-180' />
-        Back to Shows
-      </Link>
+    <div className='pb-50'>
+      <EpisodeHero
+        displayName={displayName}
+        displayImage={displayImage}
+        showDate={''}
+        show={show}
+      />
 
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
-        <div className='aspect-square relative overflow-hidden'>
-          <Image
-            src={takeoverImage}
-            alt={takeover.title}
-            fill
-            className='object-cover rounded-none'
-          />
-        </div>
+      <div className='w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-8'>
+        <div className='w-full md:w-[40%] lg:w-[35%] flex flex-col gap-3'>
+          {(takeover.metadata?.description || takeover.content) && (
+            <div className='max-w-none'>
+              <SafeHtml
+                content={takeover.metadata?.description || takeover.content || ''}
+                type='editorial'
+                className='!text-[16px] leading-5 text-almostblack dark:text-white'
+              />
+            </div>
+          )}
 
-        <div>
-          <PageHeader title={takeover.title} description={takeoverDescription} />
-
-          {takeoverEpisodes.length > 0 && (
-            <div className='mt-8'>
-              <h3 className='text-m5 font-mono font-normal text-almostblack dark:text-white mb-4'>
-                Episodes ({takeoverEpisodes.length})
-              </h3>
-              <p className='text-muted-foreground mb-4'>Recent episodes from {takeover.title}</p>
+          {takeover.metadata?.genres?.length > 0 && (
+            <div>
+              <div className='flex flex-wrap select-none cursor-default my-3'>
+                {takeover.metadata.genres.map(
+                  (genre: { id?: string; slug?: string; title?: string; name?: string }) => (
+                    <GenreTag key={genre.id || genre.slug} variant='large'>
+                      {genre.title || genre.name}
+                    </GenreTag>
+                  )
+                )}
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Takeover Episodes */}
-      {takeoverEpisodes.length > 0 && (
-        <section className='space-y-6'>
-          <h2 className='text-h7 font-display uppercase font-normal text-almostblack dark:text-white'>
-            Recent Episodes
-          </h2>
-          <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-            {takeoverEpisodes.slice(0, 9).map(episode => {
-              const episodeImage =
-                episode.enhanced_image || episode.pictures?.extra_large || '/image-placeholder.png';
-              const broadcastDate = episode.broadcast_date
-                ? new Date(episode.broadcast_date).toLocaleDateString()
-                : '';
-
-              return (
-                <Link key={episode.id || episode.slug} href={`/episode${episode.slug}`}>
-                  <Card className='overflow-hidden h-full hover:shadow-lg transition-all'>
-                    <div className='aspect-square relative overflow-hidden'>
-                      <Image
-                        src={episodeImage}
-                        alt={episode.title || episode.name}
-                        fill
-                        className='object-cover'
-                      />
-                      <div className='absolute inset-0 bg-linear-to-t from-black/70 to-transparent flex items-end'>
-                        <div className='p-4 w-full'>
-                          <h3 className='text-m7 font-mono font-normal text-white line-clamp-2'>
-                            {episode.title || episode.name}
-                          </h3>
-                          {broadcastDate && (
-                            <p className='text-white/70 text-sm mt-1'>{broadcastDate}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              );
-            })}
+      {relatedEpisodes.length > 0 && (
+        <div className='w-full px-5 pt-8'>
+          <div>
+            <h2 className='text-h8 md:text-h7 font-bold tracking-tight leading-none mb-3'>
+              RELATED EPISODES
+            </h2>
+            <div className='grid grid-cols-2 lg:grid-cols-4 md:grid-cols-3 gap-3'>
+              {relatedEpisodes.map(relatedEpisode => {
+                const slug = `/episode/${relatedEpisode.slug}`;
+                return (
+                  <ShowCard
+                    key={relatedEpisode.id || relatedEpisode.slug}
+                    show={relatedEpisode}
+                    slug={slug}
+                    playable
+                  />
+                );
+              })}
+            </div>
           </div>
-        </section>
-      )}
-
-      {takeoverEpisodes.length === 0 && (
-        <div className='text-center py-12'>
-          <h3 className='text-m5 font-mono font-normal text-almostblack dark:text-white mb-2'>
-            No Episodes Found
-          </h3>
-          <p className='text-muted-foreground'>This takeover doesn't have any episodes yet.</p>
         </div>
       )}
     </div>

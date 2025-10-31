@@ -27,10 +27,13 @@ export function ShowsGrid({
 
     switch (source) {
       case 'host':
+      case 'hosts-series':
         return `/hosts/${show.slug}`;
       case 'takeover':
+      case 'takeovers':
         return `/takeovers/${show.slug}`;
       case 'episode':
+      case 'episodes':
       default:
         return `/episode/${show.slug}`;
     }
