@@ -189,7 +189,7 @@ export const EpisodeHero = ({
     (isEpisode || hasAudioContent) && (show?.metadata?.player || show?.url);
 
   return (
-    <div className='relative w-full h-200 aspect-2/1 flex flex-col justify-center overflow-hidden'>
+    <div className='relative w-full h-[80vh] sm:h-200 aspect-2/1 flex flex-col justify-center overflow-hidden'>
       {/* Overlay: soft blur + blend */}
       <div className='absolute inset-0 w-full h-full z-10 bg-blend-multiply backdrop-blur-[20px] pointer-events-none' />
 
@@ -213,9 +213,9 @@ export const EpisodeHero = ({
         sizes='100vw'
       />
       {/* Overlay: Play Button and Text - Always show artwork and title */}
-      <div className='relative inset-0 flex justify-center z-30'>
+      <div className='relative inset-0 flex justify-center pt-5 z-30'>
         <div className='flex flex-col md:max-w-full md:flex-row gap-10 px-10 items-start md:items-center '>
-          <div className='relative w-[400px] md:w-[450px] lg:w-[600px] aspect-square border border-almostblack z-30'>
+          <div className='relative w-[80vw] sm:w-[400px] md:w-[450px] lg:w-[600px] aspect-square border border-almostblack z-30'>
             <Image
               src={displayImage}
               alt={displayName}
@@ -234,7 +234,7 @@ export const EpisodeHero = ({
               />
             )}
           </div>
-          <div className='flex flex-col pb-2 md:flex-1  w-[400px] md:w-[500px]'>
+          <div className='flex flex-col pb-2 md:flex-1  w-[80vw] sm:w-[400px] md:w-[500px]'>
             {showDate && (
               <span className='inline-block bg-almostblack text-white font-display text-h8 leading-none uppercase w-fit px-1 text-left shadow-lg border border-almostblack'>
                 {showDate}

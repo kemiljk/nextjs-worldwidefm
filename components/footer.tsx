@@ -62,7 +62,7 @@ export default async function Footer() {
           </div>
 
           {/* Quick links + Newsletter wrapper */}
-          <div className='w-full sm:max-w-[60vw] flex flex-row gap-20'>
+          <div className='w-full sm:max-w-[60vw] flex flex-col md:flex-row gap-20'>
             {/* Quick links */}
             <div className='w-auto pr-10'>
               <h3 className='text-m7 whitespace-nowrap font-mono uppercase font-normal text-almostblack dark:text-white pb-3'>
@@ -98,7 +98,7 @@ export default async function Footer() {
             </div>
 
             {/* Newsletter section */}
-            <div className='w-80'>
+            <div className='w-full lg:w-80'>
               <h3 className='text-m7 font-mono uppercase font-normal text-almostblack dark:text-white pb-3'>
                 BECOME A MEMBER
               </h3>
