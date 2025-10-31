@@ -17,13 +17,14 @@ import {
   AlertCircle,
   FileQuestion,
   MicVocal,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getAllPosts, getVideos, getAllEvents, getTakeovers, searchEpisodes } from '@/lib/actions';
+import { getAllPosts, getVideos, getAllEvents, getTakeovers, getRegularHosts, searchEpisodes } from '@/lib/actions';
 import type { ContentType } from '@/lib/search/types';
 import type { PostObject, VideoObject } from '@/lib/cosmic-config';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -40,6 +41,7 @@ const typeLabels: Record<ContentType, { label: string; icon: React.ElementType; 
   events: { label: 'Events', icon: Calendar, color: 'text-foreground' },
   videos: { label: 'Videos', icon: Video, color: 'text-foreground' },
   takeovers: { label: 'Takeovers', icon: MicVocal, color: 'text-foreground' },
+  'hosts-series': { label: 'Hosts & Series', icon: Users, color: 'text-foreground' },
 };
 
 // Helper function to extract YouTube video ID from URL
@@ -65,7 +67,7 @@ function getVimeoThumbnail(url: string): string {
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [results, setResults] = useState<any[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -82,6 +84,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   });
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const requestIdRef = useRef<number>(0);
   const PAGE_SIZE = 20;
 
   // On dialog open, check which types have at least one result and fetch video categories
@@ -90,19 +93,21 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     async function checkTypes() {
       try {
         const types: string[] = [];
-        const [episodes, posts, videos, events, takeovers, videoCategories] = await Promise.all([
+        const [episodes, posts, videos, events, takeovers, hosts, videoCategories] = await Promise.all([
           searchEpisodes({ limit: 1 }),
           getAllPosts({ limit: 1 }),
           getVideos({ limit: 1 }),
           getAllEvents({ limit: 1 }),
           getTakeovers({ limit: 1 }),
+          getRegularHosts({ limit: 1 }),
           import('@/lib/actions').then(m => m.getVideoCategories()),
         ]);
         if (episodes?.shows?.length > 0) types.push('episodes');
         if (posts?.posts?.length > 0) types.push('posts');
         if (events?.events?.length > 0) types.push('events');
         if (videos?.videos?.length > 0) types.push('videos');
-        if (takeovers?.takeovers?.length > 0) types.push('takeovers');
+        if (takeovers?.shows?.length > 0) types.push('takeovers');
+        if (hosts?.shows?.length > 0) types.push('hosts-series');
         setAvailableTypes(types);
         setVideoCategories(videoCategories);
       } catch (error) {
@@ -120,6 +125,15 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   // Fetch tags for the selected type
   useEffect(() => {
     if (!open) return;
+    
+    // Immediately clear tags for types that don't support genre filtering
+    if (selectedType === 'takeovers' || selectedType === 'hosts-series') {
+      setTags([]);
+      // Clear any tag filters that were previously selected
+      setActiveFilters(prev => prev.filter(f => Object.keys(typeLabels).includes(f)));
+      return;
+    }
+    
     async function fetchTags() {
       try {
         const tagSet = new Set<string>();
@@ -155,13 +169,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               if (cat?.title) tagSet.add(cat.title);
             });
           });
-        } else if (selectedType === 'takeovers') {
-          const { takeovers } = await getTakeovers({ limit: 100, offset: 0 });
-          takeovers?.forEach((takeover: any) => {
-            takeover?.metadata?.categories?.forEach((cat: any) => {
-              if (cat?.title) tagSet.add(cat.title);
-            });
-          });
         }
         setTags(Array.from(tagSet).sort((a, b) => a.localeCompare(b)));
       } catch (error) {
@@ -177,11 +184,32 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     if (!open) return;
 
     let isMounted = true;
-    setIsLoading(true);
+    // Increment request ID to invalidate previous requests
+    requestIdRef.current += 1;
+    const currentRequestId = requestIdRef.current;
+    
+    // Only show loading if we have a search term or filters
+    const hasSearchOrFilters = debouncedSearchTerm?.trim().length > 0 || selectedTags.length > 0;
+    
+    if (hasSearchOrFilters) {
+      setIsLoading(true);
+    }
     setPage(1);
     setHasNext(true);
 
     async function fetchResults() {
+      // Skip if search term is too short (less than 2 chars) unless we have filters or it's empty
+      if (debouncedSearchTerm && debouncedSearchTerm.trim().length > 0 && debouncedSearchTerm.trim().length < 2 && selectedTags.length === 0) {
+        if (isMounted && currentRequestId === requestIdRef.current) {
+          setResults([]);
+          setIsLoading(false);
+        }
+        return;
+      }
+      
+      // If no search term and no filters, show default results
+      const shouldFetchDefault = !debouncedSearchTerm && selectedTags.length === 0;
+      
       try {
         let res: any;
         let allResults: any[] = [];
@@ -189,13 +217,13 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         if (selectedType === 'episodes') {
           // Fetch episodes from Cosmic using server action to avoid CORS issues
           const searchParams: any = {
-            limit: debouncedSearchTerm || selectedTags.length > 0 ? 1000 : PAGE_SIZE, // Higher limit for search/genre filtering, normal limit for browsing
+            limit: (debouncedSearchTerm?.trim().length >= 2 || selectedTags.length > 0) ? 1000 : PAGE_SIZE, // Higher limit for search/genre filtering, normal limit for browsing
             offset: 0,
           };
 
-          // Add search term if present
-          if (debouncedSearchTerm) {
-            searchParams.searchTerm = debouncedSearchTerm;
+          // Add search term if present and at least 2 characters
+          if (debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2) {
+            searchParams.searchTerm = debouncedSearchTerm.trim();
           }
 
           // If tags selected, extract genre IDs directly from selected tags
@@ -281,7 +309,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 } // Increased limit for search
             : { limit: selectedTags.length > 0 ? 1000 : 100, offset: 0 }; // Increased limit for genre filtering
           res = await getTakeovers(searchParams);
-          allResults = res?.takeovers || [];
+          allResults = res?.shows || [];
           if (selectedTags.length > 0) {
             allResults = allResults.filter((takeover: any) =>
               selectedTags.every(
@@ -293,20 +321,62 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               )
             );
           }
+        } else if (selectedType === 'hosts-series') {
+          const searchParams = debouncedSearchTerm
+            ? { limit: 1000, offset: 0 } // Increased limit for search
+            : { limit: selectedTags.length > 0 ? 1000 : 100, offset: 0 }; // Increased limit for genre filtering
+          res = await getRegularHosts(searchParams);
+          allResults = res?.shows || [];
+          // Filter by search term if provided
+          if (debouncedSearchTerm) {
+            const searchLower = debouncedSearchTerm.toLowerCase();
+            allResults = allResults.filter((host: any) =>
+              host.title?.toLowerCase().includes(searchLower) ||
+              host.metadata?.description?.toLowerCase().includes(searchLower) ||
+              host.content?.toLowerCase().includes(searchLower)
+            );
+          }
+          if (selectedTags.length > 0) {
+            allResults = allResults.filter((host: any) =>
+              selectedTags.every(
+                tag =>
+                  Array.isArray(host?.metadata?.categories) &&
+                  host.metadata.categories.some(
+                    (cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase()
+                  )
+              )
+            );
+          }
         }
 
-        if (isMounted) {
+        // Only update results if this is still the latest request
+        if (isMounted && currentRequestId === requestIdRef.current) {
           setResults(allResults.slice(0, PAGE_SIZE));
           setHasNext(allResults.length > PAGE_SIZE);
         }
       } catch (error) {
-        console.warn('Error fetching search results:', error);
-        if (isMounted) {
-          setResults([]);
-          setHasNext(false);
+        // Only log and update if this is still the latest request
+        if (isMounted && currentRequestId === requestIdRef.current) {
+          // Check if it's a timeout error
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('503');
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Error fetching search results:', error);
+          }
+          
+          if (isTimeout && debouncedSearchTerm) {
+            // For timeout errors with a search term, show a helpful message
+            setResults([]);
+            setHasNext(false);
+          } else {
+            setResults([]);
+            setHasNext(false);
+          }
+          setIsLoading(false);
         }
       } finally {
-        if (isMounted) {
+        if (isMounted && currentRequestId === requestIdRef.current) {
           setIsLoading(false);
         }
       }
@@ -319,8 +389,17 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
     return () => {
       isMounted = false;
+      // Invalidate the current request
+      requestIdRef.current += 1;
     };
-  }, [open, selectedType, selectedTags.join('|'), debouncedSearchTerm]);
+    }, [open, selectedType, selectedTags.join('|'), debouncedSearchTerm]);
+
+  // Debug: Log when debouncedSearchTerm changes
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && open) {
+      console.log('[SearchDialog] debouncedSearchTerm changed:', debouncedSearchTerm);
+    }
+  }, [debouncedSearchTerm, open]);
 
   // Infinite scroll: load more when sentinel is in view
   useEffect(() => {
@@ -386,8 +465,26 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   }
                 : { tag: selectedTags.join('|'), limit: PAGE_SIZE, offset: nextOffset };
               res = await getTakeovers(searchParams);
-              setResults(prev => [...prev, ...(res?.takeovers || [])]);
+              setResults(prev => [...prev, ...(res?.shows || [])]);
               setHasNext(res?.hasNext || false);
+            } else if (selectedType === 'hosts-series') {
+              const searchParams = {
+                limit: PAGE_SIZE,
+                offset: nextOffset,
+              };
+              res = await getRegularHosts(searchParams);
+              let hosts = res?.shows || [];
+              // Filter by search term if provided
+              if (debouncedSearchTerm) {
+                const searchLower = debouncedSearchTerm.toLowerCase();
+                hosts = hosts.filter((host: any) =>
+                  host.title?.toLowerCase().includes(searchLower) ||
+                  host.metadata?.description?.toLowerCase().includes(searchLower) ||
+                  host.content?.toLowerCase().includes(searchLower)
+                );
+              }
+              setResults(prev => [...prev, ...hosts]);
+              setHasNext(hosts.length === PAGE_SIZE);
             }
             setPage(prev => prev + 1);
           } catch (error) {
@@ -456,9 +553,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             <form
               onSubmit={e => {
                 e.preventDefault();
-                setPage(1);
-                setHasNext(true);
-                setResults([]);
+                // Search is automatic via debounce, no need to reset state here
               }}
               className='flex gap-2'
             >
@@ -583,36 +678,38 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         })}
                       </div>
                     </div>
-                    {/* Tags Section */}
-                    <div
-                      className={`${selectedType === 'episodes' && results.length > 0 ? 'border-b border-almostblack dark:border-white' : ''} py-3`}
-                    >
-                      <div className='pl-2 space-y-1'>
-                        {tags.map(tag => {
-                          // For episodes, extract just the title part for display
-                          const displayTitle =
-                            selectedType === 'episodes' && tag.includes('|')
-                              ? tag.split('|')[0]
-                              : tag;
+                    {/* Tags Section - Only show for types that support genre/category filtering */}
+                    {(selectedType !== 'takeovers' && selectedType !== 'hosts-series') && tags.length > 0 && (
+                      <div
+                        className={`${selectedType === 'episodes' && results.length > 0 ? 'border-b border-almostblack dark:border-white' : ''} py-3`}
+                      >
+                        <div className='pl-2 space-y-1'>
+                          {tags.map(tag => {
+                            // For episodes, extract just the title part for display
+                            const displayTitle =
+                              selectedType === 'episodes' && tag.includes('|')
+                                ? tag.split('|')[0]
+                                : tag;
 
-                          return (
-                            <button
-                              key={tag}
-                              onClick={() => handleFilterToggle({ type: 'tags', slug: tag })}
-                              className={cn(
-                                'uppercase font-mono text-m8 gap-2 rounded-full flex text-left items-start w-fit px-3 py-2',
-                                activeFilters.includes(tag)
-                                  ? 'bg-accent text-accent-foreground'
-                                  : 'hover:bg-accent/100 hover:text-white hover:cursor-pointer'
-                              )}
-                            >
-                              <span className='text-m8 leading-none'>{displayTitle}</span>
-                              {activeFilters.includes(tag) && <X className='h-3 w-3' />}
-                            </button>
-                          );
-                        })}
+                            return (
+                              <button
+                                key={tag}
+                                onClick={() => handleFilterToggle({ type: 'tags', slug: tag })}
+                                className={cn(
+                                  'uppercase font-mono text-m8 gap-2 rounded-full flex text-left items-start w-fit px-3 py-2',
+                                  activeFilters.includes(tag)
+                                    ? 'bg-accent text-accent-foreground'
+                                    : 'hover:bg-accent/100 hover:text-white hover:cursor-pointer'
+                                )}
+                              >
+                                <span className='text-m8 leading-none'>{displayTitle}</span>
+                                {activeFilters.includes(tag) && <X className='h-3 w-3' />}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -641,9 +738,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 <form
                   onSubmit={e => {
                     e.preventDefault();
-                    setPage(1);
-                    setHasNext(true);
-                    setResults([]);
+                    // Search is automatic via debounce, no need to reset state here
                   }}
                   className='flex gap-2'
                 >
@@ -691,6 +786,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                             break;
                           case 'takeovers':
                             linkHref = `/takeovers/${result.slug}`;
+                            break;
+                          case 'hosts-series':
+                            linkHref = `/hosts/${result.slug}`;
                             break;
                           default:
                             linkHref = `/episode/${result.slug}`;

@@ -8,7 +8,7 @@
 /**
  * ContentTypes represents all possible content types in the system
  */
-export type ContentType = 'episodes' | 'posts' | 'events' | 'videos' | 'takeovers';
+export type ContentType = 'episodes' | 'posts' | 'events' | 'videos' | 'takeovers' | 'hosts-series';
 
 /**
  * FilterCategories represents all possible filter categories

@@ -15,7 +15,7 @@ import VideoSection from '@/components/video/video-section';
 import ArchiveSection from '@/components/archive/archive-section';
 import GenreSelector from '@/components/genre-selector';
 import FeaturedSections from '@/components/featured-sections';
-import { PageOrderItem, HomepageSectionItem, ProcessedHomepageSection } from '@/lib/cosmic-types';
+import { PageOrderItem } from '@/lib/cosmic-types';
 import HomepageHero from '@/components/homepage-hero';
 import LatestEpisodes from '@/components/latest-episodes';
 import ColouredSectionGallery from '@/components/coloured-section-gallery';
@@ -319,46 +319,8 @@ export default async function Home() {
     )
   ).filter(Boolean);
 
-  // Process dynamic sections to fetch full item data
-  const rawDynamicSections = homepageData?.metadata?.sections || [];
-  const processedDynamicSections: ProcessedHomepageSection[] = await Promise.all(
-    rawDynamicSections
-      .filter(section => section.is_active && section.items && section.items.length > 0)
-      .map(async section => {
-        const extractItemId = (item: unknown): string => {
-          if (typeof item === 'string') {
-            return item;
-          }
-          if (item && typeof item === 'object' && 'id' in item && typeof item.id === 'string') {
-            return item.id;
-          }
-          return '';
-        };
-
-        const fetchedItemsPromises = section.items
-          .map(extractItemId)
-          .filter(id => id.length > 0)
-          .map(id => fetchCosmicObjectById(id));
-
-        const fetchedItems = (await Promise.all(fetchedItemsPromises)).filter(
-          Boolean
-        ) as HomepageSectionItem[];
-
-        return {
-          ...section,
-          layout: section.layout || 'Grid',
-          items: fetchedItems,
-        };
-      })
-  );
-
   // Check if sections are in page_order (new system) or should use old system
-  const hasLatestEpisodesInOrder = pageOrder.some(item => item.type === 'latest-episodes');
   const hasColouredSectionsInOrder = pageOrder.some(item => item.type === 'coloured-sections');
-  const hasMembershipInOrder = pageOrder.some(item => item.type === 'membership-promo');
-  const hasEditorialSectionsInOrder = pageOrder.some(
-    item => item.type === 'sections' && item.metadata?.type === 'Editorial'
-  );
 
   return (
     <div className='w-full min-h-screen'>

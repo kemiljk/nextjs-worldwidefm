@@ -63,10 +63,12 @@ export default function LivePlayer() {
   const stationId = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
   const apiKey = process.env.NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY;
 
-  // Debug logging
+  // Debug logging (development only)
   useEffect(() => {
-    console.log('[LivePlayer] Stream URL:', streamUrl);
-    console.log('[LivePlayer] Station ID:', stationId);
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('[LivePlayer] Stream URL:', streamUrl);
+      console.debug('[LivePlayer] Station ID:', stationId);
+    }
   }, [streamUrl, stationId]);
 
   // Poll for current live event from schedule

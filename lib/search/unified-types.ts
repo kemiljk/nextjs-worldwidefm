@@ -5,7 +5,7 @@
  * using discriminated unions for different content types.
  */
 
-export type SearchResultType = 'posts' | 'episodes' | 'events' | 'videos' | 'takeovers';
+export type SearchResultType = 'posts' | 'episodes' | 'events' | 'videos' | 'takeovers' | 'hosts-series';
 
 export interface FilterItem {
   title: string;
@@ -30,7 +30,8 @@ export type SearchResult =
   | EpisodeSearchResult
   | EventSearchResult
   | VideoSearchResult
-  | TakeoverSearchResult;
+  | TakeoverSearchResult
+  | HostSearchResult;
 
 // Post-specific search result
 export interface PostSearchResult extends BaseSearchResult {
@@ -81,6 +82,14 @@ export interface TakeoverSearchResult extends BaseSearchResult {
   hosts: FilterItem[];
 }
 
+// Host-specific search result
+export interface HostSearchResult extends BaseSearchResult {
+  type: 'hosts-series';
+  description?: string;
+  genres: FilterItem[];
+  locations: FilterItem[];
+}
+
 // Type guards for type-safe handling
 export function isPostSearchResult(result: SearchResult): result is PostSearchResult {
   return result.type === 'posts';
@@ -100,6 +109,10 @@ export function isVideoSearchResult(result: SearchResult): result is VideoSearch
 
 export function isTakeoverSearchResult(result: SearchResult): result is TakeoverSearchResult {
   return result.type === 'takeovers';
+}
+
+export function isHostSearchResult(result: SearchResult): result is HostSearchResult {
+  return result.type === 'hosts-series';
 }
 
 // Helper function to get filter items based on content type
@@ -141,6 +154,14 @@ export function getFilterItems(result: SearchResult): {
         genres: [],
         locations: [],
         hosts: result.hosts,
+        takeovers: [],
+        categories: [],
+      };
+    case 'hosts-series':
+      return {
+        genres: result.genres,
+        locations: result.locations,
+        hosts: [],
         takeovers: [],
         categories: [],
       };

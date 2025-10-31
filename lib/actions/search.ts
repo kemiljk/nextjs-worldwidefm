@@ -4,18 +4,22 @@ import {
   SearchResult,
   PostSearchResult,
   EpisodeSearchResult,
+  HostSearchResult,
+  TakeoverSearchResult,
   FilterItem,
 } from '../search/unified-types';
 import { PostObject } from '../cosmic-config';
 import { getAllPosts } from './posts';
-import { getAllShows } from './shows';
+import { getAllShows, getRegularHosts, getTakeovers } from './shows';
 
 export async function getAllSearchableContent(limit?: number): Promise<SearchResult[]> {
   try {
     const showsLimit = limit ?? 1000;
-    const [postsResponse, showsResponse] = await Promise.all([
+    const [postsResponse, showsResponse, hostsResponse, takeoversResponse] = await Promise.all([
       getAllPosts(),
       getAllShows(0, showsLimit),
+      getRegularHosts({ limit: showsLimit }),
+      getTakeovers({ limit: showsLimit }),
     ]);
 
     const normalizeFilterItems = (items: any[] = []): FilterItem[] => {
@@ -71,6 +75,33 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           metadata: show.metadata,
         })
       ),
+      ...(hostsResponse.shows || []).map(
+        (host: any): HostSearchResult => ({
+          id: host.id,
+          title: host.title,
+          slug: host.slug,
+          type: 'hosts-series',
+          description: host.metadata?.description || host.content || '',
+          image: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+          date: host.created_at || '',
+          genres: normalizeFilterItems(host.metadata?.genres || []),
+          locations: normalizeFilterItems(host.metadata?.locations || []),
+          metadata: host.metadata || {},
+        })
+      ),
+      ...(takeoversResponse.shows || []).map(
+        (takeover: any): TakeoverSearchResult => ({
+          id: takeover.id,
+          title: takeover.title,
+          slug: takeover.slug,
+          type: 'takeovers',
+          description: takeover.metadata?.description || takeover.content || '',
+          image: takeover.metadata?.image?.imgix_url || '/image-placeholder.png',
+          date: takeover.created_at || '',
+          hosts: normalizeFilterItems(takeover.metadata?.regular_hosts || []),
+          metadata: takeover.metadata || {},
+        })
+      ),
     ].sort((a, b) => {
       const dateA = new Date(a.date || '');
       const dateB = new Date(b.date || '');
@@ -102,43 +133,49 @@ export async function searchContent(
       safeString(meta?.date) || fallback;
 
     const { cosmic } = await import('../cosmic-config');
-    const [episodesResponse, postsResponse, eventsResponse, videosResponse, takeoversResponse] =
-      await Promise.all([
-        import('../episode-service').then(m => m.getEpisodesForShows({ searchTerm: query, limit })),
-        cosmic.objects.find({
-          type: 'posts',
-          ...(query && { q: query }),
-          props: 'id,title,slug,metadata,created_at',
-          limit,
-          status: 'published',
-        }),
-        cosmic.objects.find({
-          type: 'events',
-          ...(query && { q: query }),
-          props: 'id,title,slug,metadata,created_at',
-          limit,
-          status: 'published',
-        }),
-        cosmic.objects.find({
-          type: 'videos',
-          ...(query && { q: query }),
-          props: 'id,title,slug,metadata,created_at',
-          limit,
-          status: 'published',
-        }),
-        cosmic.objects.find({
-          type: 'takeovers',
-          ...(query && { q: query }),
-          props: 'id,title,slug,metadata,created_at',
-          limit,
-          status: 'published',
-        }),
-      ]);
+    const [episodesResponse, postsResponse, hostsResponse, takeoversResponse] = await Promise.all([
+      import('../episode-service').then(m => m.getEpisodesForShows({ searchTerm: query, limit })),
+      cosmic.objects.find({
+        type: 'posts',
+        ...(query && { q: query }),
+        props: 'id,title,slug,metadata,created_at',
+        limit,
+        status: 'published',
+      }),
+      query
+        ? cosmic.objects.find({
+            type: 'regular-hosts',
+            ...(query && { title: { $regex: query.trim(), $options: 'i' } }),
+            props: 'id,title,slug,metadata,created_at',
+            limit,
+            status: 'published',
+          })
+        : Promise.resolve({ objects: [] }),
+      query
+        ? cosmic.objects.find({
+            type: 'takeovers',
+            ...(query && { title: { $regex: query.trim(), $options: 'i' } }),
+            props: 'id,title,slug,metadata,created_at',
+            limit,
+            status: 'published',
+          })
+        : Promise.resolve({ objects: [] }),
+    ]);
     const episodes = episodesResponse.shows || [];
     const posts = postsResponse.objects || [];
-    const events = eventsResponse.objects || [];
-    const videos = videosResponse.objects || [];
+    const hosts = hostsResponse.objects || [];
     const takeovers = takeoversResponse.objects || [];
+
+    const normalizeFilterItems = (items: any[] = []): FilterItem[] => {
+      return items
+        .filter(Boolean)
+        .map((item: { title?: string; slug?: string; id?: string }) => ({
+          title: item.title || '',
+          slug: item.slug || item.id || '',
+          type: 'genres',
+        }));
+    };
+
     const results = [
       ...episodes.map((item: any) => ({
         id: item.id || item.slug,
@@ -163,6 +200,29 @@ export async function searchContent(
           categories: getGenres(item.metadata || {}),
         }))
         .filter((item: any) => item.title),
+      ...hosts.map((item: any): HostSearchResult => ({
+        id: item.id,
+        title: item.title,
+        slug: item.slug,
+        type: 'hosts-series' as const,
+        description: item.metadata?.description || item.content || '',
+        image: getImage(item.metadata || item),
+        date: item.created_at || '',
+        genres: normalizeFilterItems(item.metadata?.genres || []),
+        locations: normalizeFilterItems(item.metadata?.locations || []),
+        metadata: item.metadata || {},
+      })),
+      ...takeovers.map((item: any): TakeoverSearchResult => ({
+        id: item.id,
+        title: item.title,
+        slug: item.slug,
+        type: 'takeovers' as const,
+        description: item.metadata?.description || item.content || '',
+        image: getImage(item.metadata || item),
+        date: item.created_at || '',
+        hosts: normalizeFilterItems(item.metadata?.regular_hosts || []),
+        metadata: item.metadata || {},
+      })),
     ];
 
     return results;

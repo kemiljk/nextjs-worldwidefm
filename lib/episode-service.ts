@@ -67,7 +67,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     }
 
     // Build query for Cosmic
-    const query: any = {
+    const query: Record<string, unknown> = {
       type: 'episode',
       status: 'published',
     };
@@ -78,9 +78,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       const validGenres = genres.filter(Boolean);
       if (validGenres.length > 0) {
         query['metadata.genres.id'] = { $in: validGenres };
-        console.log('[getEpisodes] Genre filter applied:', {
-          'metadata.genres.id': { $in: validGenres },
-        });
       }
     }
 
