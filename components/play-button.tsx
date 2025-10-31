@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Play, Pause } from 'lucide-react';
 import { useMediaPlayer } from '@/components/providers/media-player-provider';
 import { cn } from '@/lib/utils';
+import { usePlausible } from 'next-plausible';
 
 interface PlayButtonProps {
   label?: boolean;
@@ -21,6 +22,7 @@ export function PlayButton({
   className,
 }: PlayButtonProps) {
   const { selectedShow, playShow, pauseShow, isArchivePlaying } = useMediaPlayer();
+  const plausible = usePlausible();
 
   const isCurrentShow = selectedShow?.key === show.key;
   const isCurrentlyPlaying = isCurrentShow && isArchivePlaying;
@@ -28,11 +30,29 @@ export function PlayButton({
   const handleClick = () => {
     if (isCurrentShow) {
       if (isCurrentlyPlaying) {
+        plausible('Episode Paused', {
+          props: {
+            show: show.name || show.title || 'Unknown',
+            slug: show.slug || '',
+          },
+        });
         pauseShow();
       } else {
+        plausible('Episode Resumed', {
+          props: {
+            show: show.name || show.title || 'Unknown',
+            slug: show.slug || '',
+          },
+        });
         playShow(show);
       }
     } else {
+      plausible('Episode Play Button Clicked', {
+        props: {
+          show: show.name || show.title || 'Unknown',
+          slug: show.slug || '',
+        },
+      });
       playShow(show);
     }
   };

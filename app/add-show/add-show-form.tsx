@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { RadioCultArtist, getArtists } from '@/lib/radiocult-service';
 import { CosmicLocation, getCosmicLocations } from '@/lib/cosmic-location-service';
+import { usePlausible } from 'next-plausible';
 import {
   Form,
   FormControl,
@@ -110,6 +111,7 @@ export function AddShowForm() {
   const [isGenreListOpen, setIsGenreListOpen] = useState<boolean>(false);
   const [isLocationListOpen, setIsLocationListOpen] = useState<boolean>(false);
   const [formTexts, setFormTexts] = useState<FormTexts>(getDefaultFormTexts());
+  const plausible = usePlausible();
 
   // Initialize the form
   const form = useForm<FormValues>({
@@ -462,6 +464,16 @@ export function AddShowForm() {
         const data = await response.json();
         console.log('✅ Show created successfully:', data);
 
+        // Track successful show submission
+        plausible('Show Submitted', {
+          props: {
+            title: values.title,
+            hasMedia: !!mediaFile,
+            hasImage: !!imageFile,
+            genreCount: selectedGenres.length,
+          },
+        });
+
         // Set success state
         setSubmittedShowTitle(values.title);
         setIsSubmitted(true);
@@ -488,6 +500,14 @@ export function AddShowForm() {
       console.error('❌ Form submission failed:', error);
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+      // Track show submission error
+      plausible('Show Submission Error', {
+        props: {
+          error: errorMessage,
+          phase: phase,
+        },
+      });
 
       toast.error('Failed to submit show', {
         description: errorMessage,

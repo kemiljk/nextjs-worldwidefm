@@ -313,12 +313,34 @@ async function processImageInServerless(imageUrl: string, filename: string): Pro
   }
 }
 
-async function migrateEpisodes(episodes: any[]) {
+async function migrateEpisodes(
+  episodes: any[],
+  options: {
+    dryRun?: boolean;
+    updateExisting?: boolean;
+    limit?: number;
+  } = {}
+) {
+  const { dryRun = false, updateExisting = false, limit } = options;
+
   try {
     let created = 0;
+    let updated = 0;
+    let skipped = 0;
     let failed = 0;
     let imagesProcessed = 0;
     let imagesDeferred = 0;
+
+    if (dryRun) {
+      console.log('🔍 DRY RUN MODE - No changes will be made');
+    }
+
+    const episodesToProcess = limit ? episodes.slice(0, limit) : episodes;
+    console.log(
+      `Processing ${episodesToProcess.length} episode(s)${dryRun ? ' (DRY RUN MODE)' : ''}${
+        updateExisting ? ' (updating existing)' : ' (skipping existing)'
+      }`
+    );
 
     // Get reference objects from Cosmic for relationship mapping
     console.log('📋 Fetching existing genres, locations, hosts, and takeovers from Cosmic...');
@@ -331,29 +353,48 @@ async function migrateEpisodes(episodes: any[]) {
       `✅ Found ${cosmicGenres.length} genres, ${cosmicLocations.length} locations, ${cosmicHosts.length} hosts, ${cosmicTakeovers.length} takeovers in Cosmic`
     );
 
-    for (const episode of episodes) {
+    for (const episode of episodesToProcess) {
       console.log(`\n🎯 Processing episode: ${episode.title} (${episode.slug})`);
 
       // Check if episode already exists in Cosmic
+      let existingEpisode = null;
+      let existingEpisodeId: string | null = null;
       try {
-        const existingEpisode = await cosmic.objects.findOne({
+        const found = await cosmic.objects.findOne({
           type: 'episode',
           slug: episode.slug,
         });
 
-        if (existingEpisode) {
-          console.log(`   ⚠️ Episode already exists in Cosmic: ${episode.title}`);
-          continue;
+        if (found?.object) {
+          existingEpisode = found.object;
+          existingEpisodeId = found.object.id;
         }
       } catch (error) {
         // Episode doesn't exist, continue
       }
 
-      // Try to process image in serverless (with fallback)
+      if (existingEpisode && !updateExisting) {
+        console.log(`   ⚠️ Episode already exists in Cosmic: ${episode.title}`);
+        skipped++;
+        continue;
+      }
+
+      if (existingEpisode && updateExisting) {
+        console.log(
+          `   🔄 Episode exists, will update: ${episode.title} (ID: ${existingEpisodeId})`
+        );
+      }
+
+      // Try to process image in serverless (with fallback) - skip in dry-run for performance
       let mediaItem = null;
       let imageUrl = null;
 
-      if (episode.thumbnail && Array.isArray(episode.thumbnail) && episode.thumbnail.length > 0) {
+      if (
+        !dryRun &&
+        episode.thumbnail &&
+        Array.isArray(episode.thumbnail) &&
+        episode.thumbnail.length > 0
+      ) {
         const thumbnail = episode.thumbnail[0];
         if (thumbnail.url && thumbnail.filename) {
           imageUrl = thumbnail.url;
@@ -368,6 +409,16 @@ async function migrateEpisodes(episodes: any[]) {
             imagesDeferred++;
             console.log(`   📸 Image processing deferred for: ${episode.title}`);
           }
+        }
+      } else if (
+        episode.thumbnail &&
+        Array.isArray(episode.thumbnail) &&
+        episode.thumbnail.length > 0
+      ) {
+        const thumbnail = episode.thumbnail[0];
+        if (thumbnail.url) {
+          imageUrl = thumbnail.url;
+          console.log(`   📸 [DRY RUN] Would process image: ${thumbnail.url}`);
         }
       }
 
@@ -496,60 +547,159 @@ async function migrateEpisodes(episodes: any[]) {
           episodeData.metadata.body_text = episode.bodyText;
         }
 
-        const result = await cosmic.objects.insertOne({
-          ...episodeData,
-          status: 'published',
-        });
-
-        if (result && result.object) {
-          console.log(`   ✅ Successfully created episode: ${result.object.title}`);
+        if (dryRun) {
+          console.log(
+            `   [DRY RUN] Would ${existingEpisode ? 'update' : 'create'} episode: ${episode.title}`
+          );
+          console.log(`   [DRY RUN] Episode data:`, JSON.stringify(episodeData, null, 2));
           console.log(
             `   📊 Relationships: Genres: ${genres.length}, Locations: ${locations.length}, Hosts: ${hosts.length}, Takeovers: ${takeovers.length}`
           );
-          created++;
+          if (existingEpisode) {
+            updated++;
+          } else {
+            created++;
+          }
         } else {
-          console.log(`   ❌ Failed to create episode: ${episode.title}`);
-          failed++;
+          if (existingEpisode && existingEpisodeId) {
+            // Update existing episode
+            // Remove 'type' from update payload as it's immutable in Cosmic
+            const { type: _, ...updateData } = episodeData;
+            try {
+              await cosmic.objects.updateOne(existingEpisodeId, {
+                ...updateData,
+                status: 'published',
+              });
+              console.log(`   ✅ Successfully updated episode: ${episode.title}`);
+              console.log(
+                `   📊 Relationships: Genres: ${genres.length}, Locations: ${locations.length}, Hosts: ${hosts.length}, Takeovers: ${takeovers.length}`
+              );
+              updated++;
+            } catch (error) {
+              console.error(`   ❌ Error updating episode ${episode.title}:`, error);
+              failed++;
+            }
+          } else {
+            // Create new episode
+            const result = await cosmic.objects.insertOne({
+              ...episodeData,
+              status: 'published',
+            });
+
+            if (result && result.object) {
+              console.log(`   ✅ Successfully created episode: ${result.object.title}`);
+              console.log(
+                `   📊 Relationships: Genres: ${genres.length}, Locations: ${locations.length}, Hosts: ${hosts.length}, Takeovers: ${takeovers.length}`
+              );
+              created++;
+            } else {
+              console.log(`   ❌ Failed to create episode: ${episode.title}`);
+              failed++;
+            }
+          }
         }
       } catch (error) {
-        console.error(`   ❌ Error creating episode ${episode.title}:`, error);
+        console.error(
+          `   ❌ Error ${existingEpisode ? 'updating' : 'creating'} episode ${episode.title}:`,
+          error
+        );
         failed++;
       }
     }
 
-    return { created, failed, imagesProcessed, imagesDeferred };
+    return {
+      created,
+      updated,
+      skipped,
+      failed,
+      imagesProcessed,
+      imagesDeferred,
+    };
   } catch (error) {
     console.error('❌ Error in migration process:', error);
-    return { created: 0, failed: 0, imagesProcessed: 0, imagesDeferred: 0 };
+    return {
+      created: 0,
+      updated: 0,
+      skipped: 0,
+      failed: 0,
+      imagesProcessed: 0,
+      imagesDeferred: 0,
+    };
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const dryRun = searchParams.get('dryRun') === 'true';
+    const updateExisting = searchParams.get('updateExisting') === 'true';
+    const limitParam = searchParams.get('limit');
+    const fetchAll = searchParams.get('fetchAll') === 'true';
+    const daysBackParam = searchParams.get('daysBack');
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+    const daysBack = daysBackParam ? parseInt(daysBackParam, 10) : undefined;
+
     console.log('🚀 Starting automated episode migration with image processing...');
+    if (dryRun) {
+      console.log('🔍 DRY RUN MODE enabled - no changes will be made');
+    }
+    if (updateExisting) {
+      console.log('🔄 UPDATE EXISTING enabled - will update shows that already exist');
+    }
+    if (limit) {
+      console.log(`🔢 LIMIT enabled - processing only ${limit} episode(s)`);
+    }
+    if (daysBack) {
+      console.log(`📅 DAYS BACK enabled - fetching episodes from last ${daysBack} days`);
+    }
 
-    // Get the most recent episode date from Cosmic
-    const mostRecentDate = await getMostRecentEpisodeDate();
-    console.log(`📅 Most recent episode date in Cosmic: ${mostRecentDate || 'None'}`);
+    let mostRecentDate: string | null = null;
+    let episodes: any[] = [];
 
-    // Fetch new episodes from Craft CMS
-    const episodes = await fetchEpisodesFromCraft(mostRecentDate, 100);
+    if (fetchAll) {
+      console.log('📥 Fetching all episodes from Craft CMS (ignoring date filter)...');
+      episodes = await fetchEpisodesFromCraft(null, limit || 500);
+    } else if (daysBack) {
+      // Calculate date N days ago
+      const dateNightsAgo = new Date();
+      dateNightsAgo.setDate(dateNightsAgo.getDate() - daysBack);
+      mostRecentDate = dateNightsAgo.toISOString().split('T')[0];
+      console.log(
+        `📅 Fetching episodes from Craft CMS after: ${mostRecentDate} (${daysBack} days ago)`
+      );
+      episodes = await fetchEpisodesFromCraft(mostRecentDate, limit || 500);
+    } else {
+      // Get the most recent episode date from Cosmic
+      mostRecentDate = await getMostRecentEpisodeDate();
+      console.log(`📅 Most recent episode date in Cosmic: ${mostRecentDate || 'None'}`);
+
+      // Fetch new episodes from Craft CMS
+      episodes = await fetchEpisodesFromCraft(mostRecentDate, limit || 100);
+    }
 
     if (episodes.length === 0) {
-      console.log('✅ No new episodes found to migrate');
+      console.log('✅ No episodes found to migrate');
       return NextResponse.json({
         success: true,
-        message: 'No new episodes found',
+        message: 'No episodes found',
         episodesProcessed: 0,
+        dryRun,
+        updateExisting,
       });
     }
 
-    console.log(`🔧 Found ${episodes.length} new episodes to migrate`);
+    console.log(`🔧 Found ${episodes.length} episode(s) to migrate`);
 
     // Migrate the episodes
-    const result = await migrateEpisodes(episodes);
+    const result = await migrateEpisodes(episodes, {
+      dryRun,
+      updateExisting,
+      limit,
+    });
 
-    console.log(`🎉 Migration completed! Created: ${result.created}, Failed: ${result.failed}`);
+    console.log(
+      `🎉 Migration completed! Created: ${result.created}, Updated: ${result.updated}, Skipped: ${result.skipped}, Failed: ${result.failed}`
+    );
     console.log(
       `📸 Images processed: ${result.imagesProcessed}, Deferred: ${result.imagesDeferred}`
     );
@@ -559,10 +709,15 @@ export async function GET(request: NextRequest) {
       message: 'Episode migration completed',
       episodesProcessed: episodes.length,
       created: result.created,
+      updated: result.updated,
+      skipped: result.skipped,
       failed: result.failed,
       imagesProcessed: result.imagesProcessed,
       imagesDeferred: result.imagesDeferred,
       mostRecentDate,
+      dryRun,
+      updateExisting,
+      limit,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

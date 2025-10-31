@@ -188,9 +188,6 @@ export default function ScheduleDisplay({
                   const showName =
                     show.hosts.length > 0 ? `${show.name}: ${show.hosts.join(', ')}` : show.name;
 
-                  const episodeSlug = episodeSlugMap[show.event_id];
-                  const hasEpisode = !!episodeSlug;
-
                   const content = (
                     <div className='flex items-center'>
                       <span className='w-[15vw] text-m6 font-mono text-black dark:text-white pr-8'>
@@ -202,22 +199,30 @@ export default function ScheduleDisplay({
                     </div>
                   );
 
-                  return hasEpisode ? (
-                    <Link
-                      href={`/episode/${episodeSlug}`}
-                      key={`${show.show_day}-${show.show_time}-${show.name}`}
-                      className='flex-row flex py-4'
-                    >
-                      {content}
-                    </Link>
-                  ) : (
-                    <div
-                      key={`${show.show_day}-${show.show_time}-${show.name}`}
-                      className='flex-row flex py-4 opacity-60 cursor-default'
-                    >
-                      {content}
-                    </div>
-                  );
+                  // Check if this is a valid episode link
+                  const isEpisodeLink = show.url.startsWith('/episode/');
+                  const isShowLink = show.url.startsWith('/shows/');
+
+                  if (isEpisodeLink || isShowLink) {
+                    return (
+                      <Link
+                        href={show.url}
+                        key={`${show.show_day}-${show.show_time}-${show.name}`}
+                        className='flex-row flex py-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors'
+                      >
+                        {content}
+                      </Link>
+                    );
+                  } else {
+                    return (
+                      <div
+                        key={`${show.show_day}-${show.show_time}-${show.name}`}
+                        className='flex-row flex py-4 opacity-60 cursor-default'
+                      >
+                        {content}
+                      </div>
+                    );
+                  }
                 })}
               </div>
             </div>

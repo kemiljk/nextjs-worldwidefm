@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/cosmic/elements/Button';
+import { usePlausible } from 'next-plausible';
 
 interface MembershipPromoSectionProps {
   config?: {
@@ -10,10 +13,19 @@ interface MembershipPromoSectionProps {
 }
 
 export default function MembershipPromoSection({ config }: MembershipPromoSectionProps) {
+  const plausible = usePlausible();
   const title = config?.title || 'Become a Member';
   const description =
     config?.description || 'Support Worldwide FM and keep independent radio alive.';
   const buttonText = config?.button_text || 'learn more';
+
+  const handleMembershipClick = () => {
+    plausible('Membership CTA Clicked', {
+      props: {
+        source: 'promo_section',
+      },
+    });
+  };
 
   return (
     <section className='relative h-[80vh] mb-20 overflow-hidden'>
@@ -37,7 +49,7 @@ export default function MembershipPromoSection({ config }: MembershipPromoSectio
         </h2>
         <p className='max-w-100 text-white leading-tight font-sans text-body'>{description}</p>
 
-        <Link className='h-fit w-50 pt-5 ' href='/membership'>
+        <Link className='h-fit w-50 pt-5 ' href='/membership' onClick={handleMembershipClick}>
           <Button variant='inverted' className='font-mono uppercase'>
             {buttonText}
           </Button>

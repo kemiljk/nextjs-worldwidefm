@@ -1,6 +1,6 @@
 'use client';
 
-import { getPostsWithFilters, getPostCategories, getAllEvents } from '@/lib/actions';
+import { getPostsWithFilters, getPostCategories } from '@/lib/actions';
 import { PageHeader } from '@/components/shared/page-header';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -127,7 +127,7 @@ function EditorialContent() {
           .filter(Boolean) as string[];
 
         // Fetch posts and events in parallel
-        const [postsResult, eventsResult] = await Promise.all([
+        const [postsResult] = await Promise.all([
           getPostsWithFilters({
             limit: 20,
             offset: 0,
@@ -139,31 +139,14 @@ function EditorialContent() {
                 ? 'video'
                 : undefined,
           }),
-          getAllEvents({
-            limit: 20,
-            offset: 0,
-            searchTerm: currentFilters.search,
-          }),
         ]);
 
-        console.log(
-          'Fetched',
-          postsResult.posts.length,
-          'posts and',
-          eventsResult.events.length,
-          'events with filters:',
-          {
-            categoryIds,
-            categorySlugs: currentFilters.categories,
-            postType: currentFilters.article
-              ? 'article'
-              : currentFilters.video
-                ? 'video'
-                : undefined,
-          }
-        );
+        console.log('Fetched', postsResult.posts.length, 'posts with filters:', {
+          categoryIds,
+          categorySlugs: currentFilters.categories,
+          postType: currentFilters.article ? 'article' : currentFilters.video ? 'video' : undefined,
+        });
         setPosts(postsResult.posts);
-        setEvents(eventsResult.events);
         setTotal(postsResult.total);
       } catch (error) {
         console.error('Error fetching posts:', error);
@@ -323,7 +306,6 @@ function EditorialContent() {
                 <EditorialSection
                   title='All Posts'
                   posts={posts.slice(1)}
-                  events={events}
                   currentFilters={{
                     searchTerm: currentFilters.search,
                     categories: currentFilters.categories,
@@ -350,7 +332,6 @@ function EditorialContent() {
                           : 'All Posts'
                 }
                 posts={posts}
-                events={events}
                 currentFilters={{
                   searchTerm: currentFilters.search,
                   categories: currentFilters.categories,

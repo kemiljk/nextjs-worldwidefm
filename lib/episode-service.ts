@@ -113,7 +113,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       .find(query)
       .limit(baseLimit)
       .skip(offset)
-      .sort('-order')
+      .sort('-metadata.broadcast_date')
       .depth(2);
 
     const episodes = response.objects || [];

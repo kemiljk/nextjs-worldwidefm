@@ -1,12 +1,26 @@
+'use client';
+
 import Link from 'next/link';
+import { usePlausible } from 'next-plausible';
 
 export default function DiscordButton() {
+  const plausible = usePlausible();
+
+  const handleClick = () => {
+    plausible('Discord Link Clicked', {
+      props: {
+        source: 'fixed_button',
+      },
+    });
+  };
+
   return (
     <Link
       href='https://discord.gg/kbdEAEBf84'
       target='_blank'
       rel='noopener noreferrer'
-      className='fixed top-0 right-0 z-[50] flex items-center gap-2 shadow-lg hover:shadow-2xl transition-all duration-200 bg-almostblack dark:black hover:bg-neutral-700 h-7 text-[10px] font-mono uppercase text-white dark:text-white border-l p-2 pt-2.5 px-2'
+      onClick={handleClick}
+      className='fixed top-0 right-0 z-50 flex items-center gap-2 shadow-lg hover:shadow-2xl transition-all duration-200 bg-almostblack dark:black hover:bg-neutral-700 h-7 text-[10px] font-mono uppercase text-white dark:text-white border-l p-2 pt-2.5 px-2'
     >
       <svg className='w-5 h-5' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
         <path

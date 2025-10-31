@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useMediaPlayer } from './providers/media-player-provider';
+import { usePlausible } from 'next-plausible';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -14,6 +15,7 @@ const ArchivePlayer: React.FC = () => {
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const widgetInitializedRef = useRef(false);
+  const plausible = usePlausible();
 
   const {
     selectedMixcloudUrl,
@@ -36,6 +38,16 @@ const ArchivePlayer: React.FC = () => {
       loadingTimeoutRef.current = setTimeout(() => {
         setIsLoading(true);
       }, 2000);
+
+      // Track show play
+      if (selectedShow) {
+        plausible('Archive Show Played', {
+          props: {
+            show: selectedShow.name || 'Unknown',
+            slug: selectedShow.slug || '',
+          },
+        });
+      }
     }
 
     return () => {
@@ -43,7 +55,7 @@ const ArchivePlayer: React.FC = () => {
         clearTimeout(loadingTimeoutRef.current);
       }
     };
-  }, [selectedMixcloudUrl]);
+  }, [selectedMixcloudUrl, selectedShow, plausible]);
 
   const handleLoad = () => {
     // Clear the timeout if iframe loads quickly
@@ -99,6 +111,15 @@ const ArchivePlayer: React.FC = () => {
   };
 
   const handleClose = () => {
+    if (selectedShow) {
+      plausible('Archive Player Closed', {
+        props: {
+          show: selectedShow.name || 'Unknown',
+          slug: selectedShow.slug || '',
+        },
+      });
+    }
+
     if (loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current);
     }

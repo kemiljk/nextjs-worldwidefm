@@ -8,6 +8,7 @@ import { Button } from '@/cosmic/elements/Button';
 import { Input } from '@/cosmic/elements/Input';
 import { Label } from '@/cosmic/elements/Label';
 import { Loader2, CheckCircle } from 'lucide-react';
+import { usePlausible } from 'next-plausible';
 
 interface MembershipSignupClientProps {
   heading: string;
@@ -17,6 +18,7 @@ interface MembershipSignupClientProps {
 export default function MembershipSignupClient({ heading, body }: MembershipSignupClientProps) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const plausible = usePlausible();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
   const [isComplete, setIsComplete] = useState(false);
@@ -51,7 +53,7 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
       <div className='w-screen min-h-screen flex items-center justify-center relative overflow-hidden'>
         <div className='absolute inset-0 bg-soul-200' />
         <div
-          className='absolute inset-0 bg-gradient-to-b from-white via-white/0 to-white'
+          className='absolute inset-0 bg-linear-to-b from-white via-white/0 to-white'
           style={{ mixBlendMode: 'hue' }}
         />
         <div
@@ -98,6 +100,12 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
       return;
     }
 
+    plausible('Membership Signup Initiated', {
+      props: {
+        isLoggedIn: !!user,
+      },
+    });
+
     setIsProcessing(true);
     setError('');
 
@@ -117,6 +125,12 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
 
       if (!response.ok) {
         const errorData = await response.json();
+        plausible('Membership Signup Error', {
+          props: {
+            error: errorData.error || `Server error: ${response.status}`,
+            stage: 'checkout_session',
+          },
+        });
         setError(errorData.error || `Server error: ${response.status}`);
         setIsProcessing(false);
         return;
@@ -125,19 +139,42 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
       const data = await response.json();
 
       if (data.error) {
+        plausible('Membership Signup Error', {
+          props: {
+            error: data.error,
+            stage: 'checkout_session',
+          },
+        });
         setError(data.error);
         setIsProcessing(false);
         return;
       }
 
       if (data.url) {
+        plausible('Membership Checkout Started', {
+          props: {
+            isLoggedIn: !!user,
+          },
+        });
         window.location.href = data.url;
       } else {
+        plausible('Membership Signup Error', {
+          props: {
+            error: 'No checkout URL returned',
+            stage: 'checkout_session',
+          },
+        });
         setError('No checkout URL returned from server');
         setIsProcessing(false);
       }
     } catch (err: any) {
       console.error('Membership signup error:', err);
+      plausible('Membership Signup Error', {
+        props: {
+          error: err.message || 'Network error',
+          stage: 'network',
+        },
+      });
       setError(err.message || 'Network error. Please check your connection and try again.');
       setIsProcessing(false);
     }
@@ -148,7 +185,7 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
       {/* Background layers */}
       <div className='absolute inset-0 bg-soul-200' />
       <div
-        className='absolute inset-0 bg-gradient-to-b from-white via-white/0 to-white'
+        className='absolute inset-0 bg-linear-to-b from-white via-white/0 to-white'
         style={{ mixBlendMode: 'hue' }}
       />
       <div

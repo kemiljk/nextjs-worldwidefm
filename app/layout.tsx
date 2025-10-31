@@ -12,6 +12,7 @@ import Footer from '@/components/footer';
 import LivePlayer from '@/components/live-player';
 import ArchivePlayer from '@/components/archive-player';
 import DiscordButton from '@/components/discord-button';
+import PlausibleProvider from 'next-plausible';
 import './globals.css';
 
 const sans = Nimbus({
@@ -59,28 +60,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${sans.variable} ${display.variable} ${mono.variable} min-h-screen w-full bg-background font-sans`}
       >
-        {/* <PlausibleProvider domain="worldwidefm.net"> */}
-        <ThemeProvider
-          attribute='class'
-          defaultTheme='system'
-          enableSystem
-          disableTransitionOnChange
-          storageKey='worldwidefm-theme'
-        >
-          <AuthProvider>
-            <SearchProvider>
-              <MediaPlayerProvider>
-                <LivePlayer />
-                <NavWrapper />
-                <main className='w-full pt-14 overflow-x-hidden'>{children}</main>
-                <ArchivePlayer />
-                <Footer />
-                <DiscordButton />
-              </MediaPlayerProvider>
-            </SearchProvider>
-          </AuthProvider>
-        </ThemeProvider>
-        {/* </PlausibleProvider> */}
+        <PlausibleProvider domain='worldwidefm.net'>
+          <ThemeProvider
+            attribute='class'
+            defaultTheme='system'
+            enableSystem
+            disableTransitionOnChange
+            storageKey='worldwidefm-theme'
+          >
+            <AuthProvider>
+              <SearchProvider>
+                <MediaPlayerProvider>
+                  <LivePlayer />
+                  <NavWrapper />
+                  <main className='w-full pt-14 overflow-x-hidden'>{children}</main>
+                  <ArchivePlayer />
+                  <Footer />
+                  <DiscordButton />
+                </MediaPlayerProvider>
+              </SearchProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </PlausibleProvider>
       </body>
     </html>
   );
