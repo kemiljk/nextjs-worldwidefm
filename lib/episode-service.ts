@@ -1,5 +1,6 @@
 import { cosmic } from './cosmic-config';
 import { EpisodeObject } from './cosmic-types';
+import { unstable_cache } from 'next/cache';
 
 export interface EpisodeParams {
   limit?: number;
@@ -122,13 +123,39 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       query['metadata.broadcast_date'] = { $gte: thirtyDaysAgo.toISOString().slice(0, 10) };
     }
 
-    // Fetch episodes from Cosmic
-    const response = await cosmic.objects
-      .find(query)
-      .limit(baseLimit)
-      .skip(offset)
-      .sort('-metadata.broadcast_date')
-      .depth(2);
+    // Fetch episodes from Cosmic with conditional caching (server-side only)
+    // unstable_cache only works in Server Components/Actions, so we detect context
+    const fetchEpisodes = async () => {
+      return await cosmic.objects
+        .find(query)
+        .limit(baseLimit)
+        .skip(offset)
+        .sort('-metadata.broadcast_date')
+        .depth(2);
+    };
+
+    let response;
+    try {
+      // Only use caching in server context (unstable_cache requires server-side)
+      if (typeof window === 'undefined') {
+        const cacheKey = `episodes-${JSON.stringify(query)}-${baseLimit}-${offset}`;
+        const getCachedEpisodes = unstable_cache(
+          fetchEpisodes,
+          [cacheKey],
+          {
+            tags: ['episodes', 'shows'],
+            revalidate: 60,
+          }
+        );
+        response = await getCachedEpisodes();
+      } else {
+        // Client-side: fetch directly without caching
+        response = await fetchEpisodes();
+      }
+    } catch (cacheError) {
+      // Fallback to direct fetch if caching fails
+      response = await fetchEpisodes();
+    }
 
     const episodes = response.objects || [];
     const total = response.total || episodes.length;
@@ -207,7 +234,30 @@ export async function getRegularHosts(
       query.title = { $regex: `^${letter}`, $options: 'i' };
     }
 
-    const response = await cosmic.objects.find(query).limit(limit).skip(offset).depth(1);
+    const fetchHosts = async () => {
+      return await cosmic.objects.find(query).limit(limit).skip(offset).depth(1);
+    };
+
+    let response;
+    try {
+      // Only use caching in server context
+      if (typeof window === 'undefined') {
+        const cacheKey = `regular-hosts-${JSON.stringify(query)}-${limit}-${offset}`;
+        const getCachedHosts = unstable_cache(
+          fetchHosts,
+          [cacheKey],
+          {
+            tags: ['hosts', 'shows'],
+            revalidate: 60,
+          }
+        );
+        response = await getCachedHosts();
+      } else {
+        response = await fetchHosts();
+      }
+    } catch (cacheError) {
+      response = await fetchHosts();
+    }
 
     const shows = response.objects || [];
     const total = response.total || shows.length;
@@ -254,7 +304,30 @@ export async function getTakeovers(
       query['metadata.location.slug'] = { $in: location };
     }
 
-    const response = await cosmic.objects.find(query).limit(limit).skip(offset).depth(1);
+    const fetchTakeovers = async () => {
+      return await cosmic.objects.find(query).limit(limit).skip(offset).depth(1);
+    };
+
+    let response;
+    try {
+      // Only use caching in server context
+      if (typeof window === 'undefined') {
+        const cacheKey = `takeovers-${JSON.stringify(query)}-${limit}-${offset}`;
+        const getCachedTakeovers = unstable_cache(
+          fetchTakeovers,
+          [cacheKey],
+          {
+            tags: ['takeovers', 'shows'],
+            revalidate: 60,
+          }
+        );
+        response = await getCachedTakeovers();
+      } else {
+        response = await fetchTakeovers();
+      }
+    } catch (cacheError) {
+      response = await fetchTakeovers();
+    }
 
     const shows = response.objects || [];
     const total = response.total || shows.length;

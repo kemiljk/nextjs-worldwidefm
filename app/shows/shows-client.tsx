@@ -14,20 +14,28 @@ import type { CanonicalGenre } from '@/lib/get-canonical-genres';
 import { Combobox } from '@/components/ui/combobox';
 import { Button } from '@/components/ui/button';
 import { AvailableFilters as AvailableFiltersType } from '@/lib/filter-types';
+import { ShowsGridSkeleton } from '@/components/shows-grid-skeleton';
 
 interface ShowsClientProps {
   canonicalGenres: CanonicalGenre[];
   availableFilters: AvailableFiltersType;
+  initialShows?: any[];
+  initialHasNext?: boolean;
 }
 
-export default function ShowsClient({ canonicalGenres, availableFilters }: ShowsClientProps) {
+export default function ShowsClient({
+  canonicalGenres,
+  availableFilters,
+  initialShows = [],
+  initialHasNext = false,
+}: ShowsClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const [shows, setShows] = useState<any[]>([]);
-  const [hasNext, setHasNext] = useState(false);
+  const [shows, setShows] = useState<any[]>(initialShows);
+  const [hasNext, setHasNext] = useState(initialHasNext);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
@@ -50,11 +58,29 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
   // Determine which filter type is active based on the type parameter
   const activeType = typeParam || 'all';
 
-  // Load initial data and whenever filters/search change
+  // Track if we need to fetch (has filters/search) vs use initial data
+  const needsFetch = useMemo(() => {
+    return (
+      selectedGenres.length > 0 ||
+      selectedLocations.length > 0 ||
+      searchTerm !== undefined ||
+      letterParam !== undefined ||
+      activeType !== 'all'
+    );
+  }, [selectedGenres.length, selectedLocations.length, searchTerm, letterParam, activeType]);
+
+  // Load data whenever filters/search change (skip initial load if we have initial data and no filters)
   useEffect(() => {
+    // If we have initial data and no filters are active, reset to initial data and don't fetch
+    if (initialShows.length > 0 && !needsFetch && activeType === 'all') {
+      setShows(initialShows);
+      setHasNext(initialHasNext);
+      return;
+    }
+
     let isMounted = true;
-    setIsLoadingMore(true);
     setIsInitialLoading(true);
+    setIsLoadingMore(true);
 
     // Add a small delay to prevent rapid API calls
     const timeoutId = setTimeout(async () => {
@@ -162,14 +188,13 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
         setIsInitialLoading(false);
         // Don't clear existing shows on error, just show loading state
       }
-    }, 1000); // 1000ms delay to match debounce
+    }, needsFetch ? 300 : 0); // Shorter delay when we have filters, instant for initial load
 
     return () => {
       isMounted = false;
-      ``;
       clearTimeout(timeoutId);
     };
-  }, [selectedGenres, selectedLocations, typeParam, searchTerm, letterParam]);
+  }, [selectedGenres, selectedLocations, typeParam, searchTerm, letterParam, needsFetch, activeType, initialShows.length]);
 
   // Load more data function
   const loadMore = async () => {
@@ -629,10 +654,7 @@ export default function ShowsClient({ canonicalGenres, availableFilters }: Shows
       <div className='pt-2 w-full px-5 flex-col pb-20'>
         <main className=''>
           {isInitialLoading ? (
-            <div className='flex flex-col items-center justify-center py-16 text-center'>
-              <Loader className='h-8 w-8 animate-spin mb-4' />
-              <p className='text-gray-600'>Loading shows...</p>
-            </div>
+            <ShowsGridSkeleton count={20} />
           ) : filteredShows.length > 0 ? (
             <ShowsGrid
               shows={filteredShows}
