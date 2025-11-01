@@ -12,6 +12,7 @@ import { generateShowMetadata } from '@/lib/metadata-utils';
 import { TracklistToggle } from '@/components/ui/tracklisttoggle';
 import { parseBroadcastDateTime } from '@/lib/date-utils';
 import { transformShowToViewData } from '@/lib/cosmic-service';
+import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 
 export const revalidate = 60; // 1 minute - shows update quickly
 
@@ -106,6 +107,16 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
   const relatedEpisodesRaw = await getRelatedEpisodes(episode.id, 3);
   const relatedEpisodes = relatedEpisodesRaw.map(ep => transformShowToViewData(ep));
 
+  // Get canonical genres for genre tag linking
+  const canonicalGenres = await getCanonicalGenres();
+
+  // Helper function to get genre link
+  const getGenreLink = (genreId: string): string | undefined => {
+    if (!canonicalGenres.length) return undefined;
+    const canonicalGenre = canonicalGenres.find(genre => genre.id === genreId);
+    return canonicalGenre ? `/genre/${canonicalGenre.slug}` : undefined;
+  };
+
   const displayName = episode.title || 'Untitled Episode';
   const displayImage = episode.metadata.image?.imgix_url || '/image-placeholder.png';
 
@@ -147,12 +158,19 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
           {/* Genres Section */}
           {episode.metadata.genres?.length > 0 && (
             <div>
-              <div className='flex flex-wrap select-none cursor-default my-3'>
-                {episode.metadata.genres.map((genre: any) => (
-                  <GenreTag key={genre.id || genre.slug} variant='large'>
-                    {genre.title || genre.name}
-                  </GenreTag>
-                ))}
+              <div className='flex flex-wrap my-3'>
+                {episode.metadata.genres.map((genre: any) => {
+                  const genreLink = genre.id ? getGenreLink(genre.id) : undefined;
+                  return (
+                    <GenreTag
+                      key={genre.id || genre.slug}
+                      variant='large'
+                      href={genreLink}
+                    >
+                      {genre.title || genre.name}
+                    </GenreTag>
+                  );
+                })}
               </div>
             </div>
           )}

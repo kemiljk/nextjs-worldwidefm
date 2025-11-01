@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import GenreDetail from './genre-detail-client';
 import { getEpisodesForShows, getRegularHosts, getTakeovers } from '@/lib/episode-service';
+import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
 
 type ActiveType = 'all' | 'hosts-series' | 'takeovers';
 
@@ -19,6 +20,23 @@ export default async function GenreDetailPage({
   const genre = canonicalGenres.find(g => g.slug === slug);
   if (!genre) {
     notFound();
+  }
+
+  const user = await getAuthUser();
+  let isFavorited = false;
+
+  if (user) {
+    try {
+      const { data: userData } = await getUserData(user.id);
+      if (userData?.metadata?.favourite_genres) {
+        const favoriteGenreIds = userData.metadata.favourite_genres.map((g: any) =>
+          typeof g === 'string' ? g : g.id
+        );
+        isFavorited = favoriteGenreIds.includes(genre.id);
+      }
+    } catch (error) {
+      console.error('Error checking favorite status:', error);
+    }
   }
 
   const activeType: ActiveType =
@@ -53,6 +71,7 @@ export default async function GenreDetailPage({
       hasNext={response.hasNext}
       activeType={activeType}
       currentPage={currentPage}
+      isFavorited={isFavorited}
     />
   );
 }

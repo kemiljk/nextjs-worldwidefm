@@ -21,6 +21,9 @@ import LatestEpisodes from '@/components/latest-episodes';
 import ColouredSectionGallery from '@/components/coloured-section-gallery';
 import MembershipPromoSection from '@/components/membership-promo-section';
 import { ShowCard } from '@/components/ui/show-card';
+import { ForYouSection } from '@/components/for-you-section';
+import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
+import { ShowsGridSkeleton } from '@/components/shows-grid-skeleton';
 
 // Revalidate frequently to show new shows quickly
 export const revalidate = 60; // 1 minute
@@ -37,11 +40,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Helper function to render page order items
-function renderPageOrderItem(
-  item: PageOrderItem,
-  colouredSections: any[],
-  homepageData: any
-): React.ReactNode {
+function renderPageOrderItem(item: PageOrderItem, colouredSections: any[]): React.ReactNode {
   switch (item.type) {
     case 'latest-episodes':
       return <LatestEpisodes config={item.metadata} />;
@@ -122,11 +121,35 @@ function renderPageOrderItem(
 }
 
 export default async function Home() {
-  const [homepageData, videosData, postsData] = await Promise.all([
+  const [homepageData, videosData, postsData, user] = await Promise.all([
     getCosmicHomepageData(),
     getVideos(),
     getAllPosts(),
+    getAuthUser(),
   ]);
+
+  let favoriteGenreIds: string[] = [];
+  let favoriteHostIds: string[] = [];
+
+  if (user) {
+    try {
+      const { data: userData } = await getUserData(user.id);
+      if (userData?.metadata?.favourite_genres) {
+        favoriteGenreIds = userData.metadata.favourite_genres
+          .map((g: any) => (typeof g === 'string' ? g : g.id))
+          .filter(Boolean);
+      }
+      if (userData?.metadata?.favourite_hosts) {
+        favoriteHostIds = userData.metadata.favourite_hosts
+          .map((h: any) => (typeof h === 'string' ? h : h.id))
+          .filter(Boolean);
+      }
+    } catch (error) {
+      console.error('Error fetching user favorites:', error);
+    }
+  }
+
+  const hasFavorites = favoriteGenreIds.length > 0 || favoriteHostIds.length > 0;
 
   // Get page order from Cosmic
   const pageOrder = homepageData?.metadata?.page_order || [];
@@ -199,8 +222,22 @@ export default async function Home() {
 
     colouredSections = allSections.filter(Boolean);
   } else {
-    // Fallback to OLD structure from createColouredSections
-    colouredSections = await createColouredSections(homepageData);
+    // Fallback to OLD structure - if homepageData is null or doesn't have the expected structure,
+    // colouredSections will remain an empty array
+    if (
+      homepageData?.metadata?.coloured_sections &&
+      Array.isArray(homepageData.metadata.coloured_sections)
+    ) {
+      try {
+        // Only process if we have the expected ProcessedHomepageSection[] format
+        const sections = homepageData.metadata.coloured_sections as any;
+        if (sections.length > 0 && sections[0]?.items && sections[0]?.layout) {
+          colouredSections = await createColouredSections(sections);
+        }
+      } catch (error) {
+        console.error('Error processing old coloured sections format:', error);
+      }
+    }
   }
 
   // Get recent published episodes from Cosmic
@@ -216,7 +253,7 @@ export default async function Home() {
   // Get top genres and fetch random shows per genre for GenreSelector
   const genreCounts = shows.reduce(
     (acc, episode) => {
-      const genres = episode.genres || episode.enhanced_genres || episode.metadata?.genres || [];
+      const genres = episode.genres || episode.metadata?.genres || [];
       genres.forEach((genre: any) => {
         const genreTitle = genre.title || genre.name;
         if (genreTitle && genreTitle.toLowerCase() !== 'worldwide fm') {
@@ -334,6 +371,24 @@ export default async function Home() {
           <FeaturedSections shows={shows.slice(0, 2)} />
         </Suspense>
 
+        {/* For You Section - Only show if user is logged in and has favorites */}
+        {hasFavorites && (
+          <Suspense
+            fallback={
+              <section className='py-8 px-5'>
+                <h2 className='text-h8 md:text-h7 font-bold mb-4 tracking-tight'>FOR YOU</h2>
+                <ShowsGridSkeleton count={15} />
+              </section>
+            }
+          >
+            <ForYouSection
+              favoriteGenreIds={favoriteGenreIds}
+              favoriteHostIds={favoriteHostIds}
+              limit={15}
+            />
+          </Suspense>
+        )}
+
         {/* Coloured Sections - use page_order if available, otherwise hardcoded */}
         {!hasColouredSectionsInOrder && (
           <Suspense>
@@ -347,7 +402,7 @@ export default async function Home() {
         {/* Dynamic page order rendering - ONLY render sections that ARE in page_order */}
         {pageOrder.map((item, index) => (
           <Suspense key={`${item.type}-${item.id}-${index}`} fallback={<div>Loading...</div>}>
-            {renderPageOrderItem(item, colouredSections, homepageData)}
+            {renderPageOrderItem(item, colouredSections)}
           </Suspense>
         ))}
 

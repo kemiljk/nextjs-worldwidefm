@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import type { CanonicalGenre } from '@/lib/get-canonical-genres';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { FavoriteButton } from '@/components/favorite-button';
 
 type ActiveType = 'all' | 'hosts-series' | 'takeovers';
 
@@ -19,6 +20,7 @@ interface GenreDetailProps {
   hasNext: boolean;
   activeType: ActiveType;
   currentPage: number;
+  isFavorited?: boolean;
 }
 
 export default function GenreDetail({
@@ -28,6 +30,7 @@ export default function GenreDetail({
   hasNext,
   activeType,
   currentPage,
+  isFavorited = false,
 }: GenreDetailProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,7 +73,15 @@ export default function GenreDetail({
           }}
         />
         <div className='absolute bottom-0 left-0 w-full px-5 z-10'>
-          <PageHeader title={genre.title.toUpperCase()} />
+          <div className='flex items-center justify-between'>
+            <PageHeader title={genre.title.toUpperCase()} />
+            <FavoriteButton
+              item={genre as any}
+              type='genre'
+              isFavorited={isFavorited}
+              className='ml-auto'
+            />
+          </div>
         </div>
       </div>
 

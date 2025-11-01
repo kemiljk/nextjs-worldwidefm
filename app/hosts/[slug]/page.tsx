@@ -9,6 +9,9 @@ import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
 import { ShowCard } from '@/components/ui/show-card';
+import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
+import { FavoriteButton } from '@/components/favorite-button';
+import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 
 export const revalidate = 60;
 
@@ -111,8 +114,32 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
 
   const relatedShows = await getRelatedShows(host.id, 12);
 
+  const user = await getAuthUser();
+  let isFavorited = false;
+
+  if (user) {
+    try {
+      const { data: userData } = await getUserData(user.id);
+      if (userData?.metadata?.favourite_hosts) {
+        const favoriteHostIds = userData.metadata.favourite_hosts.map((h: any) =>
+          typeof h === 'string' ? h : h.id
+        );
+        isFavorited = favoriteHostIds.includes(host.id);
+      }
+    } catch (error) {
+      console.error('Error checking favorite status:', error);
+    }
+  }
+
   const displayName = host.title || 'Untitled Host';
   const displayImage = host.metadata?.image?.imgix_url || '/image-placeholder.png';
+
+  const canonicalGenres = await getCanonicalGenres();
+  const getGenreLink = (genreId: string): string | undefined => {
+    if (!canonicalGenres.length) return undefined;
+    const canonicalGenre = canonicalGenres.find(genre => genre.id === genreId);
+    return canonicalGenre ? `/genre/${canonicalGenre.slug}` : undefined;
+  };
 
   const show = {
     id: host.id,
@@ -133,6 +160,14 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
 
       <div className='w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-8'>
         <div className='w-full md:w-[40%] lg:w-[35%] flex flex-col gap-3'>
+          <div className='flex items-center justify-between mb-2'>
+            <h1 className='text-h6 font-bold tracking-tight'>{displayName}</h1>
+            <FavoriteButton
+              item={host as any}
+              type='host'
+              isFavorited={isFavorited}
+            />
+          </div>
           {(host.metadata?.description || host.content) && (
             <div className='max-w-none'>
               <SafeHtml
@@ -145,13 +180,16 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
 
           {host.metadata?.genres?.length > 0 && (
             <div>
-              <div className='flex flex-wrap select-none cursor-default my-3'>
+              <div className='flex flex-wrap my-3'>
                 {host.metadata.genres.map(
-                  (genre: { id?: string; slug?: string; title?: string; name?: string }) => (
-                    <GenreTag key={genre.id || genre.slug} variant='large'>
-                      {genre.title || genre.name}
-                    </GenreTag>
-                  )
+                  (genre: { id?: string; slug?: string; title?: string; name?: string }) => {
+                    const genreLink = genre.id ? getGenreLink(genre.id) : undefined;
+                    return (
+                      <GenreTag key={genre.id || genre.slug} variant='large' href={genreLink}>
+                        {genre.title || genre.name}
+                      </GenreTag>
+                    );
+                  }
                 )}
               </div>
             </div>

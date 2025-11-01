@@ -12,12 +12,14 @@ export default function LoginClient({ onSubmit, redirect }: { onSubmit: any; red
   const searchParams = useSearchParams();
   const success = searchParams.get('success');
   const error = searchParams.get('error');
+  const redirectParam = searchParams.get('redirect');
+  const finalRedirect = redirectParam || redirect;
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.push(redirect);
+      router.push(finalRedirect);
     }
-  }, [user, isLoading, router, redirect]);
+  }, [user, isLoading, router, finalRedirect]);
 
   if (isLoading) {
     return (

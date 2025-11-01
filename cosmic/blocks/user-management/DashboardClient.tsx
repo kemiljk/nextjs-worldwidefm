@@ -335,7 +335,7 @@ export default function DashboardClient({
 
         {/* Membership Section */}
         <section className='mb-8'>
-          <div className='bg-gradient-to-r from-primary/10 to-primary/5 p-6 rounded-lg border border-primary/20'>
+          <div className='p-6  border border-primary/20'>
             <div className='flex items-center justify-between'>
               <div className='flex items-center space-x-3'>
                 <Crown className='size-8 text-primary' />
@@ -355,7 +355,7 @@ export default function DashboardClient({
                     <span className='font-medium'>Active</span>
                   </div>
                 ) : (
-                  <Button asChild>
+                  <Button asChild className='px-2'>
                     <Link href='/membership'>
                       <CreditCard className='size-4 mr-2' />
                       Subscribe

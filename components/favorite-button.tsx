@@ -1,0 +1,95 @@
+'use client';
+
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { Heart } from 'lucide-react';
+import { Button } from './ui/button';
+import { useAuth } from '@/cosmic/blocks/user-management/AuthContext';
+import {
+  addFavouriteGenre,
+  removeFavouriteGenre,
+  addFavouriteHost,
+  removeFavouriteHost,
+} from '@/cosmic/blocks/user-management/actions';
+import type { GenreObject, HostObject } from '@/lib/cosmic-config';
+import { cn } from '@/lib/utils';
+
+interface FavoriteButtonProps {
+  item: GenreObject | HostObject;
+  type: 'genre' | 'host';
+  isFavorited: boolean;
+  className?: string;
+}
+
+export function FavoriteButton({
+  item,
+  type,
+  isFavorited: initialIsFavorited,
+  className,
+}: FavoriteButtonProps) {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [isFavorited, setIsFavorited] = useState(initialIsFavorited);
+  const [isPending, startTransition] = useTransition();
+
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      router.push('/login?redirect=' + encodeURIComponent(window.location.pathname));
+      return;
+    }
+
+    startTransition(async () => {
+      let success = false;
+
+      if (isFavorited) {
+        if (type === 'genre') {
+          const result = await removeFavouriteGenre(user.id, item.id);
+          success = result.success;
+        } else {
+          const result = await removeFavouriteHost(user.id, item.id);
+          success = result.success;
+        }
+      } else {
+        if (type === 'genre') {
+          const result = await addFavouriteGenre(user.id, item as GenreObject);
+          success = result.success;
+        } else {
+          const result = await addFavouriteHost(user.id, item as HostObject);
+          success = result.success;
+        }
+      }
+
+      if (success) {
+        setIsFavorited(!isFavorited);
+        router.refresh();
+      }
+    });
+  };
+
+  return (
+    <Button
+      variant='outline'
+      size='sm'
+      onClick={handleFavoriteClick}
+      disabled={isPending}
+      className={cn(
+        'border-almostblack dark:border-white hover:bg-almostblack hover:text-white dark:hover:bg-white dark:hover:text-almostblack transition-colors',
+        isFavorited && 'bg-almostblack text-white dark:bg-white dark:text-almostblack',
+        className
+      )}
+      aria-label={isFavorited ? `Remove ${type} from favorites` : `Add ${type} to favorites`}
+    >
+      <Heart
+        className={cn(
+          'h-4 w-4 mr-1',
+          isFavorited && 'fill-current'
+        )}
+      />
+      {isFavorited ? 'Favorited' : 'Favorite'}
+    </Button>
+  );
+}
+
