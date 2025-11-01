@@ -40,11 +40,12 @@ function getVimeoThumbnail(url: string) {
 
 export default function VideoSection({ videos, className }: VideoSectionProps) {
   const latestVideos = videos.slice(-3);
+  const isTwoVideos = latestVideos.length === 2;
   const firstVideo = latestVideos[0];
   const otherVideos = latestVideos.slice(1);
 
   return (
-    <section className={cn('', 'bg-black mt-30 h-auto px-5 text-white pb-20', className)}>
+    <section className={cn('', 'bg-black mt-30 h-auto px-5 text-white pb-30', className)}>
       <div className='flex items-end justify-between pt-10 pb-4'>
         <h2 className='text-h8 md:text-h7 font-bold'>VIDEO</h2>
         <Link
@@ -55,13 +56,13 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
           <ChevronRight className='h-4 w-4 ml-1 transition-transform' />
         </Link>
       </div>
-      <div className='flex flex-col sm:flex-row gap-3 h-[70vh] w-full'>
+      <div className={isTwoVideos ? 'flex flex-col sm:flex-row gap-3 h-auto w-full' : 'flex flex-col sm:flex-row gap-3 h-auto w-full'}>
         {/* First video card - 65% width */}
         {firstVideo && (
-          <div className='w-full sm:w-[65%] h-full'>
+          <div className={cn(isTwoVideos ? 'w-full sm:w-1/2 aspect-video' : 'w-full sm:w-[65%] h-full')}>
             <Link href={`/videos/${firstVideo.slug}`} className='w-full h-full'>
-              <Card className='overflow-hidden transition-shadow border border-white group hover:bg-white hover:text-almostblack h-full'>
-                <CardContent className='p-0 flex flex-col h-full w-full'>
+              <Card className='overflow-hidden transition-shadow border border-white group hover:bg-white hover:text-almostblack'>
+                <CardContent className='p-0 flex flex-col aspect-video w-full'>
                   {/* Image takes remaining space */}
                   <div className='relative flex-1'>
                     <Image
@@ -96,7 +97,7 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
             </Link>
           </div>
         )}
-        <div className='w-full h-full sm:w-[35%] flex flex-row sm:flex-col gap-3 justify-between'>
+        <div className={cn('flex gap-3 justify-between', isTwoVideos ? 'flex-row w-full sm:w-1/2 aspect-video' : 'w-full sm:w-[35%] flex-col h-full')}>
           {otherVideos.map(video => {
             const youtubeId = video.metadata?.video_url
               ? getYouTubeThumbnail(video.metadata.video_url)
@@ -109,8 +110,8 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
 
             return (
               <Link key={video.id} href={`/videos/${video.slug}`} className='w-full flex-1'>
-                <Card className='overflow-hidden transition-shadow border border-white group hover:bg-white hover:text-almostblack h-full'>
-                  <CardContent className='p-0 flex flex-col h-full w-full'>
+                <Card className='overflow-hidden transition-shadow border border-white group hover:bg-white hover:text-almostblack'>
+                  <CardContent className='p-0 flex flex-col aspect-video h-auto w-full'>
                     <div className='relative flex-1'>
                       <Image src={thumbnailUrl} alt={video.title} fill className='object-cover' />
                     </div>

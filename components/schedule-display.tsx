@@ -169,8 +169,8 @@ export default function ScheduleDisplay({
           return (
             <div key={day}>
               {/* Black day header */}
-              <div className='bg-almostblack dark:bg-white pl-1'>
-                <h2 className='text-white dark:text-black font-display text-[25px]'>{dayHeader}</h2>
+              <div className='bg-almostblack py-0.5 dark:bg-white pl-1'>
+                <h2 className='text-white dark:text-black font-display tracking-tight text-[22px]'>{dayHeader}</h2>
               </div>
 
               {/* Show entries */}
@@ -189,11 +189,11 @@ export default function ScheduleDisplay({
                     show.hosts.length > 0 ? `${show.name}: ${show.hosts.join(', ')}` : show.name;
 
                   const content = (
-                    <div className='flex items-center'>
-                      <span className='w-[15vw] text-m6 font-mono text-black dark:text-white pr-8'>
+                    <div className='flex items-start'>
+                      <span className='w-[30vw] lg:w-[15vw] text-m7 font-mono text-black dark:text-white pr-8'>
                         {timeRange}
                       </span>
-                      <span className='w-[50vw] uppercase font-mono text-m6 text-almostblack dark:text-white flex-1 pl-8'>
+                      <span className='w-[60vw] uppercase font-mono text-m7 text-almostblack dark:text-white flex-1 pl-8'>
                         {showName}
                       </span>
                     </div>

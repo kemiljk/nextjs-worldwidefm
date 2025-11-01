@@ -43,11 +43,11 @@ export default function MembershipPromoSection({ config }: MembershipPromoSectio
           opacity: '40%',
         }}
       />
-      <div className='relative z-10 h-full w-full px-20 gap-4 flex-col flex justify-center'>
-        <h2 className='relative font-display text-h6 md:text-h5 font-bold uppercase text-white'>
+      <div className='relative z-10 h-full w-full px-10 md:px-20 gap-4 flex-col flex justify-center'>
+        <h2 className='relative font-display text-[40px] md:text-h5 font-bold uppercase text-white'>
           {title}
         </h2>
-        <p className='max-w-100 text-white leading-tight font-sans text-body'>{description}</p>
+        <p className='max-w-70 md:max-w-100 text-white leading-tight font-sans text-body'>{description}</p>
 
         <Link className='h-fit w-50 pt-5 ' href='/membership' onClick={handleMembershipClick}>
           <Button variant='inverted' className='font-mono uppercase'>

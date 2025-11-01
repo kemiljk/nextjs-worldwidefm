@@ -204,7 +204,7 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
           {heading}
         </h1>
         <div
-          className='text-white/90 text-body sm:text-md leading-tight mb-12 w-[70%] lg:w-[50%] mx-auto'
+          className='px-4 text-white/90 text-body sm:text-md leading-tight mb-12 w-[70%] lg:w-[50%] mx-auto'
           dangerouslySetInnerHTML={{ __html: body }}
         />
 
@@ -266,7 +266,8 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
         <Button
           onClick={handleJoinClick}
           disabled={isProcessing}
-          className='bg-almostblack text-white hover:bg-almostblack/90 px-10 py-3 text-md font-mono uppercase tracking-normal'
+          variant='inverted'
+          className='font-mono uppercase tracking-normal'
         >
           {isProcessing ? (
             <>

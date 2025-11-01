@@ -306,10 +306,10 @@ export default async function SchedulePage() {
   const { scheduleItems, episodeSlugMap, isActive, error } = await getWeeklySchedule();
 
   return (
-    <div className='min-h-screen bg-white dark:bg-black'>
+    <div className='min-h-screen bg-white pb-40 dark:bg-black'>
       <div className=''>
-        <div className='relative w-full pt-20 overflow-hidden'>
-          <div className='relative left-0 w-full px-5 z-10'>
+        <div className='relative w-full pt-10 overflow-hidden'>
+          <div className='relative left-0 w-full px-5 z-1 '>
             <PageHeader title='schedule' />
           </div>
         </div>

@@ -20,7 +20,7 @@ const buttonVariants = cva(
           'hover:bg-almostblack dark:hover:bg-white hover:text-white dark:hover:text-almostblack',
         link: 'underline-offset-4 hover:underline text-primary',
         inverted:
-          'bg-almostblack text-white hover:bg-white hover:text-almostblack hover:border-1 hover:border-almostblack',
+          'bg-almostblack text-white border-1 hover:bg-white hover:text-almostblack hover:border-1 hover:border-almostblack',
       },
       size: {
         default: 'h-10 py-2 px-4',

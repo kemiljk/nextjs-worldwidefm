@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useMediaPlayer } from './providers/media-player-provider';
 import { usePlausible } from 'next-plausible';
+import { Button } from '@/components/ui/button';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -147,15 +148,15 @@ const ArchivePlayer: React.FC = () => {
   const embedUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(selectedMixcloudUrl)}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`;
 
   return (
-    <div className='fixed bottom-0 left-0 right-0 z-50 overflow-hidden' style={{ height: '60px' }}>
+    <div className='fixed bottom-0 left-0 right-0 z-50 bg-[#f7f7f7] border-t border-almostblack/50 overflow-hidden' style={{ height: '60px' }}>
       <div className='relative h-full'>
-        <button
+        <Button
           onClick={handleClose}
-          className='absolute top-1.5 right-1 z-50 text-almostblack dark:text-white hover:opacity-50 transition-opacity bg-white/80 dark:bg-almostblack/80 rounded-full'
+          className='absolute right-0 z-50 text-almostblack dark:text-white hover:text-white bg-[#f7f7f7] flex h-[60px] aspect-square'
           aria-label='Close player'
         >
-          <X className='w-4 h-4' />
-        </button>
+          <X className='w-5  h-5' />
+        </Button>
         {isLoading && (
           <div className='absolute inset-0 bg-white dark:bg-almostblack flex items-center justify-center border-t border-gray-200 dark:border-gray-700'>
             <div className='flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400'>
@@ -168,8 +169,7 @@ const ArchivePlayer: React.FC = () => {
           ref={iframeRef}
           key={selectedMixcloudUrl}
           src={embedUrl}
-          width='100%'
-          height='60'
+          className="w-[calc(100vw-60px)] h-[60px]"
           allow='autoplay'
           title='Mixcloud Player'
           referrerPolicy='no-referrer'

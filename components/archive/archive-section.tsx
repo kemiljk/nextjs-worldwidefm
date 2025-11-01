@@ -43,7 +43,7 @@ export default function ArchiveSection({ shows, className }: ArchiveSectionProps
                   show={show}
                   slug={`/episode/${show.key}`}
                   playable
-                  className={`w-full h-auto ${index >= 2 ? 'hidden md:block' : ''}`}
+                  className={`w-[calc(50%-0.375rem)] md:w-full h-auto ${index >= 2 ? 'hidden md:block' : ''}`}
                 />
               ))}
             </div>
