@@ -31,40 +31,55 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
   try {
     // Handle random episodes
     if (params.random) {
-      // Build query with filters if provided
-      const query: Record<string, unknown> = {
-        type: 'episode',
-        status: 'published',
-      };
+      try {
+        // Build query with filters if provided
+        const query: Record<string, unknown> = {
+          type: 'episode',
+          status: 'published',
+        };
 
-      // Add genre filter if provided
-      if (params.genre) {
-        const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
-        const validGenres = genres.filter(Boolean);
-        if (validGenres.length > 0) {
-          query['metadata.genres.id'] = { $in: validGenres };
+        // Add genre filter if provided
+        if (params.genre) {
+          const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
+          const validGenres = genres.filter(Boolean);
+          if (validGenres.length > 0) {
+            query['metadata.genres.id'] = { $in: validGenres };
+          }
         }
+
+        // Add location filter
+        if (params.location) {
+          const locations = Array.isArray(params.location) ? params.location : [params.location];
+          query['metadata.locations.id'] = { $in: locations };
+        }
+
+        // Fetch a larger set to randomize from
+        const fetchLimit = Math.min(baseLimit * 5, 200);
+        const response = await cosmic.objects.find(query).limit(fetchLimit).depth(2);
+
+        const episodes = response.objects || [];
+        const shuffled = [...episodes].sort(() => Math.random() - 0.5);
+        const randomEpisodes = shuffled.slice(0, baseLimit);
+
+        return {
+          episodes: randomEpisodes,
+          total: randomEpisodes.length,
+          hasNext: false,
+        };
+      } catch (error: any) {
+        // Handle 404s gracefully - genres/locations with no episodes are expected
+        const is404 = error?.status === 404 || 
+                     error?.message?.includes('404') || 
+                     error?.message?.includes('No objects found');
+        if (is404) {
+          return {
+            episodes: [],
+            total: 0,
+            hasNext: false,
+          };
+        }
+        throw error;
       }
-
-      // Add location filter
-      if (params.location) {
-        const locations = Array.isArray(params.location) ? params.location : [params.location];
-        query['metadata.locations.id'] = { $in: locations };
-      }
-
-      // Fetch a larger set to randomize from
-      const fetchLimit = Math.min(baseLimit * 5, 200);
-      const response = await cosmic.objects.find(query).limit(fetchLimit).depth(2);
-
-      const episodes = response.objects || [];
-      const shuffled = [...episodes].sort(() => Math.random() - 0.5);
-      const randomEpisodes = shuffled.slice(0, baseLimit);
-
-      return {
-        episodes: randomEpisodes,
-        total: randomEpisodes.length,
-        hasNext: false,
-      };
     }
 
     // Build query for Cosmic
@@ -138,22 +153,31 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     try {
       // Only use caching in server context (unstable_cache requires server-side)
       if (typeof window === 'undefined') {
-        const cacheKey = `episodes-${JSON.stringify(query)}-${baseLimit}-${offset}`;
-        const getCachedEpisodes = unstable_cache(
-          fetchEpisodes,
-          [cacheKey],
-          {
-            tags: ['episodes', 'shows'],
-            revalidate: 60,
+        try {
+          const cacheKey = `episodes-${JSON.stringify(query)}-${baseLimit}-${offset}`;
+          const getCachedEpisodes = unstable_cache(
+            fetchEpisodes,
+            [cacheKey],
+            {
+              tags: ['episodes', 'shows'],
+              revalidate: 60,
+            }
+          );
+          response = await getCachedEpisodes();
+        } catch (cacheError: any) {
+          // If cache fails (e.g., missing incrementalCache), fallback to direct fetch
+          if (cacheError?.message?.includes('incrementalCache') || cacheError?.message?.includes('cache')) {
+            response = await fetchEpisodes();
+          } else {
+            throw cacheError;
           }
-        );
-        response = await getCachedEpisodes();
+        }
       } else {
         // Client-side: fetch directly without caching
         response = await fetchEpisodes();
       }
     } catch (cacheError) {
-      // Fallback to direct fetch if caching fails
+      // Final fallback to direct fetch if caching fails
       response = await fetchEpisodes();
     }
 
@@ -166,8 +190,11 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       total,
       hasNext,
     };
-  } catch (error) {
-    console.error('Error fetching episodes:', error || 'Unknown error');
+  } catch (error: any) {
+    // Don't log 404s as errors - they're expected when no episodes match the query
+    if (error?.status !== 404 && error?.message?.includes('404') === false) {
+      console.error('Error fetching episodes:', error || 'Unknown error');
+    }
     return {
       episodes: [],
       total: 0,

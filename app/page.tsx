@@ -159,8 +159,8 @@ export default async function Home() {
   let colouredSections: any[] = [];
 
   if (colouredSectionItems.length > 0) {
-    // Process coloured sections from page_order
-    const allSections = await Promise.all(
+    // Process coloured sections from page_order with timeout protection
+    const allSections = await Promise.allSettled(
       colouredSectionItems.flatMap(item => {
         const sectionData = item.metadata?.coloured_section || [];
         return sectionData.map(async (section: any, idx: number) => {
@@ -183,10 +183,19 @@ export default async function Home() {
                   : section.show_type;
 
               const { getEpisodes } = await import('@/lib/episode-service');
-              const episodes = await getEpisodes({
-                showType: [showTypeId],
-                limit: 10,
-              });
+
+              // Add timeout protection
+              const fetchWithTimeout = Promise.race([
+                getEpisodes({
+                  showType: [showTypeId],
+                  limit: 10,
+                }),
+                new Promise<{ episodes: any[] }>((_, reject) =>
+                  setTimeout(() => reject(new Error('Timeout')), 6000)
+                ),
+              ]);
+
+              const episodes = await fetchWithTimeout;
 
               shows = (episodes.episodes || []).map((episode: any) => {
                 const transformed = transformShowToViewData(episode);
@@ -220,7 +229,10 @@ export default async function Home() {
       })
     );
 
-    colouredSections = allSections.filter(Boolean);
+    // Extract successful sections only
+    colouredSections = allSections
+      .filter(result => result.status === 'fulfilled' && result.value !== null)
+      .map(result => (result as PromiseFulfilledResult<any>).value);
   } else {
     // Fallback to OLD structure - if homepageData is null or doesn't have the expected structure,
     // colouredSections will remain an empty array
@@ -250,7 +262,11 @@ export default async function Home() {
     };
   });
 
-  // Get top genres and fetch random shows per genre for GenreSelector
+  // Fetch ALL genres from Cosmic
+  const { getCanonicalGenres } = await import('@/lib/get-canonical-genres');
+  const canonicalGenres = await getCanonicalGenres();
+
+  // Get top genres from recent shows for initial default view
   const genreCounts = shows.reduce(
     (acc, episode) => {
       const genres = episode.genres || episode.metadata?.genres || [];
@@ -270,47 +286,78 @@ export default async function Home() {
     .slice(0, 10)
     .map(([name]) => name);
 
-  // Fetch canonical genres to get genre IDs
-  const { getCanonicalGenres } = await import('@/lib/get-canonical-genres');
-  const canonicalGenres = await getCanonicalGenres();
-
-  // Fetch random shows for each top genre
+  // Fetch random shows for top genres only (for initial default view)
+  // GenreSelector will fetch dynamically when a genre is selected
   const randomShowsByGenre: Record<string, any> = {};
-  await Promise.all(
-    topGenres.map(async genreTitle => {
-      try {
-        // Find the genre ID from canonical genres
-        const canonicalGenre = canonicalGenres.find(
-          g => g.title.toLowerCase() === genreTitle.toLowerCase()
-        );
+  const topGenresToPreload = topGenres.slice(0, 5); // Only preload top 5 genres
 
-        if (canonicalGenre) {
-          // Fetch random episodes for this genre
-          const randomResponse = await getEpisodesForShows({
-            genre: [canonicalGenre.id],
-            random: true,
-            limit: 1,
-          });
+  // Process top genres sequentially (not in parallel) to avoid timeouts
+  for (const genreTitle of topGenresToPreload) {
+    try {
+      const canonicalGenre = canonicalGenres.find(
+        g => g.title.toLowerCase() === genreTitle.toLowerCase()
+      );
 
-          if (randomResponse.shows && randomResponse.shows.length > 0) {
-            const transformed = transformShowToViewData(randomResponse.shows[0]);
-            randomShowsByGenre[genreTitle] = {
-              ...transformed,
-              key: transformed.slug,
-            };
+      if (!canonicalGenre) continue;
+
+      // Fetch with timeout protection
+      const fetchWithTimeout = Promise.race([
+        getEpisodesForShows({
+          genre: [canonicalGenre.id],
+          random: true,
+          limit: 1,
+        }).catch(err => {
+          // Handle 404s gracefully - genres with no episodes are expected
+          const is404 =
+            err?.status === 404 ||
+            err?.message?.includes('404') ||
+            err?.message?.includes('No objects found');
+          if (!is404) {
+            throw err;
           }
-        }
-      } catch (error) {
-        // Silently fail for individual genres
-        if (process.env.NODE_ENV === 'development') {
-          console.debug(`Failed to fetch random show for genre ${genreTitle}:`, error);
-        }
-      }
-    })
-  );
+          return { shows: [], total: 0, hasNext: false };
+        }),
+        new Promise<{ shows: any[] }>((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout')), 5000)
+        ),
+      ]);
 
-  // Get shows from the archive
-  const { shows: archiveShowsRaw } = await getEpisodesForShows({ random: true, limit: 20 });
+      const randomResponse = await fetchWithTimeout;
+
+      if (randomResponse?.shows && randomResponse.shows.length > 0) {
+        const transformed = transformShowToViewData(randomResponse.shows[0]);
+        randomShowsByGenre[genreTitle] = {
+          ...transformed,
+          key: transformed.slug,
+        };
+      }
+    } catch (error: any) {
+      // Silently fail for individual genres (404s are expected for genres with no episodes)
+      const is404 =
+        error?.status === 404 ||
+        error?.message?.includes('404') ||
+        error?.message?.includes('No objects found');
+      if (process.env.NODE_ENV === 'development' && !is404) {
+        console.debug(`Failed to fetch random show for genre ${genreTitle}:`, error);
+      }
+    }
+  }
+
+  // Get shows from the archive with timeout protection
+  let archiveShowsRaw: any[] = [];
+  try {
+    const archiveFetch = Promise.race([
+      getEpisodesForShows({ random: true, limit: 20 }),
+      new Promise<{ shows: any[] }>((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout')), 6000)
+      ),
+    ]);
+    const archiveResponse = await archiveFetch;
+    archiveShowsRaw = archiveResponse.shows || [];
+  } catch (error) {
+    console.error('Error fetching archive shows:', error);
+    // Continue without archive shows
+  }
   const archiveShows = archiveShowsRaw.map(show => {
     const transformed = transformShowToViewData(show);
     return {
@@ -411,7 +458,11 @@ export default async function Home() {
 
         {/* Genre Selector Section */}
         <Suspense>
-          <GenreSelector shows={shows} randomShowsByGenre={randomShowsByGenre} />
+          <GenreSelector
+            shows={shows}
+            randomShowsByGenre={randomShowsByGenre}
+            allCanonicalGenres={canonicalGenres}
+          />
         </Suspense>
 
         {/* Video Section */}

@@ -2,14 +2,17 @@
 
 import { GenreDropdown } from '@/components/genre-dropdown';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { ShowCard } from '@/components/ui/show-card';
 import { usePlausible } from 'next-plausible';
+import { fetchShowsByGenre } from '@/lib/actions/genre-selector';
+import { ShowsGridSkeleton } from '@/components/shows-grid-skeleton';
 
 interface GenreSelectorProps {
   shows: any[]; // Episodes from Cosmic
   title?: string;
   randomShowsByGenre?: Record<string, any>; // Pre-selected random shows per genre (genre title -> show)
+  allCanonicalGenres?: Array<{ id: string; slug: string; title: string }>; // All genres from Cosmic
 }
 
 // Helper function to extract genres from episodes
@@ -25,12 +28,17 @@ export default function GenreSelector({
   shows,
   title = 'LISTEN BY GENRE',
   randomShowsByGenre = {},
+  allCanonicalGenres = [],
 }: GenreSelectorProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const selectedGenre = searchParams.get('genre');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [genreShows, setGenreShows] = useState<any[]>([]);
+  const [isLoadingGenre, setIsLoadingGenre] = useState(false);
+  const [isEmpty, setIsEmpty] = useState(false);
+  const genreCacheRef = useRef<Map<string, any[]>>(new Map());
   const plausible = usePlausible();
 
   // Get unique genres and their counts
@@ -50,7 +58,81 @@ export default function GenreSelector({
     .map(([name]) => name);
 
   // Get all unique genres for the dropdown
-  const allGenres = Object.keys(genreCounts).sort();
+  // Use all canonical genres if provided, otherwise fall back to genres found in recent shows
+  const allGenres = allCanonicalGenres.length > 0
+    ? allCanonicalGenres.map(g => g.title).sort()
+    : Object.keys(genreCounts).sort();
+
+  // Create a stable map of genre title to ID for lookups
+  const genreMap = useMemo(
+    () => new Map(allCanonicalGenres.map(g => [g.title, g.id])),
+    [allCanonicalGenres]
+  );
+
+  // Fetch shows when genre is selected
+  useEffect(() => {
+    if (!selectedGenre) {
+      // Reset to default view (top genres)
+      setGenreShows([]);
+      setIsEmpty(false);
+      setIsLoadingGenre(false);
+      return;
+    }
+
+    const genreId = genreMap.get(selectedGenre);
+    if (!genreId) {
+      setGenreShows([]);
+      setIsEmpty(false);
+      setIsLoadingGenre(false);
+      return;
+    }
+
+    // Immediately show loading and clear previous shows when genre changes
+    setIsLoadingGenre(true);
+    setGenreShows([]);
+    setIsEmpty(false);
+
+    // Check cache first
+    const cached = genreCacheRef.current.get(genreId);
+    if (cached) {
+      // Still show loading briefly for better UX, then show cached data
+      const timer = setTimeout(() => {
+        setGenreShows(cached);
+        setIsEmpty(false);
+        setIsLoadingGenre(false);
+      }, 100); // Brief delay to show loading state
+      
+      return () => clearTimeout(timer);
+    }
+
+    // Prevent duplicate requests
+    let cancelled = false;
+
+    fetchShowsByGenre(genreId, 10)
+      .then(result => {
+        if (!cancelled) {
+          setGenreShows(result.shows);
+          setIsEmpty(result.isEmpty);
+          setIsLoadingGenre(false);
+          // Cache the result
+          if (result.shows.length > 0) {
+            genreCacheRef.current.set(genreId, result.shows);
+          }
+        }
+      })
+      .catch(error => {
+        if (!cancelled) {
+          console.error('Error fetching genre shows:', error);
+          setGenreShows([]);
+          setIsEmpty(false);
+          setIsLoadingGenre(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedGenre, genreMap]);
 
   const createQueryString = useCallback(
     (name: string, value: string | null) => {
@@ -81,24 +163,7 @@ export default function GenreSelector({
 
   // Get shows based on selection or default to pre-selected random shows for top genres
   const displayedShows = selectedGenre
-    ? Array.from(
-        new Set(
-          shows
-            .filter(episode => getEpisodeGenres(episode).includes(selectedGenre))
-            .map(episode => episode.id || episode.slug)
-        )
-      )
-        .map(id => shows.find(episode => (episode.id || episode.slug) === id))
-        .filter(Boolean)
-        .sort((a, b) => {
-          // Sort by broadcast date (newest first), then by slug for stability
-          const dateA = a.metadata?.broadcast_date || a.created_at || '';
-          const dateB = b.metadata?.broadcast_date || b.created_at || '';
-          if (dateA && dateB) {
-            return new Date(dateB).getTime() - new Date(dateA).getTime();
-          }
-          return (a.slug || '').localeCompare(b.slug || '');
-        })
+    ? genreShows.slice(0, 10)
     : topGenres
         .map(genre => {
           // Use pre-selected random show if available, otherwise fall back to newest
@@ -106,7 +171,7 @@ export default function GenreSelector({
             return randomShowsByGenre[genre];
           }
           // Fallback: pick newest show if no random selection available
-          const genreShows = shows
+          const genreShowsFromRecent = shows
             .filter(episode => getEpisodeGenres(episode).includes(genre))
             .sort((a, b) => {
               const dateA = a.metadata?.broadcast_date || a.created_at || '';
@@ -116,16 +181,10 @@ export default function GenreSelector({
               }
               return (a.slug || '').localeCompare(b.slug || '');
             });
-          return genreShows[0];
+          return genreShowsFromRecent[0];
         })
-        .filter(Boolean);
-
-  // Remove any duplicate shows that might occur across genres
-  const maxItems = 10; // max items to display
-  const uniqueShows = Array.from(new Set(displayedShows.map(episode => episode.id || episode.slug)))
-    .map(id => displayedShows.find(episode => (episode.id || episode.slug) === id))
-    .filter(Boolean)
-    .slice(0, maxItems);
+        .filter(Boolean)
+        .slice(0, 10);
 
   return (
     <section className='relative w-full h-full overflow-visible px-5 mt-20'>
@@ -154,24 +213,34 @@ export default function GenreSelector({
         </a>
       </div>
 
-      <div className='grid grid-cols-2 md:grid-cols-5 gap-3 w-full h-auto'>
-        {uniqueShows.map((episode: any, index: number) => (
-          <div
-            key={`${episode.id || episode.slug}-${index}`}
-            className={`
+      {isLoadingGenre ? (
+        <ShowsGridSkeleton count={10} />
+      ) : isEmpty && selectedGenre ? (
+        <div className='py-12 text-center'>
+          <p className='text-m7 text-almostblack dark:text-white'>
+            No shows found for this genre yet.
+          </p>
+        </div>
+      ) : (
+        <div className='grid grid-cols-2 md:grid-cols-5 gap-3 w-full h-auto'>
+          {displayedShows.map((episode: any, index: number) => (
+            <div
+              key={`${episode.id || episode.slug}-${index}`}
+              className={`
             flex
             ${index >= 4 ? 'hidden md:flex' : ''}  /* show first 4 on mobile, reveal 4+ on desktop */
           `}
-          >
-            <ShowCard
-              show={episode}
-              slug={`/episode/${episode.slug}`}
-              playable
-              className='w-full h-auto cursor-default'
-            />
-          </div>
-        ))}
-      </div>
+            >
+              <ShowCard
+                show={episode}
+                slug={`/episode/${episode.slug}`}
+                playable
+                className='w-full h-auto cursor-default'
+              />
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
