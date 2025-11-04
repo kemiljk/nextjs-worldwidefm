@@ -13,6 +13,9 @@ import {
 } from '@/components/editorial/editorial-layouts';
 import { PreviewBanner } from '@/components/ui/preview-banner';
 
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+
 interface Props {
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ preview?: string }>;
@@ -45,7 +48,12 @@ export default async function EditorialArticlePage({
 }) {
   // Await the entire params object first
   const resolvedParams = await params;
-  const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
+  const resolvedSearchParams = await (searchParams || Promise.resolve({ preview: undefined }));
+  const preview = resolvedSearchParams.preview;
+
+  if (preview) {
+    console.log('[Editorial Preview] Preview mode enabled for slug:', resolvedParams.slug);
+  }
 
   const response = await getPostBySlug(resolvedParams.slug, preview);
 

@@ -104,10 +104,16 @@ export async function getPostBySlug(
   preview?: string
 ): Promise<{ object: PostObject } | null> {
   try {
-    const query: any = {
+    const isPreview = preview !== undefined && preview !== null && preview !== '';
+    
+    if (isPreview) {
+      console.log('[getPostBySlug] Fetching with preview mode for slug:', slug);
+    }
+    
+    const query: Record<string, unknown> = {
       type: 'posts',
       slug: slug,
-      status: preview ? 'any' : 'published',
+      status: isPreview ? 'any' : 'published',
     };
 
     const response = await cosmic.objects
@@ -115,9 +121,20 @@ export async function getPostBySlug(
       .props('id,title,slug,type,created_at,metadata,content,status')
       .depth(2);
 
+    if (!response?.object && isPreview) {
+      console.warn('[getPostBySlug] No object found in preview mode for slug:', slug);
+    }
+
     return response || null;
   } catch (error) {
     console.error('Error in getPostBySlug:', error);
+    if (preview) {
+      console.error('[getPostBySlug] Preview mode error details:', {
+        slug,
+        preview,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
     return null;
   }
 }
