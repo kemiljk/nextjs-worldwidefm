@@ -15,6 +15,7 @@ import { PreviewBanner } from '@/components/ui/preview-banner';
 
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
+export const revalidate = 0;
 
 interface Props {
   params: Promise<{ slug: string }>;
