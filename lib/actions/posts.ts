@@ -99,28 +99,34 @@ export async function getAllPosts({
   }
 }
 
-export async function getPostBySlug(
-  slug: string,
-  preview?: string
-): Promise<{ object: PostObject } | null> {
+export async function getPostBySlug(slug: string): Promise<{ object: PostObject } | null> {
   try {
-    // When fetching by slug (direct access), use 'any' status to allow drafts
-    // This enables preview links to work without query parameters
-    // Cosmic will return the latest draft if it exists, otherwise the published version
-    const query: Record<string, unknown> = {
-      type: 'posts',
-      slug: slug,
-      status: 'any',
-    };
-
+    // Use .status('any') as a chained method to allow draft posts
+    // Note: .status() must be chained, not in the query object
     const response = await cosmic.objects
-      .findOne(query)
+      .findOne({
+        type: 'posts',
+        slug: slug,
+      })
       .props('id,title,slug,type,created_at,metadata,content,status')
-      .depth(2);
+      .depth(2)
+      .status('any');
 
     return response || null;
-  } catch (error) {
-    console.error('Error in getPostBySlug:', error);
+  } catch (error: unknown) {
+    const errorDetails =
+      error instanceof Error
+        ? {
+            message: error.message,
+            stack: error.stack,
+            name: error.name,
+          }
+        : error;
+    console.error('Error in getPostBySlug:', {
+      slug,
+      error: errorDetails,
+      errorType: typeof error,
+    });
     return null;
   }
 }

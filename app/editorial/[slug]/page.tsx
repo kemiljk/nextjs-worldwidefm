@@ -27,7 +27,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     const { slug } = await params;
     const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
 
-    const response = await getPostBySlug(slug, preview);
+    const response = await getPostBySlug(slug);
 
     if (response?.object) {
       return generatePostMetadata(response.object);
@@ -56,7 +56,7 @@ export default async function EditorialArticlePage({
     console.log('[Editorial Preview] Preview mode enabled for slug:', resolvedParams.slug);
   }
 
-  const response = await getPostBySlug(resolvedParams.slug, preview);
+  const response = await getPostBySlug(resolvedParams.slug);
 
   if (!response?.object) {
     notFound();
