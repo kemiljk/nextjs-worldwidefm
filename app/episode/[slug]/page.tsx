@@ -13,17 +13,23 @@ import { TracklistToggle } from '@/components/ui/tracklisttoggle';
 import { parseBroadcastDateTime } from '@/lib/date-utils';
 import { transformShowToViewData } from '@/lib/cosmic-service';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
+import { PreviewBanner } from '@/components/ui/preview-banner';
 
 export const revalidate = 60; // 1 minute - shows update quickly
 
 interface Props {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ preview?: string }>;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+  searchParams,
+}: Props): Promise<Metadata> {
   try {
     const { slug } = await params;
-    const episode = await getEpisodeBySlug(slug);
+    const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
+    const episode = await getEpisodeBySlug(slug, preview);
 
     if (episode) {
       return generateShowMetadata(episode);
@@ -73,11 +79,18 @@ async function HostLink({ host, className }: { host: any; className: string }) {
   );
 }
 
-export default async function EpisodePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function EpisodePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ preview?: string }>;
+}) {
   const { slug: showSlug } = await params;
+  const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
 
   // First try to get episode from Cosmic
-  const episode = await getEpisodeBySlug(showSlug);
+  const episode = await getEpisodeBySlug(showSlug, preview);
 
   if (!episode) {
     return (
@@ -120,6 +133,9 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
   const displayName = episode.title || 'Untitled Episode';
   const displayImage = episode.metadata.image?.imgix_url || '/image-placeholder.png';
 
+  // Check if this is a draft episode
+  const isDraft = episode.status === 'draft';
+
   // Format date for overlay (e.g., SAT 14/06)
   const showDate = startTime
     .toLocaleDateString('en-GB', {
@@ -132,6 +148,9 @@ export default async function EpisodePage({ params }: { params: Promise<{ slug: 
 
   return (
     <div className='pb-50'>
+      {/* Preview Banner - show when episode is a draft */}
+      {isDraft && <PreviewBanner />}
+
       <EpisodeHero
         displayName={displayName}
         displayImage={displayImage}

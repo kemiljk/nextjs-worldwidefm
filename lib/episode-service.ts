@@ -1,4 +1,4 @@
-import { cosmic } from './cosmic-config';
+import { cosmic, GenreObject, HostObject } from './cosmic-config';
 import { EpisodeObject } from './cosmic-types';
 import { unstable_cache } from 'next/cache';
 
@@ -66,11 +66,19 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
           total: randomEpisodes.length,
           hasNext: false,
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle 404s gracefully - genres/locations with no episodes are expected
-        const is404 = error?.status === 404 || 
-                     error?.message?.includes('404') || 
-                     error?.message?.includes('No objects found');
+        const is404 =
+          (error &&
+            typeof error === 'object' &&
+            'status' in error &&
+            (error as { status: number }).status === 404) ||
+          (error &&
+            typeof error === 'object' &&
+            'message' in error &&
+            typeof (error as { message: unknown }).message === 'string' &&
+            ((error as { message: string }).message.includes('404') ||
+              (error as { message: string }).message.includes('No objects found')));
         if (is404) {
           return {
             episodes: [],
@@ -155,18 +163,21 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       if (typeof window === 'undefined') {
         try {
           const cacheKey = `episodes-${JSON.stringify(query)}-${baseLimit}-${offset}`;
-          const getCachedEpisodes = unstable_cache(
-            fetchEpisodes,
-            [cacheKey],
-            {
-              tags: ['episodes', 'shows'],
-              revalidate: 60,
-            }
-          );
+          const getCachedEpisodes = unstable_cache(fetchEpisodes, [cacheKey], {
+            tags: ['episodes', 'shows'],
+            revalidate: 60,
+          });
           response = await getCachedEpisodes();
-        } catch (cacheError: any) {
+        } catch (cacheError: unknown) {
           // If cache fails (e.g., missing incrementalCache), fallback to direct fetch
-          if (cacheError?.message?.includes('incrementalCache') || cacheError?.message?.includes('cache')) {
+          const isCacheError =
+            cacheError &&
+            typeof cacheError === 'object' &&
+            'message' in cacheError &&
+            typeof (cacheError as { message: unknown }).message === 'string' &&
+            ((cacheError as { message: string }).message.includes('incrementalCache') ||
+              (cacheError as { message: string }).message.includes('cache'));
+          if (isCacheError) {
             response = await fetchEpisodes();
           } else {
             throw cacheError;
@@ -176,7 +187,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         // Client-side: fetch directly without caching
         response = await fetchEpisodes();
       }
-    } catch (cacheError) {
+    } catch {
       // Final fallback to direct fetch if caching fails
       response = await fetchEpisodes();
     }
@@ -190,9 +201,19 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       total,
       hasNext,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Don't log 404s as errors - they're expected when no episodes match the query
-    if (error?.status !== 404 && error?.message?.includes('404') === false) {
+    const is404 =
+      (error &&
+        typeof error === 'object' &&
+        'status' in error &&
+        (error as { status: number }).status === 404) ||
+      (error &&
+        typeof error === 'object' &&
+        'message' in error &&
+        typeof (error as { message: unknown }).message === 'string' &&
+        (error as { message: string }).message.includes('404'));
+    if (!is404) {
       console.error('Error fetching episodes:', error || 'Unknown error');
     }
     return {
@@ -207,7 +228,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
  * Get episodes formatted for the Shows page - returns direct Cosmic objects
  */
 export async function getEpisodesForShows(params: EpisodeParams = {}): Promise<{
-  shows: any[];
+  shows: EpisodeObject[];
   total: number;
   hasNext: boolean;
 }> {
@@ -233,7 +254,7 @@ export async function getRegularHosts(
     letter?: string;
   } = {}
 ): Promise<{
-  shows: any[];
+  shows: EpisodeObject[];
   total: number;
   hasNext: boolean;
 }> {
@@ -241,7 +262,7 @@ export async function getRegularHosts(
     const { limit = 100, offset = 0, genre, location, letter } = params;
 
     // Build the query
-    const query: any = {
+    const query: Record<string, unknown> = {
       type: 'regular-hosts',
       status: 'published',
     };
@@ -270,19 +291,15 @@ export async function getRegularHosts(
       // Only use caching in server context
       if (typeof window === 'undefined') {
         const cacheKey = `regular-hosts-${JSON.stringify(query)}-${limit}-${offset}`;
-        const getCachedHosts = unstable_cache(
-          fetchHosts,
-          [cacheKey],
-          {
-            tags: ['hosts', 'shows'],
-            revalidate: 60,
-          }
-        );
+        const getCachedHosts = unstable_cache(fetchHosts, [cacheKey], {
+          tags: ['hosts', 'shows'],
+          revalidate: 60,
+        });
         response = await getCachedHosts();
       } else {
         response = await fetchHosts();
       }
-    } catch (cacheError) {
+    } catch {
       response = await fetchHosts();
     }
 
@@ -308,7 +325,7 @@ export async function getTakeovers(
     location?: string[];
   } = {}
 ): Promise<{
-  shows: any[];
+  shows: EpisodeObject[];
   total: number;
   hasNext: boolean;
 }> {
@@ -316,7 +333,7 @@ export async function getTakeovers(
     const { limit = 100, offset = 0, genre, location } = params;
 
     // Build the query
-    const query: any = {
+    const query: Record<string, unknown> = {
       type: 'takeovers',
       status: 'published',
     };
@@ -340,19 +357,15 @@ export async function getTakeovers(
       // Only use caching in server context
       if (typeof window === 'undefined') {
         const cacheKey = `takeovers-${JSON.stringify(query)}-${limit}-${offset}`;
-        const getCachedTakeovers = unstable_cache(
-          fetchTakeovers,
-          [cacheKey],
-          {
-            tags: ['takeovers', 'shows'],
-            revalidate: 60,
-          }
-        );
+        const getCachedTakeovers = unstable_cache(fetchTakeovers, [cacheKey], {
+          tags: ['takeovers', 'shows'],
+          revalidate: 60,
+        });
         response = await getCachedTakeovers();
       } else {
         response = await fetchTakeovers();
       }
-    } catch (cacheError) {
+    } catch {
       response = await fetchTakeovers();
     }
 
@@ -370,15 +383,18 @@ export async function getTakeovers(
 /**
  * Get episode by slug
  */
-export async function getEpisodeBySlug(slug: string): Promise<any | null> {
+export async function getEpisodeBySlug(
+  slug: string,
+  preview?: string
+): Promise<EpisodeObject | null> {
   try {
-    const response = await cosmic.objects
-      .findOne({
-        type: 'episode',
-        slug: slug,
-        status: 'published',
-      })
-      .depth(2);
+    const query: Record<string, unknown> = {
+      type: 'episode',
+      slug: slug,
+      status: preview ? 'any' : 'published',
+    };
+
+    const response = await cosmic.objects.findOne(query).depth(2);
 
     return response.object || null;
   } catch (error) {
@@ -390,7 +406,10 @@ export async function getEpisodeBySlug(slug: string): Promise<any | null> {
 /**
  * Get related episodes based on shared genres and hosts
  */
-export async function getRelatedEpisodes(episodeId: string, limit: number = 5): Promise<any[]> {
+export async function getRelatedEpisodes(
+  episodeId: string,
+  limit: number = 5
+): Promise<EpisodeObject[]> {
   try {
     // First get the current episode to extract its genres and hosts
     const currentEpisode = await cosmic.objects
@@ -406,8 +425,8 @@ export async function getRelatedEpisodes(episodeId: string, limit: number = 5): 
     }
 
     const episode = currentEpisode.object;
-    const genres = episode.metadata?.genres?.map((g: any) => g.id) || [];
-    const hosts = episode.metadata?.regular_hosts?.map((h: any) => h.id) || [];
+    const genres = episode.metadata?.genres?.map((g: GenreObject) => g.id) || [];
+    const hosts = episode.metadata?.regular_hosts?.map((h: HostObject) => h.id) || [];
 
     // If no genres or hosts, fall back to random episodes
     if (genres.length === 0 && hosts.length === 0) {
@@ -424,7 +443,7 @@ export async function getRelatedEpisodes(episodeId: string, limit: number = 5): 
     }
 
     // Build query to find episodes with shared genres or hosts
-    const query: any = {
+    const query: Record<string, unknown> = {
       type: 'episode',
       status: 'published',
       id: { $ne: episodeId },

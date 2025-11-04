@@ -99,17 +99,23 @@ export async function getAllPosts({
   }
 }
 
-export async function getPostBySlug(slug: string): Promise<PostObject | null> {
+export async function getPostBySlug(
+  slug: string,
+  preview?: string
+): Promise<{ object: PostObject } | null> {
   try {
+    const query: any = {
+      type: 'posts',
+      slug: slug,
+      status: preview ? 'any' : 'published',
+    };
+
     const response = await cosmic.objects
-      .findOne({
-        type: 'posts',
-        slug: slug,
-      })
-      .props('id,title,slug,type,created_at,metadata,content')
+      .findOne(query)
+      .props('id,title,slug,type,created_at,metadata,content,status')
       .depth(2);
 
-    return response?.object || null;
+    return response || null;
   } catch (error) {
     console.error('Error in getPostBySlug:', error);
     return null;
