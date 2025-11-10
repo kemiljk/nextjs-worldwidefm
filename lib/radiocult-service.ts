@@ -565,10 +565,8 @@ export async function getScheduleData(): Promise<{
       return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
     });
 
-    // Find the current event (one that's currently running)
-    // Use a more lenient check: event has started and either:
-    // 1. Hasn't ended yet (if endTime exists), OR
-    // 2. Started within the last 3 hours (if endTime is missing/invalid)
+    // Find the current event - be very lenient since there's always a show online
+    // If an event has started (or is starting soon), consider it current
     const currentEvent =
       sortedEvents.find(event => {
         if (!event.startTime) {
@@ -578,20 +576,28 @@ export async function getScheduleData(): Promise<{
         const startTime = new Date(event.startTime);
         const endTime = event.endTime ? new Date(event.endTime) : null;
         
-        // Event must have started
-        if (now < startTime) {
-          return false;
+        // If event has started and hasn't ended, it's current
+        if (now >= startTime) {
+          if (endTime && !isNaN(endTime.getTime())) {
+            return now <= endTime;
+          }
+          // No endTime or invalid - if it started within last 12 hours, consider it current
+          const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+          return startTime >= twelveHoursAgo;
         }
         
-        // If endTime exists and is valid, check if we're within the window
-        if (endTime && !isNaN(endTime.getTime())) {
-          return now <= endTime;
+        // Event hasn't started yet, but if it's starting within the next hour, consider it current
+        // (RadioCult might be playing pre-show content)
+        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+        if (startTime <= oneHourFromNow) {
+          return true;
         }
         
-        // If no valid endTime, consider it current if it started within the last 3 hours
-        const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-        return startTime >= threeHoursAgo;
-      }) || null;
+        return false;
+      }) || 
+      // Fallback: if no event matches, just use the first upcoming event
+      // (since there's always a show online, this is better than nothing)
+      (sortedEvents.length > 0 ? sortedEvents[0] : null);
 
     // Debug logging
     if (process.env.NODE_ENV === 'development') {

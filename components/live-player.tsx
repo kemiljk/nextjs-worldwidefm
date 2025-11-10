@@ -51,7 +51,7 @@ export default function LivePlayer() {
   });
 
   const [liveMetadata, setLiveMetadata] = useState<LiveMetadata>({});
-  
+
   // Simple: if we receive metadata from WebSocket, we have a show. Otherwise, nothing.
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -63,15 +63,36 @@ export default function LivePlayer() {
   const stationId = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
   const apiKey = process.env.NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY;
 
-  // Debug logging (development only)
+  // Fetch current show immediately on mount for instant display
+  // WebSocket will then update it in real-time
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.debug('[LivePlayer] Stream URL:', streamUrl);
-      console.debug('[LivePlayer] Station ID:', stationId);
-    }
-  }, [streamUrl, stationId]);
+    const fetchCurrentShow = async () => {
+      try {
+        const response = await fetch('/api/live/current', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+        });
+        const data = await response.json();
 
-  // Schedule check removed - WebSocket is the only source of truth for live status
+        if (data.success && data.currentEvent) {
+          // Set initial show immediately - WebSocket will update it later
+          setLiveMetadata({
+            content: {
+              title: data.currentEvent.showName,
+              artist: data.currentEvent.artists?.[0]?.name,
+              image: data.currentEvent.imageUrl,
+            },
+          });
+        }
+      } catch (error) {
+        // Silently fail - WebSocket will provide data
+      }
+    };
+
+    fetchCurrentShow();
+  }, []);
   // Schedule API is unreliable for real-time detection, WebSocket provides instant updates
 
   // Initialize audio element when we have metadata from WebSocket
@@ -189,20 +210,23 @@ export default function LivePlayer() {
             | {
                 status?: string;
                 content?: { title?: string; artist?: string; image?: string; name?: string };
-                metadata?: { bitrate?: number; listeners?: number; title?: string; artist?: string };
+                metadata?: {
+                  bitrate?: number;
+                  listeners?: number;
+                  title?: string;
+                  artist?: string;
+                };
               }
             | undefined;
-          
+
           if (metadata) {
             // Extract content - prioritize show/playlist name (scheduled show) over current track
             // content.name = scheduled show name (e.g., "WWFM Playlist")
             // metadata.title = current track playing (e.g., "Leave The Hall")
-            const contentTitle = metadata.content?.name || 
-                                metadata.content?.title || 
-                                metadata.metadata?.title;
-            const contentArtist = metadata.content?.artist || 
-                                 metadata.metadata?.artist;
-            
+            const contentTitle =
+              metadata.content?.name || metadata.content?.title || metadata.metadata?.title;
+            const contentArtist = metadata.content?.artist || metadata.metadata?.artist;
+
             // Always update immediately with latest metadata - this is the current live show
             setLiveMetadata({
               content: {
@@ -315,7 +339,7 @@ export default function LivePlayer() {
   const handlePlayPause = () => {
     // If we have metadata, we can play
     if (!hasShow) return;
-    
+
     // Create event from WebSocket metadata
     const eventToPlay = {
       showName: liveMetadata.content?.title || 'Live Show',
@@ -352,7 +376,6 @@ export default function LivePlayer() {
 
   // Display current track/playlist name, or "Nothing currently live"
   const displayName = liveMetadata.content?.title || 'Nothing currently live';
-
 
   return (
     <div className='fixed top-0 bg-almostblack text-white dark:bg-black dark:text-white z-50 flex items-center transition-all duration-300 h-7 left-0 right-0 max-w-full'>
