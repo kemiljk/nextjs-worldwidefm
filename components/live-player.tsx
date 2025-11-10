@@ -71,39 +71,53 @@ export default function LivePlayer() {
     }
   }, [streamUrl, stationId]);
 
-  // Poll for current live event from schedule
+  // Poll for current live event from schedule (optional - only for show name fallback)
+  // WebSocket metadata is the source of truth for live status
   const checkSchedule = useCallback(async () => {
     try {
       const response = await fetch('/api/live/current');
       const data = await response.json();
 
       if (data.success && data.currentEvent) {
-        // Update live metadata with schedule data
-        setLiveMetadata({
-          status: 'live',
-          content: {
-            title: data.currentEvent.showName,
-            artist: data.currentEvent.artists?.[0]?.name,
-            image: data.currentEvent.imageUrl,
-          },
-        });
-      } else if (!data.isLive) {
-        // No live event, mark as offline
-        setLiveMetadata({
-          status: 'offline',
+        // Only update content if WebSocket hasn't provided it
+        // Never override WebSocket's live status
+        setLiveMetadata(prev => {
+          // If WebSocket says we're live, keep that status
+          // Only update content if we don't have a title from WebSocket
+          if (prev.status === 'live') {
+            return {
+              ...prev,
+              content: {
+                ...prev.content,
+                // Only fill in missing fields from schedule
+                title: prev.content?.title || data.currentEvent.showName,
+                artist: prev.content?.artist || data.currentEvent.artists?.[0]?.name,
+                image: prev.content?.image || data.currentEvent.imageUrl,
+              },
+            };
+          }
+          // If WebSocket says offline, use schedule data
+          return {
+            status: 'live',
+            content: {
+              title: data.currentEvent.showName,
+              artist: data.currentEvent.artists?.[0]?.name,
+              image: data.currentEvent.imageUrl,
+            },
+          };
         });
       }
+      // Don't mark as offline if schedule has no event - WebSocket is the source of truth
     } catch (error) {
       console.error('Error checking schedule:', error);
     }
   }, []);
 
-  // Check schedule on mount and every 30 seconds
+  // Check schedule on mount only (for initial show name if WebSocket hasn't connected yet)
+  // WebSocket is the primary source of truth, schedule is just a fallback for show names
   useEffect(() => {
+    // Only check once on mount - WebSocket will handle real-time updates
     checkSchedule();
-    const interval = setInterval(checkSchedule, 30000); // Poll every 30 seconds
-
-    return () => clearInterval(interval);
   }, [checkSchedule]);
 
   // Initialize audio element ONLY when we have a live event
@@ -220,15 +234,35 @@ export default function LivePlayer() {
           const metadata = data as
             | {
                 status?: string;
-                content?: { title?: string; artist?: string; image?: string };
-                metadata?: { bitrate?: number; listeners?: number };
+                content?: { title?: string; artist?: string; image?: string; name?: string };
+                metadata?: { bitrate?: number; listeners?: number; title?: string; artist?: string };
               }
             | undefined;
           if (metadata) {
             console.log('Received metadata:', metadata);
+            
+            // Consider it live if status is 'live', 'defaultPlaylist', or any non-empty status
+            // RadioCult sends 'defaultPlaylist' when there's content playing
+            const isLive = metadata.status === 'live' || 
+                          metadata.status === 'defaultPlaylist' || 
+                          (metadata.status && metadata.status !== 'offline');
+            
+            // Extract content from metadata.content or metadata.metadata
+            // Prioritize current track (metadata.title) over playlist name (content.name)
+            const contentTitle = metadata.metadata?.title || 
+                                metadata.content?.title || 
+                                metadata.content?.name;
+            const contentArtist = metadata.metadata?.artist || 
+                                 metadata.content?.artist;
+            
+            // WebSocket metadata is the source of truth - always update when received
             setLiveMetadata({
-              status: (metadata.status === 'live' ? 'live' : 'offline') as 'live' | 'offline',
-              content: metadata.content,
+              status: (isLive ? 'live' : 'offline') as 'live' | 'offline',
+              content: {
+                title: contentTitle,
+                artist: contentArtist,
+                image: metadata.content?.image,
+              },
               metadata: metadata.metadata,
             });
 
@@ -377,11 +411,15 @@ export default function LivePlayer() {
   };
 
   const hasLive = Boolean(currentLiveEvent);
+  // Prioritize WebSocket metadata - if it says live, we're live (even if schedule API doesn't find an event)
   const isActuallyLive = liveMetadata.status === 'live' || hasLive;
 
   // Use metadata from WebSocket if available, fallback to event data
+  // If WebSocket shows content but no title, show a default message
   const displayName =
-    liveMetadata.content?.title || currentLiveEvent?.showName || 'Nothing currently live';
+    liveMetadata.content?.title || 
+    currentLiveEvent?.showName || 
+    (liveMetadata.status === 'live' ? 'Live Now' : 'Nothing currently live');
 
   return (
     <div className='fixed top-0 bg-almostblack text-white dark:bg-black dark:text-white z-50 flex items-center transition-all duration-300 h-7 left-0 right-0 max-w-full'>

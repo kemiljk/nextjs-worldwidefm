@@ -529,14 +529,16 @@ export async function getScheduleData(): Promise<{
   upcomingEvents: RadioCultEvent[];
 }> {
   try {
-    // Get events for the next week
+    // Get events for the next week, including events that may have started recently
     const now = new Date();
+    const startDate = new Date(now);
+    startDate.setHours(startDate.getHours() - 3); // Look back 3 hours to catch events that just started
     const endDate = new Date(now);
     endDate.setDate(endDate.getDate() + 7); // Look ahead 7 days for more upcoming content
 
     // Direct fetch to schedule endpoint
     const { events = [] } = await getEvents({
-      startDate: now.toISOString(),
+      startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       limit: 25, // Increased limit to get more upcoming shows
     });
@@ -557,12 +559,46 @@ export async function getScheduleData(): Promise<{
     });
 
     // Find the current event (one that's currently running)
+    // Use a more lenient check: event has started and either:
+    // 1. Hasn't ended yet (if endTime exists), OR
+    // 2. Started within the last 3 hours (if endTime is missing/invalid)
     const currentEvent =
       sortedEvents.find(event => {
+        if (!event.startTime) {
+          return false;
+        }
+        
         const startTime = new Date(event.startTime);
-        const endTime = new Date(event.endTime);
-        return now >= startTime && now <= endTime;
+        const endTime = event.endTime ? new Date(event.endTime) : null;
+        
+        // Event must have started
+        if (now < startTime) {
+          return false;
+        }
+        
+        // If endTime exists and is valid, check if we're within the window
+        if (endTime && !isNaN(endTime.getTime())) {
+          return now <= endTime;
+        }
+        
+        // If no valid endTime, consider it current if it started within the last 3 hours
+        const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+        return startTime >= threeHoursAgo;
       }) || null;
+
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[getScheduleData] Events found:', sortedEvents.length);
+      console.log('[getScheduleData] Current time:', now.toISOString());
+      if (sortedEvents.length > 0) {
+        console.log('[getScheduleData] First event:', {
+          showName: sortedEvents[0].showName,
+          startTime: sortedEvents[0].startTime,
+          endTime: sortedEvents[0].endTime,
+        });
+      }
+      console.log('[getScheduleData] Current event found:', currentEvent ? currentEvent.showName : 'none');
+    }
 
     // Find upcoming events (excluding the current one)
     const upcomingEvents = sortedEvents.filter(event => {

@@ -3,6 +3,8 @@ import Stripe from 'stripe';
 import { cosmic } from '@/cosmic/client';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
   console.log('Webhook received');
@@ -58,14 +60,14 @@ export async function POST(request: NextRequest) {
           await handlePaymentFailed(event.data.object as Stripe.Invoice);
           break;
         default:
-          console.log(`Unhandled event type: ${event.type}`);
+          console.log(`Unhandled event type: ${event.type} [${event.id}]`);
       }
 
       console.log(`Successfully processed event: ${event.type} [${event.id}]`);
-      return NextResponse.json({ received: true });
+      return NextResponse.json({ received: true }, { status: 200 });
     } catch (handlerError) {
       const error = handlerError as Error;
-      console.error(`Error processing ${event.type}:`, error.message, error.stack);
+      console.error(`Error processing ${event.type} [${event.id}]:`, error.message, error.stack);
       return NextResponse.json(
         { error: 'Event processing failed', details: error.message },
         { status: 500 }
