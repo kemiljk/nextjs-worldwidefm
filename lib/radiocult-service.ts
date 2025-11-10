@@ -148,7 +148,8 @@ export interface RadioCultTag {
 async function fetchFromRadioCult<T>(
   endpoint: string,
   options: RequestInit = {},
-  useSecretKey: boolean = false
+  useSecretKey: boolean = false,
+  noCache: boolean = false
 ): Promise<T> {
   const apiKey = useSecretKey ? RADIOCULT_SECRET_KEY : RADIOCULT_PUBLISHABLE_KEY;
 
@@ -176,9 +177,10 @@ async function fetchFromRadioCult<T>(
       ...options,
       headers,
       next: {
-        revalidate: 900, // 15 minutes
+        revalidate: noCache ? 0 : 900, // No caching for live data, 15 min for others
         tags: ['radiocult'],
       },
+      ...(noCache && { cache: 'no-store' }), // Prevent caching only when requested
     });
 
     if (!response.ok) {
@@ -360,7 +362,8 @@ export async function getEvents(
 
   try {
     // Use the safer fetchFromRadioCult helper
-    const data = await fetchFromRadioCult<any>(endpoint);
+    // Pass noCache when forceRefresh is true to bypass all caching
+    const data = await fetchFromRadioCult<any>(endpoint, {}, false, forceRefresh);
 
     // Different endpoints have different response formats
     let events: RadioCultEvent[] = [];
@@ -537,11 +540,15 @@ export async function getScheduleData(): Promise<{
     endDate.setDate(endDate.getDate() + 7); // Look ahead 7 days for more upcoming content
 
     // Direct fetch to schedule endpoint
-    const { events = [] } = await getEvents({
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      limit: 25, // Increased limit to get more upcoming shows
-    });
+    // Force refresh to bypass cache for live data
+    const { events = [] } = await getEvents(
+      {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        limit: 25, // Increased limit to get more upcoming shows
+      },
+      true // forceRefresh = true to bypass cache
+    );
 
     // Check if we have events
     if (!events || events.length === 0) {

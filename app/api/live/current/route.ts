@@ -12,11 +12,21 @@ export async function GET() {
   try {
     const { currentEvent } = await getScheduleData();
 
-    return NextResponse.json({
-      success: true,
-      currentEvent,
-      isLive: !!currentEvent,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        currentEvent,
+        isLive: !!currentEvent,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error fetching current live event:', error);
     return NextResponse.json(
@@ -26,7 +36,14 @@ export async function GET() {
         currentEvent: null,
         isLive: false,
       },
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
     );
   }
 }
