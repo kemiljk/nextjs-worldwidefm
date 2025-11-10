@@ -1,5 +1,6 @@
 import type React from 'react';
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import Nimbus from 'next/font/local';
 import AirCompressed from 'next/font/local';
 import FoundersGrotesk from 'next/font/local';
@@ -60,6 +61,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${sans.variable} ${display.variable} ${mono.variable} min-h-screen w-full bg-background font-sans`}
       >
+        <Script
+          src='https://cdn.socket.io/4.7.2/socket.io.min.js'
+          strategy='beforeInteractive'
+        />
         <PlausibleProvider domain='worldwidefm.net'>
           <ThemeProvider
             attribute='class'

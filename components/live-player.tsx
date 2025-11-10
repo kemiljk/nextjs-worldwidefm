@@ -57,7 +57,6 @@ export default function LivePlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const socketRef = useRef<ReturnType<NonNullable<typeof window.io>> | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const metadataTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Environment variables
   const streamUrl = process.env.NEXT_PUBLIC_RADIOCULT_STREAM_URL;
@@ -181,12 +180,11 @@ export default function LivePlayer() {
         });
 
         socket.on('connect', () => {
-          console.log('RadioCult WebSocket connected');
           setStreamState(prev => ({ ...prev, error: null }));
+          // Metadata will arrive immediately after connect, updating to current show
         });
 
         socket.on('player-metadata', (data?: unknown) => {
-          console.log('[LivePlayer] Raw WebSocket data received:', data);
           const metadata = data as
             | {
                 status?: string;
@@ -196,8 +194,6 @@ export default function LivePlayer() {
             | undefined;
           
           if (metadata) {
-            console.log('[LivePlayer] Parsed metadata:', metadata);
-            
             // Extract content - prioritize show/playlist name (scheduled show) over current track
             // content.name = scheduled show name (e.g., "WWFM Playlist")
             // metadata.title = current track playing (e.g., "Leave The Hall")
@@ -207,9 +203,7 @@ export default function LivePlayer() {
             const contentArtist = metadata.content?.artist || 
                                  metadata.metadata?.artist;
             
-            console.log('[LivePlayer] Extracted title:', contentTitle, 'artist:', contentArtist);
-            
-            // If we receive metadata, we have a show - update it
+            // Always update immediately with latest metadata - this is the current live show
             setLiveMetadata({
               content: {
                 title: contentTitle,
@@ -218,24 +212,13 @@ export default function LivePlayer() {
               },
               metadata: metadata.metadata,
             });
-
-            // Reset metadata timeout - if no updates for 2 minutes, clear metadata
-            if (metadataTimeoutRef.current) {
-              clearTimeout(metadataTimeoutRef.current);
-            }
-            metadataTimeoutRef.current = setTimeout(() => {
-              console.log('[LivePlayer] No metadata updates for 2 minutes, clearing');
-              setLiveMetadata({});
-            }, 120000);
-          } else {
-            console.log('[LivePlayer] No metadata in received data');
           }
         });
 
         socket.on('disconnect', () => {
-          console.log('RadioCult WebSocket disconnected');
-          // Attempt reconnection after 5 seconds
-          reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
+          // Attempt reconnection immediately - don't clear metadata yet
+          // Keep showing last known show until we reconnect and get new data
+          reconnectTimeoutRef.current = setTimeout(connectWebSocket, 1000);
         });
 
         socket.on('error', (error?: unknown) => {
@@ -249,24 +232,31 @@ export default function LivePlayer() {
     }
   }, [stationId, apiKey]);
 
-  // Initialize WebSocket connection only when needed
+  // Initialize WebSocket connection immediately on mount
   useEffect(() => {
-    // Only connect WebSocket if we have environment variables configured
-    // and either have a live event or need to detect one
     if (!stationId || !apiKey) {
       return;
     }
 
-    // Load Socket.IO if not already loaded
-    if (typeof window !== 'undefined' && !window.io) {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
-      script.onload = () => {
+    // Connect immediately - Socket.IO should be preloaded in layout
+    // If not available, load it quickly
+    if (typeof window !== 'undefined') {
+      if (window.io) {
+        // Socket.IO already loaded, connect immediately
         connectWebSocket();
-      };
-      document.head.appendChild(script);
-    } else {
-      connectWebSocket();
+      } else {
+        // Load Socket.IO with async to not block, but connect as soon as ready
+        const script = document.createElement('script');
+        script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
+        script.async = true;
+        script.onload = () => {
+          connectWebSocket();
+        };
+        script.onerror = () => {
+          console.error('[LivePlayer] Failed to load Socket.IO');
+        };
+        document.head.appendChild(script);
+      }
     }
 
     return () => {
@@ -275,9 +265,6 @@ export default function LivePlayer() {
       }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (metadataTimeoutRef.current) {
-        clearTimeout(metadataTimeoutRef.current);
       }
     };
   }, [connectWebSocket, stationId, apiKey]);
@@ -366,14 +353,6 @@ export default function LivePlayer() {
   // Display current track/playlist name, or "Nothing currently live"
   const displayName = liveMetadata.content?.title || 'Nothing currently live';
 
-  // Debug logging
-  useEffect(() => {
-    console.log('[LivePlayer] Current state:', {
-      hasShow,
-      displayName,
-      liveMetadata,
-    });
-  }, [hasShow, displayName, liveMetadata]);
 
   return (
     <div className='fixed top-0 bg-almostblack text-white dark:bg-black dark:text-white z-50 flex items-center transition-all duration-300 h-7 left-0 right-0 max-w-full'>
