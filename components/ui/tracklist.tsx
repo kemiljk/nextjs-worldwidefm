@@ -15,18 +15,22 @@ export function Tracklist({ content, className = '' }: TracklistProps) {
 
   // Parse the tracklist content to extract artist and title information
   const parseTracklist = (htmlContent: string): Track[] => {
-    // Create a temporary DOM element to parse HTML
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
-
     const tracks: Track[] = [];
 
-    // Look for common tracklist patterns
-    // Replace <br> tags with newlines to handle mixed content formats
-    const contentWithNewlines = htmlContent.replace(/<br\s*\/?>/gi, '\n');
-    const tempDiv2 = document.createElement('div');
-    tempDiv2.innerHTML = contentWithNewlines;
-    const lines = tempDiv2.textContent?.split('\n') || [];
+    // Normalize HTML: replace <br> tags with newlines, handle <p> tags
+    // This handles both simple <br /> formats and Rich Text editor formats with <p> tags
+    let normalizedContent = htmlContent
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<p[^>]*>/gi, '')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<div[^>]*>/gi, '');
+    
+    // Create a temporary DOM element to extract text content
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = normalizedContent;
+    const textContent = tempDiv.textContent || '';
+    const lines = textContent.split('\n');
 
     for (const line of lines) {
       const trimmedLine = line.trim();
@@ -126,10 +130,17 @@ export function TracklistServer({ content, className = '' }: TracklistProps) {
 
   // Simple parsing for server-side rendering
   const parseTracklistServer = (htmlContent: string): Track[] => {
-    // Replace <br> tags with newlines before removing other HTML tags
-    const contentWithNewlines = htmlContent.replace(/<br\s*\/?>/gi, '\n');
+    // Normalize HTML: replace <br> tags with newlines, handle <p> tags
+    // This handles both simple <br /> formats and Rich Text editor formats with <p> tags
+    let normalizedContent = htmlContent
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<p[^>]*>/gi, '')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<div[^>]*>/gi, '');
+    
     // Remove remaining HTML tags and split by lines
-    const cleanContent = contentWithNewlines.replace(/<[^>]*>/g, '');
+    const cleanContent = normalizedContent.replace(/<[^>]*>/g, '');
     const lines = cleanContent.split('\n');
 
     const tracks: Track[] = [];

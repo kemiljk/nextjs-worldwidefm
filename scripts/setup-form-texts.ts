@@ -70,7 +70,7 @@ async function setupFormTexts() {
           type: 'textarea',
           title: 'Tracklist Description',
           key: 'tracklist_description',
-          value: 'Add each track on a new line in the format: Artist - Track Title',
+          value: 'Add each track on a new line in the format: Artist - Track Title [Record Label]',
         },
         // Location Section
         {
@@ -119,7 +119,8 @@ async function setupFormTexts() {
         artist_select_description: 'Select the main artist for this show or add a new one',
         additional_information_title: 'Additional Information',
         genres_description: 'Select genres to categorize this show',
-        tracklist_description: 'Add each track on a new line in the format: Artist - Track Title',
+        tracklist_description:
+          'Add each track on a new line in the format: Artist - Track Title [Record Label]',
         location_title: 'Location',
         location_select_description: 'Select a location for this show',
         media_file_title: 'Media File',

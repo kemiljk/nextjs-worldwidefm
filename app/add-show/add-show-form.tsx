@@ -888,8 +888,9 @@ export function AddShowForm() {
                   />
                 </FormControl>
                 <FormDescription>
-                  {formTexts['additional-information']?.descriptions.tracklist ||
-                    'Add each track on a new line in the format: Artist - Track Title'}
+                  {
+                    'Add each track on a new line in the format: Artist - Track [Record Label]. Example: Aphex Twin - Avril 14th [Warp Records]. The record label in square brackets is optional.'
+                  }
                 </FormDescription>
                 <FormMessage />
               </FormItem>
