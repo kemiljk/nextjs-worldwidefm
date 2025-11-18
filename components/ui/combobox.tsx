@@ -75,10 +75,10 @@ export function Combobox({
           <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className='max-w-50 w-full p-0 font-mono uppercase' align='start'>
-        <Command>
-          <CommandInput className='font-mono uppercase' placeholder={searchPlaceholder} />
-          <CommandList>
+      <PopoverContent className='max-w-50 w-full p-0 font-mono uppercase' align='start' sideOffset={4}>
+        <Command className='flex flex-col max-h-[300px]' onWheel={(e) => e.stopPropagation()}>
+          <CommandInput className='font-mono uppercase flex-shrink-0' placeholder={searchPlaceholder} />
+          <CommandList className='flex-1 min-h-0 overflow-y-auto overflow-x-hidden'>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {sortedOptions.map(option => (

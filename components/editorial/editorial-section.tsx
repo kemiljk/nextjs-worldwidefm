@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { PostObject } from '@/lib/cosmic-config';
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { getPostThumbnail } from '@/lib/post-thumbnail-utils';
 
 import Link from 'next/link';
 
@@ -198,10 +199,7 @@ export default function EditorialSection({
                 url: `/editorial/${post.slug}`,
                 slug: post.slug,
                 pictures: {
-                  large:
-                    post.thumbnail?.imgix_url ||
-                    post.metadata?.image?.imgix_url ||
-                    '/image-placeholder.png',
+                  large: getPostThumbnail(post),
                 },
                 created_time: post.metadata?.date || '',
                 tags,
@@ -258,11 +256,7 @@ export default function EditorialSection({
                     key={`post-${post.id}`}
                     title={post.title}
                     slug={post.slug}
-                    image={
-                      post.thumbnail?.imgix_url ||
-                      post.metadata?.image?.imgix_url ||
-                      '/image-placeholder.png'
-                    }
+                    image={getPostThumbnail(post)}
                     date={post.metadata?.date || ''}
                     tags={tags}
                     categories={post.metadata?.categories || []}

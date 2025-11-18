@@ -10,6 +10,7 @@ import { subDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { GenreTag } from '@/components/ui/genre-tag';
+import { getPostThumbnail } from '@/lib/post-thumbnail-utils';
 
 interface PostsGridProps {
   initialPosts: PostObject[];
@@ -99,11 +100,7 @@ export default function PostsGrid({
               <div className='relative'>
                 <div className='relative aspect-square w-full overflow-hidden'>
                   <Image
-                    src={
-                      post.thumbnail?.imgix_url ||
-                      post.metadata?.image?.imgix_url ||
-                      '/image-placeholder.png'
-                    }
+                    src={getPostThumbnail(post)}
                     alt={post.title}
                     fill
                     className='object-cover'

@@ -1,5 +1,6 @@
 import { createBucketClient } from '@cosmicjs/sdk';
 import { CosmicResponse, RadioShowObject, CategoryObject, PostObject } from './cosmic-config';
+import { EpisodeObject } from './cosmic-types';
 import { broadcastToISOString, extractDatePart } from './date-utils';
 
 const cosmic = createBucketClient({
@@ -116,6 +117,10 @@ export async function getRadioShows(
       };
     }
 
+    // Always exclude future broadcast dates
+    const today = new Date();
+    const todayStr = extractDatePart(today.toISOString());
+
     // Add filter conditions
     if (params.filters) {
       const { genre, host, takeover, isNew } = params.filters;
@@ -127,7 +132,13 @@ export async function getRadioShows(
           ...query,
           'metadata.broadcast_date': {
             $gte: extractDatePart(thirtyDaysAgo.toISOString()),
+            $lte: todayStr,
           },
+        };
+      } else {
+        query = {
+          ...query,
+          'metadata.broadcast_date': { $lte: todayStr },
         };
       }
 
@@ -153,6 +164,12 @@ export async function getRadioShows(
           'metadata.takeovers.id': takeover,
         };
       }
+    } else {
+      // No filters provided, but still exclude future dates
+      query = {
+        ...query,
+        'metadata.broadcast_date': { $lte: todayStr },
+      };
     }
 
     const response = await cosmic.objects
@@ -293,7 +310,7 @@ export async function getSchedule(): Promise<CosmicResponse<Schedule> | null> {
 /**
  * Helper function to transform Cosmic data to the format used in the mock data
  */
-export function transformShowToViewData(show: RadioShowObject) {
+export function transformShowToViewData(show: RadioShowObject | EpisodeObject) {
   const imageUrl = show.metadata?.image?.imgix_url || '/image-placeholder.png';
   const transformed = {
     id: show.id,

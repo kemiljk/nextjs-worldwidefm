@@ -64,7 +64,10 @@ export default function Navbar({ navItems }: NavbarProps) {
   const processedOverflowNavItems = processedNavItems.slice(7);
 
   return (
-    <header className='w-full fixed top-7 left-0 right-0 z-50 transition-all border-b border-t border-almostblack dark:border-white duration-300 bg-background'>
+    <header
+      className='w-full fixed left-0 right-0 z-40 transition-all border-b border-t border-almostblack dark:border-white duration-300 bg-background'
+      style={{ top: '44px' }}
+    >
       <div className='w-full flex flex-1 justify-between'>
         <div className='flex items-center ml-4 w-full'>
           <Link href='/' className='flex items-center'>

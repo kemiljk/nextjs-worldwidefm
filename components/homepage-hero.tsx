@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -18,14 +20,14 @@ const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
   const { playShow, pauseShow, selectedShow, isArchivePlaying } = useMediaPlayer();
 
   const href =
-    item.type === 'episodes'
+    item.type === 'episode' || item.type === 'episodes'
       ? `/episode/${item.slug}`
       : item.type === 'posts'
         ? `/editorial/${item.slug}`
         : '#';
 
   // Check if this item has audio content and can be played
-  const isEpisode = item.type === 'episodes';
+  const isEpisode = item.type === 'episode' || item.type === 'episodes';
   const hasAudioContent = item.url || item.metadata?.player;
   const shouldShowPlayButton = isEpisode && hasAudioContent;
 
@@ -46,7 +48,7 @@ const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
   return (
     <Card
       key={item.slug}
-      className='overflow-hidden shadow-none rounded-none relative cursor-pointer h-full flex flex-col group'
+      className='overflow-hidden shadow-none rounded-none relative cursor-pointer m-0 h-full flex flex-col group'
     >
       <Link href={href} className='flex flex-col h-full'>
         <CardContent className='p-0 grow flex flex-col'>
@@ -137,7 +139,7 @@ const HomepageHero: React.FC<HomepageHeroProps> = ({ heroLayout, heroItems }) =>
     const item2 = heroItems.length > 1 ? heroItems[1] : null;
 
     return (
-      <div className='grid grid-cols-1 md:grid-cols-2 relative z-10'>
+      <div className='grid grid-cols-1 md:grid-cols-2 gap-3 pt-5 px-5 relative z-10'>
         <div className='flex flex-col h-full'>{item1 && renderHeroItem(item1, true)}</div>
         <div className='h-full'>
           <div className='flex flex-col h-full'>{item2 && renderHeroItem(item2, false)}</div>
@@ -183,8 +185,6 @@ export const EpisodeHero = ({
   // For other content, check if there's actual audio content
   const isEpisode = show?.__source === 'episode' || show?.episodeData || show?.type === 'episode';
   const hasAudioContent = show?.url || show?.player || show?.metadata?.player;
-  const shouldShowPlayButton =
-    (isEpisode || hasAudioContent) && (show?.metadata?.player || show?.url);
 
   return (
     <div className='relative w-full h-[80vh] sm:h-200 aspect-2/1 flex flex-col justify-center overflow-hidden'>

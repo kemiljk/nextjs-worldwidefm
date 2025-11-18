@@ -11,7 +11,6 @@ import {
   Minus,
   Music2,
   Newspaper,
-  Calendar,
   Video,
   Loader,
   AlertCircle,
@@ -20,64 +19,46 @@ import {
   Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getAllPosts, getVideos, getAllEvents, getTakeovers, getRegularHosts, searchEpisodes } from '@/lib/actions';
+import { getAllPosts, getVideos, getTakeovers, getRegularHosts, searchEpisodes, getShowsFilters } from '@/lib/actions';
+import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import type { ContentType } from '@/lib/search/types';
-import type { PostObject, VideoObject } from '@/lib/cosmic-config';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useInView } from 'react-intersection-observer';
+import { Combobox } from '@/components/ui/combobox';
 
 interface SearchDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const typeLabels: Record<ContentType, { label: string; icon: React.ElementType; color: string }> = {
-  episodes: { label: 'Episodes', icon: Music2, color: 'text-foreground' },
-  posts: { label: 'Posts', icon: Newspaper, color: 'text-foreground' },
-  events: { label: 'Events', icon: Calendar, color: 'text-foreground' },
-  videos: { label: 'Videos', icon: Video, color: 'text-foreground' },
-  takeovers: { label: 'Takeovers', icon: MicVocal, color: 'text-foreground' },
-  'hosts-series': { label: 'Hosts & Series', icon: Users, color: 'text-foreground' },
+const typeLabels: Record<string, { label: string; icon: React.ElementType; color: string }> = {
+  episodes: { label: 'Latest Shows', icon: Music2, color: 'text-foreground' },
+  posts: { label: 'Editorial', icon: Newspaper, color: 'text-foreground' },
+  videos: { label: 'Video', icon: Video, color: 'text-foreground' },
+  takeovers: { label: 'Takeover', icon: MicVocal, color: 'text-foreground' },
+  'hosts-series': { label: 'Hosts', icon: Users, color: 'text-foreground' },
 };
-
-// Helper function to extract YouTube video ID from URL
-function getYouTubeThumbnail(url: string): string {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  if (match && match[2].length === 11) {
-    return `https://img.youtube.com/vi/${match[2]}/maxresdefault.jpg`;
-  }
-  return '';
-}
-
-// Helper function to extract Vimeo video ID from URL
-function getVimeoThumbnail(url: string): string {
-  const regExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
-  const match = url.match(regExp);
-  if (match && match[1]) {
-    return `https://vumbnail.com/${match[1]}.jpg`;
-  }
-  return '';
-}
 
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [results, setResults] = useState<any[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
-  const [videoCategories, setVideoCategories] = useState<any[]>([]);
+  const [canonicalGenres, setCanonicalGenres] = useState<any[]>([]);
+  const [availableFilters, setAvailableFilters] = useState<any>({ genres: [], hosts: [], locations: [] });
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  const [selectedHosts, setSelectedHosts] = useState<string[]>([]);
   // On mobile: showFilters = false means show results, true means show filters overlay.
-  const [showFilters, setShowFilters] = useState(false); // For mobile toggle: start with results list
+  const [showFilters, setShowFilters] = useState(false);
   const { ref: observerTarget, inView } = useInView({
     threshold: 0.1,
     rootMargin: '100px',
@@ -87,109 +68,49 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const requestIdRef = useRef<number>(0);
   const PAGE_SIZE = 20;
 
-  // On dialog open, check which types have at least one result and fetch video categories
+  // On dialog open, check which types have at least one result and fetch filter data
   useEffect(() => {
     if (!open) return;
-    async function checkTypes() {
+    async function checkTypesAndFetchFilters() {
       try {
         const types: string[] = [];
-        const [episodes, posts, videos, events, takeovers, hosts, videoCategories] = await Promise.all([
+        const [episodes, posts, videos, takeovers, hosts, filtersData, genresData] = await Promise.all([
           searchEpisodes({ limit: 1 }),
           getAllPosts({ limit: 1 }),
           getVideos({ limit: 1 }),
-          getAllEvents({ limit: 1 }),
           getTakeovers({ limit: 1 }),
           getRegularHosts({ limit: 1 }),
-          import('@/lib/actions').then(m => m.getVideoCategories()),
+          getShowsFilters(),
+          getCanonicalGenres(),
         ]);
         if (episodes?.shows?.length > 0) types.push('episodes');
         if (posts?.posts?.length > 0) types.push('posts');
-        if (events?.events?.length > 0) types.push('events');
         if (videos?.videos?.length > 0) types.push('videos');
         if (takeovers?.shows?.length > 0) types.push('takeovers');
         if (hosts?.shows?.length > 0) types.push('hosts-series');
         setAvailableTypes(types);
-        setVideoCategories(videoCategories);
+        setAvailableFilters(filtersData);
+        setCanonicalGenres(genresData);
       } catch (error) {
-        console.warn('Error checking available types:', error);
+        console.warn('Error checking available types or fetching filters:', error);
         setAvailableTypes([]);
       }
     }
-    checkTypes();
+    checkTypesAndFetchFilters();
   }, [open]);
 
-  // Determine selected content type and selected tags
+  // Determine selected content type
   const selectedType = activeFilters.find(f => Object.keys(typeLabels).includes(f)) || 'episodes';
-  const selectedTags = activeFilters.filter(f => !Object.keys(typeLabels).includes(f));
 
-  // Fetch tags for the selected type
-  useEffect(() => {
-    if (!open) return;
-    
-    // Immediately clear tags for types that don't support genre filtering
-    if (selectedType === 'takeovers' || selectedType === 'hosts-series') {
-      setTags([]);
-      // Clear any tag filters that were previously selected
-      setActiveFilters(prev => prev.filter(f => Object.keys(typeLabels).includes(f)));
-      return;
-    }
-    
-    async function fetchTags() {
-      try {
-        const tagSet = new Set<string>();
-        if (selectedType === 'episodes') {
-          const response = await searchEpisodes({ limit: 100, offset: 0 });
-          response?.shows?.forEach((episode: any) => {
-            const genres = episode?.metadata?.genres || [];
-            genres.forEach((genre: any) => {
-              if (genre?.title && genre?.id) {
-                // Store both title and ID for easy access
-                tagSet.add(`${genre.title}|${genre.id}`);
-              }
-            });
-          });
-        } else if (selectedType === 'posts') {
-          const { posts } = await getAllPosts({ limit: 100, offset: 0 });
-          posts?.forEach((post: PostObject) => {
-            post?.metadata?.categories?.forEach((cat: any) => {
-              if (cat?.title) tagSet.add(cat.title);
-            });
-          });
-        } else if (selectedType === 'videos') {
-          const { videos } = await getVideos({ limit: 100, offset: 0 });
-          videos?.forEach((video: VideoObject) => {
-            video?.metadata?.categories?.forEach((cat: any) => {
-              if (cat?.title) tagSet.add(cat.title);
-            });
-          });
-        } else if (selectedType === 'events') {
-          const { events } = await getEvents({ limit: 100, offset: 0 });
-          events?.forEach((event: any) => {
-            event?.metadata?.categories?.forEach((cat: any) => {
-              if (cat?.title) tagSet.add(cat.title);
-            });
-          });
-        }
-        setTags(Array.from(tagSet).sort((a, b) => a.localeCompare(b)));
-      } catch (error) {
-        console.warn('Error fetching tags:', error);
-        setTags([]);
-      }
-    }
-    fetchTags();
-  }, [open, selectedType]);
-
-  // Fetch results for the selected type, tags, and search
+  // Fetch results for the selected type, filters, and search
   useEffect(() => {
     if (!open) return;
 
     let isMounted = true;
-    // Increment request ID to invalidate previous requests
     requestIdRef.current += 1;
     const currentRequestId = requestIdRef.current;
     
-    // Only show loading if we have a search term or filters
-    const hasSearchOrFilters = debouncedSearchTerm?.trim().length > 0 || selectedTags.length > 0;
+    const hasSearchOrFilters = debouncedSearchTerm?.trim().length > 0 || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0;
     
     if (hasSearchOrFilters) {
       setIsLoading(true);
@@ -198,8 +119,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     setHasNext(true);
 
     async function fetchResults() {
-      // Skip if search term is too short (less than 2 chars) unless we have filters or it's empty
-      if (debouncedSearchTerm && debouncedSearchTerm.trim().length > 0 && debouncedSearchTerm.trim().length < 2 && selectedTags.length === 0) {
+      if (debouncedSearchTerm && debouncedSearchTerm.trim().length > 0 && debouncedSearchTerm.trim().length < 2 && selectedGenres.length === 0 && selectedLocations.length === 0 && selectedHosts.length === 0) {
         if (isMounted && currentRequestId === requestIdRef.current) {
           setResults([]);
           setIsLoading(false);
@@ -207,145 +127,81 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         return;
       }
       
-      // If no search term and no filters, show default results
-      const shouldFetchDefault = !debouncedSearchTerm && selectedTags.length === 0;
-      
       try {
         let res: any;
         let allResults: any[] = [];
 
         if (selectedType === 'episodes') {
-          // Fetch episodes from Cosmic using server action to avoid CORS issues
           const searchParams: any = {
-            limit: (debouncedSearchTerm?.trim().length >= 2 || selectedTags.length > 0) ? 1000 : PAGE_SIZE, // Higher limit for search/genre filtering, normal limit for browsing
+            limit: (debouncedSearchTerm?.trim().length >= 2 || selectedGenres.length > 0 || selectedLocations.length > 0) ? 1000 : PAGE_SIZE,
             offset: 0,
           };
 
-          // Add search term if present and at least 2 characters
           if (debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2) {
             searchParams.searchTerm = debouncedSearchTerm.trim();
           }
 
-          // If tags selected, extract genre IDs directly from selected tags
-          if (selectedTags.length > 0) {
-            const ids = selectedTags
-              .map(tag => {
-                // For episodes, tags are in format "title|id"
-                if (selectedType === 'episodes' && tag.includes('|')) {
-                  return tag.split('|')[1]; // Extract ID part
-                }
-                return null;
-              })
-              .filter(Boolean);
-
-            console.log('[SearchDialog] Selected tags:', selectedTags);
-            console.log('[SearchDialog] Genre IDs extracted:', ids);
-
-            if (ids.length > 0) {
-              searchParams.genre = ids;
-            }
+          if (selectedGenres.length > 0) {
+            searchParams.genre = selectedGenres;
           }
 
-          console.log('[SearchDialog] Fetching episodes with params:', searchParams);
+          if (selectedLocations.length > 0) {
+            searchParams.location = selectedLocations;
+          }
+
           res = await searchEpisodes(searchParams);
           allResults = res?.shows || [];
-          console.log('[SearchDialog] Found episodes:', allResults.length);
-          console.log('[SearchDialog] Raw response:', res);
-          // Episodes are already sorted by Cosmic order/broadcast_date from server query
         } else if (selectedType === 'posts') {
           const searchParams = debouncedSearchTerm
-            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 } // Increased limit for search
-            : { limit: selectedTags.length > 0 ? 1000 : 100, offset: 0 }; // Increased limit for genre filtering
+            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 }
+            : { limit: 100, offset: 0 };
           res = await getAllPosts(searchParams);
           allResults = res?.posts || [];
-          // Note: Posts don't have server-side genre filtering yet, so we keep client-side filtering for now
-          if (selectedTags.length > 0) {
-            allResults = allResults.filter((post: any) =>
-              selectedTags.every(
-                tag =>
-                  Array.isArray(post?.metadata?.categories) &&
-                  post.metadata.categories.some(
-                    (cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase()
-                  )
-              )
-            );
-          }
         } else if (selectedType === 'videos') {
           const searchParams = debouncedSearchTerm
-            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 } // Increased limit for search
-            : { limit: selectedTags.length > 0 ? 1000 : 100, offset: 0 }; // Increased limit for genre filtering
+            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 }
+            : { limit: 100, offset: 0 };
           res = await getVideos(searchParams);
           allResults = res?.videos || [];
-          if (selectedTags.length > 0) {
-            allResults = allResults.filter((video: any) =>
-              selectedTags.every(
-                tag =>
-                  Array.isArray(video?.metadata?.categories) &&
-                  video.metadata.categories.some(
-                    (cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase()
-                  )
-              )
-            );
-          }
-        } else if (selectedType === 'events') {
-          const searchParams = debouncedSearchTerm
-            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 } // Increased limit for search
-            : { limit: selectedTags.length > 0 ? 1000 : 100, offset: 0 }; // Increased limit for genre filtering
-          res = await getEvents(searchParams);
-          allResults = res?.events || [];
-          if (selectedTags.length > 0) {
-            allResults = allResults.filter((event: any) =>
-              selectedTags.every(
-                tag =>
-                  Array.isArray(event?.metadata?.categories) &&
-                  event.metadata.categories.some(
-                    (cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase()
-                  )
-              )
-            );
-          }
         } else if (selectedType === 'takeovers') {
-          const searchParams = debouncedSearchTerm
-            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 } // Increased limit for search
-            : { limit: selectedTags.length > 0 ? 1000 : 100, offset: 0 }; // Increased limit for genre filtering
+          const searchParams: any = {
+            limit: (debouncedSearchTerm?.trim().length >= 2 || selectedGenres.length > 0 || selectedLocations.length > 0) ? 1000 : 100,
+            offset: 0,
+          };
+          if (debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2) {
+            searchParams.searchTerm = debouncedSearchTerm.trim();
+          }
+          if (selectedGenres.length > 0) {
+            searchParams.genre = selectedGenres;
+          }
+          if (selectedLocations.length > 0) {
+            searchParams.location = selectedLocations;
+          }
           res = await getTakeovers(searchParams);
           allResults = res?.shows || [];
-          if (selectedTags.length > 0) {
-            allResults = allResults.filter((takeover: any) =>
-              selectedTags.every(
-                tag =>
-                  Array.isArray(takeover?.metadata?.categories) &&
-                  takeover.metadata.categories.some(
-                    (cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase()
-                  )
-              )
-            );
-          }
         } else if (selectedType === 'hosts-series') {
-          const searchParams = debouncedSearchTerm
-            ? { limit: 1000, offset: 0 } // Increased limit for search
-            : { limit: selectedTags.length > 0 ? 1000 : 100, offset: 0 }; // Increased limit for genre filtering
-          res = await getRegularHosts(searchParams);
-          allResults = res?.shows || [];
-          // Filter by search term if provided
+          const searchParams: any = {
+            limit: (debouncedSearchTerm?.trim().length >= 2 || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0) ? 1000 : 100,
+            offset: 0,
+          };
           if (debouncedSearchTerm) {
             const searchLower = debouncedSearchTerm.toLowerCase();
+            res = await getRegularHosts(searchParams);
+            allResults = res?.shows || [];
             allResults = allResults.filter((host: any) =>
               host.title?.toLowerCase().includes(searchLower) ||
               host.metadata?.description?.toLowerCase().includes(searchLower) ||
               host.content?.toLowerCase().includes(searchLower)
             );
-          }
-          if (selectedTags.length > 0) {
-            allResults = allResults.filter((host: any) =>
-              selectedTags.every(
-                tag =>
-                  Array.isArray(host?.metadata?.categories) &&
-                  host.metadata.categories.some(
-                    (cat: any) => cat?.title && cat.title.toLowerCase() === tag.toLowerCase()
-                  )
-              )
-            );
+          } else {
+            if (selectedGenres.length > 0) {
+              searchParams.genre = selectedGenres;
+            }
+            if (selectedLocations.length > 0) {
+              searchParams.location = selectedLocations;
+            }
+            res = await getRegularHosts(searchParams);
+            allResults = res?.shows || [];
           }
         }
 
@@ -389,10 +245,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
     return () => {
       isMounted = false;
-      // Invalidate the current request
       requestIdRef.current += 1;
     };
-    }, [open, selectedType, selectedTags.join('|'), debouncedSearchTerm]);
+    }, [open, selectedType, selectedGenres.join('|'), selectedLocations.join('|'), selectedHosts.join('|'), debouncedSearchTerm]);
 
   // Debug: Log when debouncedSearchTerm changes
   useEffect(() => {
@@ -413,68 +268,66 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           try {
             let res: any;
             if (selectedType === 'episodes') {
-              const searchParams = debouncedSearchTerm
-                ? { searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset }
-                : { limit: PAGE_SIZE, offset: nextOffset };
+              const searchParams: any = {
+                limit: PAGE_SIZE,
+                offset: nextOffset,
+              };
+              if (debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2) {
+                searchParams.searchTerm = debouncedSearchTerm.trim();
+              }
+              if (selectedGenres.length > 0) {
+                searchParams.genre = selectedGenres;
+              }
+              if (selectedLocations.length > 0) {
+                searchParams.location = selectedLocations;
+              }
               res = await searchEpisodes(searchParams);
               setResults(prev => [...prev, ...(res?.shows || [])]);
               setHasNext(res?.hasNext || false);
             } else if (selectedType === 'posts') {
               const searchParams = debouncedSearchTerm
-                ? {
-                    tag: selectedTags.join('|'),
-                    searchTerm: debouncedSearchTerm,
-                    limit: PAGE_SIZE,
-                    offset: nextOffset,
-                  }
-                : { tag: selectedTags.join('|'), limit: PAGE_SIZE, offset: nextOffset };
+                ? { searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset }
+                : { limit: PAGE_SIZE, offset: nextOffset };
               res = await getAllPosts(searchParams);
               setResults(prev => [...prev, ...(res?.posts || [])]);
               setHasNext(res?.hasNext || false);
             } else if (selectedType === 'videos') {
               const searchParams = debouncedSearchTerm
-                ? {
-                    tag: selectedTags.join('|'),
-                    searchTerm: debouncedSearchTerm,
-                    limit: PAGE_SIZE,
-                    offset: nextOffset,
-                  }
-                : { tag: selectedTags.join('|'), limit: PAGE_SIZE, offset: nextOffset };
+                ? { searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset }
+                : { limit: PAGE_SIZE, offset: nextOffset };
               res = await getVideos(searchParams);
               setResults(prev => [...prev, ...(res?.videos || [])]);
               setHasNext(res?.hasNext || false);
-            } else if (selectedType === 'events') {
-              const searchParams = debouncedSearchTerm
-                ? {
-                    tag: selectedTags.join('|'),
-                    searchTerm: debouncedSearchTerm,
-                    limit: PAGE_SIZE,
-                    offset: nextOffset,
-                  }
-                : { tag: selectedTags.join('|'), limit: PAGE_SIZE, offset: nextOffset };
-              res = await getEvents(searchParams);
-              setResults(prev => [...prev, ...(res?.events || [])]);
-              setHasNext(res?.hasNext || false);
             } else if (selectedType === 'takeovers') {
-              const searchParams = debouncedSearchTerm
-                ? {
-                    tag: selectedTags.join('|'),
-                    searchTerm: debouncedSearchTerm,
-                    limit: PAGE_SIZE,
-                    offset: nextOffset,
-                  }
-                : { tag: selectedTags.join('|'), limit: PAGE_SIZE, offset: nextOffset };
+              const searchParams: any = {
+                limit: PAGE_SIZE,
+                offset: nextOffset,
+              };
+              if (debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2) {
+                searchParams.searchTerm = debouncedSearchTerm.trim();
+              }
+              if (selectedGenres.length > 0) {
+                searchParams.genre = selectedGenres;
+              }
+              if (selectedLocations.length > 0) {
+                searchParams.location = selectedLocations;
+              }
               res = await getTakeovers(searchParams);
               setResults(prev => [...prev, ...(res?.shows || [])]);
               setHasNext(res?.hasNext || false);
             } else if (selectedType === 'hosts-series') {
-              const searchParams = {
+              const searchParams: any = {
                 limit: PAGE_SIZE,
                 offset: nextOffset,
               };
+              if (selectedGenres.length > 0) {
+                searchParams.genre = selectedGenres;
+              }
+              if (selectedLocations.length > 0) {
+                searchParams.location = selectedLocations;
+              }
               res = await getRegularHosts(searchParams);
               let hosts = res?.shows || [];
-              // Filter by search term if provided
               if (debouncedSearchTerm) {
                 const searchLower = debouncedSearchTerm.toLowerCase();
                 hosts = hosts.filter((host: any) =>
@@ -496,7 +349,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         }
 
         fetchMore();
-      }, 1000); // 1000ms delay to match debounce
+      }, 1000);
 
       return () => {
         clearTimeout(timeoutId);
@@ -508,35 +361,29 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     isLoadingMore,
     page,
     selectedType,
-    selectedTags.join('|'),
+    selectedGenres.join('|'),
+    selectedLocations.join('|'),
+    selectedHosts.join('|'),
     debouncedSearchTerm,
   ]);
 
-  // Filter toggle logic (content type and tags)
+  // Filter toggle logic (content type only)
   const handleFilterToggle = (filter: { type: string; slug: string }) => {
-    setActiveFilters(prev => {
-      if (filter.type === 'types') {
-        // Only one type filter at a time
+    if (filter.type === 'types') {
+      setActiveFilters(prev => {
         return prev.includes(filter.slug)
           ? prev.filter(f => f !== filter.slug)
-          : [filter.slug, ...prev.filter(f => f !== filter.slug && !tags.includes(f))];
-      } else {
-        // Allow multiple tags to be selected
-        return prev.includes(filter.slug)
-          ? prev.filter(f => f !== filter.slug)
-          : [...prev, filter.slug];
-      }
-    });
-
-    // Clear search term when applying filters to show filtered results more clearly
-    if (searchTerm) {
-      setSearchTerm('');
+          : [filter.slug, ...prev.filter(f => !Object.keys(typeLabels).includes(f))];
+      });
     }
   };
 
   // Clear all filters
   const clearAllFilters = () => {
     setActiveFilters([]);
+    setSelectedGenres([]);
+    setSelectedLocations([]);
+    setSelectedHosts([]);
     setSearchTerm('');
     setPage(1);
     setResults([]);
@@ -626,11 +473,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             >
               {/* On mobile, add top margin for search bar and toggle */}
               <div className={cn('flex flex-col h-full', 'sm:mt-0', 'mt-0')}>
-                <div className='px-4 py-3 sm:border-b'>
+                    <div className='px-4 py-3 sm:border-b'>
                   <div className='flex h-4 items-center justify-between'>
                     <h3 className='font-mono uppercase text-m8'>Filters</h3>
                     <div className='flex items-center gap-2'>
-                      {activeFilters.length > 0 && (
+                      {(activeFilters.length > 0 || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0) && (
                         <Button
                           variant='outline'
                           size='sm'
@@ -640,7 +487,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                           Clear all
                         </Button>
                       )}
-                      {activeFilters.length > 0 && (
+                      {(activeFilters.length > 0 || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0) && (
                         <Button
                           variant='none'
                           size='icon'
@@ -654,60 +501,84 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   </div>
                 </div>
                 <div className='overflow-y-auto h-full bg-background hide-scrollbar'>
-                  <div>
+                  <div className='px-4 py-4 space-y-4'>
                     {/* Content Type Section */}
-                    <div className='border-b border-almostblack dark:border-white sm:py-2 pb-4'>
-                      <div className='pl-2 space-y-2'>
+                    <div className='border-b border-almostblack dark:border-white pb-4'>
+                      <div className='space-y-2'>
                         {availableTypes.map(type => {
-                          const { label, icon: Icon } = typeLabels[type as ContentType];
+                          const { label, icon: Icon } = typeLabels[type];
                           return (
                             <button
                               key={type}
                               onClick={() => handleFilterToggle({ type: 'types', slug: type })}
                               className={cn(
-                                'uppercase font-mono gap-3 rounded-full flex items-center px-3 py-2',
+                                'uppercase font-mono gap-3 rounded-full flex items-center px-3 py-2 w-full',
                                 activeFilters.includes(type)
                                   ? 'bg-accent text-accent-foreground'
                                   : 'hover:bg-accent/100 hover:text-white hover:cursor-pointer'
                               )}
                             >
                               <Icon className='h-4 w-4' />
-                              <span className='text-m8 leading-none'>{label} </span>
+                              <span className='text-m8 leading-none'>{label}</span>
                             </button>
                           );
                         })}
                       </div>
                     </div>
-                    {/* Tags Section - Only show for types that support genre/category filtering */}
-                    {(selectedType !== 'takeovers' && selectedType !== 'hosts-series') && tags.length > 0 && (
-                      <div
-                        className={`${selectedType === 'episodes' && results.length > 0 ? 'border-b border-almostblack dark:border-white' : ''} py-3`}
-                      >
-                        <div className='pl-2 space-y-1'>
-                          {tags.map(tag => {
-                            // For episodes, extract just the title part for display
-                            const displayTitle =
-                              selectedType === 'episodes' && tag.includes('|')
-                                ? tag.split('|')[0]
-                                : tag;
-
-                            return (
-                              <button
-                                key={tag}
-                                onClick={() => handleFilterToggle({ type: 'tags', slug: tag })}
-                                className={cn(
-                                  'uppercase font-mono text-m8 gap-2 rounded-full flex text-left items-start w-fit px-3 py-2',
-                                  activeFilters.includes(tag)
-                                    ? 'bg-accent text-accent-foreground'
-                                    : 'hover:bg-accent/100 hover:text-white hover:cursor-pointer'
-                                )}
-                              >
-                                <span className='text-m8 leading-none'>{displayTitle}</span>
-                                {activeFilters.includes(tag) && <X className='h-3 w-3' />}
-                              </button>
-                            );
-                          })}
-                        </div>
+                    {/* Filter Dropdowns */}
+                    {(selectedType === 'episodes' || selectedType === 'takeovers' || selectedType === 'hosts-series') && (
+                      <div className='space-y-3'>
+                        {canonicalGenres.length > 0 && (
+                          <div>
+                            <label className='block text-sm font-mono uppercase text-m8 mb-2'>Genre</label>
+                            <Combobox
+                              options={canonicalGenres.map(genre => ({
+                                value: genre.id,
+                                label: genre.title.toUpperCase(),
+                              }))}
+                              value={selectedGenres}
+                              onValueChange={setSelectedGenres}
+                              placeholder='Genres'
+                              searchPlaceholder='Search genres...'
+                              emptyMessage='No genres found.'
+                              className='w-full'
+                            />
+                          </div>
+                        )}
+                        {availableFilters.locations && availableFilters.locations.length > 0 && (
+                          <div>
+                            <label className='block text-sm font-mono uppercase text-m8 mb-2'>Location</label>
+                            <Combobox
+                              options={availableFilters.locations.map((location: any) => ({
+                                value: location.id,
+                                label: location.title.toUpperCase(),
+                              }))}
+                              value={selectedLocations}
+                              onValueChange={setSelectedLocations}
+                              placeholder='Locations'
+                              searchPlaceholder='Search locations...'
+                              emptyMessage='No locations found.'
+                              className='w-full'
+                            />
+                          </div>
+                        )}
+                        {selectedType === 'hosts-series' && availableFilters.hosts && availableFilters.hosts.length > 0 && (
+                          <div>
+                            <label className='block text-sm font-mono uppercase text-m8 mb-2'>Hosts</label>
+                            <Combobox
+                              options={availableFilters.hosts.map((host: any) => ({
+                                value: host.id,
+                                label: host.title.toUpperCase(),
+                              }))}
+                              value={selectedHosts}
+                              onValueChange={setSelectedHosts}
+                              placeholder='Hosts'
+                              searchPlaceholder='Search hosts...'
+                              emptyMessage='No hosts found.'
+                              className='w-full'
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -769,7 +640,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         const typeLabel =
                           typeLabels[selectedType as keyof typeof typeLabels]?.label || 'Content';
 
-                        // Determine the correct link based on content type
                         let linkHref = '';
                         switch (selectedType) {
                           case 'episodes':
@@ -781,9 +651,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                           case 'videos':
                             linkHref = `/videos/${result.slug}`;
                             break;
-                          case 'events':
-                            linkHref = `/events/${result.slug}`;
-                            break;
                           case 'takeovers':
                             linkHref = `/takeovers/${result.slug}`;
                             break;
@@ -794,21 +661,40 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                             linkHref = `/episode/${result.slug}`;
                         }
 
-                        // Enhanced image handling for videos (YouTube/Vimeo thumbnails)
-                        let imageUrl =
-                          result.metadata?.image?.imgix_url ||
-                          result.metadata?.image?.url ||
-                          '/image-placeholder.png';
+                        const formattedDate =
+                          result.metadata?.broadcast_date ||
+                          result.metadata?.date ||
+                          result.created_at
+                            ? format(
+                                new Date(
+                                  result.metadata?.broadcast_date ||
+                                    result.metadata?.date ||
+                                    result.created_at
+                                ),
+                                'MMM d, yyyy'
+                              )
+                            : null;
 
-                        if (selectedType === 'videos' && result.metadata?.video_url) {
-                          const youtubeThumbnail = getYouTubeThumbnail(result.metadata.video_url);
-                          const vimeoThumbnail = getVimeoThumbnail(result.metadata.video_url);
-                          imageUrl =
-                            result.metadata?.image?.imgix_url ||
-                            youtubeThumbnail ||
-                            vimeoThumbnail ||
-                            '/image-placeholder.png';
-                        }
+                        const genres =
+                          selectedType === 'episodes' &&
+                          Array.isArray(result.metadata?.genres) &&
+                          result.metadata.genres.length > 0
+                            ? result.metadata.genres
+                            : null;
+
+                        const categories =
+                          (selectedType === 'posts' || selectedType === 'videos') &&
+                          Array.isArray(result.metadata?.categories) &&
+                          result.metadata.categories.length > 0
+                            ? result.metadata.categories
+                            : null;
+
+                        const hosts =
+                          selectedType === 'takeovers' &&
+                          Array.isArray(result.metadata?.hosts) &&
+                          result.metadata.hosts.length > 0
+                            ? result.metadata.hosts
+                            : null;
 
                         return (
                           <Link
@@ -817,91 +703,53 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                             onClick={() => onOpenChange(false)}
                             className='group block w-full'
                           >
-                            <div className='flex items-start gap-6 w-full pb-6'>
-                              <div className='size-32 relative shrink-0 overflow-hidden'>
-                                <Image
-                                  src={imageUrl}
-                                  alt={result.title || 'Content Cover'}
-                                  fill
-                                  className='object-cover transition-opacity duration-200 group-hover:opacity-70'
-                                />
+                            <div className='flex flex-col w-full pb-6 gap-2'>
+                              {/* Line 1: Type + Date */}
+                              <div className='flex items-center justify-between'>
+                                <div className='flex items-center gap-2 text-m8 text-muted-foreground'>
+                                  <TypeIcon className='w-3 h-3 text-foreground' />
+                                  <span>{typeLabel}</span>
+                                </div>
+                                {formattedDate && (
+                                  <span className='text-m8 text-muted-foreground'>{formattedDate}</span>
+                                )}
                               </div>
-                              <div className='flex-1 flex flex-col font-mono uppercase min-w-0 h-32 pb-1 justify-between gap-2'>
-                                <div className='flex flex-col gap-.5'>
-                                  <div className='flex items-center gap-2 text-m8 text-muted-foreground mb-1'>
-                                    <TypeIcon className='w-3 h-3 text-foreground' />
-                                    <span>{typeLabel}</span>
+                              {/* Line 2: Title + Genres/Categories/Hosts */}
+                              <div className='flex items-center justify-between gap-4'>
+                                <h3 className='text-[16px] sm:text-[18px] font-mono uppercase flex-1 min-w-0'>
+                                  {result.title}
+                                </h3>
+                                {(genres || categories || hosts) && (
+                                  <div className='flex flex-row flex-wrap gap-1 shrink-0'>
+                                    {genres?.map((genre: any) => (
+                                      <Badge
+                                        key={genre.id}
+                                        variant='outline'
+                                        className='text-m8 uppercase'
+                                      >
+                                        {genre.title}
+                                      </Badge>
+                                    ))}
+                                    {categories?.map((category: any) => (
+                                      <Badge
+                                        key={category.id}
+                                        variant='outline'
+                                        className='text-m8 uppercase'
+                                      >
+                                        {category.title}
+                                      </Badge>
+                                    ))}
+                                    {hosts?.map((host: any) => (
+                                      <Badge
+                                        key={host.id}
+                                        variant='outline'
+                                        className='text-m8 uppercase'
+                                      >
+                                        {host.title}
+                                      </Badge>
+                                    ))}
                                   </div>
-                                  <h3 className='w-[90%] pl-1 text-[16px] sm:text-[18px] font-mono line-clamp-2'>
-                                    {result.title}
-                                  </h3>
-                                </div>
-                                <div className='flex flex-col gap-2'>
-                                  {/* Date display - different fields for different content types */}
-                                  {(result.metadata?.broadcast_date ||
-                                    result.metadata?.date ||
-                                    result.created_at) && (
-                                    <span className='pl-1 text-m8'>
-                                      {format(
-                                        new Date(
-                                          result.metadata?.broadcast_date ||
-                                            result.metadata?.date ||
-                                            result.created_at
-                                        ),
-                                        'MMM d, yyyy'
-                                      )}
-                                    </span>
-                                  )}
-
-                                  {/* Categories/Tags display - different for different content types */}
-                                  {selectedType === 'episodes' &&
-                                    Array.isArray(result.metadata?.genres) &&
-                                    result.metadata.genres.length > 0 && (
-                                      <div className='flex flex-row sm:flex-wrap'>
-                                        {result.metadata.genres.map((genre: any) => (
-                                          <Badge
-                                            key={genre.id}
-                                            variant='outline'
-                                            className='text-m8 uppercase'
-                                          >
-                                            {genre.title}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    )}
-
-                                  {(selectedType === 'posts' || selectedType === 'videos') &&
-                                    Array.isArray(result.metadata?.categories) &&
-                                    result.metadata.categories.length > 0 && (
-                                      <div className='flex flex-row sm:flex-wrap'>
-                                        {result.metadata.categories.map((category: any) => (
-                                          <Badge
-                                            key={category.id}
-                                            variant='outline'
-                                            className='text-m8 uppercase'
-                                          >
-                                            {category.title}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    )}
-
-                                  {selectedType === 'takeovers' &&
-                                    Array.isArray(result.metadata?.hosts) &&
-                                    result.metadata.hosts.length > 0 && (
-                                      <div className='flex flex-row sm:flex-wrap'>
-                                        {result.metadata.hosts.map((host: any) => (
-                                          <Badge
-                                            key={host.id}
-                                            variant='outline'
-                                            className='text-m8 uppercase'
-                                          >
-                                            {host.title}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    )}
-                                </div>
+                                )}
                               </div>
                             </div>
                             {idx < results.length - 1 && (

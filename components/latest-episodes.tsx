@@ -8,20 +8,23 @@ interface LatestEpisodesProps {
   config?: {
     number_of_latest_shows?: number;
   };
+  hasHeroItems?: boolean;
 }
 
-const LatestEpisodes: React.FC<LatestEpisodesProps> = ({ config }) => {
+const LatestEpisodes: React.FC<LatestEpisodesProps> = ({ config, hasHeroItems = false }) => {
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const limit = config?.number_of_latest_shows || 5;
+  const baseLimit = config?.number_of_latest_shows || 5;
+  const limit = hasHeroItems ? 20 : baseLimit;
+  const offset = hasHeroItems ? 0 : 2;
 
   useEffect(() => {
     const fetchEpisodes = async () => {
       try {
         setLoading(true);
-        const response = await getEpisodesForShows({ limit, offset: 2 });
+        const response = await getEpisodesForShows({ limit, offset });
         setEpisodes(response.shows || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch episodes');
@@ -32,7 +35,7 @@ const LatestEpisodes: React.FC<LatestEpisodesProps> = ({ config }) => {
     };
 
     fetchEpisodes();
-  }, [limit]);
+  }, [limit, offset]);
 
   if (error) {
     return;

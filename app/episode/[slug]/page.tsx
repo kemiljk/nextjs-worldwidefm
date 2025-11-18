@@ -14,6 +14,7 @@ import { parseBroadcastDateTime } from '@/lib/date-utils';
 import { transformShowToViewData } from '@/lib/cosmic-service';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { PreviewBanner } from '@/components/ui/preview-banner';
+import { ListenBackButton } from '@/components/listen-back-button';
 
 export const revalidate = 60; // 1 minute - shows update quickly
 
@@ -22,10 +23,7 @@ interface Props {
   searchParams?: Promise<{ preview?: string }>;
 }
 
-export async function generateMetadata({
-  params,
-  searchParams,
-}: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   try {
     const { slug } = await params;
     const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
@@ -136,14 +134,17 @@ export default async function EpisodePage({
   // Check if this is a draft episode
   const isDraft = episode.status === 'draft';
 
-  // Format date for overlay (e.g., SAT 14/06)
+  // Format date for overlay (e.g., SAT 14.06.25)
+  const year = startTime.getFullYear();
+  const yearSuffix = `.${year.toString().slice(-2)}`;
   const showDate = startTime
     .toLocaleDateString('en-GB', {
       weekday: 'short',
       day: '2-digit',
       month: '2-digit',
     })
-    .replace(/\./g, '')
+    .replace(/\//g, '.')
+    .concat(yearSuffix)
     .toUpperCase();
 
   return (
@@ -158,6 +159,13 @@ export default async function EpisodePage({
         show={show}
       />
 
+      {/* Listen Back Button - positioned underneath the show title */}
+      {show?.metadata?.player && (
+        <div className='px-5 pt-4'>
+          <ListenBackButton show={show} />
+        </div>
+      )}
+
       {/* Main Content Container */}
 
       <div className='w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-8'>
@@ -169,7 +177,7 @@ export default async function EpisodePage({
               <SafeHtml
                 content={episode.metadata.body_text || episode.metadata.description || ''}
                 type='editorial'
-                className='!text-[16px] leading-5 text-almostblack dark:text-white'
+                className='text-m6 leading-5 text-almostblack dark:text-white'
               />
             </div>
           )}
@@ -181,11 +189,7 @@ export default async function EpisodePage({
                 {episode.metadata.genres.map((genre: any) => {
                   const genreLink = genre.id ? getGenreLink(genre.id) : undefined;
                   return (
-                    <GenreTag
-                      key={genre.id || genre.slug}
-                      variant='large'
-                      href={genreLink}
-                    >
+                    <GenreTag key={genre.id || genre.slug} variant='large' href={genreLink}>
                       {genre.title || genre.name}
                     </GenreTag>
                   );

@@ -252,6 +252,19 @@ export interface PostObject {
       value: string;
     };
     tags?: string[];
+    youtube_video?: string;
+    youtube_video_thumbnail?: {
+      url: string;
+      imgix_url: string;
+    };
+    video?: {
+      url: string;
+      imgix_url: string;
+    };
+    video_thumbnail?: {
+      url: string;
+      imgix_url: string;
+    };
   };
 }
 

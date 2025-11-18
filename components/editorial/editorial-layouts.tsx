@@ -2,6 +2,8 @@ import Image from 'next/image';
 import { CategoryTag } from '@/components/ui/category-tag';
 import { ImageGallery } from '@/components/ui/image-gallery';
 import { PostObject } from '@/lib/cosmic-config';
+import { PostVideoPlayer } from './post-video-player';
+import { getPostVideoUrl } from '@/lib/post-thumbnail-utils';
 
 interface Category {
   id: string;
@@ -33,21 +35,26 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
   const categories = metadata?.categories || [];
   const author = metadata?.author;
   const imageGallery = metadata?.image_gallery || [];
+  const hasVideo = !!getPostVideoUrl(post);
 
   return (
     <article className='w-full'>
       {/* Hero Section */}
       <div className='w-full mt-20 mb-40 px-5 md:px-20 flex flex-col lg:flex-row gap-20 justify-center items-center md:items-start'>
-        {/* Image */}
+        {/* Video or Image */}
         <div className='sm:w-[80vw] lg:w-[50vw] flex items-center justify-center overflow-hidden relative'>
-          <Image
-            src={imageUrl}
-            alt={`${title} - Featured image`}
-            width={0}
-            height={0}
-            style={{ width: '100%', height: 'auto' }}
-            className='object-contain'
-          />
+          {hasVideo ? (
+            <PostVideoPlayer post={post} />
+          ) : (
+            <Image
+              src={imageUrl}
+              alt={`${title} - Featured image`}
+              width={0}
+              height={0}
+              style={{ width: '100%', height: 'auto' }}
+              className='object-contain'
+            />
+          )}
         </div>
 
         {/* Text */}
@@ -109,12 +116,17 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
   const categories = metadata?.categories || [];
   const author = metadata?.author;
   const imageGallery = metadata?.image_gallery || [];
+  const hasVideo = !!getPostVideoUrl(post);
 
   return (
     <article className='w-full'>
-      {/* Large Hero Image */}
+      {/* Large Hero Video or Image */}
       <div className='relative w-full h-[60vh] mb-20'>
-        <Image src={imageUrl} alt={`${title} - Featured image`} fill className='object-cover' />
+        {hasVideo ? (
+          <PostVideoPlayer post={post} className='h-full' />
+        ) : (
+          <Image src={imageUrl} alt={`${title} - Featured image`} fill className='object-cover' />
+        )}
         <div className='absolute inset-0 bg-black bg-opacity-40 flex items-end'>
           <div className='w-full px-5 md:px-20 pb-20 text-white'>
             <text className='text-[32px] md:text-[60px] lg:text-[80px] leading-none mb-6'>
@@ -174,6 +186,7 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
   const categories = metadata?.categories || [];
   const author = metadata?.author;
   const imageGallery = metadata?.image_gallery || [];
+  const hasVideo = !!getPostVideoUrl(post);
 
   return (
     <article className='w-full'>
@@ -202,18 +215,24 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
         </div>
       </div>
 
-      {/* Main Image */}
-      {imageUrl && (
-        <div className='w-full mb-20'>
-          <Image
-            src={imageUrl}
-            alt={`${title} - Featured image`}
-            width={0}
-            height={0}
-            style={{ width: '100%', height: 'auto' }}
-            className='object-contain'
-          />
+      {/* Main Video or Image */}
+      {hasVideo ? (
+        <div className='w-full mb-20 px-5 md:px-20'>
+          <PostVideoPlayer post={post} />
         </div>
+      ) : (
+        imageUrl && (
+          <div className='w-full mb-20'>
+            <Image
+              src={imageUrl}
+              alt={`${title} - Featured image`}
+              width={0}
+              height={0}
+              style={{ width: '100%', height: 'auto' }}
+              className='object-contain'
+            />
+          </div>
+        )
       )}
 
       {/* Content */}
@@ -250,6 +269,7 @@ export function MinimalLayout({ post, formattedDate }: EditorialLayoutProps) {
   const content = metadata?.content || '';
   const categories = metadata?.categories || [];
   const author = metadata?.author;
+  const hasVideo = !!getPostVideoUrl(post);
 
   return (
     <article className='w-full'>
@@ -277,6 +297,12 @@ export function MinimalLayout({ post, formattedDate }: EditorialLayoutProps) {
             </CategoryTag>
           ))}
         </div>
+
+        {hasVideo && (
+          <div className='mb-12'>
+            <PostVideoPlayer post={post} />
+          </div>
+        )}
 
         {content && (
           <div

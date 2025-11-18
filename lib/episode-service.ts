@@ -53,6 +53,11 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
           query['metadata.locations.id'] = { $in: locations };
         }
 
+        // Exclude future broadcast dates
+        const today = new Date();
+        const todayStr = today.toISOString().slice(0, 10);
+        query['metadata.broadcast_date'] = { $lte: todayStr };
+
         // Fetch a larger set to randomize from
         const fetchLimit = Math.min(baseLimit * 5, 200);
         const response = await cosmic.objects.find(query).limit(fetchLimit).depth(2);
@@ -140,10 +145,18 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       }
     }
 
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+
     if (params.isNew) {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      query['metadata.broadcast_date'] = { $gte: thirtyDaysAgo.toISOString().slice(0, 10) };
+      query['metadata.broadcast_date'] = {
+        $gte: thirtyDaysAgo.toISOString().slice(0, 10),
+        $lte: todayStr,
+      };
+    } else {
+      query['metadata.broadcast_date'] = { $lte: todayStr };
     }
 
     // Fetch episodes from Cosmic with conditional caching (server-side only)
@@ -381,37 +394,144 @@ export async function getTakeovers(
 }
 
 /**
+ * Normalize a slug by:
+ * 1. Decoding URL encoding (handles both encoded and already-decoded slugs)
+ * 2. Normalizing Unicode characters to ASCII (ã → a, é → e, etc.)
+ * 3. Removing special characters and normalizing to slug format
+ *
+ * This handles slugs from search indexes that may be URL-encoded (%C3%A3)
+ * as well as slugs that Next.js has already decoded (ã).
+ */
+function normalizeSlug(slug: string): string {
+  try {
+    let normalized = slug;
+
+    // Try to decode URL encoding - safe to call even on non-encoded strings
+    // This handles cases where the slug is still URL-encoded (%C3%A3 → ã)
+    // We try multiple times in case of double encoding
+    for (let i = 0; i < 3; i++) {
+      if (normalized.includes('%')) {
+        try {
+          const decoded = decodeURIComponent(normalized);
+          if (decoded !== normalized) {
+            normalized = decoded;
+            continue;
+          }
+        } catch {
+          // If decoding fails, break and continue with current normalized value
+          break;
+        }
+      } else {
+        break;
+      }
+    }
+
+    // Normalize Unicode characters to ASCII equivalents
+    // This converts ã → a, é → e, ñ → n, etc.
+    normalized = normalized
+      .normalize('NFD') // Decompose characters (ã → a + ~)
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+
+    return normalized;
+  } catch (error) {
+    console.error('Error normalizing slug:', error);
+    return slug;
+  }
+}
+
+/**
+ * Check if an error is a 404 (not found) error
+ */
+function is404Error(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  if ('status' in error && typeof (error as { status: unknown }).status === 'number') {
+    return (error as { status: number }).status === 404;
+  }
+
+  if ('message' in error && typeof (error as { message: unknown }).message === 'string') {
+    const message = (error as { message: string }).message;
+    return message.includes('404') || message.includes('No objects found');
+  }
+
+  return false;
+}
+
+/**
  * Get episode by slug
+ * Handles URL-encoded slugs and normalizes them to match stored slugs
  */
 export async function getEpisodeBySlug(
   slug: string,
   preview?: string
 ): Promise<EpisodeObject | null> {
+  // First try the original slug as-is
+  let query: Record<string, unknown> = {
+    type: 'episode',
+    slug: slug,
+    status: preview ? 'any' : 'published',
+  };
+
   try {
-    const query: Record<string, unknown> = {
+    const response = await cosmic.objects.findOne(query).depth(2);
+    if (response.object) {
+      return response.object;
+    }
+  } catch (error) {
+    // Silently handle 404s - they're expected when slug doesn't match
+    if (!is404Error(error)) {
+      console.error('Error fetching episode by slug:', error);
+    }
+  }
+
+  // If not found, try the normalized version
+  const normalizedSlug = normalizeSlug(slug);
+  if (normalizedSlug !== slug) {
+    query = {
       type: 'episode',
-      slug: slug,
+      slug: normalizedSlug,
       status: preview ? 'any' : 'published',
     };
 
-    const response = await cosmic.objects.findOne(query).depth(2);
-
-    return response.object || null;
-  } catch (error) {
-    console.error('Error fetching episode by slug:', error);
-    return null;
+    try {
+      const response = await cosmic.objects.findOne(query).depth(2);
+      if (response.object) {
+        return response.object;
+      }
+    } catch (error) {
+      // Silently handle 404s - they're expected when slug doesn't match
+      if (!is404Error(error)) {
+        console.error('Error fetching episode by normalized slug:', error);
+      }
+    }
   }
+
+  return null;
 }
 
 /**
  * Get related episodes based on shared genres and hosts
+ * Prioritizes: 1) Host matches, 2) Genre matches, 3) Other shows
+ * Always sorted by broadcast_date
  */
 export async function getRelatedEpisodes(
   episodeId: string,
   limit: number = 5
 ): Promise<EpisodeObject[]> {
   try {
-    // First get the current episode to extract its genres and hosts
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const result: EpisodeObject[] = [];
+    const excludeIds: string[] = [episodeId];
+
     const currentEpisode = await cosmic.objects
       .findOne({
         type: 'episode',
@@ -428,67 +548,80 @@ export async function getRelatedEpisodes(
     const genres = episode.metadata?.genres?.map((g: GenreObject) => g.id) || [];
     const hosts = episode.metadata?.regular_hosts?.map((h: HostObject) => h.id) || [];
 
-    // If no genres or hosts, fall back to random episodes
-    if (genres.length === 0 && hosts.length === 0) {
-      const response = await cosmic.objects
+    if (hosts.length > 0) {
+      const hostResponse = await cosmic.objects
         .find({
           type: 'episode',
           status: 'published',
           id: { $ne: episodeId },
+          'metadata.broadcast_date': { $lte: todayStr },
+          'metadata.regular_hosts.id': { $in: hosts },
         })
         .limit(limit)
+        .sort('-metadata.broadcast_date')
         .depth(2);
 
-      return response.objects || [];
+      const hostEpisodes = hostResponse.objects || [];
+      result.push(...hostEpisodes);
+      excludeIds.push(...hostEpisodes.map((e: EpisodeObject) => e.id));
+
+      if (hostEpisodes.length > 1) {
+        return result.slice(0, limit);
+      }
     }
 
-    // Build query to find episodes with shared genres or hosts
-    const query: Record<string, unknown> = {
-      type: 'episode',
-      status: 'published',
-      id: { $ne: episodeId },
-    };
+    if (result.length < limit && genres.length > 0) {
+      const remainingLimit = limit - result.length;
+      const genreResponse = await cosmic.objects
+        .find({
+          type: 'episode',
+          status: 'published',
+          id: { $nin: excludeIds },
+          'metadata.broadcast_date': { $lte: todayStr },
+          'metadata.genres.id': { $in: genres },
+        })
+        .limit(remainingLimit + 5)
+        .sort('-metadata.broadcast_date')
+        .depth(2);
 
-    // Add genre or host filters
-    if (genres.length > 0) {
-      query['metadata.genres.id'] = { $in: genres };
+      const genreEpisodes = (genreResponse.objects || []).filter((e: EpisodeObject) => {
+        const episodeHosts = e.metadata?.regular_hosts?.map((h: HostObject) => h.id) || [];
+        return !hosts.some((hostId: string) => episodeHosts.includes(hostId));
+      });
+
+      const filteredGenreEpisodes = genreEpisodes.slice(0, remainingLimit);
+      result.push(...filteredGenreEpisodes);
+      excludeIds.push(...filteredGenreEpisodes.map((e: EpisodeObject) => e.id));
     }
-    if (hosts.length > 0) {
-      query['metadata.regular_hosts.id'] = { $in: hosts };
-    }
 
-    // If we have both genres and hosts, use OR logic
-    if (genres.length > 0 && hosts.length > 0) {
-      query.$or = [
-        { 'metadata.genres.id': { $in: genres } },
-        { 'metadata.regular_hosts.id': { $in: hosts } },
-      ];
-      delete query['metadata.genres.id'];
-      delete query['metadata.regular_hosts.id'];
-    }
-
-    const response = await cosmic.objects
-      .find(query)
-      .limit(limit * 2) // Get more to ensure we have enough after filtering
-      .depth(2);
-
-    const episodes = response.objects || [];
-
-    // If we don't have enough episodes with shared genres/hosts, fill with random ones
-    if (episodes.length < limit) {
+    if (result.length < limit) {
+      const remainingLimit = limit - result.length;
       const randomResponse = await cosmic.objects
         .find({
           type: 'episode',
           status: 'published',
-          id: { $nin: [episodeId, ...episodes.map((e: EpisodeObject) => e.id)] },
+          id: { $nin: excludeIds },
+          'metadata.broadcast_date': { $lte: todayStr },
         })
-        .limit(limit - episodes.length)
+        .limit(remainingLimit * 2)
+        .sort('-metadata.broadcast_date')
         .depth(2);
-      const randomEpisodes = randomResponse.objects || [];
-      episodes.push(...randomEpisodes);
+
+      const randomEpisodes = (randomResponse.objects || []).filter((e: EpisodeObject) => {
+        const episodeHosts = e.metadata?.regular_hosts?.map((h: HostObject) => h.id) || [];
+        return !hosts.some((hostId: string) => episodeHosts.includes(hostId));
+      });
+
+      result.push(...randomEpisodes.slice(0, remainingLimit));
     }
 
-    return episodes.slice(0, limit) as EpisodeObject[];
+    result.sort((a, b) => {
+      const dateA = a.metadata?.broadcast_date || '';
+      const dateB = b.metadata?.broadcast_date || '';
+      return dateB.localeCompare(dateA);
+    });
+
+    return result.slice(0, limit);
   } catch (error) {
     console.error('Error fetching related episodes:', error);
     return [];

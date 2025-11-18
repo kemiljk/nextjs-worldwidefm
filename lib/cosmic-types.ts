@@ -148,6 +148,7 @@ export interface CosmicHomepageData {
     seo?: any;
     display_announcement?: boolean;
     announcement?: string;
+    display_hero_items?: boolean;
     heroLayout: 'Split' | 'FullWidth' | 'Full Width' | 'Carousel' | string;
     heroItems: HomepageHeroItem[];
     page_order: PageOrderItem[];

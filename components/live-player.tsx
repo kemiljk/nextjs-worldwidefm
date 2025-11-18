@@ -41,7 +41,7 @@ interface LiveMetadata {
 }
 
 export default function LivePlayer() {
-  const { currentLiveEvent, isLivePlaying, playLive, pauseLive, liveVolume } = useMediaPlayer();
+  const { isLivePlaying, playLive, pauseLive, liveVolume } = useMediaPlayer();
   const plausible = usePlausible();
 
   const [streamState, setStreamState] = useState<StreamState>({
@@ -378,7 +378,7 @@ export default function LivePlayer() {
   const displayName = liveMetadata.content?.title || 'Nothing currently live';
 
   return (
-    <div className='fixed top-0 bg-almostblack text-white dark:bg-black dark:text-white z-50 flex items-center transition-all duration-300 h-7 left-0 right-0 max-w-full'>
+    <div className='fixed top-0 bg-almostblack text-white dark:bg-black dark:text-white z-50 flex items-center transition-all duration-300 h-11 left-0 right-0 max-w-full'>
       <div className='ml-4 flex items-center shrink-0 transition-opacity duration-200'>
         <button
           className='rounded-full transition-colors disabled:opacity-100 text-white'
@@ -388,14 +388,14 @@ export default function LivePlayer() {
           {isLivePlaying && streamState.loading ? (
             <Loader2 className='h-3 w-3 animate-spin' />
           ) : isLivePlaying ? (
-            <Pause fill='white' className='h-3 w-3' />
+            <Pause fill='white' className='size-5' />
           ) : (
-            <Play fill='white' className='h-3 w-3' />
+            <Play fill='white' className='size-5' />
           )}
         </button>
       </div>
       <div className='flex items-center mx-2 gap-2 overflow-hidden'>
-        <div className='text-m8 font-mono uppercase whitespace-nowrap'>{displayName}</div>
+        <div className='text-m7 font-mono uppercase whitespace-nowrap'>{displayName}</div>
       </div>
     </div>
   );

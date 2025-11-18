@@ -26,21 +26,25 @@ export function formatDate(dateString: string): string {
 }
 
 /**
- * Format a date string to a short format like 'Wed 01.11'
+ * Format a date string to a short format like 'Wed 01.11.25'
  * @param dateString ISO date string or 'YYYY-MM-DD' format
- * @returns Formatted date string (e.g. 'Wed 01.11')
+ * @returns Formatted date string (e.g. 'Wed 01.11.25')
  */
 export function formatDateShort(dateString: string): string {
   if (!dateString) return '';
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return dateString;
+  const year = date.getFullYear();
+  const yearSuffix = `.${year.toString().slice(-2)}`;
   return date
     .toLocaleDateString('en-GB', {
       weekday: 'short',
       day: '2-digit',
       month: '2-digit',
     })
-    .replace(',', '');
+    .replace(',', '')
+    .replace(/\//g, '.')
+    .concat(yearSuffix);
 }
 
 /**

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { PostObject } from '@/lib/cosmic-config';
 import { GenreTag } from '@/components/ui/genre-tag';
 import { format } from 'date-fns';
+import { getPostThumbnail } from '@/lib/post-thumbnail-utils';
 
 interface HomePostsGridProps {
   posts: PostObject[];
@@ -20,11 +21,7 @@ export default function HomePostsGrid({ posts }: HomePostsGridProps) {
             <div className='relative'>
               <div className='relative aspect-square w-full overflow-hidden'>
                 <Image
-                  src={
-                    post.thumbnail?.imgix_url ||
-                    post.metadata?.image?.imgix_url ||
-                    '/image-placeholder.png'
-                  }
+                  src={getPostThumbnail(post)}
                   alt={post.title}
                   fill
                   className='object-cover transition-transform duration-300 group-hover:scale-105'

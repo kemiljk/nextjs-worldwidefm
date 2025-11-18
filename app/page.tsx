@@ -40,10 +40,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Helper function to render page order items
-function renderPageOrderItem(item: PageOrderItem, colouredSections: any[]): React.ReactNode {
+function renderPageOrderItem(
+  item: PageOrderItem,
+  colouredSections: any[],
+  hasHeroItems: boolean
+): React.ReactNode {
   switch (item.type) {
     case 'latest-episodes':
-      return <LatestEpisodes config={item.metadata} />;
+      return <LatestEpisodes config={item.metadata} hasHeroItems={hasHeroItems} />;
 
     case 'sections':
       const sectionType = item.metadata?.type;
@@ -366,57 +370,65 @@ export default async function Home() {
     };
   });
 
+  const displayHeroItems = homepageData?.metadata?.display_hero_items ?? false;
   const heroLayout = homepageData?.metadata?.heroLayout;
   const heroItemsRaw = homepageData?.metadata?.heroItems || [];
 
-  // Fetch full episode data for hero items
-  const heroItems = (
-    await Promise.all(
-      heroItemsRaw
-        .filter(item => item.type === 'episodes')
-        .map(async item => {
-          try {
-            const fullEpisode = await getEpisodeBySlug(item.slug);
-            if (fullEpisode) {
-              const transformed = transformShowToViewData(fullEpisode);
-              return {
-                ...transformed,
-                key: transformed.slug,
-                url: transformed.url,
-              };
-            }
-          } catch (error) {
-            console.error(`Error fetching hero episode ${item.slug}:`, error);
-          }
+  // Fetch full episode data for hero items only if display_hero_items is enabled
+  const heroItems = displayHeroItems
+    ? (
+        await Promise.all(
+          heroItemsRaw
+            .filter(item => item.type === 'episode')
+            .map(async item => {
+              try {
+                const fullEpisode = await getEpisodeBySlug(item.slug);
+                if (fullEpisode) {
+                  const transformed = transformShowToViewData(fullEpisode);
+                  return {
+                    ...transformed,
+                    key: transformed.slug,
+                    url: transformed.url,
+                  };
+                }
+              } catch (error) {
+                console.error(`Error fetching hero episode ${item.slug}:`, error);
+              }
 
-          const playerUrl = item.metadata?.player as unknown as string | undefined;
-          return {
-            ...item,
-            key: item.slug,
-            url: playerUrl
-              ? playerUrl.startsWith('http')
-                ? playerUrl
-                : `https://www.mixcloud.com${playerUrl}`
-              : '',
-          };
-        })
-    )
-  ).filter(Boolean);
+              const playerUrl = item.metadata?.player as unknown as string | undefined;
+              return {
+                ...item,
+                key: item.slug,
+                url: playerUrl
+                  ? playerUrl.startsWith('http')
+                    ? playerUrl
+                    : `https://www.mixcloud.com${playerUrl}`
+                  : '',
+              };
+            })
+        )
+      ).filter(Boolean)
+    : [];
 
   // Check if sections are in page_order (new system) or should use old system
   const hasColouredSectionsInOrder = pageOrder.some(item => item.type === 'coloured-sections');
 
   return (
     <div className='w-full min-h-screen'>
-      <div className='mt-4 mb-12'>
+      <div className='mt-8 mb-12'>
         {/* Hero Section */}
-        <Suspense>
-          {heroLayout && <HomepageHero heroLayout={heroLayout} heroItems={heroItems} />}
-        </Suspense>
+        {displayHeroItems && heroLayout && heroItems.length > 0 && (
+          <Suspense>
+            <HomepageHero heroLayout={heroLayout} heroItems={heroItems} />
+          </Suspense>
+        )}
 
-        <Suspense>
-          <FeaturedSections shows={shows.slice(0, 2)} />
-        </Suspense>
+        {/* Only show FeaturedSections if heroItems are not displayed */}
+        {!(displayHeroItems && heroLayout && heroItems.length > 0) && (
+          <Suspense>
+            <FeaturedSections shows={shows.slice(0, 2)} />
+          </Suspense>
+        )}
 
         {/* For You Section - Only show if user is logged in and has favorites */}
         {hasFavorites && (
@@ -449,7 +461,11 @@ export default async function Home() {
         {/* Dynamic page order rendering - ONLY render sections that ARE in page_order */}
         {pageOrder.map((item, index) => (
           <Suspense key={`${item.type}-${item.id}-${index}`} fallback={<div>Loading...</div>}>
-            {renderPageOrderItem(item, colouredSections)}
+            {renderPageOrderItem(
+              item,
+              colouredSections,
+              !!(displayHeroItems && heroLayout && heroItems.length > 0)
+            )}
           </Suspense>
         ))}
 
