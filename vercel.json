@@ -7,10 +7,6 @@
     {
       "path": "/api/cron/sync-player-urls",
       "schedule": "0 */12 * * *"
-    },
-    {
-      "path": "/api/cron/sync-radiocult",
-      "schedule": "0 */6 * * *"
     }
   ]
 }
