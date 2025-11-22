@@ -1,10 +1,10 @@
 import { Metadata } from 'next';
-import { getEvents } from '@/lib/radiocult-service';
 import { generateScheduleMetadata } from '@/lib/metadata-utils';
 import { PageHeader } from '@/components/shared/page-header';
 import ScheduleDisplay from '@/components/schedule-display';
 import { cosmic } from '@/lib/cosmic-config';
-import { parseBroadcastDateTime } from '@/lib/date-utils';
+import { EpisodeObject } from '@/lib/cosmic-types';
+import { getEvents, RadioCultEvent } from '@/lib/radiocult-service';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateScheduleMetadata();
@@ -31,27 +31,164 @@ interface ScheduleShow {
   repost_count: number;
 }
 
-/**
- * Get the start of the current week (Monday) and end of the week (Sunday)
- */
-function getWeekBounds(): { weekStart: Date; weekEnd: Date } {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Handle Sunday as -6
+interface ScheduleDay {
+  day: string;
+  episodes: EpisodeObject[];
+}
 
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() + daysToMonday);
-  weekStart.setHours(0, 0, 0, 0);
-
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-  weekEnd.setHours(23, 59, 59, 999);
-
-  return { weekStart, weekEnd };
+interface ScheduleMetadata {
+  days?: ScheduleDay[];
+  [key: string]: any;
 }
 
 /**
- * Fetch data from Cosmic and RadioCult, merge them, and create a weekly schedule
+ * Parse duration string (e.g., "60:00" or "1:30:00") to seconds
+ */
+function parseDurationToSeconds(duration: string | null | undefined): number {
+  if (!duration) return 0;
+  const parts = duration.split(':').map(Number);
+  if (parts.length === 2) {
+    return parts[0] * 60 + parts[1];
+  } else if (parts.length === 3) {
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  }
+  return 0;
+}
+
+/**
+ * Get hardcoded playlist entries for Monday, Saturday, and Sunday
+ */
+async function getHardcodedPlaylists(): Promise<ScheduleShow[]> {
+  try {
+    // Fetch current week's events from RadioCult to identify playlists
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay() + 1); // Monday
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    const { events } = await getEvents({
+      startDate: weekStart.toISOString(),
+      endDate: weekEnd.toISOString(),
+      limit: 100,
+    });
+
+    // Find recurring playlists for Monday, Saturday, Sunday
+    const mondayPlaylists = events.filter(event => {
+      const eventDate = new Date(event.startTime);
+      return eventDate.getDay() === 1; // Monday
+    });
+
+    const saturdayPlaylists = events.filter(event => {
+      const eventDate = new Date(event.startTime);
+      return eventDate.getDay() === 6; // Saturday
+    });
+
+    const sundayPlaylists = events.filter(event => {
+      const eventDate = new Date(event.startTime);
+      return eventDate.getDay() === 0; // Sunday
+    });
+
+    const hardcodedItems: ScheduleShow[] = [];
+
+    // Add Monday playlists
+    for (const playlist of mondayPlaylists) {
+      const eventDate = new Date(playlist.startTime);
+      const hours = eventDate.getUTCHours().toString().padStart(2, '0');
+      const minutes = eventDate.getUTCMinutes().toString().padStart(2, '0');
+      const timeSlot = `${hours}:${minutes}`;
+
+      hardcodedItems.push({
+        show_key: playlist.slug,
+        event_id: `playlist-${playlist.id}`,
+        show_time: timeSlot,
+        show_day: 'Monday',
+        name: playlist.showName,
+        url: `/shows/${playlist.slug}`,
+        picture: playlist.imageUrl || '/image-placeholder.png',
+        created_time: playlist.createdAt,
+        tags: playlist.tags || [],
+        hosts: playlist.artists?.map(artist => artist.name) || [],
+        duration: playlist.duration * 60, // Convert minutes to seconds
+        play_count: 0,
+        favorite_count: 0,
+        comment_count: 0,
+        listener_count: 0,
+        repost_count: 0,
+      });
+    }
+
+    // Add Saturday playlists
+    for (const playlist of saturdayPlaylists) {
+      const eventDate = new Date(playlist.startTime);
+      const hours = eventDate.getUTCHours().toString().padStart(2, '0');
+      const minutes = eventDate.getUTCMinutes().toString().padStart(2, '0');
+      const timeSlot = `${hours}:${minutes}`;
+
+      hardcodedItems.push({
+        show_key: playlist.slug,
+        event_id: `playlist-${playlist.id}`,
+        show_time: timeSlot,
+        show_day: 'Saturday',
+        name: playlist.showName,
+        url: `/shows/${playlist.slug}`,
+        picture: playlist.imageUrl || '/image-placeholder.png',
+        created_time: playlist.createdAt,
+        tags: playlist.tags || [],
+        hosts: playlist.artists?.map(artist => artist.name) || [],
+        duration: playlist.duration * 60,
+        play_count: 0,
+        favorite_count: 0,
+        comment_count: 0,
+        listener_count: 0,
+        repost_count: 0,
+      });
+    }
+
+    // Add Sunday playlists
+    for (const playlist of sundayPlaylists) {
+      const eventDate = new Date(playlist.startTime);
+      const hours = eventDate.getUTCHours().toString().padStart(2, '0');
+      const minutes = eventDate.getUTCMinutes().toString().padStart(2, '0');
+      const timeSlot = `${hours}:${minutes}`;
+
+      hardcodedItems.push({
+        show_key: playlist.slug,
+        event_id: `playlist-${playlist.id}`,
+        show_time: timeSlot,
+        show_day: 'Sunday',
+        name: playlist.showName,
+        url: `/shows/${playlist.slug}`,
+        picture: playlist.imageUrl || '/image-placeholder.png',
+        created_time: playlist.createdAt,
+        tags: playlist.tags || [],
+        hosts: playlist.artists?.map(artist => artist.name) || [],
+        duration: playlist.duration * 60,
+        play_count: 0,
+        favorite_count: 0,
+        comment_count: 0,
+        listener_count: 0,
+        repost_count: 0,
+      });
+    }
+
+    console.log('[Schedule] Hardcoded playlists:', {
+      monday: mondayPlaylists.length,
+      saturday: saturdayPlaylists.length,
+      sunday: sundayPlaylists.length,
+    });
+
+    return hardcodedItems;
+  } catch (error) {
+    console.error('[Schedule] Error fetching hardcoded playlists:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch schedule from Cosmic Schedule object
  */
 async function getWeeklySchedule(): Promise<{
   scheduleItems: ScheduleShow[];
@@ -60,160 +197,165 @@ async function getWeeklySchedule(): Promise<{
   error?: string;
 }> {
   try {
-    const { weekStart, weekEnd } = getWeekBounds();
-    console.log('[Schedule] Week bounds:', {
-      start: weekStart.toISOString(),
-      end: weekEnd.toISOString(),
-    });
-
-    // 1. Get all published episodes from Cosmic for this week
-    const cosmicEpisodesResponse = await cosmic.objects
-      .find({
-        type: 'episode',
-        status: 'published',
-        $or: [
-          { 'metadata.broadcast_date': { $gte: weekStart.toISOString().split('T')[0] } },
-          { 'metadata.broadcast_date_old': { $gte: weekStart.toISOString() } },
-        ],
+    const scheduleResponse = await cosmic.objects
+      .findOne({
+        type: 'schedule',
+        slug: 'this-week',
       })
-      .props('id,slug,title,metadata')
-      .limit(200);
+      .props('slug,title,metadata,type')
+      .depth(2);
 
-    const cosmicEpisodes = cosmicEpisodesResponse.objects || [];
-    console.log('[Schedule] Found Cosmic episodes:', cosmicEpisodes.length);
+    if (!scheduleResponse?.object) {
+      console.log('[Schedule] No schedule object found');
+      return {
+        scheduleItems: [],
+        episodeSlugMap: {},
+        isActive: false,
+        error: 'Schedule not found',
+      };
+    }
 
-    // 2. Get RadioCult events for this week
-    const { events: radiocultEvents = [] } = await getEvents({
-      startDate: weekStart.toISOString(),
-      endDate: weekEnd.toISOString(),
-      limit: 100,
-    });
+    const schedule = scheduleResponse.object;
+    const metadata = schedule.metadata as any;
 
-    console.log('[Schedule] Found RadioCult events:', radiocultEvents.length);
+    console.log('[Schedule] Found schedule:', schedule.title);
+    console.log('[Schedule] Metadata keys:', Object.keys(metadata || {}));
 
-    // 3. Create a map of RadioCult events by their event ID
-    const radiocultEventMap = new Map(radiocultEvents.map(event => [event.id, event]));
-
-    // 4. Process Cosmic episodes and merge with RadioCult data
     const scheduleItems: ScheduleShow[] = [];
     const episodeSlugMap: Record<string, string> = {};
 
-    for (const episode of cosmicEpisodes) {
-      const metadata = episode.metadata;
-      const broadcastDate = parseBroadcastDateTime(
-        metadata.broadcast_date,
-        metadata.broadcast_time,
-        metadata.broadcast_date_old
-      );
+    // Get hardcoded playlists for Monday, Saturday, Sunday
+    const hardcodedPlaylists = await getHardcodedPlaylists();
+    
+    // Filter out Monday, Saturday, Sunday from hardcoded playlists
+    // (we'll add them back at the end, but exclude them from the Cosmic schedule)
+    const hardcodedDays = new Set(['Monday', 'Saturday', 'Sunday']);
 
-      if (!broadcastDate) {
-        console.log(`[Schedule] Skipping episode ${episode.title} - no valid broadcast date`);
-        continue;
+    // Handle different possible structures
+    // Option 1: metadata.days array
+    if (Array.isArray(metadata.days)) {
+      console.log('[Schedule] Using days array structure');
+      for (const dayData of metadata.days) {
+        const dayName = dayData.day || dayData.day_name || dayData.name;
+        const episodes = dayData.episodes || dayData.shows || [];
+
+        if (!dayName) {
+          console.warn('[Schedule] Day data missing day name:', dayData);
+          continue;
+        }
+
+        // Skip Monday, Saturday, Sunday - we'll use hardcoded playlists instead
+        if (hardcodedDays.has(dayName)) {
+          console.log(`[Schedule] Skipping ${dayName} - using hardcoded playlists`);
+          continue;
+        }
+
+        console.log(`[Schedule] Processing ${dayName}: ${episodes.length} episodes`);
+
+        for (const episode of episodes) {
+          if (!episode || episode.type !== 'episode') {
+            continue;
+          }
+
+          const episodeMetadata = episode.metadata || {};
+          const timeSlot = episodeMetadata.broadcast_time || '00:00';
+
+          const scheduleItem: ScheduleShow = {
+            show_key: episode.slug,
+            event_id: `episode-${episode.id}`,
+            show_time: timeSlot,
+            show_day: dayName,
+            name: episode.title,
+            url: `/episode/${episode.slug}`,
+            picture: episodeMetadata.image?.url
+              ? `https://imgix.cosmicjs.com/${episodeMetadata.image.url}`
+              : '/image-placeholder.png',
+            created_time: episode.created_at,
+            tags: episodeMetadata.genres?.map((g: any) => g.title) || [],
+            hosts: episodeMetadata.regular_hosts?.map((h: any) => h.title) || [],
+            duration: parseDurationToSeconds(episodeMetadata.duration),
+            play_count: 0,
+            favorite_count: 0,
+            comment_count: 0,
+            listener_count: 0,
+            repost_count: 0,
+          };
+
+          scheduleItems.push(scheduleItem);
+          episodeSlugMap[scheduleItem.event_id] = episode.slug;
+        }
       }
-
-      // Check if this episode is within our week bounds
-      if (broadcastDate < weekStart || broadcastDate > weekEnd) {
-        continue;
-      }
-
-      const dayName = [
-        'Sunday',
-        'Monday',
-        'Tuesday',
-        'Wednesday',
-        'Thursday',
-        'Friday',
-        'Saturday',
-      ][broadcastDate.getDay()];
-
-      const hours = broadcastDate.getHours().toString().padStart(2, '0');
-      const minutes = broadcastDate.getMinutes().toString().padStart(2, '0');
-      const timeSlot = `${hours}:${minutes}`;
-
-      // Check if there's a corresponding RadioCult event
-      const radiocultEvent = metadata.radiocult_event_id
-        ? radiocultEventMap.get(metadata.radiocult_event_id)
-        : null;
-
-      // Create schedule item, preferring RadioCult data when available
-      const scheduleItem: ScheduleShow = {
-        show_key: episode.slug,
-        event_id: radiocultEvent?.id || `cosmic-${episode.id}`,
-        show_time: timeSlot,
-        show_day: dayName,
-        name: radiocultEvent?.showName || episode.title,
-        url: `/episode/${episode.slug}`, // Always link to episode page
-        picture:
-          radiocultEvent?.imageUrl ||
-          (metadata.image?.url
-            ? `https://imgix.cosmicjs.com/${metadata.image.url}`
-            : '/image-placeholder.png'),
-        created_time: episode.created_at,
-        tags: radiocultEvent?.tags || metadata.genres?.map((g: any) => g.title) || [],
-        hosts:
-          radiocultEvent?.artists?.map(artist => artist.name) ||
-          metadata.regular_hosts?.map((h: any) => h.title) ||
-          [],
-        duration:
-          radiocultEvent?.duration ||
-          (metadata.duration ? parseDurationToMinutes(metadata.duration) * 60 : 0),
-        play_count: 0,
-        favorite_count: 0,
-        comment_count: 0,
-        listener_count: 0,
-        repost_count: 0,
+    } else {
+      // Option 2: Day names as keys in metadata (monday, tuesday, etc.)
+      const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      const dayNameMap: Record<string, string> = {
+        monday: 'Monday',
+        tuesday: 'Tuesday',
+        wednesday: 'Wednesday',
+        thursday: 'Thursday',
+        friday: 'Friday',
+        saturday: 'Saturday',
+        sunday: 'Sunday',
       };
 
-      scheduleItems.push(scheduleItem);
-      episodeSlugMap[scheduleItem.event_id] = episode.slug;
-    }
+      console.log('[Schedule] Checking for day keys in metadata');
+      for (const dayKey of dayKeys) {
+        const dayEpisodes = metadata[dayKey] || metadata[dayKey.charAt(0).toUpperCase() + dayKey.slice(1)];
+        const dayName = dayNameMap[dayKey];
+        
+        // Skip Monday, Saturday, Sunday - we'll use hardcoded playlists instead
+        if (hardcodedDays.has(dayName)) {
+          console.log(`[Schedule] Skipping ${dayName} - using hardcoded playlists`);
+          continue;
+        }
+        
+        if (dayEpisodes && Array.isArray(dayEpisodes)) {
+          console.log(`[Schedule] Processing ${dayName}: ${dayEpisodes.length} episodes`);
 
-    // 5. Add any RadioCult events that don't have corresponding Cosmic episodes
-    for (const event of radiocultEvents) {
-      const hasCosmicEpisode = Object.values(episodeSlugMap).some(slug =>
-        scheduleItems.some(item => item.event_id === event.id)
-      );
+          for (const episode of dayEpisodes) {
+            if (!episode || episode.type !== 'episode') {
+              continue;
+            }
 
-      if (!hasCosmicEpisode) {
-        const eventDate = new Date(event.startTime);
-        const dayName = [
-          'Sunday',
-          'Monday',
-          'Tuesday',
-          'Wednesday',
-          'Thursday',
-          'Friday',
-          'Saturday',
-        ][eventDate.getDay()];
+            const episodeMetadata = episode.metadata || {};
+            const timeSlot = episodeMetadata.broadcast_time || '00:00';
 
-        const hours = eventDate.getHours().toString().padStart(2, '0');
-        const minutes = eventDate.getMinutes().toString().padStart(2, '0');
-        const timeSlot = `${hours}:${minutes}`;
+            const scheduleItem: ScheduleShow = {
+              show_key: episode.slug,
+              event_id: `episode-${episode.id}`,
+              show_time: timeSlot,
+              show_day: dayName,
+              name: episode.title,
+              url: `/episode/${episode.slug}`,
+              picture: episodeMetadata.image?.url
+                ? `https://imgix.cosmicjs.com/${episodeMetadata.image.url}`
+                : '/image-placeholder.png',
+              created_time: episode.created_at,
+              tags: episodeMetadata.genres?.map((g: any) => g.title) || [],
+              hosts: episodeMetadata.regular_hosts?.map((h: any) => h.title) || [],
+              duration: parseDurationToSeconds(episodeMetadata.duration),
+              play_count: 0,
+              favorite_count: 0,
+              comment_count: 0,
+              listener_count: 0,
+              repost_count: 0,
+            };
 
-        const scheduleItem: ScheduleShow = {
-          show_key: event.slug,
-          event_id: event.id,
-          show_time: timeSlot,
-          show_day: dayName,
-          name: event.showName,
-          url: `/shows/${event.slug}`, // Fallback to show page
-          picture: event.imageUrl || '/image-placeholder.png',
-          created_time: event.createdAt,
-          tags: event.tags || [],
-          hosts: event.artists?.map(artist => artist.name) || [],
-          duration: event.duration || 0,
-          play_count: 0,
-          favorite_count: 0,
-          comment_count: 0,
-          listener_count: 0,
-          repost_count: 0,
-        };
-
-        scheduleItems.push(scheduleItem);
+            scheduleItems.push(scheduleItem);
+            episodeSlugMap[scheduleItem.event_id] = episode.slug;
+          }
+        }
       }
     }
 
-    // 6. Sort by day and time, ensuring no overlaps
+    // Add hardcoded playlists for Monday, Saturday, Sunday
+    scheduleItems.push(...hardcodedPlaylists);
+
+    if (scheduleItems.length === 0) {
+      console.warn('[Schedule] No episodes found. Metadata structure:', JSON.stringify(metadata, null, 2));
+    }
+
+    // Sort by day and time
     scheduleItems.sort((a, b) => {
       const dayOrder = [
         'Monday',
@@ -234,32 +376,9 @@ async function getWeeklySchedule(): Promise<{
       return timeA[0] * 60 + timeA[1] - (timeB[0] * 60 + timeB[1]);
     });
 
-    // 7. Remove overlapping shows (same day and time)
-    const deduplicatedItems: ScheduleShow[] = [];
-    const timeSlotMap = new Map<string, ScheduleShow>();
-
-    for (const item of scheduleItems) {
-      const key = `${item.show_day}-${item.show_time}`;
-
-      if (!timeSlotMap.has(key)) {
-        timeSlotMap.set(key, item);
-        deduplicatedItems.push(item);
-      } else {
-        // Keep the one with more complete data (prefer Cosmic episodes)
-        const existing = timeSlotMap.get(key)!;
-        if (item.url.startsWith('/episode/') && !existing.url.startsWith('/episode/')) {
-          timeSlotMap.set(key, item);
-          const index = deduplicatedItems.findIndex(i => i === existing);
-          if (index !== -1) {
-            deduplicatedItems[index] = item;
-          }
-        }
-      }
-    }
-
-    console.log('[Schedule] Final schedule items:', deduplicatedItems.length);
+    console.log('[Schedule] Final schedule items:', scheduleItems.length);
     console.log('[Schedule] Items by day:');
-    const itemsByDay = deduplicatedItems.reduce((acc: Record<string, ScheduleShow[]>, item) => {
+    const itemsByDay = scheduleItems.reduce((acc: Record<string, ScheduleShow[]>, item) => {
       if (!acc[item.show_day]) acc[item.show_day] = [];
       acc[item.show_day].push(item);
       return acc;
@@ -273,9 +392,9 @@ async function getWeeklySchedule(): Promise<{
     });
 
     return {
-      scheduleItems: deduplicatedItems,
+      scheduleItems,
       episodeSlugMap,
-      isActive: deduplicatedItems.length > 0,
+      isActive: scheduleItems.length > 0,
     };
   } catch (error) {
     console.error('Error fetching schedule:', error);
@@ -287,19 +406,6 @@ async function getWeeklySchedule(): Promise<{
         error instanceof Error ? error.message : 'An error occurred while fetching the schedule',
     };
   }
-}
-
-/**
- * Parse duration string (e.g., "60:00" or "1:30:00") to minutes
- */
-function parseDurationToMinutes(duration: string): number {
-  const parts = duration.split(':').map(Number);
-  if (parts.length === 2) {
-    return parts[0] * 60 + parts[1];
-  } else if (parts.length === 3) {
-    return parts[0] * 60 + parts[1] * 60 + parts[2];
-  }
-  return 0;
 }
 
 export default async function SchedulePage() {
