@@ -56,7 +56,8 @@ function parseDurationToSeconds(duration: string | null | undefined): number {
 }
 
 /**
- * Get hardcoded playlist entries for Monday, Saturday, and Sunday
+ * Get WWFM playlist entries for all days of the week
+ * Playlists are the same every day, so we fetch from any day and duplicate for all days
  */
 async function getHardcodedPlaylists(): Promise<ScheduleShow[]> {
   try {
@@ -75,109 +76,48 @@ async function getHardcodedPlaylists(): Promise<ScheduleShow[]> {
       limit: 100,
     });
 
-    // Find recurring playlists for Monday, Saturday, Sunday
+    // Get playlists from Monday (they're the same every day)
     const mondayPlaylists = events.filter(event => {
       const eventDate = new Date(event.startTime);
       return eventDate.getDay() === 1; // Monday
     });
 
-    const saturdayPlaylists = events.filter(event => {
-      const eventDate = new Date(event.startTime);
-      return eventDate.getDay() === 6; // Saturday
-    });
-
-    const sundayPlaylists = events.filter(event => {
-      const eventDate = new Date(event.startTime);
-      return eventDate.getDay() === 0; // Sunday
-    });
-
+    const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const hardcodedItems: ScheduleShow[] = [];
 
-    // Add Monday playlists
-    for (const playlist of mondayPlaylists) {
-      const eventDate = new Date(playlist.startTime);
-      const hours = eventDate.getUTCHours().toString().padStart(2, '0');
-      const minutes = eventDate.getUTCMinutes().toString().padStart(2, '0');
-      const timeSlot = `${hours}:${minutes}`;
+    // Add playlists for all days of the week
+    for (const dayName of allDays) {
+      for (const playlist of mondayPlaylists) {
+        const eventDate = new Date(playlist.startTime);
+        const hours = eventDate.getUTCHours().toString().padStart(2, '0');
+        const minutes = eventDate.getUTCMinutes().toString().padStart(2, '0');
+        const timeSlot = `${hours}:${minutes}`;
 
-      hardcodedItems.push({
-        show_key: playlist.slug,
-        event_id: `playlist-${playlist.id}`,
-        show_time: timeSlot,
-        show_day: 'Monday',
-        name: playlist.showName,
-        url: `/shows/${playlist.slug}`,
-        picture: playlist.imageUrl || '/image-placeholder.png',
-        created_time: playlist.createdAt,
-        tags: playlist.tags || [],
-        hosts: playlist.artists?.map(artist => artist.name) || [],
-        duration: playlist.duration * 60, // Convert minutes to seconds
-        play_count: 0,
-        favorite_count: 0,
-        comment_count: 0,
-        listener_count: 0,
-        repost_count: 0,
-      });
-    }
-
-    // Add Saturday playlists
-    for (const playlist of saturdayPlaylists) {
-      const eventDate = new Date(playlist.startTime);
-      const hours = eventDate.getUTCHours().toString().padStart(2, '0');
-      const minutes = eventDate.getUTCMinutes().toString().padStart(2, '0');
-      const timeSlot = `${hours}:${minutes}`;
-
-      hardcodedItems.push({
-        show_key: playlist.slug,
-        event_id: `playlist-${playlist.id}`,
-        show_time: timeSlot,
-        show_day: 'Saturday',
-        name: playlist.showName,
-        url: `/shows/${playlist.slug}`,
-        picture: playlist.imageUrl || '/image-placeholder.png',
-        created_time: playlist.createdAt,
-        tags: playlist.tags || [],
-        hosts: playlist.artists?.map(artist => artist.name) || [],
-        duration: playlist.duration * 60,
-        play_count: 0,
-        favorite_count: 0,
-        comment_count: 0,
-        listener_count: 0,
-        repost_count: 0,
-      });
-    }
-
-    // Add Sunday playlists
-    for (const playlist of sundayPlaylists) {
-      const eventDate = new Date(playlist.startTime);
-      const hours = eventDate.getUTCHours().toString().padStart(2, '0');
-      const minutes = eventDate.getUTCMinutes().toString().padStart(2, '0');
-      const timeSlot = `${hours}:${minutes}`;
-
-      hardcodedItems.push({
-        show_key: playlist.slug,
-        event_id: `playlist-${playlist.id}`,
-        show_time: timeSlot,
-        show_day: 'Sunday',
-        name: playlist.showName,
-        url: `/shows/${playlist.slug}`,
-        picture: playlist.imageUrl || '/image-placeholder.png',
-        created_time: playlist.createdAt,
-        tags: playlist.tags || [],
-        hosts: playlist.artists?.map(artist => artist.name) || [],
-        duration: playlist.duration * 60,
-        play_count: 0,
-        favorite_count: 0,
-        comment_count: 0,
-        listener_count: 0,
-        repost_count: 0,
-      });
+        hardcodedItems.push({
+          show_key: playlist.slug,
+          event_id: `playlist-${playlist.id}-${dayName}`,
+          show_time: timeSlot,
+          show_day: dayName,
+          name: playlist.showName,
+          url: `/shows/${playlist.slug}`,
+          picture: playlist.imageUrl || '/image-placeholder.png',
+          created_time: playlist.createdAt,
+          tags: playlist.tags || [],
+          hosts: playlist.artists?.map(artist => artist.name) || [],
+          duration: playlist.duration * 60, // Convert minutes to seconds
+          play_count: 0,
+          favorite_count: 0,
+          comment_count: 0,
+          listener_count: 0,
+          repost_count: 0,
+        });
+      }
     }
 
     console.log('[Schedule] Hardcoded playlists:', {
-      monday: mondayPlaylists.length,
-      saturday: saturdayPlaylists.length,
-      sunday: sundayPlaylists.length,
+      totalPlaylists: mondayPlaylists.length,
+      totalItems: hardcodedItems.length,
+      itemsPerDay: hardcodedItems.length / 7,
     });
 
     return hardcodedItems;
@@ -224,12 +164,8 @@ async function getWeeklySchedule(): Promise<{
     const scheduleItems: ScheduleShow[] = [];
     const episodeSlugMap: Record<string, string> = {};
 
-    // Get hardcoded playlists for Monday, Saturday, Sunday
+    // Get hardcoded playlists for all days
     const hardcodedPlaylists = await getHardcodedPlaylists();
-    
-    // Filter out Monday, Saturday, Sunday from hardcoded playlists
-    // (we'll add them back at the end, but exclude them from the Cosmic schedule)
-    const hardcodedDays = new Set(['Monday', 'Saturday', 'Sunday']);
 
     // Handle different possible structures
     // Option 1: metadata.days array
@@ -241,12 +177,6 @@ async function getWeeklySchedule(): Promise<{
 
         if (!dayName) {
           console.warn('[Schedule] Day data missing day name:', dayData);
-          continue;
-        }
-
-        // Skip Monday, Saturday, Sunday - we'll use hardcoded playlists instead
-        if (hardcodedDays.has(dayName)) {
-          console.log(`[Schedule] Skipping ${dayName} - using hardcoded playlists`);
           continue;
         }
 
@@ -303,12 +233,6 @@ async function getWeeklySchedule(): Promise<{
         const dayEpisodes = metadata[dayKey] || metadata[dayKey.charAt(0).toUpperCase() + dayKey.slice(1)];
         const dayName = dayNameMap[dayKey];
         
-        // Skip Monday, Saturday, Sunday - we'll use hardcoded playlists instead
-        if (hardcodedDays.has(dayName)) {
-          console.log(`[Schedule] Skipping ${dayName} - using hardcoded playlists`);
-          continue;
-        }
-        
         if (dayEpisodes && Array.isArray(dayEpisodes)) {
           console.log(`[Schedule] Processing ${dayName}: ${dayEpisodes.length} episodes`);
 
@@ -348,7 +272,7 @@ async function getWeeklySchedule(): Promise<{
       }
     }
 
-    // Add hardcoded playlists for Monday, Saturday, Sunday
+    // Add hardcoded playlists for all days
     scheduleItems.push(...hardcodedPlaylists);
 
     if (scheduleItems.length === 0) {
