@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import VideoGrid from '@/components/video/video-grid';
 import FeaturedVideoContent from '@/components/video/featured-video-content';
+import VideoCategorySection from '@/components/video/video-category-section';
 import { VideoObject } from '@/lib/cosmic-config';
 import { subDays } from 'date-fns';
 import { VideoFilterToolbar } from './components/video-filter-toolbar';
@@ -146,6 +147,41 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
     return { featuredVideos: featured, regularVideos: regular };
   }, [initialVideos]);
 
+  // Group regular videos by category
+  const videosByCategory = useMemo(() => {
+    const grouped: Record<string, { category: VideoCategory; videos: VideoObject[] }> = {};
+    const uncategorized: VideoObject[] = [];
+
+    regularVideos.forEach(video => {
+      const videoCategories = video.metadata?.categories;
+      if (!videoCategories || !Array.isArray(videoCategories) || videoCategories.length === 0) {
+        uncategorized.push(video);
+        return;
+      }
+
+      const firstCatId = typeof videoCategories[0] === 'string' 
+        ? videoCategories[0] 
+        : videoCategories[0]?.id;
+      
+      const category = availableCategories.find(cat => cat.id === firstCatId);
+      
+      if (category) {
+        if (!grouped[category.id]) {
+          grouped[category.id] = { category, videos: [] };
+        }
+        grouped[category.id].videos.push(video);
+      } else {
+        uncategorized.push(video);
+      }
+    });
+
+    const sortedGroups = Object.values(grouped).sort((a, b) => 
+      a.category.title.localeCompare(b.category.title)
+    );
+
+    return { sortedGroups, uncategorized };
+  }, [regularVideos, availableCategories]);
+
   // Filter videos based on active filter
   const filteredVideos = useMemo(() => {
     if (!initialVideos.length) return [];
@@ -213,13 +249,30 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
               availableCategories={availableCategories}
             />
           )}
-          {regularVideos.length > 0 ? (
+          {videosByCategory.sortedGroups.length > 0 ? (
             <>
-              <h2 className='text-[40px] tracking-tight font-display uppercase font-normal text-almostblack dark:text-white mb-4'>
-                All Videos
-              </h2>
-              <VideoGrid videos={regularVideos} availableCategories={availableCategories} />
+              {videosByCategory.sortedGroups.map(({ category, videos }) => (
+                <VideoCategorySection
+                  key={category.id}
+                  title={category.title}
+                  videos={videos}
+                  availableCategories={availableCategories}
+                />
+              ))}
+              {videosByCategory.uncategorized.length > 0 && (
+                <VideoCategorySection
+                  title='Other Videos'
+                  videos={videosByCategory.uncategorized}
+                  availableCategories={availableCategories}
+                />
+              )}
             </>
+          ) : videosByCategory.uncategorized.length > 0 ? (
+            <VideoCategorySection
+              title='All Videos'
+              videos={videosByCategory.uncategorized}
+              availableCategories={availableCategories}
+            />
           ) : featuredVideos.length === 0 ? (
             <div className='text-center'>
               <h3 className='text-m5 font-mono font-normal text-almostblack dark:text-white'>
