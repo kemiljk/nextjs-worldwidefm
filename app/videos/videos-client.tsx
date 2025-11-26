@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import VideoGrid from '@/components/video/video-grid';
+import FeaturedVideoContent from '@/components/video/featured-video-content';
 import { VideoObject } from '@/lib/cosmic-config';
 import { subDays } from 'date-fns';
 import { VideoFilterToolbar } from './components/video-filter-toolbar';
@@ -129,6 +130,22 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
     setActiveFilter(filter);
   };
 
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    return (
+      activeFilter === 'new' ||
+      selectedFilters.categories.length > 0 ||
+      debouncedSearchTerm.length > 0
+    );
+  }, [activeFilter, selectedFilters.categories.length, debouncedSearchTerm]);
+
+  // Separate featured videos from regular videos
+  const { featuredVideos, regularVideos } = useMemo(() => {
+    const featured = initialVideos.filter(video => video.metadata?.is_featured === true);
+    const regular = initialVideos.filter(video => !video.metadata?.is_featured);
+    return { featuredVideos: featured, regularVideos: regular };
+  }, [initialVideos]);
+
   // Filter videos based on active filter
   const filteredVideos = useMemo(() => {
     if (!initialVideos.length) return [];
@@ -149,7 +166,6 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
     if (selectedFilters.categories.length > 0) {
       filtered = filtered.filter(video => {
         if (!video.metadata?.categories) return false;
-        // Map category IDs to full objects
         const categoryObjects = Array.isArray(video.metadata.categories)
           ? video.metadata.categories
               .map(catId =>
@@ -189,7 +205,30 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
         />
       </div>
 
-      {filteredVideos.length > 0 ? (
+      {!hasActiveFilters ? (
+        <>
+          {featuredVideos.length > 0 && (
+            <FeaturedVideoContent
+              videos={featuredVideos.slice(0, 1)}
+              availableCategories={availableCategories}
+            />
+          )}
+          {regularVideos.length > 0 ? (
+            <>
+              <h2 className='text-[40px] tracking-tight font-display uppercase font-normal text-almostblack dark:text-white mb-4'>
+                All Videos
+              </h2>
+              <VideoGrid videos={regularVideos} availableCategories={availableCategories} />
+            </>
+          ) : featuredVideos.length === 0 ? (
+            <div className='text-center'>
+              <h3 className='text-m5 font-mono font-normal text-almostblack dark:text-white'>
+                No videos found
+              </h3>
+            </div>
+          ) : null}
+        </>
+      ) : filteredVideos.length > 0 ? (
         <VideoGrid videos={filteredVideos} availableCategories={availableCategories} />
       ) : (
         <div className='text-center'>
