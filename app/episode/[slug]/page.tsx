@@ -1,5 +1,3 @@
-import { Metadata } from 'next';
-import React from 'react';
 import Link from 'next/link';
 import { getEpisodeBySlug, getRelatedEpisodes } from '@/lib/episode-service';
 import { addMinutes } from 'date-fns';
@@ -8,7 +6,6 @@ import { ShowCard } from '@/components/ui/show-card';
 import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
-import { generateShowMetadata } from '@/lib/metadata-utils';
 import { TracklistToggle } from '@/components/ui/tracklisttoggle';
 import { parseBroadcastDateTime } from '@/lib/date-utils';
 import { transformShowToViewData } from '@/lib/cosmic-service';
@@ -17,40 +14,6 @@ import { PreviewBanner } from '@/components/ui/preview-banner';
 import { ListenBackButton } from '@/components/listen-back-button';
 
 export const revalidate = 60; // 1 minute - shows update quickly
-
-interface Props {
-  params: Promise<{ slug: string }>;
-  searchParams?: Promise<{ preview?: string }>;
-}
-
-export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
-  try {
-    const { slug } = await params;
-    const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
-    const episode = await getEpisodeBySlug(slug, preview);
-
-    if (episode) {
-      return generateShowMetadata(episode);
-    }
-
-    return generateShowMetadata({ title: 'Episode Not Found' });
-  } catch (error) {
-    console.error('Error generating episode metadata:', error);
-    return generateShowMetadata({ title: 'Episode Not Found' });
-  }
-}
-
-export async function generateStaticParams() {
-  try {
-    // Note: We'll keep this simple for now since we're moving away from static generation
-    // for episodes due to the large number of episodes
-    return [];
-  } catch (error) {
-    console.error('Error generating static params:', error);
-    return [];
-  }
-}
-
 export const dynamicParams = true;
 export const dynamic = 'force-dynamic';
 
