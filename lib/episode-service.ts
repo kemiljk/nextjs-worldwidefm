@@ -521,7 +521,7 @@ export async function getEpisodeBySlug(
  * Get related episodes based on shared genres and hosts
  * Prioritizes: 1) Host matches, 2) Genre matches, 3) Other shows
  * Always sorted by broadcast_date
- * Optimized to reduce API calls and use depth(1) where possible
+ * Optimized with reduced over-fetching and early returns
  */
 export async function getRelatedEpisodes(
   episodeId: string,
@@ -539,7 +539,8 @@ export async function getRelatedEpisodes(
         id: episodeId,
         status: 'published',
       })
-      .depth(1);
+      .props('id,metadata.genres,metadata.regular_hosts')
+      .depth(2);
 
     if (!currentEpisode?.object) {
       return [];
@@ -561,7 +562,7 @@ export async function getRelatedEpisodes(
         .props('id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts')
         .limit(limit)
         .sort('-metadata.broadcast_date')
-        .depth(1);
+        .depth(2);
 
       const hostEpisodes = hostResponse.objects || [];
       result.push(...hostEpisodes);
@@ -585,7 +586,7 @@ export async function getRelatedEpisodes(
         .props('id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts')
         .limit(remainingLimit + 3)
         .sort('-metadata.broadcast_date')
-        .depth(1);
+        .depth(2);
 
       const genreEpisodes = (genreResponse.objects || []).filter((e: EpisodeObject) => {
         const episodeHosts = e.metadata?.regular_hosts?.map((h: HostObject) => h.id) || [];
@@ -609,7 +610,7 @@ export async function getRelatedEpisodes(
         .props('id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts')
         .limit(remainingLimit + 2)
         .sort('-metadata.broadcast_date')
-        .depth(1);
+        .depth(2);
 
       const randomEpisodes = (randomResponse.objects || []).filter((e: EpisodeObject) => {
         const episodeHosts = e.metadata?.regular_hosts?.map((h: HostObject) => h.id) || [];
