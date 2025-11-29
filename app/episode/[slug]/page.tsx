@@ -15,7 +15,6 @@ import { ListenBackButton } from '@/components/listen-back-button';
 
 export const revalidate = 60; // 1 minute - shows update quickly
 export const dynamicParams = true;
-export const dynamic = 'force-dynamic';
 
 function HostLink({ host, className }: { host: any; className: string }) {
   let href = '#';
