@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { getEpisodeBySlug, getRelatedEpisodes } from '@/lib/episode-service';
 import { addMinutes } from 'date-fns';
-import { findHostSlug, displayNameToSlug } from '@/lib/host-matcher';
+import { displayNameToSlug } from '@/lib/host-matcher';
 import { ShowCard } from '@/components/ui/show-card';
 import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';
@@ -17,20 +17,15 @@ export const revalidate = 60; // 1 minute - shows update quickly
 export const dynamicParams = true;
 export const dynamic = 'force-dynamic';
 
-async function HostLink({ host, className }: { host: any; className: string }) {
+function HostLink({ host, className }: { host: any; className: string }) {
   let href = '#';
   const displayName = host.title || host.name;
 
   if (host.slug) {
     href = `/hosts/${host.slug}`;
   } else {
-    const matchedSlug = await findHostSlug(displayName);
-    if (matchedSlug) {
-      href = `/hosts/${matchedSlug}`;
-    } else {
-      const fallbackSlug = displayNameToSlug(displayName);
-      href = `/hosts/${fallbackSlug}`;
-    }
+    const fallbackSlug = displayNameToSlug(displayName);
+    href = `/hosts/${fallbackSlug}`;
   }
 
   return (
