@@ -4,7 +4,6 @@ import { PageHeader } from '@/components/shared/page-header';
 import ScheduleDisplay from '@/components/schedule-display';
 import { cosmic } from '@/lib/cosmic-config';
 import { EpisodeObject } from '@/lib/cosmic-types';
-import { getEvents, RadioCultEvent } from '@/lib/radiocult-service';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateScheduleMetadata();
@@ -31,9 +30,17 @@ interface ScheduleShow {
   repost_count: number;
 }
 
+interface ScheduleEpisode {
+  title: string;
+  episode_link?: EpisodeObject | string;
+  override_broadcast_date?: string;
+  override_broadcast_time?: string;
+  override_duration?: string;
+}
+
 interface ScheduleDay {
   day: string;
-  episodes: EpisodeObject[];
+  episodes: ScheduleEpisode[];
 }
 
 interface ScheduleMetadata {
@@ -56,78 +63,6 @@ function parseDurationToSeconds(duration: string | null | undefined): number {
 }
 
 /**
- * Get WWFM playlist entries for all days of the week
- * Playlists are the same every day, so we fetch from any day and duplicate for all days
- */
-async function getHardcodedPlaylists(): Promise<ScheduleShow[]> {
-  try {
-    // Fetch current week's events from RadioCult to identify playlists
-    const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay() + 1); // Monday
-    weekStart.setHours(0, 0, 0, 0);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
-
-    const { events } = await getEvents({
-      startDate: weekStart.toISOString(),
-      endDate: weekEnd.toISOString(),
-      limit: 100,
-    });
-
-    // Get playlists from Monday (they're the same every day)
-    const mondayPlaylists = events.filter(event => {
-      const eventDate = new Date(event.startTime);
-      return eventDate.getDay() === 1; // Monday
-    });
-
-    const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const hardcodedItems: ScheduleShow[] = [];
-
-    // Add playlists for all days of the week
-    for (const dayName of allDays) {
-      for (const playlist of mondayPlaylists) {
-        const eventDate = new Date(playlist.startTime);
-        const hours = eventDate.getUTCHours().toString().padStart(2, '0');
-        const minutes = eventDate.getUTCMinutes().toString().padStart(2, '0');
-        const timeSlot = `${hours}:${minutes}`;
-
-        hardcodedItems.push({
-          show_key: playlist.slug,
-          event_id: `playlist-${playlist.id}-${dayName}`,
-          show_time: timeSlot,
-          show_day: dayName,
-          name: playlist.showName,
-          url: `/shows/${playlist.slug}`,
-          picture: playlist.imageUrl || '/image-placeholder.png',
-          created_time: playlist.createdAt,
-          tags: playlist.tags || [],
-          hosts: playlist.artists?.map(artist => artist.name) || [],
-          duration: playlist.duration * 60, // Convert minutes to seconds
-          play_count: 0,
-          favorite_count: 0,
-          comment_count: 0,
-          listener_count: 0,
-          repost_count: 0,
-        });
-      }
-    }
-
-    console.log('[Schedule] Hardcoded playlists:', {
-      totalPlaylists: mondayPlaylists.length,
-      totalItems: hardcodedItems.length,
-      itemsPerDay: hardcodedItems.length / 7,
-    });
-
-    return hardcodedItems;
-  } catch (error) {
-    console.error('[Schedule] Error fetching hardcoded playlists:', error);
-    return [];
-  }
-}
-
-/**
  * Fetch schedule from Cosmic Schedule object
  */
 async function getWeeklySchedule(): Promise<{
@@ -143,7 +78,7 @@ async function getWeeklySchedule(): Promise<{
         slug: 'this-week',
       })
       .props('slug,title,metadata,type')
-      .depth(2);
+      .depth(3);
 
     if (!scheduleResponse?.object) {
       console.log('[Schedule] No schedule object found');
@@ -164,8 +99,93 @@ async function getWeeklySchedule(): Promise<{
     const scheduleItems: ScheduleShow[] = [];
     const episodeSlugMap: Record<string, string> = {};
 
-    // Get hardcoded playlists for all days
-    const hardcodedPlaylists = await getHardcodedPlaylists();
+    /**
+     * Process a Schedule Episode object and create a ScheduleShow
+     */
+    async function processScheduleEpisode(
+      scheduleEpisode: ScheduleEpisode,
+      dayName: string
+    ): Promise<ScheduleShow | null> {
+      if (!scheduleEpisode.title) {
+        console.warn('[Schedule] Schedule episode missing title');
+        return null;
+      }
+
+      let episode: EpisodeObject | null = null;
+      let episodeSlug: string | null = null;
+
+      const scheduleEpisodeMetadata = (scheduleEpisode as any).metadata || {};
+      const episodeLink = scheduleEpisodeMetadata.episode_link;
+
+      if (episodeLink) {
+        let episodeId: string | null = null;
+
+        if (typeof episodeLink === 'string') {
+          episodeId = episodeLink;
+        } else if (episodeLink?.metadata) {
+          episode = episodeLink as EpisodeObject;
+          episodeSlug = episode.slug;
+        } else if (episodeLink?.id) {
+          episodeId = episodeLink.id;
+        }
+
+        if (episodeId && !episode) {
+          try {
+            const episodeResponse = await cosmic.objects.findOne({
+              type: 'episode',
+              id: episodeId,
+            });
+            if (episodeResponse?.object) {
+              episode = episodeResponse.object as EpisodeObject;
+              episodeSlug = episode.slug;
+            } else {
+              console.warn(`[Schedule] Episode not found by ID: ${episodeId}`);
+            }
+          } catch (error) {
+            console.warn(`[Schedule] Could not fetch episode by ID: ${episodeId}`, error);
+          }
+        }
+      }
+
+      const episodeMetadata = (episode?.metadata || {}) as any;
+
+      const broadcastTime =
+        scheduleEpisodeMetadata.override_broadcast_time ||
+        episodeMetadata.broadcast_time ||
+        '00:00';
+      const duration = scheduleEpisodeMetadata.override_duration || episodeMetadata.duration;
+      const title = scheduleEpisode.title || episode?.title || 'Untitled';
+
+      // Only create URL if we have an episode link
+      const url = episodeSlug ? `/episode/${episodeSlug}` : '';
+
+      const scheduleItem: ScheduleShow = {
+        show_key: episodeSlug || `schedule-${title}`,
+        event_id: episode ? `episode-${episode.id}` : `schedule-${title}-${dayName}`,
+        show_time: broadcastTime,
+        show_day: dayName,
+        name: title,
+        url,
+        picture: episodeMetadata.image?.url
+          ? `https://imgix.cosmicjs.com/${episodeMetadata.image.url}`
+          : '/image-placeholder.png',
+        created_time: episode?.created_at || new Date().toISOString(),
+        tags: episodeMetadata.genres?.map((g: any) => g.title) || [],
+        hosts: episodeMetadata.regular_hosts?.map((h: any) => h.title) || [],
+        duration: parseDurationToSeconds(duration),
+        play_count: 0,
+        favorite_count: 0,
+        comment_count: 0,
+        listener_count: 0,
+        repost_count: 0,
+      };
+
+      if (episodeSlug) {
+        episodeSlugMap[scheduleItem.event_id] = episodeSlug;
+      }
+
+      return scheduleItem;
+    }
 
     // Handle different possible structures
     // Option 1: metadata.days array
@@ -173,51 +193,35 @@ async function getWeeklySchedule(): Promise<{
       console.log('[Schedule] Using days array structure');
       for (const dayData of metadata.days) {
         const dayName = dayData.day || dayData.day_name || dayData.name;
-        const episodes = dayData.episodes || dayData.shows || [];
+        const scheduleEpisodes = dayData.episodes || dayData.shows || [];
 
         if (!dayName) {
           console.warn('[Schedule] Day data missing day name:', dayData);
           continue;
         }
 
-        console.log(`[Schedule] Processing ${dayName}: ${episodes.length} episodes`);
+        console.log(
+          `[Schedule] Processing ${dayName}: ${scheduleEpisodes.length} schedule episodes`
+        );
 
-        for (const episode of episodes) {
-          if (!episode || episode.type !== 'episode') {
-            continue;
+        for (const scheduleEpisode of scheduleEpisodes) {
+          const scheduleItem = await processScheduleEpisode(scheduleEpisode, dayName);
+          if (scheduleItem) {
+            scheduleItems.push(scheduleItem);
           }
-
-          const episodeMetadata = episode.metadata || {};
-          const timeSlot = episodeMetadata.broadcast_time || '00:00';
-
-          const scheduleItem: ScheduleShow = {
-            show_key: episode.slug,
-            event_id: `episode-${episode.id}`,
-            show_time: timeSlot,
-            show_day: dayName,
-            name: episode.title,
-            url: `/episode/${episode.slug}`,
-            picture: episodeMetadata.image?.url
-              ? `https://imgix.cosmicjs.com/${episodeMetadata.image.url}`
-              : '/image-placeholder.png',
-            created_time: episode.created_at,
-            tags: episodeMetadata.genres?.map((g: any) => g.title) || [],
-            hosts: episodeMetadata.regular_hosts?.map((h: any) => h.title) || [],
-            duration: parseDurationToSeconds(episodeMetadata.duration),
-            play_count: 0,
-            favorite_count: 0,
-            comment_count: 0,
-            listener_count: 0,
-            repost_count: 0,
-          };
-
-          scheduleItems.push(scheduleItem);
-          episodeSlugMap[scheduleItem.event_id] = episode.slug;
         }
       }
     } else {
       // Option 2: Day names as keys in metadata (monday, tuesday, etc.)
-      const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      const dayKeys = [
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+        'sunday',
+      ];
       const dayNameMap: Record<string, string> = {
         monday: 'Monday',
         tuesday: 'Tuesday',
@@ -230,53 +234,30 @@ async function getWeeklySchedule(): Promise<{
 
       console.log('[Schedule] Checking for day keys in metadata');
       for (const dayKey of dayKeys) {
-        const dayEpisodes = metadata[dayKey] || metadata[dayKey.charAt(0).toUpperCase() + dayKey.slice(1)];
+        const dayScheduleEpisodes =
+          metadata[dayKey] || metadata[dayKey.charAt(0).toUpperCase() + dayKey.slice(1)];
         const dayName = dayNameMap[dayKey];
-        
-        if (dayEpisodes && Array.isArray(dayEpisodes)) {
-          console.log(`[Schedule] Processing ${dayName}: ${dayEpisodes.length} episodes`);
 
-          for (const episode of dayEpisodes) {
-            if (!episode || episode.type !== 'episode') {
-              continue;
+        if (dayScheduleEpisodes && Array.isArray(dayScheduleEpisodes)) {
+          console.log(
+            `[Schedule] Processing ${dayName}: ${dayScheduleEpisodes.length} schedule episodes`
+          );
+
+          for (const scheduleEpisode of dayScheduleEpisodes) {
+            const scheduleItem = await processScheduleEpisode(scheduleEpisode, dayName);
+            if (scheduleItem) {
+              scheduleItems.push(scheduleItem);
             }
-
-            const episodeMetadata = episode.metadata || {};
-            const timeSlot = episodeMetadata.broadcast_time || '00:00';
-
-            const scheduleItem: ScheduleShow = {
-              show_key: episode.slug,
-              event_id: `episode-${episode.id}`,
-              show_time: timeSlot,
-              show_day: dayName,
-              name: episode.title,
-              url: `/episode/${episode.slug}`,
-              picture: episodeMetadata.image?.url
-                ? `https://imgix.cosmicjs.com/${episodeMetadata.image.url}`
-                : '/image-placeholder.png',
-              created_time: episode.created_at,
-              tags: episodeMetadata.genres?.map((g: any) => g.title) || [],
-              hosts: episodeMetadata.regular_hosts?.map((h: any) => h.title) || [],
-              duration: parseDurationToSeconds(episodeMetadata.duration),
-              play_count: 0,
-              favorite_count: 0,
-              comment_count: 0,
-              listener_count: 0,
-              repost_count: 0,
-            };
-
-            scheduleItems.push(scheduleItem);
-            episodeSlugMap[scheduleItem.event_id] = episode.slug;
           }
         }
       }
     }
 
-    // Add hardcoded playlists for all days
-    scheduleItems.push(...hardcodedPlaylists);
-
     if (scheduleItems.length === 0) {
-      console.warn('[Schedule] No episodes found. Metadata structure:', JSON.stringify(metadata, null, 2));
+      console.warn(
+        '[Schedule] No episodes found. Metadata structure:',
+        JSON.stringify(metadata, null, 2)
+      );
     }
 
     // Sort by day and time
