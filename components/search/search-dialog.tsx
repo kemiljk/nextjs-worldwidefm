@@ -102,8 +102,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     
     const hasSearchOrFilters = debouncedSearchTerm?.trim().length > 0 || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0;
     
+    // Always show loading when filters/search change, and clear old results
     if (hasSearchOrFilters) {
       setIsLoading(true);
+      setResults([]); // Clear old results to show loading state
     }
     setPage(1);
     setHasNext(true);
@@ -824,7 +826,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                     </div>
                   ) : (
                     <div className='flex flex-col items-center justify-center uppercase py-12 text-center'>
-                      {debouncedSearchTerm ? (
+                      {debouncedSearchTerm || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0 ? (
                         <>
                           <AlertCircle className='h-6 w-6 mb-4 text-muted-foreground' />
                           <p className='text-muted-foreground font-mono text-m8'>
