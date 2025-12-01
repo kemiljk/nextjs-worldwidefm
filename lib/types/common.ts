@@ -5,7 +5,12 @@
  * by providing specific types for common patterns.
  */
 
-import { GenreObject, HostObject, LocationObject, TakeoverObject } from '../cosmic-types';
+import type {
+  GenreObject,
+  HostObject,
+  LocationObject,
+  TakeoverObject,
+} from '../cosmic-config';
 
 /**
  * Type for Cosmic query objects

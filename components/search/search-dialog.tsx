@@ -69,6 +69,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       setResults([]);
       setPage(1);
       setHasNext(true);
+      setShowFilters(false);
+    } else {
+      // Ensure a clean fetch when reopening
+      setPage(1);
+      setHasNext(true);
     }
     onOpenChange(isOpen);
   };

@@ -1,6 +1,6 @@
 import { PostObject } from '@/lib/cosmic-config';
 import { ArticleCard } from '@/components/ui/article-card';
-import { getPostThumbnail } from '@/lib/post-thumbnail-utils';
+import { getPostThumbnail, getPostVideoUrl } from '@/lib/post-thumbnail-utils';
 
 interface FeaturedContentProps {
   posts: PostObject[];
@@ -28,10 +28,16 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
 
   const featuredPost = sortedPosts[0];
   
-  // Use featured_link if available and post is marked as featured
-  const customLink = featuredPost.metadata?.is_featured && featuredPost.metadata?.featured_link 
-    ? featuredPost.metadata.featured_link 
-    : undefined;
+  // Check if there's a video URL - if so, link to the video source
+  const videoUrl = getPostVideoUrl(featuredPost);
+  const hasVideoThumbnail = Boolean(videoUrl && getPostThumbnail(featuredPost) !== '/image-placeholder.png');
+  
+  // Use video URL if there's a video thumbnail, otherwise use featured_link or default
+  const customLink = hasVideoThumbnail 
+    ? videoUrl 
+    : (featuredPost.metadata?.is_featured && featuredPost.metadata?.featured_link 
+      ? featuredPost.metadata.featured_link 
+      : undefined);
 
   return (
     <div className='py-20 w-full items-center justify-center flex h-auto'>

@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PostObject } from '@/lib/cosmic-config';
 import FeaturedContent from '../../components/editorial/featured-content';
 import EditorialSection from '../../components/editorial/editorial-section';
+import EditorialCategorySection from '../../components/editorial/editorial-category-section';
 import { FilterItem as BaseFilterItem } from '@/lib/filter-types';
 import { FilterToolbar } from './components/filter-toolbar';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -335,16 +336,10 @@ function EditorialContent() {
                   if (postsToShow.length === 0) return null;
                   
                   return (
-                    <EditorialSection
+                    <EditorialCategorySection
                       key={group.category.id}
                       title={group.category.title}
                       posts={postsToShow}
-                      currentFilters={{
-                        searchTerm: currentFilters.search,
-                        categories: [group.category.slug],
-                        postType: undefined,
-                      }}
-                      availableFilters={availableFilters}
                     />
                   );
                 })}

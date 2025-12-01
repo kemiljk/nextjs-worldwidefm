@@ -103,7 +103,9 @@ export default function LivePlayer() {
       // Clean up audio if no show
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.src = '';
+        // Don't set empty src - just remove the element
+        audioRef.current.removeAttribute('src');
+        audioRef.current.load();
         audioRef.current = null;
       }
       return;
@@ -127,6 +129,12 @@ export default function LivePlayer() {
 
       audio.addEventListener('error', () => {
         const error = audio.error;
+        
+        // Ignore empty src errors (code 4) - these happen during cleanup/pause
+        if (error && error.code === 4) {
+          return;
+        }
+        
         let errorMessage = 'Stream connection failed';
 
         if (error) {
@@ -171,7 +179,9 @@ export default function LivePlayer() {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.src = '';
+        // Don't set empty src - just remove the attribute to avoid errors
+        audioRef.current.removeAttribute('src');
+        audioRef.current.load();
       }
     };
   }, [liveMetadata.content?.title, liveVolume, pauseLive]);
@@ -332,7 +342,10 @@ export default function LivePlayer() {
         pauseLive();
       });
     } else {
-      audioRef.current.pause();
+      // Pause without clearing src to avoid errors
+      if (audioRef.current && !audioRef.current.paused) {
+        audioRef.current.pause();
+      }
       setStreamState(prev => ({ ...prev, loading: false, connected: false }));
     }
   }, [isLivePlaying, liveMetadata.content?.title, streamUrl, pauseLive]);

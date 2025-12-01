@@ -112,3 +112,85 @@ export function getUKTimezoneAbbreviation(date: Date = new Date()): string {
     return '[GMT]';
   }
 }
+
+export type UkWeekday =
+  | 'Monday'
+  | 'Tuesday'
+  | 'Wednesday'
+  | 'Thursday'
+  | 'Friday'
+  | 'Saturday'
+  | 'Sunday';
+
+export const UK_WEEK_DAYS: UkWeekday[] = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
+
+export interface UkWeekInfo {
+  startOfWeek: Date;
+  dayDates: Record<UkWeekday, string>;
+}
+
+/**
+ * Create a Date instance that represents the provided timestamp in the supplied timezone.
+ */
+function getDateInTimeZone(date: Date, timeZone: string): Date {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(date);
+  const getPart = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find(part => part.type === type)?.value ?? '0');
+
+  const year = getPart('year');
+  const month = getPart('month');
+  const day = getPart('day');
+  const hour = getPart('hour');
+  const minute = getPart('minute');
+  const second = getPart('second');
+
+  return new Date(Date.UTC(year, month - 1, day, hour, minute, second, 0));
+}
+
+function startOfUkWeek(date: Date): Date {
+  const current = new Date(date);
+  const day = current.getUTCDay(); // 0 (Sun) - 6 (Sat)
+  const daysSinceMonday = (day + 6) % 7;
+  current.setUTCDate(current.getUTCDate() - daysSinceMonday);
+  current.setUTCHours(0, 0, 0, 0);
+  return current;
+}
+
+/**
+ * Get the current UK week (Monday -> Sunday) based on the Europe/London timezone.
+ */
+export function getCurrentUkWeek(referenceDate: Date = new Date()): UkWeekInfo {
+  const londonDate = getDateInTimeZone(referenceDate, 'Europe/London');
+  const weekStart = startOfUkWeek(londonDate);
+
+  const dayDates = {} as Record<UkWeekday, string>;
+  UK_WEEK_DAYS.forEach((day, index) => {
+    const current = new Date(weekStart);
+    current.setUTCDate(weekStart.getUTCDate() + index);
+    dayDates[day] = current.toISOString().slice(0, 10);
+  });
+
+  return {
+    startOfWeek: weekStart,
+    dayDates,
+  };
+}

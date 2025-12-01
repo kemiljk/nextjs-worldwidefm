@@ -77,11 +77,15 @@ export function sanitizeHtml(html: string, options: SanitizeOptions = {}): strin
   }
 
   const mergedOptions = { ...defaultSanitizeOptions, ...options };
+  const allowedSchemes =
+    mergedOptions.allowedSchemes && mergedOptions.allowedSchemes.length > 0
+      ? mergedOptions.allowedSchemes
+      : defaultSanitizeOptions.allowedSchemes || ['http', 'https'];
 
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: mergedOptions.allowedTags,
     ALLOWED_ATTR: mergedOptions.allowedAttributes,
-    ALLOWED_URI_REGEXP: new RegExp(`^(${mergedOptions.allowedSchemes.join('|')}):`, 'i'),
+    ALLOWED_URI_REGEXP: new RegExp(`^(${allowedSchemes.join('|')}):`, 'i'),
     KEEP_CONTENT: true,
     RETURN_DOM: false,
     RETURN_DOM_FRAGMENT: false,

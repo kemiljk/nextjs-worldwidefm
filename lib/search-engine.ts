@@ -1,5 +1,5 @@
 import { cosmic, GenreObject, LocationObject, HostObject, TakeoverObject } from './cosmic-config';
-import { FilterItem, SearchResultType } from './search-context';
+import { FilterItem, SearchResultType } from './search/unified-types';
 import { EpisodeObject } from './cosmic-types';
 
 export interface SearchResult {
