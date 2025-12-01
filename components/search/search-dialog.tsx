@@ -806,42 +806,40 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         {isLoadingMore && <Loader className='h-4 w-4 animate-spin' />}
                       </div>
                     </>
-                  ) : (
-                    {isLoading ? (
-                      <div className='space-y-6'>
-                        {[...Array(5)].map((_, i) => (
-                          <div key={i} className='flex flex-col w-full pb-6 gap-2'>
-                            <div className='flex items-center justify-between'>
-                              <Skeleton className='h-4 w-24' />
-                              <Skeleton className='h-4 w-20' />
-                            </div>
-                            <div className='flex items-center justify-between gap-4'>
-                              <Skeleton className='h-6 w-3/4' />
-                              <Skeleton className='h-5 w-16' />
-                            </div>
-                            {i < 4 && <div className='border-b border-default w-full mt-4' />}
+                  ) : isLoading ? (
+                    <div className='space-y-6'>
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className='flex flex-col w-full pb-6 gap-2'>
+                          <div className='flex items-center justify-between'>
+                            <Skeleton className='h-4 w-24' />
+                            <Skeleton className='h-4 w-20' />
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className='flex flex-col items-center justify-center uppercase py-12 text-center'>
-                        {debouncedSearchTerm ? (
-                          <>
-                            <AlertCircle className='h-6 w-6 mb-4 text-muted-foreground' />
-                            <p className='text-muted-foreground font-mono text-m8'>
-                              No results found
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            <FileQuestion className='h-6 w-6 mb-4 text-muted-foreground' />
-                            <p className='text-muted-foreground font-mono text-m8'>
-                              Start typing to search
-                            </p>
-                          </>
-                        )}
-                      </div>
-                    )}
+                          <div className='flex items-center justify-between gap-4'>
+                            <Skeleton className='h-6 w-3/4' />
+                            <Skeleton className='h-5 w-16' />
+                          </div>
+                          {i < 4 && <div className='border-b border-default w-full mt-4' />}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className='flex flex-col items-center justify-center uppercase py-12 text-center'>
+                      {debouncedSearchTerm ? (
+                        <>
+                          <AlertCircle className='h-6 w-6 mb-4 text-muted-foreground' />
+                          <p className='text-muted-foreground font-mono text-m8'>
+                            No results found
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <FileQuestion className='h-6 w-6 mb-4 text-muted-foreground' />
+                          <p className='text-muted-foreground font-mono text-m8'>
+                            Start typing to search
+                          </p>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
               </ScrollArea>
