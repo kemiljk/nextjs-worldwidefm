@@ -102,13 +102,17 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     
     const hasSearchOrFilters = debouncedSearchTerm?.trim().length > 0 || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0;
     
-    // Always show loading when filters/search change, and clear old results
-    if (hasSearchOrFilters) {
-      setIsLoading(true);
-      setResults([]); // Clear old results to show loading state
-    }
+    // Show loading and clear old results when searching/filtering
+    setIsLoading(true);
+    setResults([]);
     setPage(1);
     setHasNext(true);
+    
+    // If no search/filters, clear results and show default state (don't fetch)
+    if (!hasSearchOrFilters) {
+      setIsLoading(false);
+      return;
+    }
 
     async function fetchResults() {
       if (debouncedSearchTerm && debouncedSearchTerm.trim().length > 0 && debouncedSearchTerm.trim().length < 2 && selectedGenres.length === 0 && selectedLocations.length === 0 && selectedHosts.length === 0) {
@@ -122,10 +126,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       try {
         let res: any;
         let allResults: any[] = [];
+        let apiHasNext = false;
 
         if (selectedType === 'episodes') {
           const searchParams: any = {
-            limit: (debouncedSearchTerm?.trim().length >= 2 || selectedGenres.length > 0 || selectedLocations.length > 0) ? 1000 : PAGE_SIZE,
+            limit: PAGE_SIZE,
             offset: 0,
           };
 
@@ -143,21 +148,26 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
           res = await searchEpisodes(searchParams);
           allResults = res?.shows || [];
+          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         } else if (selectedType === 'posts') {
-          const searchParams = debouncedSearchTerm
-            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 }
-            : { limit: 100, offset: 0 };
+          const searchParams: any = { limit: PAGE_SIZE, offset: 0 };
+          if (debouncedSearchTerm) {
+            searchParams.searchTerm = debouncedSearchTerm;
+          }
           res = await getAllPosts(searchParams);
           allResults = res?.posts || [];
+          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         } else if (selectedType === 'videos') {
-          const searchParams = debouncedSearchTerm
-            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 }
-            : { limit: 100, offset: 0 };
+          const searchParams: any = { limit: PAGE_SIZE, offset: 0 };
+          if (debouncedSearchTerm) {
+            searchParams.searchTerm = debouncedSearchTerm;
+          }
           res = await getVideos(searchParams);
           allResults = res?.videos || [];
+          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         } else if (selectedType === 'takeovers') {
           const searchParams: any = {
-            limit: (debouncedSearchTerm?.trim().length >= 2 || selectedGenres.length > 0 || selectedLocations.length > 0) ? 1000 : 100,
+            limit: PAGE_SIZE,
             offset: 0,
           };
           if (debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2) {
@@ -171,36 +181,37 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           }
           res = await getTakeovers(searchParams);
           allResults = res?.shows || [];
+          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         } else if (selectedType === 'hosts-series') {
           const searchParams: any = {
-            limit: (debouncedSearchTerm?.trim().length >= 2 || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0) ? 1000 : 100,
+            limit: PAGE_SIZE,
             offset: 0,
           };
+          if (selectedGenres.length > 0) {
+            searchParams.genre = selectedGenres;
+          }
+          if (selectedLocations.length > 0) {
+            searchParams.location = selectedLocations;
+          }
+          res = await getRegularHosts(searchParams);
+          allResults = res?.shows || [];
+          
+          // Client-side filter for search term on hosts
           if (debouncedSearchTerm) {
             const searchLower = debouncedSearchTerm.toLowerCase();
-            res = await getRegularHosts(searchParams);
-            allResults = res?.shows || [];
             allResults = allResults.filter((host: any) =>
               host.title?.toLowerCase().includes(searchLower) ||
               host.metadata?.description?.toLowerCase().includes(searchLower) ||
               host.content?.toLowerCase().includes(searchLower)
             );
-          } else {
-            if (selectedGenres.length > 0) {
-              searchParams.genre = selectedGenres;
-            }
-            if (selectedLocations.length > 0) {
-              searchParams.location = selectedLocations;
-            }
-            res = await getRegularHosts(searchParams);
-            allResults = res?.shows || [];
           }
+          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         }
 
         // Only update results if this is still the latest request
         if (isMounted && currentRequestId === requestIdRef.current) {
-          setResults(allResults.slice(0, PAGE_SIZE));
-          setHasNext(allResults.length > PAGE_SIZE);
+          setResults(allResults);
+          setHasNext(apiHasNext);
         }
       } catch (error) {
         // Only log and update if this is still the latest request
