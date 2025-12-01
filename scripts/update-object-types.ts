@@ -14,6 +14,8 @@ interface Metafield {
   required?: boolean;
   helptext?: string;
   value?: string | number;
+  object_type?: string;
+  many?: boolean;
 }
 
 interface ObjectTypeUpdateConfig {
@@ -21,6 +23,16 @@ interface ObjectTypeUpdateConfig {
   newMetafields: Metafield[];
 }
 
+interface NewObjectTypeConfig {
+  title: string;
+  slug: string;
+  singular: string;
+  emoji: string;
+  singleton: boolean;
+  metafields: Metafield[];
+}
+
+// Existing object type updates (keeping featured_link for posts)
 const updates: ObjectTypeUpdateConfig[] = [
   {
     slug: 'posts',
@@ -32,36 +44,45 @@ const updates: ObjectTypeUpdateConfig[] = [
         required: false,
         helptext: 'Optional URL to link to when this post is featured (used with is_featured)',
       },
+    ],
+  },
+];
+
+// New page configuration object types
+const newObjectTypes: NewObjectTypeConfig[] = [
+  {
+    title: 'Editorial Page Config',
+    slug: 'editorial-page-config',
+    singular: 'Editorial Page Config',
+    emoji: '📰',
+    singleton: true,
+    metafields: [
       {
-        title: 'Display Order',
-        key: 'display_order',
-        type: 'number',
+        title: 'Category Order',
+        key: 'category_order',
+        type: 'objects',
+        object_type: 'post-categories',
+        many: true,
         required: false,
-        helptext: 'Order for display on the editorial page (lower numbers appear first)',
+        helptext: 'Order categories by dragging them. Posts will be grouped under these category headers in this order.',
       },
     ],
   },
   {
-    slug: 'videos',
-    newMetafields: [
+    title: 'Videos Page Config',
+    slug: 'videos-page-config',
+    singular: 'Videos Page Config',
+    emoji: '🎬',
+    singleton: true,
+    metafields: [
       {
-        title: 'Display Order',
-        key: 'display_order',
-        type: 'number',
+        title: 'Category Order',
+        key: 'category_order',
+        type: 'objects',
+        object_type: 'video-categories',
+        many: true,
         required: false,
-        helptext: 'Order for display on the videos page (lower numbers appear first)',
-      },
-    ],
-  },
-  {
-    slug: 'video-categories',
-    newMetafields: [
-      {
-        title: 'Display Order',
-        key: 'display_order',
-        type: 'number',
-        required: false,
-        helptext: 'Order for display on the videos page (lower numbers appear first)',
+        helptext: 'Order categories by dragging them. Videos will be grouped under these category headers in this order.',
       },
     ],
   },
@@ -113,6 +134,41 @@ async function updateObjectType(config: ObjectTypeUpdateConfig) {
   }
 }
 
+async function createObjectType(config: NewObjectTypeConfig) {
+  const { title, slug, singular, emoji, singleton, metafields } = config;
+
+  console.log(`\n🆕 Creating object type: ${slug}`);
+
+  try {
+    // Check if object type already exists
+    try {
+      const existingResponse = await cosmic.objectTypes.findOne(slug);
+      if (existingResponse?.object_type) {
+        console.log(`  └─ ✅ Object type "${slug}" already exists, skipping creation`);
+        return true;
+      }
+    } catch {
+      // Object type doesn't exist, proceed with creation
+    }
+
+    console.log(`  ├─ Creating new object type...`);
+    await cosmic.objectTypes.insertOne({
+      title,
+      slug,
+      singular,
+      emoji,
+      singleton,
+      metafields,
+    });
+
+    console.log(`  └─ ✅ Successfully created "${slug}"`);
+    return true;
+  } catch (error: any) {
+    console.error(`  └─ ❌ Error creating "${slug}":`, error.message || error);
+    return false;
+  }
+}
+
 async function main() {
   console.log('🚀 Cosmic Object Type Migration');
   console.log('================================\n');
@@ -128,20 +184,41 @@ async function main() {
   }
 
   console.log(`Bucket: ${process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG}`);
-  console.log(`Updates to apply:`);
-  updates.forEach(u => {
-    console.log(`  - ${u.slug}: ${u.newMetafields.map(m => m.key).join(', ')}`);
-  });
-
+  
   let successCount = 0;
   let failCount = 0;
 
-  for (const update of updates) {
-    const success = await updateObjectType(update);
-    if (success) {
-      successCount++;
-    } else {
-      failCount++;
+  // Create new object types first
+  if (newObjectTypes.length > 0) {
+    console.log(`\nNew object types to create:`);
+    newObjectTypes.forEach(ot => {
+      console.log(`  - ${ot.slug} (${ot.singleton ? 'singleton' : 'collection'})`);
+    });
+
+    for (const objectType of newObjectTypes) {
+      const success = await createObjectType(objectType);
+      if (success) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+    }
+  }
+
+  // Update existing object types
+  if (updates.length > 0) {
+    console.log(`\nUpdates to apply:`);
+    updates.forEach(u => {
+      console.log(`  - ${u.slug}: ${u.newMetafields.map(m => m.key).join(', ')}`);
+    });
+
+    for (const update of updates) {
+      const success = await updateObjectType(update);
+      if (success) {
+        successCount++;
+      } else {
+        failCount++;
+      }
     }
   }
 

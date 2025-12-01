@@ -53,6 +53,9 @@ import {
 // Import from radiocult
 import { uploadMediaToRadioCultAndCosmic, getHostProfileUrl } from './actions/radiocult';
 
+// Import from page-config
+import { getEditorialPageConfig, getVideosPageConfig } from './actions/page-config';
+
 // Export all imported async functions
 export {
   getPostsWithFilters,
@@ -86,4 +89,6 @@ export {
   createColouredSections,
   uploadMediaToRadioCultAndCosmic,
   getHostProfileUrl,
+  getEditorialPageConfig,
+  getVideosPageConfig,
 };
