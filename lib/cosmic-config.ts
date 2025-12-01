@@ -293,7 +293,18 @@ export interface VideoObject {
     image?: CosmicImage;
     description?: string;
     video_url?: string;
+    direct_video?: CosmicImage;
     date?: string;
+    featured_on_homepage?: boolean;
+    is_featured?: boolean;
+    featured_size?: {
+      key: string;
+      value: string;
+    };
+    image_aspect_ratio?: {
+      key: string;
+      value: string;
+    };
     categories?: {
       id: string;
       slug: string;

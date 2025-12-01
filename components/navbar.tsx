@@ -166,7 +166,7 @@ export default function Navbar({ navItems }: NavbarProps) {
             </div>
             <SheetContent
               side='right'
-              className='top-17 w-auto min-w-[25vw] h-auto max-h-fit overflow-auto'
+              className='top-[88px] w-auto min-w-[25vw] h-auto max-h-fit overflow-auto'
             >
               <nav>
                 <ul className='flex flex-col gap-0'>

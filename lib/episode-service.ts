@@ -521,6 +521,7 @@ export async function getEpisodeBySlug(
  * Get related episodes based on shared genres and hosts
  * Prioritizes: 1) Host matches, 2) Genre matches, 3) Other shows
  * Always sorted by broadcast_date
+ * Optimized with reduced over-fetching and early returns
  */
 export async function getRelatedEpisodes(
   episodeId: string,
@@ -538,6 +539,7 @@ export async function getRelatedEpisodes(
         id: episodeId,
         status: 'published',
       })
+      .props('id,metadata.genres,metadata.regular_hosts')
       .depth(2);
 
     if (!currentEpisode?.object) {
@@ -557,6 +559,7 @@ export async function getRelatedEpisodes(
           'metadata.broadcast_date': { $lte: todayStr },
           'metadata.regular_hosts.id': { $in: hosts },
         })
+        .props('id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts')
         .limit(limit)
         .sort('-metadata.broadcast_date')
         .depth(2);
@@ -565,7 +568,7 @@ export async function getRelatedEpisodes(
       result.push(...hostEpisodes);
       excludeIds.push(...hostEpisodes.map((e: EpisodeObject) => e.id));
 
-      if (hostEpisodes.length > 1) {
+      if (hostEpisodes.length >= limit) {
         return result.slice(0, limit);
       }
     }
@@ -580,7 +583,8 @@ export async function getRelatedEpisodes(
           'metadata.broadcast_date': { $lte: todayStr },
           'metadata.genres.id': { $in: genres },
         })
-        .limit(remainingLimit + 5)
+        .props('id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts')
+        .limit(remainingLimit + 3)
         .sort('-metadata.broadcast_date')
         .depth(2);
 
@@ -603,7 +607,8 @@ export async function getRelatedEpisodes(
           id: { $nin: excludeIds },
           'metadata.broadcast_date': { $lte: todayStr },
         })
-        .limit(remainingLimit * 2)
+        .props('id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts')
+        .limit(remainingLimit + 2)
         .sort('-metadata.broadcast_date')
         .depth(2);
 
