@@ -14,7 +14,6 @@ import {
   Video,
   Loader,
   AlertCircle,
-  FileQuestion,
   MicVocal,
   Users,
 } from 'lucide-react';
@@ -58,6 +57,21 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [selectedHosts, setSelectedHosts] = useState<string[]>([]);
+  
+  // Clear all state when dialog closes
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setSearchTerm('');
+      setSelectedGenres([]);
+      setSelectedLocations([]);
+      setSelectedHosts([]);
+      setActiveFilters([]);
+      setResults([]);
+      setPage(1);
+      setHasNext(true);
+    }
+    onOpenChange(isOpen);
+  };
   const [filtersLoaded, setFiltersLoaded] = useState(false);
   // On mobile: showFilters = false means show results, true means show filters overlay.
   const [showFilters, setShowFilters] = useState(false);
@@ -100,21 +114,14 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     requestIdRef.current += 1;
     const currentRequestId = requestIdRef.current;
     
-    const hasSearchOrFilters = debouncedSearchTerm?.trim().length > 0 || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0;
-    
-    // Show loading and clear old results when searching/filtering
+    // Show loading and clear old results
     setIsLoading(true);
     setResults([]);
     setPage(1);
     setHasNext(true);
-    
-    // If no search/filters, clear results and show default state (don't fetch)
-    if (!hasSearchOrFilters) {
-      setIsLoading(false);
-      return;
-    }
 
     async function fetchResults() {
+      // If search term is too short (1 char), wait for more input
       if (debouncedSearchTerm && debouncedSearchTerm.trim().length > 0 && debouncedSearchTerm.trim().length < 2 && selectedGenres.length === 0 && selectedLocations.length === 0 && selectedHosts.length === 0) {
         if (isMounted && currentRequestId === requestIdRef.current) {
           setResults([]);
@@ -394,7 +401,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className='max-w-[90vw] h-[80vh] p-0 gap-0 overflow-hidden'>
         <div className='flex h-full overflow-hidden relative flex-col sm:flex-row'>
           {/* --- Mobile: Search bar always at top, toggle below it --- */}
@@ -837,21 +844,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                     </div>
                   ) : (
                     <div className='flex flex-col items-center justify-center uppercase py-12 text-center'>
-                      {debouncedSearchTerm || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0 ? (
-                        <>
-                          <AlertCircle className='h-6 w-6 mb-4 text-muted-foreground' />
-                          <p className='text-muted-foreground font-mono text-m8'>
-                            No results found
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <FileQuestion className='h-6 w-6 mb-4 text-muted-foreground' />
-                          <p className='text-muted-foreground font-mono text-m8'>
-                            Start typing to search
-                          </p>
-                        </>
-                      )}
+                      <AlertCircle className='h-6 w-6 mb-4 text-muted-foreground' />
+                      <p className='text-muted-foreground font-mono text-m8'>
+                        No results found
+                      </p>
                     </div>
                   )}
                 </div>

@@ -455,6 +455,8 @@ export async function getMixcloudShows(
 
 export async function searchEpisodes(params: {
   searchTerm?: string;
+  genre?: string[];
+  location?: string[];
   limit?: number;
   offset?: number;
 }): Promise<{ shows: Record<string, unknown>[]; hasNext: boolean }> {
@@ -462,6 +464,8 @@ export async function searchEpisodes(params: {
     const { getEpisodesForShows } = await import('../episode-service');
     const response = await getEpisodesForShows({
       searchTerm: params.searchTerm,
+      genre: params.genre,
+      location: params.location,
       limit: params.limit || 20,
       offset: params.offset || 0,
     });
