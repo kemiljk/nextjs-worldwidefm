@@ -3,7 +3,9 @@
 import { getRadioShowBySlug } from '../cosmic-service';
 import { getEventBySlug as getRadioCultEventBySlug, RadioCultEvent } from '../radiocult-service';
 import { stripUrlsFromText } from '../utils';
-import { EventType } from '../cosmic-types';
+import { EventType, EpisodeObject } from '../cosmic-types';
+
+type ShowData = EpisodeObject | Record<string, unknown>;
 
 export interface EpisodeShowsFilters {
   genre?: string[];
@@ -29,15 +31,14 @@ export async function getAllShows(skip = 0, limit = 20, filters?: EpisodeShowsFi
       shows: response.shows,
       hasMore: response.hasNext,
       cosmicSkip: skip + response.shows.length,
-      mixcloudSkip: 0,
     };
   } catch (error) {
     console.error('Error fetching episodes:', error);
-    return { shows: [], hasMore: false, cosmicSkip: skip, mixcloudSkip: 0 };
+    return { shows: [], hasMore: false, cosmicSkip: skip };
   }
 }
 
-export async function getEnhancedShowBySlug(slug: string): Promise<Record<string, unknown> | null> {
+export async function getEnhancedShowBySlug(slug: string): Promise<ShowData | null> {
   try {
     const { getEpisodeBySlug } = await import('../episode-service');
     const episode = await getEpisodeBySlug(slug);
@@ -61,7 +62,7 @@ export async function getEnhancedShowBySlug(slug: string): Promise<Record<string
   return null;
 }
 
-export async function getShowBySlug(slug: string): Promise<Record<string, unknown> | null> {
+export async function getShowBySlug(slug: string): Promise<ShowData | null> {
   const slugVariants = [
     slug,
     slug.startsWith('/') ? slug.slice(1) : '/' + slug,
@@ -427,39 +428,13 @@ export async function getRegularHosts({
   }
 }
 
-export async function getMixcloudShows(
-  filters: EpisodeShowsFilters = {}
-): Promise<{ shows: Record<string, unknown>[]; total: number }> {
-  try {
-    const { getEpisodesForShows } = await import('../episode-service');
-    const response = await getEpisodesForShows({
-      limit: filters.limit || 20,
-      offset: filters.offset || 0,
-      genre: filters.genre,
-      location: filters.location,
-      host: filters.host,
-      takeover: filters.takeover,
-      searchTerm: filters.searchTerm,
-      random: filters.random,
-    });
-
-    return {
-      shows: response.shows || [],
-      total: response.total || 0,
-    };
-  } catch (error) {
-    console.error('Error in getMixcloudShows:', error);
-    return { shows: [], total: 0 };
-  }
-}
-
 export async function searchEpisodes(params: {
   searchTerm?: string;
   genre?: string[];
   location?: string[];
   limit?: number;
   offset?: number;
-}): Promise<{ shows: Record<string, unknown>[]; hasNext: boolean }> {
+}): Promise<{ shows: EpisodeObject[]; hasNext: boolean }> {
   try {
     const { getEpisodesForShows } = await import('../episode-service');
     const response = await getEpisodesForShows({
