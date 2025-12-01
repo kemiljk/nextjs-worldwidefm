@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import VideoGrid from '@/components/video/video-grid';
 import FeaturedVideoContent from '@/components/video/featured-video-content';
@@ -39,7 +39,10 @@ export default function VideosClient({ initialVideos, availableCategories, categ
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 1000);
 
-  // Load URL query parameters on initial render
+  // Track if we're syncing from URL to prevent loops
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Load URL query parameters on initial render only
   useEffect(() => {
     const categoriesParam = searchParams.get('categories')?.split(',').filter(Boolean) || [];
     const searchParam = searchParams.get('search') || '';
@@ -61,10 +64,14 @@ export default function VideosClient({ initialVideos, availableCategories, categ
     if (searchParam) {
       setSearchTerm(searchParam);
     }
-  }, [searchParams]);
+    
+    setIsInitialized(true);
+  }, []); // Only run once on mount
 
-  // Update URL when filters change
-  const updateUrlParams = useCallback(() => {
+  // Update URL when filters change (only after initialization)
+  useEffect(() => {
+    if (!isInitialized) return;
+
     const params = new URLSearchParams();
 
     // Add active filters to URL
@@ -81,14 +88,14 @@ export default function VideosClient({ initialVideos, availableCategories, categ
       params.set('search', debouncedSearchTerm);
     }
 
-    // Update URL without refreshing the page
-    router.push(`/videos${params.toString() ? `?${params.toString()}` : ''}`, { scroll: false });
-  }, [activeFilter, selectedFilters, debouncedSearchTerm, router]);
-
-  // Update URL when filters change
-  useEffect(() => {
-    updateUrlParams();
-  }, [activeFilter, selectedFilters, debouncedSearchTerm, updateUrlParams]);
+    const newUrl = `/videos${params.toString() ? `?${params.toString()}` : ''}`;
+    const currentUrl = `/videos${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    
+    // Only update if URL actually changed
+    if (newUrl !== currentUrl) {
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [activeFilter, selectedFilters, debouncedSearchTerm, isInitialized, router, searchParams]);
 
   const handleFilterChange = (filter: string, subfilter?: string) => {
     // Clear all filters
