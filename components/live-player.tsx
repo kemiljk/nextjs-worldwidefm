@@ -4,6 +4,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { Play, Pause, Loader2 } from 'lucide-react';
 import { useMediaPlayer } from '@/components/providers/media-player-provider';
 import { usePlausible } from 'next-plausible';
+import Link from 'next/link';
 
 declare global {
   interface Window {
@@ -374,8 +375,20 @@ export default function LivePlayer() {
   // Simple: if we have metadata content, we have a show
   const hasShow = Boolean(liveMetadata.content?.title);
 
-  // Display current track/playlist name, or "Nothing currently live"
-  const displayName = liveMetadata.content?.title || 'Nothing currently live';
+  // Check if this is a playlist (not a scheduled show)
+  const currentTitle = liveMetadata.content?.title || '';
+  const isPlaylist = currentTitle.toLowerCase().includes('playlist') || 
+                     currentTitle.toLowerCase().includes('wwfm') && !currentTitle.toLowerCase().includes('show');
+  
+  // Display "Check out our schedule" for playlists, otherwise show the show name
+  const displayName = !hasShow 
+    ? 'Nothing currently live' 
+    : isPlaylist 
+      ? 'Check out our schedule' 
+      : currentTitle;
+
+  // Link destination - schedule for playlists, otherwise stay on current page
+  const linkHref = isPlaylist ? '/schedule' : hasShow ? '/schedule' : undefined;
 
   return (
     <div className='fixed top-0 bg-almostblack text-white dark:bg-black dark:text-white z-50 flex items-center transition-all duration-300 h-11 left-0 right-0 max-w-full'>
@@ -394,8 +407,17 @@ export default function LivePlayer() {
           )}
         </button>
       </div>
-      <div className='flex items-center mx-2 gap-2 overflow-hidden'>
-        <div className='text-m7 font-mono uppercase whitespace-nowrap'>{displayName}</div>
+      <div className='flex items-center mx-2 gap-2 overflow-hidden flex-1'>
+        {linkHref ? (
+          <Link 
+            href={linkHref} 
+            className='text-m7 font-mono uppercase whitespace-nowrap hover:underline transition-all'
+          >
+            {displayName}
+          </Link>
+        ) : (
+          <div className='text-m7 font-mono uppercase whitespace-nowrap'>{displayName}</div>
+        )}
       </div>
     </div>
   );

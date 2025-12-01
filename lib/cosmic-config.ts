@@ -265,6 +265,8 @@ export interface PostObject {
       url: string;
       imgix_url: string;
     };
+    featured_link?: string;
+    display_order?: number;
   };
 }
 
@@ -320,6 +322,7 @@ export interface VideoObject {
       type: string;
       metadata: null;
     }[];
+    display_order?: number;
   };
 }
 

@@ -103,11 +103,11 @@ export default function FeaturedVideoContent({
                   </div>
                 )}
               </div>
-              <div className='relative border-t border-white flex-row flex justify-between pl-4 h-auto w-full bg-almostblack text-white items-center group-hover:bg-white group-hover:text-almostblack group-hover:border-almostblack'>
-                <h3 className='text-[32px] md:text-[40px] font-bold line-clamp-2 py-4 group-hover:text-almostblack'>
+              <div className='relative border-t border-white flex-row flex justify-between pl-4 min-h-[60px] w-full bg-almostblack text-white items-stretch group-hover:bg-white group-hover:text-almostblack group-hover:border-almostblack'>
+                <h3 className='text-[24px] sm:text-[28px] md:text-[32px] lg:text-[40px] font-bold py-3 pr-4 flex-1 leading-tight group-hover:text-almostblack'>
                   {featuredVideo.title}
                 </h3>
-                <div className='border-l border-white text-[32px] md:text-[40px] px-4 py-4 group-hover:border-almostblack group-hover:text-almostblack select-none'>
+                <div className='border-l border-white text-[24px] sm:text-[28px] md:text-[32px] lg:text-[40px] px-4 flex items-center group-hover:border-almostblack group-hover:text-almostblack select-none shrink-0'>
                   ▶
                 </div>
               </div>

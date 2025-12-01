@@ -1,5 +1,6 @@
 import { PostObject } from '@/lib/cosmic-config';
 import { ArticleCard } from '@/components/ui/article-card';
+import { getPostThumbnail } from '@/lib/post-thumbnail-utils';
 
 interface FeaturedContentProps {
   posts: PostObject[];
@@ -25,22 +26,26 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
     return bSize - aSize;
   });
 
+  const featuredPost = sortedPosts[0];
+  
+  // Use featured_link if available and post is marked as featured
+  const customLink = featuredPost.metadata?.is_featured && featuredPost.metadata?.featured_link 
+    ? featuredPost.metadata.featured_link 
+    : undefined;
+
   return (
     <div className='py-20 w-full items-center justify-center flex h-auto'>
       <div className=''>
         <ArticleCard
-          key={sortedPosts[0].slug}
-          slug={sortedPosts[0].slug}
-          title={sortedPosts[0].title ?? ''}
-          date={sortedPosts[0].metadata?.date ?? undefined}
-          excerpt={sortedPosts[0].metadata?.excerpt ?? undefined}
-          image={
-            sortedPosts[0].thumbnail?.imgix_url ||
-            sortedPosts[0].metadata?.image?.imgix_url ||
-            '/image-placeholder.png'
-          }
-          tags={sortedPosts[0].metadata.categories?.map(c => c.title) ?? []}
+          key={featuredPost.slug}
+          slug={featuredPost.slug}
+          title={featuredPost.title ?? ''}
+          date={featuredPost.metadata?.date ?? undefined}
+          excerpt={featuredPost.metadata?.excerpt ?? undefined}
+          image={getPostThumbnail(featuredPost)}
+          tags={featuredPost.metadata.categories?.map(c => c.title) ?? []}
           variant='featured'
+          href={customLink}
         />
       </div>
     </div>
