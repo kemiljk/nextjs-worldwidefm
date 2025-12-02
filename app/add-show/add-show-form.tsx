@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { RadioCultArtist, getArtists } from '@/lib/radiocult-service';
 import { CosmicLocation, getCosmicLocations } from '@/lib/cosmic-location-service';
+import { CosmicTakeover, getCosmicTakeovers } from '@/lib/cosmic-takeover-service';
+import { CosmicHost, getCosmicHosts } from '@/lib/cosmic-host-service';
 import { usePlausible } from 'next-plausible';
 import {
   Form,
@@ -28,9 +29,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { AddNewArtist } from './add-new-artist';
 import { Badge } from '@/components/ui/badge';
 import { X, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { fetchGenres } from '@/lib/actions';
 import {
   Command,
@@ -49,8 +50,8 @@ const formSchema = z.object({
     message: 'Show title must be at least 3 characters',
   }),
   description: z.string().optional(),
-  artistId: z.string({
-    required_error: 'Please select an artist',
+  hostId: z.string({
+    required_error: 'Please select a host or series',
   }),
   startDate: z.string().min(1, {
     message: 'Please select a start date',
@@ -66,6 +67,8 @@ const formSchema = z.object({
   tags: z.array(z.string()).default([]),
   featuredOnHomepage: z.boolean().default(false),
   location: z.string().optional(),
+  isLive: z.boolean().default(false),
+  takeover: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -97,19 +100,23 @@ export function AddShowForm() {
   const [phase, setPhase] = useState<SubmissionPhase>('idle');
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [submittedShowTitle, setSubmittedShowTitle] = useState<string>('');
-  const [artists, setArtists] = useState<RadioCultArtist[]>([]);
+  const [hosts, setHosts] = useState<CosmicHost[]>([]);
   const [genres, setGenres] = useState<CosmicGenre[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedGenreInput, setSelectedGenreInput] = useState<string>('');
   const [locations, setLocations] = useState<CosmicLocation[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<CosmicLocation | undefined>(undefined);
   const [locationInput, setLocationInput] = useState<string>('');
-  const [artistInput, setArtistInput] = useState<string>('');
+  const [takeovers, setTakeovers] = useState<CosmicTakeover[]>([]);
+  const [selectedTakeover, setSelectedTakeover] = useState<CosmicTakeover | undefined>(undefined);
+  const [takeoverInput, setTakeoverInput] = useState<string>('');
+  const [hostInput, setHostInput] = useState<string>('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [isArtistListOpen, setIsArtistListOpen] = useState<boolean>(false);
+  const [isHostListOpen, setIsHostListOpen] = useState<boolean>(false);
   const [isGenreListOpen, setIsGenreListOpen] = useState<boolean>(false);
   const [isLocationListOpen, setIsLocationListOpen] = useState<boolean>(false);
+  const [isTakeoverListOpen, setIsTakeoverListOpen] = useState<boolean>(false);
   const [formTexts, setFormTexts] = useState<FormTexts>(getDefaultFormTexts());
   const plausible = usePlausible();
 
@@ -127,29 +134,34 @@ export function AddShowForm() {
       tags: [],
       featuredOnHomepage: false,
       location: undefined,
+      isLive: false,
+      takeover: undefined,
     },
   });
 
-  // Fetch artists, genres, locations, and form texts when component mounts
+  // Fetch hosts, genres, locations, and form texts when component mounts
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
         // Fetch data in parallel
-        const [artistList, genresResult, locationsList, formTextsResponse] = await Promise.all([
-          getArtists(),
-          fetchGenres(),
-          getCosmicLocations(),
-          fetch('/api/form-texts').then(res => res.json()),
-        ]);
+        const [hostsList, genresResult, locationsList, takeoversList, formTextsResponse] =
+          await Promise.all([
+            getCosmicHosts(),
+            fetchGenres(),
+            getCosmicLocations(),
+            getCosmicTakeovers(),
+            fetch('/api/form-texts').then(res => res.json()),
+          ]);
 
-        setArtists(artistList);
+        setHosts(hostsList);
         if (genresResult.success) {
           setGenres(genresResult.genres ?? []);
         } else {
           toast.error('Failed to load genres');
         }
         setLocations(locationsList);
+        setTakeovers(takeoversList);
 
         if (formTextsResponse.success && formTextsResponse.formTexts) {
           setFormTexts(formTextsResponse.formTexts);
@@ -183,20 +195,38 @@ export function AddShowForm() {
     }
   };
 
-  // Handle artist selection
-  const handleArtistSelect = (artist: RadioCultArtist) => {
-    form.setValue('artistId', artist.id);
-    setArtistInput(artist.name);
-    setIsArtistListOpen(false);
+  // Handle takeover selection
+  const handleTakeoverSelect = (takeover: CosmicTakeover) => {
+    setSelectedTakeover(takeover);
+    setTakeoverInput(takeover.title);
+    form.setValue('takeover', takeover.id);
+    setIsTakeoverListOpen(false);
   };
 
-  // Handle artist input change
-  const handleArtistInputChange = (value: string) => {
-    setArtistInput(value);
-    setIsArtistListOpen(true);
-    const selectedArtist = artists.find(a => a.id === form.watch('artistId'));
-    if (selectedArtist && value !== selectedArtist.name) {
-      form.setValue('artistId', '');
+  // Handle takeover input change
+  const handleTakeoverInputChange = (value: string) => {
+    setTakeoverInput(value);
+    setIsTakeoverListOpen(true);
+    if (selectedTakeover && value !== selectedTakeover.title) {
+      setSelectedTakeover(undefined);
+      form.setValue('takeover', '');
+    }
+  };
+
+  // Handle host selection
+  const handleHostSelect = (host: CosmicHost) => {
+    form.setValue('hostId', host.id);
+    setHostInput(host.title);
+    setIsHostListOpen(false);
+  };
+
+  // Handle host input change
+  const handleHostInputChange = (value: string) => {
+    setHostInput(value);
+    setIsHostListOpen(true);
+    const selectedHost = hosts.find(h => h.id === form.watch('hostId'));
+    if (selectedHost && selectedHost.title && value !== selectedHost.title) {
+      form.setValue('hostId', '');
     }
   };
 
@@ -205,26 +235,26 @@ export function AddShowForm() {
     form.setValue('tags', selectedGenres);
   }, [selectedGenres, form]);
 
-  // Sync artist input with selected artist
+  // Sync host input with selected host
   useEffect(() => {
-    const selectedArtistId = form.watch('artistId');
-    if (selectedArtistId) {
-      const selectedArtist = artists.find(a => a.id === selectedArtistId);
-      if (selectedArtist) {
-        setArtistInput(selectedArtist.name);
+    const selectedHostId = form.watch('hostId');
+    if (selectedHostId) {
+      const selectedHost = hosts.find(h => h.id === selectedHostId);
+      if (selectedHost && selectedHost.title) {
+        setHostInput(selectedHost.title);
       }
     }
-  }, [form.watch('artistId'), artists]);
+  }, [form.watch('hostId'), hosts]);
 
-  // Handle newly created artist
-  const handleArtistCreated = (newArtist: RadioCultArtist) => {
-    // Add the new artist to the artists list
-    setArtists(prevArtists => [newArtist, ...prevArtists]);
+  // Handle newly created host (if we add this functionality later)
+  const handleHostCreated = (newHost: CosmicHost) => {
+    // Add the new host to the hosts list
+    setHosts(prevHosts => [newHost, ...prevHosts]);
 
-    // Select the newly created artist
-    form.setValue('artistId', newArtist.id);
+    // Select the newly created host
+    form.setValue('hostId', newHost.id);
 
-    toast.success(`Artist "${newArtist.name}" added to the list`);
+    toast.success(`Host "${newHost.title || 'Unknown'}" added to the list`);
   };
 
   // Handle genre selection
@@ -244,16 +274,18 @@ export function AddShowForm() {
   // Get genre title by ID
   const getGenreTitle = (genreId: string) => {
     const genre = genres.find(g => g.id === genreId);
-    return genre ? genre.title : genreId;
+    return genre?.title || genreId;
   };
 
   // Handle creating another show
   const handleCreateAnother = () => {
     setIsSubmitted(false);
     setSubmittedShowTitle('');
-    setArtistInput('');
+    setHostInput('');
     setLocationInput('');
     setSelectedLocation(undefined);
+    setTakeoverInput('');
+    setSelectedTakeover(undefined);
     setSelectedGenres([]);
     setSelectedGenreInput('');
     // Form is already reset from the previous submission
@@ -346,7 +378,7 @@ export function AddShowForm() {
           'metadata',
           JSON.stringify({
             title: values.title,
-            artist: artists.find(a => a.id === values.artistId)?.name || undefined,
+            artist: hosts.find(h => h.id === values.hostId)?.title || undefined,
           })
         );
 
@@ -486,7 +518,9 @@ export function AddShowForm() {
         setSelectedGenres([]);
         setSelectedLocation(undefined);
         setLocationInput('');
-        setArtistInput('');
+        setSelectedTakeover(undefined);
+        setTakeoverInput('');
+        setHostInput('');
         setMediaFile(null);
         setImageFile(null);
       } catch (createError) {
@@ -564,6 +598,29 @@ export function AddShowForm() {
           <h2 className='text-h7 font-display uppercase font-normal text-almostblack dark:text-white'>
             {formTexts['show-details']?.title || 'Show Details'}
           </h2>
+
+          <FormField
+            control={form.control}
+            name='isLive'
+            render={({ field }) => (
+              <FormItem className='flex flex-row items-start space-x-3 space-y-0 border p-4'>
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={isLoading}
+                  />
+                </FormControl>
+                <div className='space-y-1 leading-none'>
+                  <FormLabel className='cursor-pointer'>Is this a live show?</FormLabel>
+                  <FormDescription>
+                    Check this box if the show is being broadcast live, otherwise it will be marked
+                    as pre-recorded.
+                  </FormDescription>
+                </div>
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}
@@ -713,17 +770,16 @@ export function AddShowForm() {
 
         <div className='space-y-4'>
           <h2 className='text-h7 font-display uppercase font-normal text-almostblack dark:text-white'>
-            {formTexts.artist?.title || 'Artist'}
+            {formTexts.artist?.title || 'Host or Series'}
           </h2>
 
           <FormField
             control={form.control}
-            name='artistId'
+            name='hostId'
             render={({ field }) => (
               <FormItem>
                 <div className='flex justify-between items-center'>
-                  <FormLabel>Artist</FormLabel>
-                  <AddNewArtist onArtistCreated={handleArtistCreated} />
+                  <FormLabel>Host or Series</FormLabel>
                 </div>
                 <Command
                   className='w-full border border-input rounded-none relative'
@@ -731,19 +787,19 @@ export function AddShowForm() {
                 >
                   <div className='relative'>
                     <CommandInput
-                      placeholder='Type to search for an artist'
-                      value={artistInput}
-                      onValueChange={handleArtistInputChange}
-                      disabled={isLoading || artists.length === 0}
+                      placeholder='Type to search for a host or series'
+                      value={hostInput}
+                      onValueChange={handleHostInputChange}
+                      disabled={isLoading || hosts.length === 0}
                       style={{ width: '100%' }}
                     />
                     {field.value && (
                       <button
                         type='button'
-                        aria-label='Clear artist selection'
+                        aria-label='Clear host selection'
                         onClick={() => {
                           field.onChange('');
-                          setArtistInput('');
+                          setHostInput('');
                         }}
                         className='absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-hidden'
                         tabIndex={0}
@@ -752,34 +808,104 @@ export function AddShowForm() {
                       </button>
                     )}
                   </div>
-                  {artistInput && isArtistListOpen && (
-                    <CommandList onClickOutside={() => setIsArtistListOpen(false)}>
-                      {artists
-                        .filter(artist =>
-                          artist.name.toLowerCase().includes(artistInput.toLowerCase())
+                  {hostInput && isHostListOpen && (
+                    <CommandList onClickOutside={() => setIsHostListOpen(false)}>
+                      {hosts
+                        .filter(
+                          host =>
+                            host.title && host.title.toLowerCase().includes(hostInput.toLowerCase())
                         )
-                        .map(artist => (
+                        .map(host => (
                           <CommandItem
-                            key={artist.id}
-                            value={artist.id}
-                            onSelect={() => handleArtistSelect(artist)}
+                            key={host.id}
+                            value={host.id}
+                            onSelect={() => handleHostSelect(host)}
                             className='cursor-pointer'
                           >
-                            {artist.name}
+                            {host.title}
                           </CommandItem>
                         ))}
-                      {artists.filter(artist =>
-                        artist.name.toLowerCase().includes(artistInput.toLowerCase())
+                      {hosts.filter(
+                        host =>
+                          host.title && host.title.toLowerCase().includes(hostInput.toLowerCase())
                       ).length === 0 && (
-                        <CommandEmpty>No artists found matching "{artistInput}"</CommandEmpty>
+                        <CommandEmpty>No hosts or series found matching "{hostInput}"</CommandEmpty>
                       )}
                     </CommandList>
                   )}
                 </Command>
                 <FormDescription>
                   {formTexts.artist?.descriptions['artist-select'] ||
-                    'Select the main artist for this show or add a new one'}
+                    'Select the main host or series for this show'}
                 </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name='takeover'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Takeover</FormLabel>
+                <Command
+                  className='w-full border border-input rounded-none relative'
+                  shouldFilter={false}
+                >
+                  <div className='relative'>
+                    <CommandInput
+                      placeholder='Type to search for a takeover'
+                      value={selectedTakeover ? selectedTakeover.title : takeoverInput}
+                      onValueChange={handleTakeoverInputChange}
+                      disabled={isLoading || takeovers.length === 0}
+                      style={{ width: '100%' }}
+                    />
+                    {selectedTakeover && (
+                      <button
+                        type='button'
+                        aria-label='Clear takeover selection'
+                        onClick={() => {
+                          setSelectedTakeover(undefined);
+                          setTakeoverInput('');
+                          field.onChange('');
+                        }}
+                        className='absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-hidden'
+                        tabIndex={0}
+                      >
+                        <X className='w-4 h-4' />
+                      </button>
+                    )}
+                  </div>
+                  {takeoverInput && isTakeoverListOpen && (
+                    <CommandList onClickOutside={() => setIsTakeoverListOpen(false)}>
+                      {takeovers
+                        .filter(
+                          takeover =>
+                            takeover.title &&
+                            takeover.title.toLowerCase().includes(takeoverInput.toLowerCase())
+                        )
+                        .map(takeover => (
+                          <CommandItem
+                            key={takeover.id}
+                            value={takeover.id}
+                            onSelect={() => handleTakeoverSelect(takeover)}
+                            className='cursor-pointer'
+                          >
+                            {takeover.title}
+                          </CommandItem>
+                        ))}
+                      {takeovers.filter(
+                        takeover =>
+                          takeover.title &&
+                          takeover.title.toLowerCase().includes(takeoverInput.toLowerCase())
+                      ).length === 0 && (
+                        <CommandEmpty>No takeovers found matching "{takeoverInput}"</CommandEmpty>
+                      )}
+                    </CommandList>
+                  )}
+                </Command>
+                <FormDescription>Select a takeover this show belongs to (optional)</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -819,6 +945,7 @@ export function AddShowForm() {
                         {genres
                           .filter(
                             genre =>
+                              genre.title &&
                               !selectedGenres.includes(genre.id) &&
                               genre.title.toLowerCase().includes(selectedGenreInput.toLowerCase())
                           )
@@ -834,6 +961,7 @@ export function AddShowForm() {
                           ))}
                         {genres.filter(
                           genre =>
+                            genre.title &&
                             !selectedGenres.includes(genre.id) &&
                             genre.title.toLowerCase().includes(selectedGenreInput.toLowerCase())
                         ).length === 0 && (

@@ -154,10 +154,19 @@ export async function fetchGenres() {
     const response = await cosmic.objects.find({
       type: 'genres',
       status: 'published',
+      props: 'id,slug,title,type,metadata',
+      depth: 1,
+      limit: 1000,
     });
-    return response.objects || [];
+    return {
+      success: true,
+      genres: response.objects || [],
+    };
   } catch (error) {
     console.error('Error fetching genres:', error);
-    return [];
+    return {
+      success: false,
+      genres: [],
+    };
   }
 }

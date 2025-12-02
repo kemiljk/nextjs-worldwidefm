@@ -1,7 +1,6 @@
 import { cosmic } from '@/lib/cosmic-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getArtist } from '@/lib/radiocult-service';
 
 export const maxDuration = 60;
 
@@ -9,7 +8,7 @@ export const maxDuration = 60;
 const createShowSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
-  artistId: z.string(),
+  hostId: z.string(),
   startDate: z.string(),
   startTime: z.string(),
   duration: z.string(),
@@ -22,6 +21,8 @@ const createShowSchema = z.object({
   media_file: z.any().nullable().optional(),
   image: z.any().nullable().optional(),
   location: z.string().optional(),
+  isLive: z.boolean().default(false),
+  takeover: z.string().optional(),
 });
 
 // Helper function to remove null/undefined/empty values from metadata
@@ -84,11 +85,22 @@ export async function POST(request: NextRequest) {
       imageStructure: validatedData.image ? Object.keys(validatedData.image) : null,
     });
 
-    // Get artist details from RadioCult
-    const artist = await getArtist(validatedData.artistId);
+    // Get host details from Cosmic
+    let host: any = null;
+    try {
+      const hostResponse = await cosmic.objects.findOne({
+        type: 'regular-hosts',
+        id: validatedData.hostId,
+      });
+      if (hostResponse && hostResponse.object) {
+        host = hostResponse.object;
+      }
+    } catch (error) {
+      console.error('Error fetching host:', error);
+    }
 
-    if (!artist) {
-      return NextResponse.json({ error: 'Artist not found' }, { status: 404 });
+    if (!host) {
+      return NextResponse.json({ error: 'Host or series not found' }, { status: 404 });
     }
 
     // Get all available genres from Cosmic (tags field now contains genre IDs)
@@ -197,6 +209,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Handle takeover if provided (takeover is an ID from the form)
+    let takeoverObjects: any[] = [];
+    if (validatedData.takeover) {
+      console.log(`🎭 Processing takeover ID: "${validatedData.takeover}"`);
+
+      try {
+        // Try to find the existing takeover by ID using findOne
+        const takeoverObj = await cosmic.objects.findOne({
+          type: 'takeovers',
+          id: validatedData.takeover,
+        });
+
+        if (takeoverObj && takeoverObj.object) {
+          takeoverObjects = [takeoverObj.object.id];
+          console.log(`✅ Takeover found: "${takeoverObj.object.title}" (ID: ${takeoverObj.object.id})`);
+        } else {
+          console.log(`❌ Takeover not found for ID: "${validatedData.takeover}"`);
+        }
+      } catch (error) {
+        console.error(`❌ Error finding takeover: "${validatedData.takeover}"`, error);
+      }
+    }
+
     // Handle genres - the tags field now contains Cosmic genre IDs
     const genreObjects = [];
     for (const genreId of validatedData.tags) {
@@ -237,10 +272,11 @@ export async function POST(request: NextRequest) {
       rawMetadata.body_text = validatedData.extraDetails.trim();
     }
 
-    // Optional booleans (only include if true)
+    // Optional booleans
     if (validatedData.featuredOnHomepage) {
       rawMetadata.featured_on_homepage = true;
     }
+    rawMetadata.is_live = validatedData.isLive || false;
 
     // Optional media fields
     if (validatedData.radiocult_media_id) {
@@ -262,19 +298,13 @@ export async function POST(request: NextRequest) {
       console.log(`🖼️ Image uploaded: "${thumbnailName}" (URL: ${validatedData.image.media.url})`);
     }
 
-    // Handle hosts - find or create host objects
+    // Handle hosts - use the selected host ID directly
     let hostObjects: any[] = [];
-    if (artist) {
-      console.log(`👤 Processing host: "${artist.name}"`);
-
-      const hostObj = await getOrCreateObject('regular-hosts', artist.name);
-      if (hostObj) {
-        // For Cosmic object relationships, we need to send the ID, not the full object
-        hostObjects = [hostObj.id];
-        console.log(`✅ Host added: "${artist.name}" (ID: ${hostObj.id})`);
-      } else {
-        console.log(`❌ Failed to create/find host: "${artist.name}"`);
-      }
+    if (host) {
+      console.log(`👤 Processing host: "${host.title}" (ID: ${host.id})`);
+      // For Cosmic object relationships, we need to send the ID, not the full object
+      hostObjects = [host.id];
+      console.log(`✅ Host added: "${host.title}" (ID: ${host.id})`);
     }
 
     // Relationship arrays: only include if they have values
@@ -286,6 +316,9 @@ export async function POST(request: NextRequest) {
     }
     if (hostObjects.length > 0) {
       rawMetadata.regular_hosts = hostObjects;
+    }
+    if (takeoverObjects.length > 0) {
+      rawMetadata.takeovers = takeoverObjects;
     }
 
     const metadata = rawMetadata;
@@ -363,6 +396,7 @@ export async function POST(request: NextRequest) {
           duration: `${validatedData.duration}:00`,
           source: 'user-created',
           radiocult_synced: false,
+          is_live: validatedData.isLive || false,
         };
 
         // Only add description if provided
