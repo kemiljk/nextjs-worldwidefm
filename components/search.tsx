@@ -16,11 +16,12 @@ interface SearchProps {
 export function Search({ value, onChange, placeholder = 'Search...', className }: SearchProps) {
   const plausible = usePlausible();
   const previousValueRef = useRef('');
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
 
     if (value && value.length >= 3 && value !== previousValueRef.current) {
@@ -37,6 +38,7 @@ export function Search({ value, onChange, placeholder = 'Search...', className }
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
     };
   }, [value, plausible]);

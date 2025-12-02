@@ -14,7 +14,6 @@ import {
   Video,
   Loader,
   AlertCircle,
-  FileQuestion,
   MicVocal,
   Users,
 } from 'lucide-react';
@@ -28,6 +27,7 @@ import type { ContentType } from '@/lib/search/types';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useInView } from 'react-intersection-observer';
 import { Combobox } from '@/components/ui/combobox';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface SearchDialogProps {
   open: boolean;
@@ -45,18 +45,39 @@ const typeLabels: Record<string, { label: string; icon: React.ElementType; color
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const debouncedSearchTerm = useDebounce(searchTerm, 300); // Reduced from 500ms for snappier feel
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [availableTypes, setAvailableTypes] = useState<string[]>([]);
+  const [availableTypes, setAvailableTypes] = useState<string[]>(['episodes', 'posts', 'videos', 'takeovers', 'hosts-series']); // Default all types available
   const [canonicalGenres, setCanonicalGenres] = useState<any[]>([]);
   const [availableFilters, setAvailableFilters] = useState<any>({ genres: [], hosts: [], locations: [] });
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [selectedHosts, setSelectedHosts] = useState<string[]>([]);
+  
+  // Clear all state when dialog closes
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setSearchTerm('');
+      setSelectedGenres([]);
+      setSelectedLocations([]);
+      setSelectedHosts([]);
+      setActiveFilters([]);
+      setResults([]);
+      setPage(1);
+      setHasNext(true);
+      setShowFilters(false);
+    } else {
+      // Ensure a clean fetch when reopening
+      setPage(1);
+      setHasNext(true);
+    }
+    onOpenChange(isOpen);
+  };
+  const [filtersLoaded, setFiltersLoaded] = useState(false);
   // On mobile: showFilters = false means show results, true means show filters overlay.
   const [showFilters, setShowFilters] = useState(false);
   const { ref: observerTarget, inView } = useInView({
@@ -68,36 +89,24 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const requestIdRef = useRef<number>(0);
   const PAGE_SIZE = 20;
 
-  // On dialog open, check which types have at least one result and fetch filter data
+  // Lazy load filter data only when dialog opens (optimized - no type checking)
   useEffect(() => {
-    if (!open) return;
-    async function checkTypesAndFetchFilters() {
+    if (!open || filtersLoaded) return;
+    async function fetchFilters() {
       try {
-        const types: string[] = [];
-        const [episodes, posts, videos, takeovers, hosts, filtersData, genresData] = await Promise.all([
-          searchEpisodes({ limit: 1 }),
-          getAllPosts({ limit: 1 }),
-          getVideos({ limit: 1 }),
-          getTakeovers({ limit: 1 }),
-          getRegularHosts({ limit: 1 }),
+        const [filtersData, genresData] = await Promise.all([
           getShowsFilters(),
           getCanonicalGenres(),
         ]);
-        if (episodes?.shows?.length > 0) types.push('episodes');
-        if (posts?.posts?.length > 0) types.push('posts');
-        if (videos?.videos?.length > 0) types.push('videos');
-        if (takeovers?.shows?.length > 0) types.push('takeovers');
-        if (hosts?.shows?.length > 0) types.push('hosts-series');
-        setAvailableTypes(types);
         setAvailableFilters(filtersData);
         setCanonicalGenres(genresData);
+        setFiltersLoaded(true);
       } catch (error) {
-        console.warn('Error checking available types or fetching filters:', error);
-        setAvailableTypes([]);
+        console.warn('Error fetching filters:', error);
       }
     }
-    checkTypesAndFetchFilters();
-  }, [open]);
+    fetchFilters();
+  }, [open, filtersLoaded]);
 
   // Determine selected content type
   const selectedType = activeFilters.find(f => Object.keys(typeLabels).includes(f)) || 'episodes';
@@ -110,15 +119,14 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     requestIdRef.current += 1;
     const currentRequestId = requestIdRef.current;
     
-    const hasSearchOrFilters = debouncedSearchTerm?.trim().length > 0 || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0;
-    
-    if (hasSearchOrFilters) {
-      setIsLoading(true);
-    }
+    // Show loading and clear old results
+    setIsLoading(true);
+    setResults([]);
     setPage(1);
     setHasNext(true);
 
     async function fetchResults() {
+      // If search term is too short (1 char), wait for more input
       if (debouncedSearchTerm && debouncedSearchTerm.trim().length > 0 && debouncedSearchTerm.trim().length < 2 && selectedGenres.length === 0 && selectedLocations.length === 0 && selectedHosts.length === 0) {
         if (isMounted && currentRequestId === requestIdRef.current) {
           setResults([]);
@@ -130,10 +138,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       try {
         let res: any;
         let allResults: any[] = [];
+        let apiHasNext = false;
 
         if (selectedType === 'episodes') {
           const searchParams: any = {
-            limit: (debouncedSearchTerm?.trim().length >= 2 || selectedGenres.length > 0 || selectedLocations.length > 0) ? 1000 : PAGE_SIZE,
+            limit: PAGE_SIZE,
             offset: 0,
           };
 
@@ -151,21 +160,26 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
           res = await searchEpisodes(searchParams);
           allResults = res?.shows || [];
+          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         } else if (selectedType === 'posts') {
-          const searchParams = debouncedSearchTerm
-            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 }
-            : { limit: 100, offset: 0 };
+          const searchParams: any = { limit: PAGE_SIZE, offset: 0 };
+          if (debouncedSearchTerm) {
+            searchParams.searchTerm = debouncedSearchTerm;
+          }
           res = await getAllPosts(searchParams);
           allResults = res?.posts || [];
+          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         } else if (selectedType === 'videos') {
-          const searchParams = debouncedSearchTerm
-            ? { searchTerm: debouncedSearchTerm, limit: 1000, offset: 0 }
-            : { limit: 100, offset: 0 };
+          const searchParams: any = { limit: PAGE_SIZE, offset: 0 };
+          if (debouncedSearchTerm) {
+            searchParams.searchTerm = debouncedSearchTerm;
+          }
           res = await getVideos(searchParams);
           allResults = res?.videos || [];
+          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         } else if (selectedType === 'takeovers') {
           const searchParams: any = {
-            limit: (debouncedSearchTerm?.trim().length >= 2 || selectedGenres.length > 0 || selectedLocations.length > 0) ? 1000 : 100,
+            limit: PAGE_SIZE,
             offset: 0,
           };
           if (debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2) {
@@ -179,36 +193,37 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           }
           res = await getTakeovers(searchParams);
           allResults = res?.shows || [];
+          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         } else if (selectedType === 'hosts-series') {
           const searchParams: any = {
-            limit: (debouncedSearchTerm?.trim().length >= 2 || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0) ? 1000 : 100,
+            limit: PAGE_SIZE,
             offset: 0,
           };
+          if (selectedGenres.length > 0) {
+            searchParams.genre = selectedGenres;
+          }
+          if (selectedLocations.length > 0) {
+            searchParams.location = selectedLocations;
+          }
+          res = await getRegularHosts(searchParams);
+          allResults = res?.shows || [];
+          
+          // Client-side filter for search term on hosts
           if (debouncedSearchTerm) {
             const searchLower = debouncedSearchTerm.toLowerCase();
-            res = await getRegularHosts(searchParams);
-            allResults = res?.shows || [];
             allResults = allResults.filter((host: any) =>
               host.title?.toLowerCase().includes(searchLower) ||
               host.metadata?.description?.toLowerCase().includes(searchLower) ||
               host.content?.toLowerCase().includes(searchLower)
             );
-          } else {
-            if (selectedGenres.length > 0) {
-              searchParams.genre = selectedGenres;
-            }
-            if (selectedLocations.length > 0) {
-              searchParams.location = selectedLocations;
-            }
-            res = await getRegularHosts(searchParams);
-            allResults = res?.shows || [];
           }
+          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         }
 
         // Only update results if this is still the latest request
         if (isMounted && currentRequestId === requestIdRef.current) {
-          setResults(allResults.slice(0, PAGE_SIZE));
-          setHasNext(allResults.length > PAGE_SIZE);
+          setResults(allResults);
+          setHasNext(apiHasNext);
         }
       } catch (error) {
         // Only log and update if this is still the latest request
@@ -391,7 +406,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className='max-w-[90vw] h-[80vh] p-0 gap-0 overflow-hidden'>
         <div className='flex h-full overflow-hidden relative flex-col sm:flex-row'>
           {/* --- Mobile: Search bar always at top, toggle below it --- */}
@@ -581,6 +596,56 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         )}
                       </div>
                     )}
+                    {/* Selected Filters as Removable Badges */}
+                    {(selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0) && (
+                      <div className='pt-4 border-t border-almostblack/20 dark:border-white/20'>
+                        <label className='block text-sm font-mono uppercase text-m8 mb-2'>Active Filters</label>
+                        <div className='flex flex-wrap gap-2'>
+                          {selectedGenres.map(genreId => {
+                            const genre = canonicalGenres.find(g => g.id === genreId);
+                            return genre ? (
+                              <Badge
+                                key={`genre-${genreId}`}
+                                variant='secondary'
+                                className='group flex items-center gap-1 pr-1 bg-almostblack text-white dark:bg-white dark:text-almostblack cursor-pointer hover:bg-almostblack/80 dark:hover:bg-white/80'
+                                onClick={() => setSelectedGenres(prev => prev.filter(id => id !== genreId))}
+                              >
+                                <span className='text-m8 uppercase'>{genre.title}</span>
+                                <X className='h-3 w-3 opacity-60 group-hover:opacity-100' />
+                              </Badge>
+                            ) : null;
+                          })}
+                          {selectedLocations.map(locationId => {
+                            const location = availableFilters.locations?.find((l: any) => l.id === locationId);
+                            return location ? (
+                              <Badge
+                                key={`location-${locationId}`}
+                                variant='secondary'
+                                className='group flex items-center gap-1 pr-1 bg-almostblack text-white dark:bg-white dark:text-almostblack cursor-pointer hover:bg-almostblack/80 dark:hover:bg-white/80'
+                                onClick={() => setSelectedLocations(prev => prev.filter(id => id !== locationId))}
+                              >
+                                <span className='text-m8 uppercase'>{location.title}</span>
+                                <X className='h-3 w-3 opacity-60 group-hover:opacity-100' />
+                              </Badge>
+                            ) : null;
+                          })}
+                          {selectedHosts.map(hostId => {
+                            const host = availableFilters.hosts?.find((h: any) => h.id === hostId);
+                            return host ? (
+                              <Badge
+                                key={`host-${hostId}`}
+                                variant='secondary'
+                                className='group flex items-center gap-1 pr-1 bg-almostblack text-white dark:bg-white dark:text-almostblack cursor-pointer hover:bg-almostblack/80 dark:hover:bg-white/80'
+                                onClick={() => setSelectedHosts(prev => prev.filter(id => id !== hostId))}
+                              >
+                                <span className='text-m8 uppercase'>{host.title}</span>
+                                <X className='h-3 w-3 opacity-60 group-hover:opacity-100' />
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -766,28 +831,28 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         {isLoadingMore && <Loader className='h-4 w-4 animate-spin' />}
                       </div>
                     </>
+                  ) : isLoading ? (
+                    <div className='space-y-6'>
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className='flex flex-col w-full pb-6 gap-2'>
+                          <div className='flex items-center justify-between'>
+                            <Skeleton className='h-4 w-24' />
+                            <Skeleton className='h-4 w-20' />
+                          </div>
+                          <div className='flex items-center justify-between gap-4'>
+                            <Skeleton className='h-6 w-3/4' />
+                            <Skeleton className='h-5 w-16' />
+                          </div>
+                          {i < 4 && <div className='border-b border-default w-full mt-4' />}
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className='flex flex-col items-center justify-center uppercase py-12 text-center'>
-                      {isLoading ? (
-                        <>
-                          <Loader className='h-6 w-6 animate-spin mb-4' />
-                          <p className='text-muted-foregroun font-mono text-m8'>Searching...</p>
-                        </>
-                      ) : debouncedSearchTerm ? (
-                        <>
-                          <AlertCircle className='h-6 w-6 mb-4 text-muted-foreground' />
-                          <p className='text-muted-foreground font-mono text-m8'>
-                            No results found
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <FileQuestion className='h-6 w-6 mb-4 text-muted-foreground' />
-                          <p className='text-muted-foreground font-mono text-m8'>
-                            Start typing to search
-                          </p>
-                        </>
-                      )}
+                      <AlertCircle className='h-6 w-6 mb-4 text-muted-foreground' />
+                      <p className='text-muted-foreground font-mono text-m8'>
+                        No results found
+                      </p>
                     </div>
                   )}
                 </div>

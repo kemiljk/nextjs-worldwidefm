@@ -35,17 +35,22 @@ export function getPostThumbnail(post: PostObject): string {
     return post.thumbnail?.imgix_url || '/image-placeholder.png';
   }
 
-  const youtubeVideo = metadata.youtube_video;
+  // Check for video_url first (new field), then fall back to youtube_video
+  const videoUrl = (metadata as any).video_url || metadata.youtube_video;
   const directVideo = metadata.video;
   
-  if (youtubeVideo) {
-    const customThumbnail = metadata.youtube_video_thumbnail?.imgix_url;
+  if (videoUrl) {
+    const customThumbnail = metadata.youtube_video_thumbnail?.imgix_url || metadata.video_thumbnail?.imgix_url;
     if (customThumbnail) {
       return customThumbnail;
     }
-    const youtubeThumbnail = getYouTubeThumbnail(youtubeVideo);
+    const youtubeThumbnail = getYouTubeThumbnail(videoUrl);
     if (youtubeThumbnail) {
       return youtubeThumbnail;
+    }
+    const vimeoThumbnail = getVimeoThumbnail(videoUrl);
+    if (vimeoThumbnail) {
+      return vimeoThumbnail;
     }
   }
   
@@ -70,8 +75,10 @@ export function getPostVideoUrl(post: PostObject): string | null {
   const metadata = post.metadata;
   if (!metadata) return null;
   
-  if (metadata.youtube_video) {
-    return metadata.youtube_video;
+  // Check for video_url first (new field), then fall back to youtube_video
+  const videoUrl = (metadata as any).video_url || metadata.youtube_video;
+  if (videoUrl) {
+    return videoUrl;
   }
   
   if (metadata.video) {
@@ -90,15 +97,23 @@ export function getPostVideoThumbnail(post: PostObject): string | null {
   const metadata = post.metadata;
   if (!metadata) return null;
   
-  const youtubeVideo = metadata.youtube_video;
+  // Check for video_url first (new field), then fall back to youtube_video
+  const videoUrl = (metadata as any).video_url || metadata.youtube_video;
   const directVideo = metadata.video;
   
-  if (youtubeVideo) {
-    const customThumbnail = metadata.youtube_video_thumbnail?.imgix_url;
+  if (videoUrl) {
+    const customThumbnail = metadata.youtube_video_thumbnail?.imgix_url || metadata.video_thumbnail?.imgix_url;
     if (customThumbnail) {
       return customThumbnail;
     }
-    return getYouTubeThumbnail(youtubeVideo) || null;
+    const youtubeThumbnail = getYouTubeThumbnail(videoUrl);
+    if (youtubeThumbnail) {
+      return youtubeThumbnail;
+    }
+    const vimeoThumbnail = getVimeoThumbnail(videoUrl);
+    if (vimeoThumbnail) {
+      return vimeoThumbnail;
+    }
   }
   
   if (directVideo) {

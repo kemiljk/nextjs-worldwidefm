@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
-import { getVideos, getVideoCategories } from '@/lib/actions';
+import { getVideos, getVideoCategories, getVideosPageConfig } from '@/lib/actions';
 import VideosClient from './videos-client';
 import { generateVideosMetadata } from '@/lib/metadata-utils';
 
@@ -10,25 +10,24 @@ export const generateMetadata = async (): Promise<Metadata> => {
 };
 
 export default async function VideosPage() {
-  const [videos, videoCategories] = await Promise.all([
+  const [videos, videoCategories, pageConfig] = await Promise.all([
     getVideos({ limit: 50 }),
     getVideoCategories(),
+    getVideosPageConfig(),
   ]);
+
+  // Extract category order from page config
+  const categoryOrder = pageConfig?.category_order || [];
 
   return (
     <div className='w-full overflow-x-hidden'>
-      {/* Header (copied from shows-client but with Videos title) */}
+      {/* Header */}
       <div className='relative w-full h-[25vh] sm:h-[35vh] overflow-hidden'>
-        {/* colour background */}
         <div className='absolute inset-0 bg-soul' />
-
-        {/* Linear white gradient */}
         <div
           className='absolute inset-0 bg-gradient-to-b from-white via-white/0 to-white'
           style={{ mixBlendMode: 'hue' }}
         />
-
-        {/* Noise Overlay */}
         <div
           className='absolute inset-0'
           style={{
@@ -45,7 +44,11 @@ export default async function VideosPage() {
       {/* Content */}
       <div className='px-5 pb-20 font-mono uppercase text-m8'>
         <Suspense fallback={<div>Loading...</div>}>
-          <VideosClient initialVideos={videos.videos} availableCategories={videoCategories} />
+          <VideosClient 
+            initialVideos={videos.videos} 
+            availableCategories={videoCategories}
+            categoryOrder={categoryOrder}
+          />
         </Suspense>
       </div>
     </div>

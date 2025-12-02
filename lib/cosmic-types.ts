@@ -333,6 +333,7 @@ export interface EpisodeObject {
   title: string;
   type: 'episode';
   metadata: {
+    subtitle?: string | null;
     radiocult_event_id: string | null;
     radiocult_show_id: string | null;
     radiocult_artist_id: string | null;
@@ -355,6 +356,7 @@ export interface EpisodeObject {
      * Example: "13:30" for 1:30 PM
      */
     broadcast_time: string | null;
+    broadcast_day?: string | null;
     duration: string | null;
     description: string | null;
     image: CosmicImage | null;
@@ -368,6 +370,7 @@ export interface EpisodeObject {
     type: ShowTypeObject;
     featured_on_homepage: boolean;
     source: string | null;
+    page_link?: string | null;
   };
   created_at: string;
   modified_at: string;

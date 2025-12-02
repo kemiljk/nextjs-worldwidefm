@@ -1,16 +1,17 @@
 'use client';
 
-import { getPostsWithFilters, getPostCategories } from '@/lib/actions';
+import { getPostsWithFilters, getPostCategories, getEditorialPageConfig } from '@/lib/actions';
 import { PageHeader } from '@/components/shared/page-header';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { PostObject } from '@/lib/cosmic-config';
-import { EventType } from '@/lib/cosmic-types';
 import FeaturedContent from '../../components/editorial/featured-content';
 import EditorialSection from '../../components/editorial/editorial-section';
+import EditorialCategorySection from '../../components/editorial/editorial-category-section';
 import { FilterItem as BaseFilterItem } from '@/lib/filter-types';
 import { FilterToolbar } from './components/filter-toolbar';
 import { useDebounce } from '@/hooks/use-debounce';
+import type { CategoryOrder } from '@/lib/actions/page-config';
 
 type FilterItem = BaseFilterItem;
 
@@ -26,7 +27,6 @@ function EditorialContent() {
   const searchParams = useSearchParams();
 
   const [posts, setPosts] = useState<PostObject[]>([]);
-  const [events, setEvents] = useState<EventType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,6 +37,7 @@ function EditorialContent() {
     categories: [],
   });
   const [categoriesLoaded, setCategoriesLoaded] = useState(false);
+  const [categoryOrder, setCategoryOrder] = useState<CategoryOrder[]>([]);
 
   // Get current filters from URL
   const currentFilters = useMemo(() => {
@@ -53,11 +54,14 @@ function EditorialContent() {
     };
   }, [searchParams]);
 
-  // Fetch all categories on mount to enable filtering
+  // Fetch all categories and page config on mount
   useEffect(() => {
-    const loadCategories = async () => {
+    const loadCategoriesAndConfig = async () => {
       try {
-        const categoriesData = await getPostCategories();
+        const [categoriesData, pageConfig] = await Promise.all([
+          getPostCategories(),
+          getEditorialPageConfig(),
+        ]);
 
         setAvailableFilters(prev => ({
           ...prev,
@@ -99,6 +103,11 @@ function EditorialContent() {
             .sort((a, b) => a.title.localeCompare(b.title)),
         }));
 
+        // Set category order from page config
+        if (pageConfig?.category_order && pageConfig.category_order.length > 0) {
+          setCategoryOrder(pageConfig.category_order);
+        }
+
         setCategoriesLoaded(true);
       } catch (error) {
         console.error('Error loading categories:', error);
@@ -106,7 +115,7 @@ function EditorialContent() {
       }
     };
 
-    loadCategories();
+    loadCategoriesAndConfig();
   }, []);
 
   // Fetch posts when filters change (but only after categories are loaded)
@@ -126,32 +135,23 @@ function EditorialContent() {
           })
           .filter(Boolean) as string[];
 
-        // Fetch posts and events in parallel
-        const [postsResult] = await Promise.all([
-          getPostsWithFilters({
-            limit: 20,
-            offset: 0,
-            searchTerm: currentFilters.search,
-            categories: categoryIds,
-            postType: currentFilters.article
-              ? 'article'
-              : currentFilters.video
-                ? 'video'
-                : undefined,
-          }),
-        ]);
-
-        console.log('Fetched', postsResult.posts.length, 'posts with filters:', {
-          categoryIds,
-          categorySlugs: currentFilters.categories,
-          postType: currentFilters.article ? 'article' : currentFilters.video ? 'video' : undefined,
+        const postsResult = await getPostsWithFilters({
+          limit: 100, // Fetch more to allow grouping
+          offset: 0,
+          searchTerm: currentFilters.search,
+          categories: categoryIds,
+          postType: currentFilters.article
+            ? 'article'
+            : currentFilters.video
+              ? 'video'
+              : undefined,
         });
+
         setPosts(postsResult.posts);
         setTotal(postsResult.total);
       } catch (error) {
         console.error('Error fetching posts:', error);
         setPosts([]);
-        setEvents([]);
         setTotal(0);
       } finally {
         setIsLoading(false);
@@ -182,31 +182,27 @@ function EditorialContent() {
   const handleFilterChange = (filter: string, subfilter?: string) => {
     const params = new URLSearchParams(searchParams.toString());
 
-    // Clear all filters
     if (!filter) {
       params.delete('categories');
       params.delete('article');
       params.delete('video');
     } else if (filter === 'article') {
-      // Toggle article filter
       if (params.get('article') === 'true') {
         params.delete('article');
       } else {
         params.set('article', 'true');
-        params.delete('video'); // Remove video if article is selected
+        params.delete('video');
       }
       params.delete('categories');
     } else if (filter === 'video') {
-      // Toggle video filter
       if (params.get('video') === 'true') {
         params.delete('video');
       } else {
         params.set('video', 'true');
-        params.delete('article'); // Remove article if video is selected
+        params.delete('article');
       }
       params.delete('categories');
     } else if (subfilter) {
-      // Handle subfilter selection (categories)
       const currentValues = params.get(filter)?.split(',').filter(Boolean) || [];
       const index = currentValues.indexOf(subfilter);
 
@@ -222,7 +218,6 @@ function EditorialContent() {
         params.delete(filter);
       }
 
-      // Clear article/video filters when selecting categories
       params.delete('article');
       params.delete('video');
     }
@@ -234,7 +229,6 @@ function EditorialContent() {
     setSearchTerm(term);
   };
 
-  // Determine active filter for UI
   const activeFilter =
     currentFilters.categories.length > 0
       ? 'categories'
@@ -244,25 +238,57 @@ function EditorialContent() {
           ? 'video'
           : '';
 
-  // Convert URL params to selected filters format for UI
   const selectedFilters = {
     article: currentFilters.article ? ['article'] : [],
     video: currentFilters.video ? ['video'] : [],
     categories: currentFilters.categories,
   };
 
+  // Group posts by category for display
+  const groupedPosts = useMemo(() => {
+    if (!categoryOrder.length || currentFilters.article || currentFilters.video || currentFilters.categories.length > 0 || currentFilters.search) {
+      return null; // Don't group when filters are active
+    }
+
+    const groups: { category: CategoryOrder; posts: PostObject[] }[] = [];
+    const usedPostIds = new Set<string>();
+
+    // Group posts by ordered categories
+    for (const category of categoryOrder) {
+      const categoryPosts = posts.filter(post => {
+        if (usedPostIds.has(post.id)) return false;
+        const postCategories = post.metadata?.categories || [];
+        return postCategories.some((cat: any) => cat.id === category.id || cat.slug === category.slug);
+      });
+
+      if (categoryPosts.length > 0) {
+        categoryPosts.forEach(p => usedPostIds.add(p.id));
+        groups.push({ category, posts: categoryPosts });
+      }
+    }
+
+    // Add uncategorized posts
+    const uncategorizedPosts = posts.filter(post => !usedPostIds.has(post.id));
+    if (uncategorizedPosts.length > 0) {
+      groups.push({
+        category: { id: 'uncategorized', slug: 'uncategorized', title: 'Other' },
+        posts: uncategorizedPosts,
+      });
+    }
+
+    return groups;
+  }, [posts, categoryOrder, currentFilters]);
+
+  const hasFiltersActive = currentFilters.article || currentFilters.video || currentFilters.categories.length > 0 || currentFilters.search;
+
   return (
     <div className='w-full overflow-x-hidden mb-20'>
       <div className='relative w-full h-[25vh] sm:h-[35vh] overflow-hidden'>
         <div className='absolute inset-0 bg-sunset' />
-
-        {/* Linear white gradient */}
         <div
           className='absolute inset-0 bg-linear-to-b from-white via-white/0 to-white'
           style={{ mixBlendMode: 'hue' }}
         />
-
-        {/* Noise Overlay */}
         <div
           className='absolute inset-0'
           style={{
@@ -271,7 +297,7 @@ function EditorialContent() {
             mixBlendMode: 'screen',
           }}
         />
-        <div className='absolute bottom-0 left-0 w-full px-5  z-10'>
+        <div className='absolute bottom-0 left-0 w-full px-5 z-10'>
           <PageHeader title='editorial' />
         </div>
       </div>
@@ -296,11 +322,29 @@ function EditorialContent() {
           </div>
         ) : posts.length > 0 ? (
           <>
-            {/* Only show featured content when no filters are active */}
-            {!currentFilters.article &&
-            !currentFilters.video &&
-            currentFilters.categories.length === 0 &&
-            !currentFilters.search ? (
+            {!hasFiltersActive && groupedPosts ? (
+              <>
+                {/* Featured post (first post from first category group) */}
+                {groupedPosts[0]?.posts[0] && (
+                  <FeaturedContent posts={[groupedPosts[0].posts[0]]} />
+                )}
+                
+                {/* Category-grouped sections */}
+                {groupedPosts.map((group, index) => {
+                  // Skip the first post of the first group (it's featured)
+                  const postsToShow = index === 0 ? group.posts.slice(1) : group.posts;
+                  if (postsToShow.length === 0) return null;
+                  
+                  return (
+                    <EditorialCategorySection
+                      key={group.category.id}
+                      title={group.category.title}
+                      posts={postsToShow}
+                    />
+                  );
+                })}
+              </>
+            ) : !hasFiltersActive ? (
               <>
                 <FeaturedContent posts={posts.slice(0, 1)} />
                 <EditorialSection
@@ -358,7 +402,6 @@ function EditorialContent() {
   );
 }
 
-// Main component that uses Suspense
 export default function EditorialPage() {
   return (
     <div className='min-h-screen'>

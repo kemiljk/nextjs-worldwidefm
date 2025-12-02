@@ -8,7 +8,10 @@ export const generateMetadata = async (): Promise<Metadata> => {
     title: 'Welcome to Worldwide FM Membership!',
     description:
       'Your Worldwide FM membership subscription is now active. Thank you for supporting independent radio.',
-    noIndex: true,
+    robots: {
+      index: false,
+      follow: false,
+    },
   };
 };
 

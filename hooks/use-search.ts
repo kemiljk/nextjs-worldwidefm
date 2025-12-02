@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { SearchResult, FilterItem } from '@/lib/search-context';
 import { searchContent } from '@/lib/actions';
+import { getFilterItems } from '@/lib/search/unified-types';
 
 interface UseSearchReturn {
   searchTerm: string;
@@ -16,6 +17,7 @@ interface UseSearchReturn {
     hosts: string[];
     takeovers: string[];
     types: string[];
+    categories: string[];
   };
   availableFilters: {
     genres: FilterItem[];
@@ -23,6 +25,7 @@ interface UseSearchReturn {
     hosts: FilterItem[];
     takeovers: FilterItem[];
     types: FilterItem[];
+    categories: FilterItem[];
   };
   toggleGenreFilter: (genre: FilterItem) => void;
   toggleLocationFilter: (location: FilterItem) => void;
@@ -46,12 +49,14 @@ export function useSearch(): UseSearchReturn {
     hosts: [] as string[],
     takeovers: [] as string[],
     types: [] as string[],
+    categories: [] as string[],
   });
   const [availableFilters, setAvailableFilters] = useState({
     genres: [] as FilterItem[],
     locations: [] as FilterItem[],
     hosts: [] as FilterItem[],
     takeovers: [] as FilterItem[],
+    categories: [] as FilterItem[],
     types: [] as FilterItem[],
   });
 
@@ -61,49 +66,64 @@ export function useSearch(): UseSearchReturn {
   useEffect(() => {
     if (allContent.length > 0) {
       const newFilters = {
-        genres: [] as FilterItem[],
-        locations: [] as FilterItem[],
-        hosts: [] as FilterItem[],
-        takeovers: [] as FilterItem[],
-        types: [] as FilterItem[],
+        genres: new Map<string, FilterItem>(),
+        locations: new Map<string, FilterItem>(),
+        hosts: new Map<string, FilterItem>(),
+        takeovers: new Map<string, FilterItem>(),
+        categories: new Map<string, FilterItem>(),
       };
 
       allContent.forEach(item => {
-        // Add genres
-        item.genres?.forEach(genre => {
-          if (!newFilters.genres.some(g => g.slug === genre.slug)) {
-            newFilters.genres.push(genre);
+        const filterItems = getFilterItems(item);
+        filterItems.genres.forEach(genre => {
+          if (genre.slug && !newFilters.genres.has(genre.slug)) {
+            newFilters.genres.set(genre.slug, genre);
           }
         });
 
-        // Add locations
-        item.locations?.forEach(location => {
-          if (!newFilters.locations.some(l => l.slug === location.slug)) {
-            newFilters.locations.push(location);
+        filterItems.locations.forEach(location => {
+          if (location.slug && !newFilters.locations.has(location.slug)) {
+            newFilters.locations.set(location.slug, location);
           }
         });
 
-        // Add hosts
-        item.hosts?.forEach(host => {
-          if (!newFilters.hosts.some(h => h.slug === host.slug)) {
-            newFilters.hosts.push(host);
+        filterItems.hosts.forEach(host => {
+          if (host.slug && !newFilters.hosts.has(host.slug)) {
+            newFilters.hosts.set(host.slug, host);
           }
         });
 
-        // Add takeovers
-        item.takeovers?.forEach(takeover => {
-          if (!newFilters.takeovers.some(t => t.slug === takeover.slug)) {
-            newFilters.takeovers.push(takeover);
+        filterItems.takeovers.forEach(takeover => {
+          if (takeover.slug && !newFilters.takeovers.has(takeover.slug)) {
+            newFilters.takeovers.set(takeover.slug, takeover);
+          }
+        });
+
+        filterItems.categories.forEach(category => {
+          if (category.slug && !newFilters.categories.has(category.slug)) {
+            newFilters.categories.set(category.slug, category);
           }
         });
       });
 
       // Sort filters alphabetically by title
-      Object.keys(newFilters).forEach(key => {
-        newFilters[key as keyof typeof newFilters].sort((a, b) => a.title.localeCompare(b.title));
-      });
+      const sortedFilters = Object.fromEntries(
+        Object.entries(newFilters).map(([key, map]) => [
+          key,
+          Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title)),
+        ])
+      ) as {
+        genres: FilterItem[];
+        locations: FilterItem[];
+        hosts: FilterItem[];
+        takeovers: FilterItem[];
+        categories: FilterItem[];
+      };
 
-      setAvailableFilters(newFilters);
+      setAvailableFilters(prev => ({
+        ...prev,
+        ...sortedFilters,
+      }));
     }
   }, [allContent]);
 

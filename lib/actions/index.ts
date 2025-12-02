@@ -14,7 +14,6 @@ export {
   getEnhancedShowBySlug,
   getShowBySlug,
   getScheduleData,
-  getMixcloudShows,
   searchEpisodes,
   getFeaturedShows,
   getSeries,

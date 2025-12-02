@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { PageHeader } from '@/components/shared/page-header';
 import { ShowsGrid } from '../../components/shows-grid';
@@ -38,6 +38,7 @@ export default function ShowsClient({
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
+  const loadMoreSentinelRef = React.useRef<HTMLDivElement>(null);
 
   // Parse filter params
   const genreParam = searchParams.get('genre') ?? undefined;
@@ -197,7 +198,7 @@ export default function ShowsClient({
   }, [selectedGenres, selectedLocations, typeParam, searchTerm, letterParam, needsFetch, activeType, initialShows.length]);
 
   // Load more data function
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     if (!hasNext || isLoadingMore) return;
 
     setIsLoadingMore(true);
@@ -310,7 +311,7 @@ export default function ShowsClient({
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [activeType, hasNext, isLoadingMore, page, selectedGenres, selectedLocations, searchTerm, letterParam]);
 
   // Map episode genres to canonical genres (by slug or title, case-insensitive)
   function mapShowToCanonicalGenres(show: any): string[] {
@@ -455,6 +456,31 @@ export default function ShowsClient({
 
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
+
+  // IntersectionObserver for automatic infinite scroll on hosts-series tab
+  useEffect(() => {
+    if (activeType !== 'hosts-series' || !hasNext || isLoadingMore) {
+      return;
+    }
+
+    const sentinel = loadMoreSentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0]?.isIntersecting) {
+          loadMore();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [activeType, hasNext, isLoadingMore, loadMore]);
 
   // No need for client-side filtering since we fetch the correct data based on type
   const filteredShows = shows || [];
@@ -688,7 +714,12 @@ export default function ShowsClient({
           )}
         </main>
 
-        {/* Load More Button */}
+        {/* IntersectionObserver sentinel for automatic loading */}
+        {activeType === 'hosts-series' && hasNext && (
+          <div ref={loadMoreSentinelRef} className='h-1 w-full' />
+        )}
+
+        {/* Load More Button - fallback for manual loading */}
         {hasNext && (
           <div className='w-full flex items-center justify-center mt-8'>
             <Button

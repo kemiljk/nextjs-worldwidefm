@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import VideoGrid from '@/components/video/video-grid';
 import FeaturedVideoContent from '@/components/video/featured-video-content';
@@ -9,6 +9,7 @@ import { VideoObject } from '@/lib/cosmic-config';
 import { subDays } from 'date-fns';
 import { VideoFilterToolbar } from './components/video-filter-toolbar';
 import { useDebounce } from '@/hooks/use-debounce';
+import type { CategoryOrder } from '@/lib/actions/page-config';
 
 interface VideoCategory {
   id: string;
@@ -24,9 +25,10 @@ interface VideoCategory {
 interface VideosClientProps {
   initialVideos: VideoObject[];
   availableCategories: VideoCategory[];
+  categoryOrder?: CategoryOrder[];
 }
 
-export default function VideosClient({ initialVideos, availableCategories }: VideosClientProps) {
+export default function VideosClient({ initialVideos, availableCategories, categoryOrder = [] }: VideosClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -37,7 +39,10 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 1000);
 
-  // Load URL query parameters on initial render
+  // Track if we're syncing from URL to prevent loops
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Load URL query parameters on initial render only
   useEffect(() => {
     const categoriesParam = searchParams.get('categories')?.split(',').filter(Boolean) || [];
     const searchParam = searchParams.get('search') || '';
@@ -59,10 +64,14 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
     if (searchParam) {
       setSearchTerm(searchParam);
     }
-  }, [searchParams]);
+    
+    setIsInitialized(true);
+  }, []); // Only run once on mount
 
-  // Update URL when filters change
-  const updateUrlParams = useCallback(() => {
+  // Update URL when filters change (only after initialization)
+  useEffect(() => {
+    if (!isInitialized) return;
+
     const params = new URLSearchParams();
 
     // Add active filters to URL
@@ -79,14 +88,14 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
       params.set('search', debouncedSearchTerm);
     }
 
-    // Update URL without refreshing the page
-    router.push(`/videos${params.toString() ? `?${params.toString()}` : ''}`, { scroll: false });
-  }, [activeFilter, selectedFilters, debouncedSearchTerm, router]);
-
-  // Update URL when filters change
-  useEffect(() => {
-    updateUrlParams();
-  }, [activeFilter, selectedFilters, debouncedSearchTerm, updateUrlParams]);
+    const newUrl = `/videos${params.toString() ? `?${params.toString()}` : ''}`;
+    const currentUrl = `/videos${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
+    
+    // Only update if URL actually changed
+    if (newUrl !== currentUrl) {
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [activeFilter, selectedFilters, debouncedSearchTerm, isInitialized, router, searchParams]);
 
   const handleFilterChange = (filter: string, subfilter?: string) => {
     // Clear all filters
@@ -175,12 +184,37 @@ export default function VideosClient({ initialVideos, availableCategories }: Vid
       }
     });
 
-    const sortedGroups = Object.values(grouped).sort((a, b) => 
-      a.category.title.localeCompare(b.category.title)
-    );
+    // Sort groups by categoryOrder if provided, otherwise alphabetically
+    let sortedGroups: { category: VideoCategory; videos: VideoObject[] }[];
+    
+    if (categoryOrder.length > 0) {
+      // Create ordered groups based on categoryOrder
+      const orderedGroups: { category: VideoCategory; videos: VideoObject[] }[] = [];
+      const usedCategoryIds = new Set<string>();
+
+      // First, add groups in the order specified by categoryOrder
+      for (const orderItem of categoryOrder) {
+        if (grouped[orderItem.id]) {
+          orderedGroups.push(grouped[orderItem.id]);
+          usedCategoryIds.add(orderItem.id);
+        }
+      }
+
+      // Then, add any remaining groups not in the order (alphabetically)
+      const remainingGroups = Object.values(grouped)
+        .filter(g => !usedCategoryIds.has(g.category.id))
+        .sort((a, b) => a.category.title.localeCompare(b.category.title));
+      
+      sortedGroups = [...orderedGroups, ...remainingGroups];
+    } else {
+      // Fallback to alphabetical sorting
+      sortedGroups = Object.values(grouped).sort((a, b) => 
+        a.category.title.localeCompare(b.category.title)
+      );
+    }
 
     return { sortedGroups, uncategorized };
-  }, [regularVideos, availableCategories]);
+  }, [regularVideos, availableCategories, categoryOrder]);
 
   // Filter videos based on active filter
   const filteredVideos = useMemo(() => {

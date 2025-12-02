@@ -3,31 +3,19 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getUKTimezoneAbbreviation } from '@/lib/date-utils';
-
-interface ScheduleShow {
-  show_key: string;
-  event_id: string;
-  show_time: string;
-  show_day: string;
-  name: string;
-  url: string;
-  picture: string;
-  created_time: string;
-  tags: string[];
-  hosts: string[];
-  duration: number;
-}
+import type { ScheduleShow, ScheduleDayMap } from '@/lib/types/schedule';
+import type { UkWeekday } from '@/lib/date-utils';
 
 interface ScheduleDisplayProps {
   scheduleItems: ScheduleShow[];
-  episodeSlugMap: Record<string, string>;
+  dayDates: ScheduleDayMap;
   isActive: boolean;
   error?: string;
 }
 
 export default function ScheduleDisplay({
   scheduleItems,
-  episodeSlugMap,
+  dayDates,
   isActive,
   error,
 }: ScheduleDisplayProps) {
@@ -50,48 +38,48 @@ export default function ScheduleDisplay({
     }
   }, []);
 
-  // Convert UTC time to user's timezone
-  const convertTime = (utcTime: string, day: string) => {
+  const formatInUserTimezone = (date: Date) => {
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+      timeZone: userTimezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    return formatter.format(date);
+  };
+
+  const getDayIso = (day: string): string | undefined => {
+    return dayDates?.[day as UkWeekday];
+  };
+
+  const buildDateFromDay = (day: string, time: string): Date | null => {
+    const dayIso = getDayIso(day);
+    if (!dayIso) return null;
+
     try {
-      // Get the date for the specified day
-      const daysOrder = [
-        'Sunday',
-        'Monday',
-        'Tuesday',
-        'Wednesday',
-        'Thursday',
-        'Friday',
-        'Saturday',
-      ];
-      const today = new Date();
-      const todayDayIndex = today.getDay();
-      const targetDayIndex = daysOrder.indexOf(day);
-      const daysToAdd = (targetDayIndex - todayDayIndex + 7) % 7;
-
-      const targetDate = new Date(today);
-      targetDate.setDate(today.getDate() + daysToAdd);
-
-      // Parse UTC time (HH:MM format)
-      const [hours, minutes] = utcTime.split(':').map(Number);
-      targetDate.setUTCHours(hours, minutes, 0, 0);
-
-      // Format in user's timezone
-      const timeFormatter = new Intl.DateTimeFormat('en-GB', {
-        timeZone: userTimezone,
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      });
-
-      return timeFormatter.format(targetDate);
+      return new Date(`${dayIso}T${time}:00Z`);
     } catch (error) {
-      console.error('Error converting time:', error);
-      return utcTime;
+      console.error('Error creating schedule date', error);
+      return null;
     }
   };
 
+  // Convert time to user's timezone string
+  const convertTime = (time: string, day: string) => {
+    const date = buildDateFromDay(day, time);
+    if (!date) return time;
+    try {
+      return formatInUserTimezone(date);
+    } catch (error) {
+      console.error('Error converting time:', error);
+      return time;
+    }
+  };
+
+  // Target days for schedule (Tuesday-Friday)
+  const targetDays: UkWeekday[] = ['Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  
   // Group shows by day
-  const daysOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
   const showsByDay = scheduleItems.reduce(
     (acc, show) => {
       if (!acc[show.show_day]) {
@@ -152,18 +140,15 @@ export default function ScheduleDisplay({
 
       {/* Schedule list */}
       <div className='space-y-0 px-5'>
-        {daysOrder.map(day => {
+        {targetDays.map(day => {
           const dayShows = showsByDay[day] || [];
-          if (dayShows.length === 0) return null;
+          const dayIso = getDayIso(day);
+          if (!dayIso) return null;
 
-          // Format day header (e.g., "TUE 01/07")
-          const dayDate = new Date();
-          const dayIndex = daysOrder.indexOf(day);
-          const targetDate = new Date(dayDate);
-          targetDate.setDate(dayDate.getDate() + (dayIndex - dayDate.getDay() + 1));
+          const targetDate = new Date(`${dayIso}T00:00:00Z`);
           const dayAbbr = day.substring(0, 3).toUpperCase();
-          const dayNum = targetDate.getDate().toString().padStart(2, '0');
-          const monthNum = (targetDate.getMonth() + 1).toString().padStart(2, '0');
+          const dayNum = targetDate.toLocaleDateString('en-GB', { day: '2-digit', timeZone: 'Europe/London' });
+          const monthNum = targetDate.toLocaleDateString('en-GB', { month: '2-digit', timeZone: 'Europe/London' });
           const dayHeader = `${dayAbbr} ${dayNum}.${monthNum}`;
 
           return (
@@ -173,58 +158,74 @@ export default function ScheduleDisplay({
                 <h2 className='text-white dark:text-black font-display tracking-tight text-[22px]'>{dayHeader}</h2>
               </div>
 
-              {/* Show entries */}
-              <div className='divide-y divide-gray-200 dark:divide-gray-700'>
-                {dayShows.map((show, index) => {
-                  const startTime = convertTime(show.show_time, show.show_day);
+              {/* Show entries or placeholder */}
+              {dayShows.length === 0 ? (
+                <div className='flex items-start py-4'>
+                  <span className='w-[30vw] lg:w-[15vw] text-m7 font-mono text-black dark:text-white pr-8 opacity-0'>
+                    &nbsp;
+                  </span>
+                  <span className='w-[60vw] uppercase font-mono text-m7 text-gray-500 dark:text-gray-400 flex-1 pl-8'>
+                    Check back later
+                  </span>
+                </div>
+              ) : (
+                <div className='divide-y divide-gray-200 dark:divide-gray-700'>
+                  {dayShows.map((show, index) => {
+                    const startTime = convertTime(show.show_time, show.show_day);
+                    const durationMinutes =
+                      show.duration > 0 ? Math.round(show.duration / 60) : 120;
+                    const startDate = buildDateFromDay(show.show_day, show.show_time);
+                    let endTime = startTime;
 
-                  const [hours, minutes] = show.show_time.split(':').map(Number);
-                  const endHours = (hours + 2) % 24;
-                  const endTimeUTC = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                  const endTime = convertTime(endTimeUTC, show.show_day);
+                    if (startDate) {
+                      const endDate = new Date(startDate);
+                      endDate.setUTCMinutes(endDate.getUTCMinutes() + durationMinutes);
+                      endTime = formatInUserTimezone(endDate);
+                    }
 
-                  const timeRange = `${startTime}-${endTime}`;
+                    const timeRange = `${startTime}-${endTime}`;
 
-                  const showName =
-                    show.hosts.length > 0 ? `${show.name}: ${show.hosts.join(', ')}` : show.name;
+                    const showName =
+                      show.hosts.length > 0 ? `${show.name}: ${show.hosts.join(', ')}` : show.name;
 
-                  const content = (
-                    <div className='flex items-start'>
-                      <span className='w-[30vw] lg:w-[15vw] text-m7 font-mono text-black dark:text-white pr-8'>
-                        {timeRange}
-                      </span>
-                      <span className='w-[60vw] uppercase font-mono text-m7 text-almostblack dark:text-white flex-1 pl-8'>
-                        {showName}
-                      </span>
-                    </div>
-                  );
-
-                  // Check if this is a valid episode link
-                  const isEpisodeLink = show.url.startsWith('/episode/');
-                  const isShowLink = show.url.startsWith('/shows/');
-
-                  if (isEpisodeLink || isShowLink) {
-                    return (
-                      <Link
-                        href={show.url}
-                        key={`${show.show_day}-${show.show_time}-${show.name}`}
-                        className='flex-row flex py-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors'
-                      >
-                        {content}
-                      </Link>
-                    );
-                  } else {
-                    return (
-                      <div
-                        key={`${show.show_day}-${show.show_time}-${show.name}`}
-                        className='flex-row flex py-4 opacity-60 cursor-default'
-                      >
-                        {content}
+                    const content = (
+                      <div className='flex items-start'>
+                        <span className='w-[30vw] lg:w-[15vw] text-m7 font-mono text-black dark:text-white pr-8'>
+                          {timeRange}
+                        </span>
+                        <span className='w-[60vw] uppercase font-mono text-m7 text-almostblack dark:text-white flex-1 pl-8'>
+                          {showName}
+                        </span>
                       </div>
                     );
-                  }
-                })}
-              </div>
+
+                    // Check if this is a valid episode link
+                    const isEpisodeLink = show.url.startsWith('/episode/');
+                    const isShowLink = show.url.startsWith('/shows/');
+
+                    if (isEpisodeLink || isShowLink) {
+                      return (
+                        <Link
+                          href={show.url}
+                          key={`${show.show_day}-${show.show_time}-${show.name}`}
+                          className='flex-row flex py-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors'
+                        >
+                          {content}
+                        </Link>
+                      );
+                    } else {
+                      return (
+                        <div
+                          key={`${show.show_day}-${show.show_time}-${show.name}`}
+                          className='flex-row flex py-4 opacity-60 cursor-default'
+                        >
+                          {content}
+                        </div>
+                      );
+                    }
+                  })}
+                </div>
+              )}
             </div>
           );
         })}

@@ -12,6 +12,7 @@ interface ArticleCardProps {
   tags?: string[];
   categories?: Array<{ slug: string; title: string }>;
   variant?: 'default' | 'white' | 'featured';
+  href?: string;
 }
 
 export function ArticleCard({
@@ -22,6 +23,7 @@ export function ArticleCard({
   tags,
   categories,
   variant = 'default',
+  href,
 }: ArticleCardProps) {
   const borderClass = variant === 'white' ? '' : 'border-black';
   const dateTextClass = variant === 'white' ? 'text-white' : 'text-almostblack';
@@ -31,8 +33,16 @@ export function ArticleCard({
     categories ||
     (tags ? tags.map(tag => ({ slug: tag.toLowerCase().replace(/\s+/g, '-'), title: tag })) : []);
 
+  // Use custom href if provided, otherwise default to editorial page
+  const linkHref = href || `/editorial/${slug}`;
+  const isExternalLink = href?.startsWith('http');
+
   return (
-    <Link href={`/editorial/${slug}`} className='block group'>
+    <Link 
+      href={linkHref} 
+      className='block group'
+      {...(isExternalLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+    >
       <div
         className={`relative w-full ${variant === 'featured' ? 'flex flex-col gap-4 items-start' : ''}`}
       >

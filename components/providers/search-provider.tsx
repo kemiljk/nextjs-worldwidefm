@@ -1,15 +1,31 @@
 'use client';
 
-import { ReactNode } from 'react';
-import { SearchResult, FilterItem, SearchContextType, SearchContext } from '@/lib/search-context';
-import { useState, useCallback, useEffect } from 'react';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
+import {
+  SearchResult,
+  FilterItem,
+  SearchContextType,
+  SearchContext,
+} from '@/lib/search-context';
 import { getAllSearchResultsAndFilters } from '@/lib/search-engine';
-import { SearchFilters } from '@/lib/search/types';
-import { ContentType } from '@/lib/search/types';
+import {
+  getFilterItems,
+  SearchFilters,
+  SearchResultType,
+} from '@/lib/search/unified-types';
 
 interface SearchProviderProps {
   children: ReactNode;
 }
+
+const TYPE_FILTERS: FilterItem[] = [
+  { slug: 'episodes', title: 'Episodes', type: 'types' },
+  { slug: 'posts', title: 'Posts', type: 'types' },
+  { slug: 'events', title: 'Events', type: 'types' },
+  { slug: 'videos', title: 'Videos', type: 'types' },
+  { slug: 'takeovers', title: 'Takeovers', type: 'types' },
+  { slug: 'hosts-series', title: 'Hosts & Series', type: 'types' },
+];
 
 export default function SearchProvider({ children }: SearchProviderProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,13 +39,15 @@ export default function SearchProvider({ children }: SearchProviderProps) {
     locations: FilterItem[];
     hosts: FilterItem[];
     takeovers: FilterItem[];
+    categories: FilterItem[];
     types: FilterItem[];
   }>({
     genres: [],
     locations: [],
     hosts: [],
     takeovers: [],
-    types: [],
+    categories: [],
+    types: TYPE_FILTERS,
   });
 
   // Add a flag to track repeated failures
@@ -57,25 +75,27 @@ export default function SearchProvider({ children }: SearchProviderProps) {
       .then(({ results, filters }) => {
         setAllContent(results);
         setResults(results);
-        setAvailableFilters({
+        setAvailableFilters(prev => ({
           genres: filters.genres,
           locations: filters.locations,
           hosts: filters.hosts,
-          takeovers: [],
-          types: [
-            { slug: 'episodes', title: 'Episodes', type: 'types' },
-            { slug: 'posts', title: 'Posts', type: 'types' },
-            { slug: 'events', title: 'Events', type: 'types' },
-            { slug: 'videos', title: 'Videos', type: 'types' },
-            { slug: 'takeovers', title: 'Takeovers', type: 'types' },
-          ],
-        });
+          takeovers: prev.takeovers,
+          categories: prev.categories,
+          types: prev.types.length ? prev.types : TYPE_FILTERS,
+        }));
       })
-      .catch(error => {
+      .catch(() => {
         setError('Failed to load content. Please try again later.');
         setAllContent([]);
         setResults([]);
-        setAvailableFilters({ genres: [], locations: [], hosts: [], takeovers: [], types: [] });
+        setAvailableFilters({
+          genres: [],
+          locations: [],
+          hosts: [],
+          takeovers: [],
+          categories: [],
+          types: TYPE_FILTERS,
+        });
       })
       .finally(() => setIsLoading(false));
   }, []);
@@ -103,19 +123,22 @@ export default function SearchProvider({ children }: SearchProviderProps) {
               const titleMatch = item.title?.toLowerCase().includes(lowercaseTerm) ?? false;
               const descriptionMatch =
                 item.description?.toLowerCase().includes(lowercaseTerm) ?? false;
-              const excerptMatch = item.excerpt?.toLowerCase().includes(lowercaseTerm) ?? false;
+              const excerptMatch =
+                ('excerpt' in item && typeof item.excerpt === 'string'
+                  ? item.excerpt.toLowerCase()
+                  : ''
+                ).includes(lowercaseTerm);
 
-              const hostsMatch =
-                Array.isArray(item.hosts) &&
-                item.hosts.some(host => host.title?.toLowerCase().includes(lowercaseTerm));
-              const takeoversMatch =
-                Array.isArray(item.takeovers) &&
-                item.takeovers.some(takeover =>
-                  takeover.title?.toLowerCase().includes(lowercaseTerm)
-                );
-              const genresMatch =
-                Array.isArray(item.genres) &&
-                item.genres.some(genre => genre.title?.toLowerCase().includes(lowercaseTerm));
+              const filterItems = getFilterItems(item);
+              const hostsMatch = filterItems.hosts.some(host =>
+                host.title?.toLowerCase().includes(lowercaseTerm)
+              );
+              const takeoversMatch = filterItems.takeovers.some(takeover =>
+                takeover.title?.toLowerCase().includes(lowercaseTerm)
+              );
+              const genresMatch = filterItems.genres.some(genre =>
+                genre.title?.toLowerCase().includes(lowercaseTerm)
+              );
 
               // Search metadata fields
               const metadataMatch =
@@ -166,39 +189,49 @@ export default function SearchProvider({ children }: SearchProviderProps) {
           }
 
           // Apply filters
-          if (Array.isArray(filters.contentType) && filters.contentType.length > 0) {
-            filtered = filtered.filter(item => filters.contentType?.includes(item.type));
+          if (Array.isArray(filters.type) && filters.type.length > 0) {
+            filtered = filtered.filter(item =>
+              filters.type?.includes(item.type as SearchResultType)
+            );
           }
 
           if (Array.isArray(filters.genres) && filters.genres.length > 0) {
             filtered = filtered.filter(
               item =>
-                Array.isArray(item.genres) &&
-                item.genres.some(genre => filters.genres?.includes(genre.slug))
+                getFilterItems(item).genres.some(genre => filters.genres?.includes(genre.slug))
             );
           }
 
           if (Array.isArray(filters.locations) && filters.locations.length > 0) {
             filtered = filtered.filter(
               item =>
-                Array.isArray(item.locations) &&
-                item.locations.some(location => filters.locations?.includes(location.slug))
+                getFilterItems(item).locations.some(location =>
+                  filters.locations?.includes(location.slug)
+                )
             );
           }
 
           if (Array.isArray(filters.hosts) && filters.hosts.length > 0) {
             filtered = filtered.filter(
               item =>
-                Array.isArray(item.hosts) &&
-                item.hosts.some(host => filters.hosts?.includes(host.slug))
+                getFilterItems(item).hosts.some(host => filters.hosts?.includes(host.slug))
             );
           }
 
           if (Array.isArray(filters.takeovers) && filters.takeovers.length > 0) {
             filtered = filtered.filter(
               item =>
-                Array.isArray(item.takeovers) &&
-                item.takeovers.some(takeover => filters.takeovers?.includes(takeover.slug))
+                getFilterItems(item).takeovers.some(takeover =>
+                  filters.takeovers?.includes(takeover.slug)
+                )
+            );
+          }
+
+          if (Array.isArray(filters.categories) && filters.categories.length > 0) {
+            filtered = filtered.filter(item =>
+              getFilterItems(item).categories.some(category =>
+                filters.categories?.includes(category.slug)
+              )
             );
           }
 
@@ -317,20 +350,38 @@ export default function SearchProvider({ children }: SearchProviderProps) {
     });
   }, []);
 
-  const toggleTypeFilter = useCallback((type: FilterItem) => {
-    setFilters((prev: SearchFilters) => {
-      // Type is exclusive, so we set it directly
-      if (prev.contentType && prev.contentType.includes(type.slug as ContentType)) {
-        // Remove type if it's already set
-        const { contentType: _, ...rest } = prev;
-        return rest;
-      } else {
-        // Set type if it's not already set
+  const toggleCategoryFilter = useCallback((category: FilterItem) => {
+    setFilters(prev => {
+      const categoryFilters = prev.categories || [];
+      const categoryIndex = categoryFilters.indexOf(category.slug);
+
+      if (categoryIndex > -1) {
         return {
           ...prev,
-          contentType: [...(prev.contentType || []), type.slug as ContentType],
+          categories: categoryFilters.filter((_, index) => index !== categoryIndex),
         };
       }
+
+      return {
+        ...prev,
+        categories: [...categoryFilters, category.slug],
+      };
+    });
+  }, []);
+
+  const toggleTypeFilter = useCallback((type: FilterItem) => {
+    setFilters(prev => {
+      const currentTypes = prev.type || [];
+      if (currentTypes.includes(type.slug as SearchResultType)) {
+        const nextTypes = currentTypes.filter(t => t !== type.slug);
+        const { type: _, ...rest } = prev;
+        return nextTypes.length ? { ...prev, type: nextTypes } : rest;
+      }
+
+      return {
+        ...prev,
+        type: [...currentTypes, type.slug as SearchResultType],
+      };
     });
   }, []);
 
@@ -348,6 +399,7 @@ export default function SearchProvider({ children }: SearchProviderProps) {
     toggleLocationFilter,
     toggleHostFilter,
     toggleTakeoverFilter,
+    toggleCategoryFilter,
     toggleTypeFilter,
     allContent,
     error,
