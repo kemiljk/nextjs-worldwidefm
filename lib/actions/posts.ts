@@ -10,12 +10,14 @@ export async function getPostsWithFilters({
   searchTerm,
   categories,
   postType,
+  featured,
 }: {
   limit?: number;
   offset?: number;
   searchTerm?: string;
   categories?: string[];
   postType?: 'article' | 'video';
+  featured?: boolean;
 } = {}): Promise<{
   posts: PostObject[];
   hasNext: boolean;
@@ -46,9 +48,12 @@ export async function getPostsWithFilters({
       query['metadata.type.value'] = { $eq: typeValue };
     }
 
+    if (featured !== undefined) {
+      query['metadata.is_featured'] = featured;
+    }
+
     const response = await cosmic.objects
       .find(query)
-      .props('id,title,slug,type,created_at,metadata')
       .limit(limit)
       .skip(offset)
       .sort('-metadata.date')
@@ -103,12 +108,12 @@ export async function getPostBySlug(slug: string): Promise<{ object: PostObject 
   try {
     // Use .status('any') as a chained method to allow draft posts
     // Note: .status() must be chained, not in the query object
+    // Don't use .props() - it can strip nested metadata fields like youtube_video_thumbnail
     const response = await cosmic.objects
       .findOne({
         type: 'posts',
         slug: slug,
       })
-      .props('id,title,slug,type,created_at,metadata,content,status')
       .depth(2)
       .status('any');
 
@@ -186,7 +191,6 @@ export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
 
     const relatedPosts = await cosmic.objects
       .find(query)
-      .props('id,title,slug,type,created_at,metadata')
       .limit(5)
       .depth(2);
 

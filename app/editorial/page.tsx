@@ -27,6 +27,7 @@ function EditorialContent() {
   const searchParams = useSearchParams();
 
   const [posts, setPosts] = useState<PostObject[]>([]);
+  const [featuredPost, setFeaturedPost] = useState<PostObject | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
@@ -135,6 +136,25 @@ function EditorialContent() {
           })
           .filter(Boolean) as string[];
 
+        // Fetch featured post only when no filters are active
+        const hasFilters = currentFilters.article || currentFilters.video || categoryIds.length > 0 || currentFilters.search;
+        
+        if (!hasFilters) {
+          const featuredResult = await getPostsWithFilters({
+            limit: 1,
+            offset: 0,
+            featured: true,
+          });
+          
+          if (featuredResult.posts.length > 0) {
+            setFeaturedPost(featuredResult.posts[0]);
+          } else {
+            setFeaturedPost(null);
+          }
+        } else {
+          setFeaturedPost(null);
+        }
+
         const postsResult = await getPostsWithFilters({
           limit: 100, // Fetch more to allow grouping
           offset: 0,
@@ -153,6 +173,7 @@ function EditorialContent() {
         console.error('Error fetching posts:', error);
         setPosts([]);
         setTotal(0);
+        setFeaturedPost(null);
       } finally {
         setIsLoading(false);
       }
@@ -324,15 +345,28 @@ function EditorialContent() {
           <>
             {!hasFiltersActive && groupedPosts ? (
               <>
-                {/* Featured post (first post from first category group) */}
-                {groupedPosts[0]?.posts[0] && (
-                  <FeaturedContent posts={[groupedPosts[0].posts[0]]} />
+                {/* Featured post - use featured post if available, otherwise first post from first category group */}
+                {(featuredPost || groupedPosts[0]?.posts[0]) && (
+                  <FeaturedContent posts={[featuredPost || groupedPosts[0].posts[0]]} />
                 )}
                 
                 {/* Category-grouped sections */}
                 {groupedPosts.map((group, index) => {
-                  // Skip the first post of the first group (it's featured)
-                  const postsToShow = index === 0 ? group.posts.slice(1) : group.posts;
+                  // Skip the featured post if it's in this group
+                  let postsToShow = group.posts;
+                  if (index === 0 && featuredPost) {
+                    // If we have a featured post, check if it's in the first group
+                    const featuredInGroup = group.posts.some(p => p.id === featuredPost.id);
+                    if (featuredInGroup) {
+                      postsToShow = group.posts.filter(p => p.id !== featuredPost.id);
+                    } else {
+                      postsToShow = group.posts;
+                    }
+                  } else if (index === 0 && !featuredPost) {
+                    // If no featured post, skip the first post of the first group
+                    postsToShow = group.posts.slice(1);
+                  }
+                  
                   if (postsToShow.length === 0) return null;
                   
                   return (
@@ -346,10 +380,15 @@ function EditorialContent() {
               </>
             ) : !hasFiltersActive ? (
               <>
-                <FeaturedContent posts={posts.slice(0, 1)} />
+                {/* Featured post - use featured post if available, otherwise latest post */}
+                {(featuredPost || posts[0]) && (
+                  <FeaturedContent posts={[featuredPost || posts[0]]} />
+                )}
                 <EditorialSection
                   title='All Posts'
-                  posts={posts.slice(1)}
+                  posts={featuredPost 
+                    ? posts.filter(p => p.id !== featuredPost.id)
+                    : posts.slice(1)}
                   currentFilters={{
                     searchTerm: currentFilters.search,
                     categories: currentFilters.categories,

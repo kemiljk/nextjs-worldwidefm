@@ -44,20 +44,20 @@ export function ArticleCard({
       {...(isExternalLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
     >
       <div
-        className={`relative w-full ${variant === 'featured' ? 'flex flex-col gap-4 items-start' : ''}`}
+        className={`relative w-full ${variant === 'featured' ? 'flex flex-col gap-6 items-start' : ''}`}
       >
-        <div className={`flex-1 relative ${variant === 'featured' ? 'h-auto' : ''}`}>
+        <div className={`flex-1 relative ${variant === 'featured' ? 'w-full sm:w-[80vw] lg:w-[50vw] h-auto' : ''}`}>
           <img
             src={image}
             alt={title}
-            className={`w-full ${variant === 'featured' ? 'max-h-150 h-full object-cover' : 'h-full object-fill'} border ${borderClass}`}
+            className={`w-full ${variant === 'featured' ? 'h-auto object-contain' : 'h-full object-fill'} border ${borderClass}`}
           />
         </div>
         <div
-          className={`pt-4 pb-4 ${variant === 'featured' ? 'flex-1' : 'w-[90%]'} ${variant === 'featured' ? 'flex flex-col justify-center ' : ''}`}
+          className={`pt-4 pb-4 ${variant === 'featured' ? 'w-full sm:w-[80vw] lg:w-[35vw]' : 'w-[90%]'} ${variant === 'featured' ? 'flex flex-col justify-center' : ''}`}
         >
           <div
-            className={`pl-1 pb-6 font-sans ${variant === 'featured' ? 'text-b1 md:text-[40px] leading-none' : 'text-b2'}`}
+            className={`pl-1 pb-6 font-sans ${variant === 'featured' ? 'text-[28px] md:text-[40px] lg:text-[50px] leading-none' : 'text-b2'}`}
           >
             {title}
           </div>

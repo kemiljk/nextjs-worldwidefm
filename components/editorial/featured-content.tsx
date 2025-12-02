@@ -28,16 +28,10 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
 
   const featuredPost = sortedPosts[0];
   
-  // Check if there's a video URL - if so, link to the video source
-  const videoUrl = getPostVideoUrl(featuredPost);
-  const hasVideoThumbnail = Boolean(videoUrl && getPostThumbnail(featuredPost) !== '/image-placeholder.png');
-  
-  // Use video URL if there's a video thumbnail, otherwise use featured_link or default
-  const customLink = hasVideoThumbnail 
-    ? videoUrl 
-    : (featuredPost.metadata?.is_featured && featuredPost.metadata?.featured_link 
-      ? featuredPost.metadata.featured_link 
-      : undefined);
+  // Always link to article page, but allow featured_link override for external links
+  const customLink = featuredPost.metadata?.is_featured && featuredPost.metadata?.featured_link 
+    ? featuredPost.metadata.featured_link 
+    : undefined;
 
   return (
     <div className='py-20 w-full items-center justify-center flex h-auto'>
