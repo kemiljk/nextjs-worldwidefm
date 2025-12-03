@@ -16,11 +16,20 @@ export interface WeeklyScheduleResult {
 
 function parseDurationToSeconds(duration: string | null | undefined): number {
   if (!duration) return 0;
-  const parts = duration.split(':').map(Number);
+  
+  const trimmed = duration.trim();
+  const parts = trimmed.split(':').map(Number);
+  
+  if (parts.length === 1 && !isNaN(parts[0])) {
+    // Plain number like "1" or "2" - treat as hours
+    return parts[0] * 3600;
+  }
   if (parts.length === 2) {
-    return parts[0] * 60 + parts[1];
+    // HH:MM format like "1:30" - hours and minutes
+    return parts[0] * 3600 + parts[1] * 60;
   }
   if (parts.length === 3) {
+    // HH:MM:SS format like "1:30:00"
     return parts[0] * 3600 + parts[1] * 60 + parts[2];
   }
   return 0;
