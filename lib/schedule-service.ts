@@ -14,8 +14,6 @@ export interface WeeklyScheduleResult {
   error?: string;
 }
 
-const episodeCache = new Map<string, EpisodeObject>();
-
 function parseDurationToSeconds(duration: string | null | undefined): number {
   if (!duration) return 0;
   const parts = duration.split(':').map(Number);
@@ -39,9 +37,6 @@ function isEpisodeObject(value: unknown): value is EpisodeObject {
 }
 
 async function fetchEpisodeById(id: string): Promise<EpisodeObject | null> {
-  if (episodeCache.has(id)) {
-    return episodeCache.get(id) ?? null;
-  }
   try {
     const response = await cosmic.objects
       .findOne({
@@ -49,11 +44,7 @@ async function fetchEpisodeById(id: string): Promise<EpisodeObject | null> {
         id,
       })
       .depth(2);
-    const episode = (response?.object as EpisodeObject) || null;
-    if (episode) {
-      episodeCache.set(id, episode);
-    }
-    return episode;
+    return (response?.object as EpisodeObject) || null;
   } catch (error) {
     console.warn(`[Schedule] Unable to fetch episode by ID ${id}`, error);
     return null;

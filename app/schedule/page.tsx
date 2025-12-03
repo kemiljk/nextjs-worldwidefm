@@ -1,16 +1,19 @@
 import { Metadata } from 'next';
+import { connection } from 'next/server';
 import { generateScheduleMetadata } from '@/lib/metadata-utils';
 import { PageHeader } from '@/components/shared/page-header';
 import ScheduleDisplay from '@/components/schedule-display';
 import { getWeeklySchedule } from '@/lib/schedule-service';
 
+export const dynamic = 'force-dynamic';
+
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateScheduleMetadata();
 };
 
-export const revalidate = 60; // 1 minute
-
 export default async function SchedulePage() {
+  await connection();
+  
   const { scheduleItems, dayDates, isActive, error } = await getWeeklySchedule();
 
   return (
