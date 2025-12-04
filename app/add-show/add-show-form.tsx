@@ -1140,6 +1140,57 @@ export function AddShowForm() {
           </FormItem>
         </div>
 
+        <div className='bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-5 space-y-4 text-sm text-zinc-700 dark:text-zinc-300'>
+          <p className='font-medium text-zinc-900 dark:text-white'>
+            Please take the time to read this carefully, and double check everything before you
+            upload. Please also be aware we will only broadcast shows that have been submitted via
+            this form. Thank you for contributing to Worldwide FM!
+          </p>
+
+          <div className='space-y-3'>
+            <p>
+              We are a small station with limited resources and staff, so please follow these
+              instructions carefully and correctly, else we cannot guarantee your show will be
+              broadcast and archived correctly.
+            </p>
+
+            <div className='space-y-1.5'>
+              <p className='font-medium text-zinc-900 dark:text-white'>Deadline</p>
+              <p>
+                We need to receive your show a minimum <strong>one week</strong> before its
+                scheduled broadcast. As our staff are all part-time, delivering by this deadline is
+                very important, and we will not be able to guarantee it is broadcast if we do not
+                receive it by then.
+              </p>
+            </div>
+
+            <div className='space-y-1.5'>
+              <p className='font-medium text-zinc-900 dark:text-white'>Audio Requirements</p>
+              <ul className='list-disc list-inside space-y-1 ml-1'>
+                <li>Please add a WWFM Jingle at the beginning of your show</li>
+                <li>
+                  Audio Format: <strong>320 MP3</strong>
+                </li>
+              </ul>
+            </div>
+
+            <div className='space-y-1.5'>
+              <p className='font-medium text-zinc-900 dark:text-white'>Mixcloud Limitations</p>
+              <p>
+                Mixcloud has licensing limitations: you may only play <strong>3 songs</strong> from
+                the same album (no more than 2 consecutively), and maximum <strong>4 songs</strong>{' '}
+                (no more than 3 consecutively) from the same artist. Stick to this else we will not
+                be able to archive your show.
+              </p>
+            </div>
+
+            <p className='pt-1'>
+              Once you have completed this form, please drop an email to your point(s) of contact at
+              the station and let us know everything has been submitted.
+            </p>
+          </div>
+        </div>
+
         <div className='flex justify-end'>
           <Button type='submit' className='px-2' disabled={isLoading}>
             {isLoading
