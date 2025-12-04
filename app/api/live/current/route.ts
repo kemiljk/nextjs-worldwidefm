@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getScheduleData } from '@/lib/radiocult-service';
+import { getScheduleData, findMatchingShow } from '@/lib/radiocult-service';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -7,15 +7,24 @@ export const revalidate = 0;
 /**
  * API endpoint to get the current live event
  * This is called by the client to check if there's a live show
+ * Also includes matching Cosmic show info for linking to episode detail pages
  */
 export async function GET() {
   try {
     const { currentEvent } = await getScheduleData();
 
+    let matchingShowSlug: string | null = null;
+
+    if (currentEvent) {
+      const matchingShow = await findMatchingShow(currentEvent);
+      matchingShowSlug = matchingShow?.slug || null;
+    }
+
     return NextResponse.json(
       {
         success: true,
         currentEvent,
+        matchingShowSlug,
         isLive: !!currentEvent,
       },
       {
@@ -34,6 +43,7 @@ export async function GET() {
         success: false,
         error: 'Failed to fetch current live event',
         currentEvent: null,
+        matchingShowSlug: null,
         isLive: false,
       },
       {

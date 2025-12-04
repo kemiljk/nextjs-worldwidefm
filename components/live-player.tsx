@@ -52,6 +52,7 @@ export default function LivePlayer() {
   });
 
   const [liveMetadata, setLiveMetadata] = useState<LiveMetadata>({});
+  const [matchingShowSlug, setMatchingShowSlug] = useState<string | null>(null);
 
   // Simple: if we receive metadata from WebSocket, we have a show. Otherwise, nothing.
 
@@ -86,6 +87,11 @@ export default function LivePlayer() {
               image: data.currentEvent.imageUrl,
             },
           });
+          
+          // Set matching show slug for episode detail linking
+          if (data.matchingShowSlug) {
+            setMatchingShowSlug(data.matchingShowSlug);
+          }
         }
       } catch (error) {
         // Silently fail - WebSocket will provide data
@@ -400,8 +406,14 @@ export default function LivePlayer() {
       ? 'Check out our schedule' 
       : currentTitle;
 
-  // Link destination - schedule for playlists, otherwise stay on current page
-  const linkHref = isPlaylist ? '/schedule' : hasShow ? '/schedule' : undefined;
+  // Link destination - schedule for playlists, episode page for matched shows, otherwise schedule
+  const linkHref = isPlaylist 
+    ? '/schedule' 
+    : matchingShowSlug 
+      ? `/episode/${matchingShowSlug}` 
+      : hasShow 
+        ? '/schedule' 
+        : undefined;
 
   return (
     <div className='fixed top-0 bg-almostblack text-white dark:bg-black dark:text-white z-50 flex items-center transition-all duration-300 h-11 left-0 right-0 max-w-full'>
