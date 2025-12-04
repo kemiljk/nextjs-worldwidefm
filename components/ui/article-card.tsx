@@ -46,7 +46,7 @@ export function ArticleCard({
       <div
         className={`relative w-full ${variant === 'featured' ? 'flex flex-col gap-6 items-start' : ''}`}
       >
-        <div className={`flex-1 relative ${variant === 'featured' ? 'w-full sm:w-[80vw] lg:w-[50vw] h-auto' : ''}`}>
+        <div className={`flex-1 relative ${variant === 'featured' ? 'w-full h-auto' : ''}`}>
           <img
             src={image}
             alt={title}
@@ -54,7 +54,7 @@ export function ArticleCard({
           />
         </div>
         <div
-          className={`pt-4 pb-4 ${variant === 'featured' ? 'w-full sm:w-[80vw] lg:w-[35vw]' : 'w-[90%]'} ${variant === 'featured' ? 'flex flex-col justify-center' : ''}`}
+          className={`pt-4 pb-4 ${variant === 'featured' ? 'w-full lg:w-2/3' : 'w-[90%]'} ${variant === 'featured' ? 'flex flex-col justify-center' : ''}`}
         >
           <div
             className={`pl-1 pb-6 font-sans ${variant === 'featured' ? 'text-[28px] md:text-[40px] lg:text-[50px] leading-none' : 'text-b2'}`}

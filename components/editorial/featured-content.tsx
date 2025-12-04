@@ -34,20 +34,18 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
     : undefined;
 
   return (
-    <div className='py-20 w-full items-center justify-center flex h-auto'>
-      <div className=''>
-        <ArticleCard
-          key={featuredPost.slug}
-          slug={featuredPost.slug}
-          title={featuredPost.title ?? ''}
-          date={featuredPost.metadata?.date ?? undefined}
-          excerpt={featuredPost.metadata?.excerpt ?? undefined}
-          image={getPostThumbnail(featuredPost)}
-          tags={featuredPost.metadata.categories?.map(c => c.title) ?? []}
-          variant='featured'
-          href={customLink}
-        />
-      </div>
+    <div className='py-20 w-full'>
+      <ArticleCard
+        key={featuredPost.slug}
+        slug={featuredPost.slug}
+        title={featuredPost.title ?? ''}
+        date={featuredPost.metadata?.date ?? undefined}
+        excerpt={featuredPost.metadata?.excerpt ?? undefined}
+        image={getPostThumbnail(featuredPost)}
+        tags={featuredPost.metadata.categories?.map(c => c.title) ?? []}
+        variant='featured'
+        href={customLink}
+      />
     </div>
   );
 }
