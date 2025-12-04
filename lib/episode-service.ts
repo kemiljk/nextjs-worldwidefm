@@ -43,14 +43,16 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
           const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
           const validGenres = genres.filter(Boolean);
           if (validGenres.length > 0) {
-            query['metadata.genres.id'] = { $in: validGenres };
+            // Match genre IDs directly - genres stores ID strings, not objects
+            query['metadata.genres'] = { $in: validGenres };
           }
         }
 
         // Add location filter
         if (params.location) {
           const locations = Array.isArray(params.location) ? params.location : [params.location];
-          query['metadata.locations.id'] = { $in: locations };
+          // Match location IDs directly - locations stores ID strings, not objects
+          query['metadata.locations'] = { $in: locations };
         }
 
         // Exclude future broadcast dates
@@ -106,13 +108,15 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
       const validGenres = genres.filter(Boolean);
       if (validGenres.length > 0) {
-        query['metadata.genres.id'] = { $in: validGenres };
+        // Match genre IDs directly - genres stores ID strings, not objects
+        query['metadata.genres'] = { $in: validGenres };
       }
     }
 
     if (params.location) {
       const locations = Array.isArray(params.location) ? params.location : [params.location];
-      query['metadata.locations.id'] = { $in: locations };
+      // Match location IDs directly - locations stores ID strings, not objects
+      query['metadata.locations'] = { $in: locations };
     }
 
     if (params.host) {
@@ -120,7 +124,8 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         query['metadata.regular_hosts'] = { $exists: true, $ne: [] };
       } else {
         const hosts = Array.isArray(params.host) ? params.host : [params.host];
-        query['metadata.regular_hosts.id'] = { $in: hosts };
+        // Match host IDs directly - regular_hosts stores ID strings, not objects
+        query['metadata.regular_hosts'] = { $in: hosts };
       }
     }
 
@@ -129,7 +134,8 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         query['metadata.takeovers'] = { $exists: true, $ne: [] };
       } else {
         const takeovers = Array.isArray(params.takeover) ? params.takeover : [params.takeover];
-        query['metadata.takeovers.id'] = { $in: takeovers };
+        // Match takeover IDs directly - takeovers stores ID strings, not objects
+        query['metadata.takeovers'] = { $in: takeovers };
       }
     }
 
@@ -557,7 +563,7 @@ export async function getRelatedEpisodes(
           status: 'published',
           id: { $ne: episodeId },
           'metadata.broadcast_date': { $lte: todayStr },
-          'metadata.regular_hosts.id': { $in: hosts },
+          'metadata.regular_hosts': { $in: hosts },
         })
         .props('id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts')
         .limit(limit)
@@ -581,7 +587,7 @@ export async function getRelatedEpisodes(
           status: 'published',
           id: { $nin: excludeIds },
           'metadata.broadcast_date': { $lte: todayStr },
-          'metadata.genres.id': { $in: genres },
+          'metadata.genres': { $in: genres },
         })
         .props('id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts')
         .limit(remainingLimit + 3)

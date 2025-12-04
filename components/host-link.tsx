@@ -11,6 +11,11 @@ interface HostLinkProps {
  * Component that renders a link to host profile if it exists, otherwise renders plain text
  */
 export async function HostLink({ hostName, className = '', children }: HostLinkProps) {
+  // Handle missing or invalid hostName
+  if (!hostName || typeof hostName !== 'string') {
+    return <span className={className}>{children || 'Unknown Host'}</span>;
+  }
+
   const profileUrl = await getHostProfileUrl(hostName);
 
   if (profileUrl) {
@@ -28,6 +33,11 @@ export async function HostLink({ hostName, className = '', children }: HostLinkP
  * Client-side version that uses a fallback approach
  */
 export function ClientHostLink({ hostName, className = '', children }: HostLinkProps) {
+  // Handle missing or invalid hostName
+  if (!hostName || typeof hostName !== 'string') {
+    return <span className={className}>{children || 'Unknown Host'}</span>;
+  }
+
   // Generate a basic slug from the host name for fallback
   const fallbackSlug = hostName
     .toLowerCase()

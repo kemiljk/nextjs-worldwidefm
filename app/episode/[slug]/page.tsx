@@ -17,9 +17,17 @@ export const revalidate = 60; // 1 minute - shows update quickly
 export const dynamicParams = true;
 
 function HostLink({ host, className }: { host: any; className: string }) {
-  let href = '#';
-  const displayName = host.title || host.name;
+  // Handle case where host might be just an ID string instead of an object
+  if (!host || typeof host === 'string') {
+    return null;
+  }
 
+  const displayName = host.title || host.name;
+  if (!displayName) {
+    return null;
+  }
+
+  let href: string;
   if (host.slug) {
     href = `/hosts/${host.slug}`;
   } else {

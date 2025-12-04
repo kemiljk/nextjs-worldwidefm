@@ -143,25 +143,27 @@ export async function getRadioShows(
       }
 
       if (genre) {
+        // Match genre IDs directly - genres stores ID strings, not objects
         query = {
           ...query,
-          'metadata.genres.id': genre,
+          'metadata.genres': genre,
         };
       }
 
       if (host) {
         const hosts = Array.isArray(host) ? host : [host];
-        // Try a simpler approach - match any host ID in the regular_hosts array
+        // Match host IDs directly - regular_hosts stores ID strings, not objects
         query = {
           ...query,
-          'metadata.regular_hosts.id': { $in: hosts },
+          'metadata.regular_hosts': { $in: hosts },
         };
       }
 
       if (takeover) {
+        // Match takeover IDs directly - takeovers stores ID strings, not objects
         query = {
           ...query,
-          'metadata.takeovers.id': takeover,
+          'metadata.takeovers': takeover,
         };
       }
     } else {
@@ -174,11 +176,11 @@ export async function getRadioShows(
 
     const response = await cosmic.objects
       .find(query)
-      .props('slug,title,metadata,type')
+      .props('id,slug,title,metadata,type')
       .limit(params.limit || 10)
       .skip(params.skip || 0)
       .sort(params.sort || '-metadata.broadcast_date')
-      .depth(3);
+      .depth(2);
 
     return {
       objects: response.objects || [],
@@ -546,7 +548,7 @@ export async function getHosts(
   try {
     const response = await cosmic.objects
       .find({
-        type: 'hosts',
+        type: 'regular-hosts',
         status: params.status || 'published',
       })
       .props('id,slug,title,content,metadata')
@@ -571,7 +573,7 @@ export async function getHosts(
 export async function getHostBySlug(slug: string): Promise<CosmicResponse<any>> {
   try {
     const response = await cosmic.objects
-      .findOne({ type: 'hosts', slug })
+      .findOne({ type: 'regular-hosts', slug })
       .props('id,slug,title,content,metadata')
       .depth(1);
     return response;
@@ -588,7 +590,7 @@ export async function getHostByName(name: string): Promise<any | null> {
   try {
     const response = await cosmic.objects
       .find({
-        type: 'hosts',
+        type: 'regular-hosts',
         title: { $regex: name, $options: 'i' },
       })
       .props('id,slug,title,content,metadata')

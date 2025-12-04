@@ -61,18 +61,26 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const Comp = asChild ? Slot : href ? 'a' : renderAs;
+    if (asChild) {
+      return (
+        <Slot className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props}>
+          {props.children}
+        </Slot>
+      );
+    }
+
+    const Tag = href ? 'a' : renderAs;
 
     return (
-      <Comp
+      <Tag
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         {...props}
-        {...(Comp === 'a' ? { href, target } : {})}
+        {...(Tag === 'a' ? { href, target } : {})}
       >
         {props.children}
         {iconRight && <span className='relative -top-px ml-1'>{iconRight}</span>}
-      </Comp>
+      </Tag>
     );
   }
 );

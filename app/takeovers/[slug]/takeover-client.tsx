@@ -5,20 +5,19 @@ import { ShowCard } from '@/components/ui/show-card';
 import { Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-interface HostClientProps {
-  hostId: string;
-  hostTitle: string;
+interface TakeoverClientProps {
+  takeoverId: string;
+  takeoverTitle: string;
   initialShows: any[];
 }
 
-export default function HostClient({ hostId, hostTitle, initialShows }: HostClientProps) {
+export default function TakeoverClient({ takeoverId, takeoverTitle, initialShows }: TakeoverClientProps) {
   const [shows, setShows] = useState(initialShows);
   const [hasNext, setHasNext] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
-  // Load more episodes function
   const loadMore = async () => {
     if (!hasNext || isLoadingMore) return;
 
@@ -27,7 +26,7 @@ export default function HostClient({ hostId, hostTitle, initialShows }: HostClie
 
     try {
       const response = await fetch(
-        `/api/hosts/${hostId}/episodes?offset=${nextOffset}&limit=${PAGE_SIZE}`
+        `/api/takeovers/${takeoverId}/episodes?offset=${nextOffset}&limit=${PAGE_SIZE}`
       );
       const data = await response.json();
 
@@ -50,9 +49,9 @@ export default function HostClient({ hostId, hostTitle, initialShows }: HostClie
     return (
       <div className='text-center py-12'>
         <h3 className='text-m5 font-mono font-normal text-almostblack dark:text-white mb-2'>
-          No Shows Found
+          No Episodes Found
         </h3>
-        <p className='text-muted-foreground'>This host doesn't have any shows yet.</p>
+        <p className='text-muted-foreground'>This takeover doesn't have any episodes yet.</p>
       </div>
     );
   }
@@ -73,7 +72,6 @@ export default function HostClient({ hostId, hostTitle, initialShows }: HostClie
         ))}
       </div>
 
-      {/* Load More Button */}
       {hasNext && (
         <div className='w-full flex items-center justify-center mt-8'>
           <Button
@@ -96,3 +94,4 @@ export default function HostClient({ hostId, hostTitle, initialShows }: HostClie
     </section>
   );
 }
+

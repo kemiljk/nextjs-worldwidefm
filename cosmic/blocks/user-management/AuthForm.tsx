@@ -17,6 +17,7 @@ interface AuthFormProps {
 export default function AuthForm({ type, onSubmit }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
   const router = useRouter();
   const { login: authLogin } = useAuth();
 
@@ -92,6 +93,8 @@ export default function AuthForm({ type, onSubmit }: AuthFormProps) {
               required
               placeholder='Enter your email'
               autoFocus={type === 'login'}
+              value={email}
+              onChange={e => setEmail(e.target.value)}
             />
           </div>
 
@@ -111,7 +114,10 @@ export default function AuthForm({ type, onSubmit }: AuthFormProps) {
               </p>
             ) : (
               <div className='text-right'>
-                <Link href='/forgot-password' className='text-xs text-primary hover:underline'>
+                <Link
+                  href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : '/forgot-password'}
+                  className='text-xs text-primary hover:underline'
+                >
                   Forgot your password?
                 </Link>
               </div>

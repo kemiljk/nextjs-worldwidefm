@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/cosmic/elements/Button';
 import { Input } from '@/cosmic/elements/Input';
 import { Label } from '@/cosmic/elements/Label';
@@ -12,6 +13,8 @@ interface ForgotPasswordFormProps {
 }
 
 export default function ForgotPasswordForm({ onSubmit }: ForgotPasswordFormProps) {
+  const searchParams = useSearchParams();
+  const initialEmail = searchParams.get('email') || '';
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -86,6 +89,7 @@ export default function ForgotPasswordForm({ onSubmit }: ForgotPasswordFormProps
                 name='email'
                 required
                 placeholder='Enter your email address'
+                defaultValue={initialEmail}
                 autoFocus
               />
             </div>

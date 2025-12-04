@@ -218,7 +218,9 @@ export async function fetchAllCosmicContent(): Promise<SearchResult[]> {
 // Fetch episodes from Cosmic and normalize for search
 export async function fetchEpisodesForSearch(): Promise<SearchResult[]> {
   const { getEpisodes } = await import('./episode-service');
-  const { episodes } = await getEpisodes({ limit: 1000 });
+  
+  // Fetch only 20 episodes for fast initial load
+  const { episodes } = await getEpisodes({ limit: 20 });
 
   return episodes
     .map((episode: EpisodeObject) => ({
@@ -226,14 +228,14 @@ export async function fetchEpisodesForSearch(): Promise<SearchResult[]> {
       type: 'episodes' as SearchResultType,
       slug: episode.slug,
       title: episode.title,
-      description: stripHtmlTags(episode.metadata.description || episode.title),
-      image: episode.metadata.image?.imgix_url,
-      date: episode.metadata.broadcast_date || episode.created_at,
-      genres: episode.metadata.genres.map(mapGenreToFilterItem),
-      locations: episode.metadata.locations.map(mapLocationToFilterItem),
-      hosts: episode.metadata.regular_hosts.map(mapHostToFilterItem),
-      takeovers: episode.metadata.takeovers.map(mapTakeoverToFilterItem),
-      metadata: episode, // Store full episode for detail pages
+      description: stripHtmlTags(episode.metadata?.description || episode.title),
+      image: episode.metadata?.image?.imgix_url,
+      date: episode.metadata?.broadcast_date || episode.created_at,
+      genres: (episode.metadata?.genres || []).map(mapGenreToFilterItem),
+      locations: (episode.metadata?.locations || []).map(mapLocationToFilterItem),
+      hosts: (episode.metadata?.regular_hosts || []).map(mapHostToFilterItem),
+      takeovers: (episode.metadata?.takeovers || []).map(mapTakeoverToFilterItem),
+      metadata: episode,
     }))
     .filter(item => item.title);
 }
