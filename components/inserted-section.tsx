@@ -1,5 +1,4 @@
 import React from 'react';
-import Image from 'next/image';
 import { ProcessedHomepageSection, CosmicItem, ColouredSection } from '@/lib/cosmic-types';
 import UniqueHomepageSection from './unique-homepage-section';
 
@@ -15,12 +14,10 @@ const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
   return (
     <div className='border border-almostblack dark:border-white overflow-hidden'>
       <div className='aspect-square relative overflow-hidden'>
-        <Image
+        <img
           src={imageUrl}
           alt={title}
-          fill
-          className='object-cover'
-          sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
+          className='absolute inset-0 w-full h-full object-cover'
         />
       </div>
       <div className='p-4'>

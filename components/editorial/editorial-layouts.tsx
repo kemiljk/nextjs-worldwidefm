@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { CategoryTag } from '@/components/ui/category-tag';
 import { ImageGallery } from '@/components/ui/image-gallery';
 import { PostObject } from '@/lib/cosmic-config';
@@ -46,11 +45,9 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
           {hasVideo ? (
             <PostVideoPlayer post={post} />
           ) : (
-            <Image
+            <img
               src={imageUrl}
               alt={`${title} - Featured image`}
-              width={0}
-              height={0}
               style={{ width: '100%', height: 'auto' }}
               className='object-contain'
             />
@@ -125,7 +122,7 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
         {hasVideo ? (
           <PostVideoPlayer post={post} className='h-full' />
         ) : (
-          <Image src={imageUrl} alt={`${title} - Featured image`} fill className='object-cover' />
+          <img src={imageUrl} alt={`${title} - Featured image`} className='absolute inset-0 w-full h-full object-cover' />
         )}
         <div className='absolute inset-0 bg-black bg-opacity-40 flex items-end'>
           <div className='w-full px-5 md:px-20 pb-20 text-white'>
@@ -223,11 +220,9 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
       ) : (
         imageUrl && (
           <div className='w-full mb-20'>
-            <Image
+            <img
               src={imageUrl}
               alt={`${title} - Featured image`}
-              width={0}
-              height={0}
               style={{ width: '100%', height: 'auto' }}
               className='object-contain'
             />

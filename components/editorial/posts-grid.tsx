@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { PostObject } from '@/lib/cosmic-config';
@@ -99,11 +98,10 @@ export default function PostsGrid({
             >
               <div className='relative'>
                 <div className='relative aspect-square w-full overflow-hidden'>
-                  <Image
+                  <img
                     src={getPostThumbnail(post)}
                     alt={post.title}
-                    fill
-                    className='object-cover'
+                    className='absolute inset-0 w-full h-full object-cover'
                   />
                 </div>
                 <div className='mt-2'>

@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { PostObject } from '@/lib/cosmic-config';
 import { GenreTag } from '@/components/ui/genre-tag';
@@ -60,11 +59,10 @@ export default function EditorialCategorySection({
                     <Card className='flex flex-col h-full'>
                       <CardContent className='flex flex-col flex-1 p-0 border border-white group-hover:border-almostblack'>
                         <div className='relative aspect-video'>
-                          <Image
+                          <img
                             src={thumbnailUrl}
                             alt={post.title}
-                            fill
-                            className='object-cover'
+                            className='absolute inset-0 w-full h-full object-cover'
                           />
                           {categories.length > 0 && (
                             <div className='absolute top-3 left-3 flex flex-wrap gap-1'>

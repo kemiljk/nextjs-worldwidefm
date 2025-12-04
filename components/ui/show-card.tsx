@@ -1,7 +1,6 @@
 'use client';
 
 import { Play, Pause } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -221,13 +220,10 @@ export const ShowCard: React.FC<ShowCardProps> = ({
         <div className='group relative aspect-square cursor-pointer'>
           {/* Overlay for dimming on hover */}
           <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-50 transition-opacity pointer-events-none z-10' />
-          <Image
+          <img
             src={showImage}
             alt={showName}
-            fill
-            className={`object-cover border ${imageBorderClass} hover:cursor-pointer`}
-            sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
-            priority={false}
+            className={`absolute inset-0 w-full h-full object-cover border ${imageBorderClass} hover:cursor-pointer`}
             onError={(e: any) => {
               if (e?.currentTarget) {
                 try {

@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { GenreTag } from '@/components/ui/genre-tag';
@@ -43,7 +42,7 @@ export function FeaturedCard({ show, priority = false, className = '', href }: F
       <Card className='aspect-square overflow-hidden shadow-none relative cursor-pointer border border-almostblack dark:border-white hover:shadow-lg transition-shadow w-full h-full aspect-square'>
         <CardContent className='p-0 h-full'>
           <div className='relative group w-full h-full'>
-            <Image
+            <img
               src={
                 show.metadata?.image?.imgix_url ||
                 show.metadata?.image?.url ||
@@ -51,10 +50,7 @@ export function FeaturedCard({ show, priority = false, className = '', href }: F
                 '/image-placeholder.png'
               }
               alt={show.title || show.name || 'Show'}
-              fill
-              className='object-cover'
-              sizes='(max-width: 768px) 100vw, 50vw'
-              priority={priority}
+              className='absolute inset-0 w-full h-full object-cover'
               onError={(e: any) => {
                 if (e?.currentTarget) {
                   try {

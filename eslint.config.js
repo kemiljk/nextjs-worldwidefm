@@ -119,6 +119,9 @@ export default [
       'prefer-const': 'error',
       'no-var': 'error',
       'no-undef': 'off', // TypeScript handles this
+
+      // Disable Next.js img element warning - using native img intentionally
+      '@next/next/no-img-element': 'off',
     },
   },
   prettierConfig,

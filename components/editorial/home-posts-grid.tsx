@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { PostObject } from '@/lib/cosmic-config';
 import { GenreTag } from '@/components/ui/genre-tag';
@@ -20,11 +19,10 @@ export default function HomePostsGrid({ posts }: HomePostsGridProps) {
           <Link href={`/editorial/${post.slug}`} key={post.slug} className='group'>
             <div className='relative'>
               <div className='relative aspect-square w-full overflow-hidden'>
-                <Image
+                <img
                   src={getPostThumbnail(post)}
                   alt={post.title}
-                  fill
-                  className='object-cover transition-transform duration-300 group-hover:scale-105'
+                  className='absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105'
                 />
               </div>
               <div className='mt-2'>

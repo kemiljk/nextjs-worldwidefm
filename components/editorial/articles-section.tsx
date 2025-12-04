@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { PostObject, AuthorObject } from '@/lib/cosmic-config';
 import { Card, CardContent } from '@/components/ui/card';
@@ -41,11 +40,10 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
             >
               <CardContent className='p-0 grow flex flex-col'>
                 <div className='relative aspect-[1.1/1] w-full border-b border-black dark:border-white bg-gray-100 flex items-center justify-center'>
-                  <Image
+                  <img
                     src={article.metadata.image?.imgix_url || '/image-placeholder.png'}
                     alt={article.title}
-                    fill
-                    className='object-cover'
+                    className='absolute inset-0 w-full h-full object-cover'
                   />
                 </div>
                 <div className='flex flex-col gap-2 p-5 flex-1 justify-end'>

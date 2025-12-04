@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -41,11 +40,10 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
       <div className={`w-full grid grid-cols-1 md:grid-cols-2 gap-4 ${className}`}>
         {images.map((image, index) => (
           <div key={index} className='relative w-full aspect-square'>
-            <Image
+            <img
               src={image.image.imgix_url}
               alt={`Gallery image ${index + 1}`}
-              fill
-              className='object-cover border border-almostblack dark:border-white'
+              className='absolute inset-0 w-full h-full object-cover border border-almostblack dark:border-white'
             />
           </div>
         ))}
@@ -66,11 +64,10 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
               key={index}
               className='relative shrink-0 w-[80%] md:w-[60%] aspect-video snap-center'
             >
-              <Image
+              <img
                 src={image.image.imgix_url}
                 alt={`Gallery image ${index + 1}`}
-                fill
-                className='object-cover border border-almostblack dark:border-white'
+                className='absolute inset-0 w-full h-full object-cover border border-almostblack dark:border-white'
               />
             </div>
           ))}
@@ -102,11 +99,9 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
     <div className={`w-full ${className}`}>
       {/* Main Image */}
       <div className='relative w-full mb-4'>
-        <Image
+        <img
           src={selectedImage.image.imgix_url}
           alt={`Gallery image ${selectedImageIndex + 1}`}
-          width={0}
-          height={0}
           style={{ width: '100%', height: 'auto' }}
           className='object-contain border border-almostblack dark:border-white'
         />
@@ -121,11 +116,10 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
               onClick={() => setSelectedImageIndex(index)}
               className={`shrink-0 relative w-20 h-20 border transition-all ${index === selectedImageIndex ? 'border-almostblack dark:border-white opacity-100' : 'border-gray-300 dark:border-gray-600 opacity-70 hover:opacity-90'}`}
             >
-              <Image
+              <img
                 src={image.image.imgix_url}
                 alt={`Gallery thumbnail ${index + 1}`}
-                fill
-                className='object-cover'
+                className='absolute inset-0 w-full h-full object-cover'
               />
             </button>
           ))}
