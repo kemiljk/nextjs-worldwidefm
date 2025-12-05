@@ -8,9 +8,9 @@ import { usePlausible } from 'next-plausible';
 interface ContactFormProps {
   contactInfo: {
     metadata: {
-      email: string;
-      phone: string;
-      location: string;
+      email?: string;
+      phone?: string;
+      location?: string;
     };
   };
 }
@@ -27,7 +27,7 @@ export default function ContactForm({ contactInfo }: ContactFormProps) {
   const [submitMessage, setSubmitMessage] = useState('');
   const plausible = usePlausible();
 
-  const { email, phone, location } = contactInfo.metadata;
+  const { email, phone, location } = contactInfo.metadata || {};
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -97,45 +97,51 @@ export default function ContactForm({ contactInfo }: ContactFormProps) {
           <h2 className='text-2xl font-display font-bold mb-6'>Get In Touch</h2>
 
           <div className='space-y-4'>
-            <div className='flex items-center space-x-3'>
-              <div className='shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center'>
-                <Mail className='h-5 w-5 text-primary' />
+            {email && (
+              <div className='flex items-center space-x-3'>
+                <div className='shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center'>
+                  <Mail className='h-5 w-5 text-primary' />
+                </div>
+                <div>
+                  <p className='font-medium'>Email</p>
+                  <a
+                    href={`mailto:${email}`}
+                    className='text-primary hover:underline transition-colors'
+                  >
+                    {email}
+                  </a>
+                </div>
               </div>
-              <div>
-                <p className='font-medium'>Email</p>
-                <a
-                  href={`mailto:${email}`}
-                  className='text-primary hover:underline transition-colors'
-                >
-                  {email}
-                </a>
-              </div>
-            </div>
+            )}
 
-            <div className='flex items-center space-x-3'>
-              <div className='shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center'>
-                <Phone className='h-5 w-5 text-primary' />
+            {phone && (
+              <div className='flex items-center space-x-3'>
+                <div className='shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center'>
+                  <Phone className='h-5 w-5 text-primary' />
+                </div>
+                <div>
+                  <p className='font-medium'>Phone</p>
+                  <a
+                    href={`tel:${phone.replace(/\s/g, '')}`}
+                    className='text-primary hover:underline transition-colors'
+                  >
+                    {phone}
+                  </a>
+                </div>
               </div>
-              <div>
-                <p className='font-medium'>Phone</p>
-                <a
-                  href={`tel:${phone.replace(/\s/g, '')}`}
-                  className='text-primary hover:underline transition-colors'
-                >
-                  {phone}
-                </a>
-              </div>
-            </div>
+            )}
 
-            <div className='flex items-center space-x-3'>
-              <div className='shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center'>
-                <MapPin className='h-5 w-5 text-primary' />
+            {location && (
+              <div className='flex items-center space-x-3'>
+                <div className='shrink-0 w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center'>
+                  <MapPin className='h-5 w-5 text-primary' />
+                </div>
+                <div>
+                  <p className='font-medium'>Location</p>
+                  <p className='text-muted-foreground'>{location}</p>
+                </div>
               </div>
-              <div>
-                <p className='font-medium'>Location</p>
-                <p className='text-muted-foreground'>{location}</p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
