@@ -81,8 +81,9 @@ export default function VideoGrid({ videos, availableCategories }: VideoGridProp
         const vimeoId = video.metadata?.video_url
           ? getVimeoThumbnail(video.metadata.video_url)
           : '';
-        const thumbnailUrl =
-          video.metadata?.image?.imgix_url || youtubeId || vimeoId || '/image-placeholder.png';
+        const thumbnailUrl = video.metadata?.image?.imgix_url
+          ? `${video.metadata.image.imgix_url}?w=800&h=450&fit=crop&auto=format,compress`
+          : youtubeId || vimeoId || '/image-placeholder.png';
 
         const categoryObjects = Array.isArray(video.metadata.categories)
           ? video.metadata.categories

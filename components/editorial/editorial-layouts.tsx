@@ -28,7 +28,8 @@ interface EditorialLayoutProps {
 // Standard Layout - Current layout
 export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
   const { title, metadata } = post;
-  const imageUrl = metadata?.image?.imgix_url || '';
+  const baseImageUrl = metadata?.image?.imgix_url;
+  const imageUrl = baseImageUrl ? `${baseImageUrl}?w=1000&auto=format,compress` : '';
   const description = metadata?.excerpt || '';
   const content = metadata?.content || '';
   const categories = metadata?.categories || [];
@@ -107,7 +108,8 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
 // Featured Layout - Large hero with centered content
 export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
   const { title, metadata } = post;
-  const imageUrl = metadata?.image?.imgix_url || '';
+  const baseImageUrl = metadata?.image?.imgix_url;
+  const imageUrl = baseImageUrl ? `${baseImageUrl}?w=1920&h=1080&fit=crop&auto=format,compress` : '';
   const description = metadata?.excerpt || '';
   const content = metadata?.content || '';
   const categories = metadata?.categories || [];
@@ -177,7 +179,8 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
 // Gallery Layout - Image-focused layout
 export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
   const { title, metadata } = post;
-  const imageUrl = metadata?.image?.imgix_url || '';
+  const baseImageUrl = metadata?.image?.imgix_url;
+  const imageUrl = baseImageUrl ? `${baseImageUrl}?w=1920&auto=format,compress` : '';
   const description = metadata?.excerpt || '';
   const content = metadata?.content || '';
   const categories = metadata?.categories || [];

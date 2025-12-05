@@ -44,10 +44,9 @@ export function FeaturedCard({ show, priority = false, className = '', href }: F
           <div className='relative group w-full h-full'>
             <img
               src={
-                show.metadata?.image?.imgix_url ||
-                show.metadata?.image?.url ||
-                show.imgix_url ||
-                '/image-placeholder.png'
+                (show.metadata?.image?.imgix_url || show.metadata?.image?.url || show.imgix_url)
+                  ? `${show.metadata?.image?.imgix_url || show.metadata?.image?.url || show.imgix_url}?w=600&h=600&fit=crop&auto=format,compress`
+                  : '/image-placeholder.png'
               }
               alt={show.title || show.name || 'Show'}
               className='absolute inset-0 w-full h-full object-cover'

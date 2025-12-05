@@ -148,11 +148,10 @@ function buildScheduleShow(params: {
 
   const title = fallbackTitle || episode?.title || 'Untitled';
   const slug = episode?.slug;
-  const imageUrl =
-    episode?.metadata?.image?.imgix_url ||
-    episode?.metadata?.image?.url ||
-    episode?.metadata?.image?.url ||
-    PLACEHOLDER_IMAGE;
+  const baseImageUrl = episode?.metadata?.image?.imgix_url || episode?.metadata?.image?.url;
+  const imageUrl = baseImageUrl 
+    ? `${baseImageUrl}?w=400&h=400&fit=crop&auto=format,compress`
+    : PLACEHOLDER_IMAGE;
 
   const url =
     urlOverride ||

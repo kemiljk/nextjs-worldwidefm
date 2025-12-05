@@ -57,8 +57,9 @@ export default function FeaturedVideoContent({
   const vimeoId = featuredVideo.metadata?.video_url
     ? getVimeoThumbnail(featuredVideo.metadata.video_url)
     : '';
-  const thumbnailUrl =
-    featuredVideo.metadata?.image?.imgix_url || youtubeId || vimeoId || '/image-placeholder.png';
+  const thumbnailUrl = featuredVideo.metadata?.image?.imgix_url
+    ? `${featuredVideo.metadata.image.imgix_url}?w=1200&h=675&fit=crop&auto=format,compress`
+    : youtubeId || vimeoId || '/image-placeholder.png';
 
   const categoryObjects = Array.isArray(featuredVideo.metadata.categories)
     ? featuredVideo.metadata.categories

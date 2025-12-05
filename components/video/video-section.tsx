@@ -66,14 +66,15 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
                   <div className='relative flex-1'>
                     <img
                       src={
-                        firstVideo.metadata?.image?.imgix_url ||
-                        (firstVideo.metadata?.video_url
-                          ? getYouTubeThumbnail(firstVideo.metadata.video_url)
-                          : null) ||
-                        (firstVideo.metadata?.video_url
-                          ? getVimeoThumbnail(firstVideo.metadata.video_url)
-                          : null) ||
-                        '/image-placeholder.png'
+                        firstVideo.metadata?.image?.imgix_url
+                          ? `${firstVideo.metadata.image.imgix_url}?w=1200&h=675&fit=crop&auto=format,compress`
+                          : (firstVideo.metadata?.video_url
+                            ? getYouTubeThumbnail(firstVideo.metadata.video_url)
+                            : null) ||
+                          (firstVideo.metadata?.video_url
+                            ? getVimeoThumbnail(firstVideo.metadata.video_url)
+                            : null) ||
+                          '/image-placeholder.png'
                       }
                       alt={firstVideo.title}
                       className='absolute inset-0 w-full h-full object-cover'
@@ -103,8 +104,9 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
             const vimeoId = video.metadata?.video_url
               ? getVimeoThumbnail(video.metadata.video_url)
               : '';
-            const thumbnailUrl =
-              video.metadata?.image?.imgix_url || youtubeId || vimeoId || '/image-placeholder.png';
+            const thumbnailUrl = video.metadata?.image?.imgix_url
+              ? `${video.metadata.image.imgix_url}?w=800&h=450&fit=crop&auto=format,compress`
+              : youtubeId || vimeoId || '/image-placeholder.png';
 
             return (
               <Link key={video.id} href={`/videos/${video.slug}`} className='w-full flex-1'>

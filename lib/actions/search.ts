@@ -43,7 +43,9 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           type: 'posts',
           description: post.metadata?.content || '',
           excerpt: post.metadata?.excerpt || '',
-          image: post.metadata?.image?.imgix_url || '/image-placeholder.png',
+          image: post.metadata?.image?.imgix_url 
+            ? `${post.metadata.image.imgix_url}?w=400&h=400&fit=crop&auto=format,compress`
+            : '/image-placeholder.png',
           date: post.metadata?.date || '',
           categories: normalizeFilterItems(categories),
           author:
@@ -63,7 +65,9 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           type: 'episodes',
           description: show.metadata?.description || '',
           excerpt: show.metadata?.subtitle || '',
-          image: show.metadata?.image?.imgix_url || '/image-placeholder.png',
+          image: show.metadata?.image?.imgix_url 
+            ? `${show.metadata.image.imgix_url}?w=400&h=400&fit=crop&auto=format,compress`
+            : '/image-placeholder.png',
           date: show.metadata?.broadcast_date || '',
           genres: normalizeFilterItems(show.metadata?.genres || []),
           locations: normalizeFilterItems(show.metadata?.locations || []),
@@ -82,7 +86,9 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           slug: host.slug,
           type: 'hosts-series',
           description: host.metadata?.description || host.content || '',
-          image: host.metadata?.image?.imgix_url || '/image-placeholder.png',
+          image: host.metadata?.image?.imgix_url 
+            ? `${host.metadata.image.imgix_url}?w=400&h=400&fit=crop&auto=format,compress`
+            : '/image-placeholder.png',
           date: host.created_at || '',
           genres: normalizeFilterItems(host.metadata?.genres || []),
           locations: normalizeFilterItems(host.metadata?.locations || []),
@@ -96,7 +102,9 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           slug: takeover.slug,
           type: 'takeovers',
           description: takeover.metadata?.description || takeover.content || '',
-          image: takeover.metadata?.image?.imgix_url || '/image-placeholder.png',
+          image: takeover.metadata?.image?.imgix_url 
+            ? `${takeover.metadata.image.imgix_url}?w=400&h=400&fit=crop&auto=format,compress`
+            : '/image-placeholder.png',
           date: takeover.created_at || '',
           hosts: normalizeFilterItems(takeover.metadata?.regular_hosts || []),
           metadata: takeover.metadata || {},
@@ -123,8 +131,10 @@ export async function searchContent(
   try {
     const safeString = (val: any): string | undefined =>
       typeof val === 'string' && val.trim() ? val : undefined;
-    const getImage = (meta: any): string | undefined =>
-      meta?.image?.imgix_url || meta?.image?.url || undefined;
+    const getImage = (meta: any): string | undefined => {
+      const baseUrl = meta?.image?.imgix_url || meta?.image?.url;
+      return baseUrl ? `${baseUrl}?w=400&h=400&fit=crop&auto=format,compress` : undefined;
+    };
     const getGenres = (meta: any): FilterItem[] =>
       (meta?.categories || [])
         .filter(Boolean)

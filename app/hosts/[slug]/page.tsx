@@ -24,11 +24,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const host = await getHostBySlug(slug);
 
     if (host) {
+      const ogImage = host.metadata?.image?.imgix_url
+        ? `${host.metadata.image.imgix_url}?w=1200&h=630&fit=crop&auto=format,compress`
+        : undefined;
       return generateBaseMetadata({
         title: `${host.title} - Host - Worldwide FM`,
         description:
           host.metadata?.description || `Listen to shows hosted by ${host.title} on Worldwide FM.`,
-        image: host.metadata?.image?.imgix_url,
+        image: ogImage,
         keywords: ['host', 'dj', 'presenter', 'radio', 'worldwide fm', host.title.toLowerCase()],
       });
     }
@@ -139,7 +142,10 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
   }
 
   const displayName = host.title || 'Untitled Host';
-  const displayImage = host.metadata?.image?.imgix_url || '/image-placeholder.png';
+  const baseImageUrl = host.metadata?.image?.imgix_url;
+  const displayImage = baseImageUrl 
+    ? `${baseImageUrl}?w=1200&auto=format,compress`
+    : '/image-placeholder.png';
 
   const canonicalGenres = await getCanonicalGenres();
   const getGenreLink = (genreId: string): string | undefined => {

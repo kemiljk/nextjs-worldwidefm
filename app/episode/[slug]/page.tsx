@@ -94,7 +94,10 @@ export default async function EpisodePage({
   };
 
   const displayName = episode.title || 'Untitled Episode';
-  const displayImage = episode.metadata.image?.imgix_url || '/image-placeholder.png';
+  const baseImageUrl = episode.metadata.image?.imgix_url;
+  const displayImage = baseImageUrl 
+    ? `${baseImageUrl}?w=1200&auto=format,compress`
+    : '/image-placeholder.png';
 
   // Check if this is a draft episode
   const isDraft = episode.status === 'draft';

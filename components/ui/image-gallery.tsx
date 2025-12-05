@@ -41,7 +41,7 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
         {images.map((image, index) => (
           <div key={index} className='relative w-full aspect-square'>
             <img
-              src={image.image.imgix_url}
+              src={`${image.image.imgix_url}?w=600&h=600&fit=crop&auto=format,compress`}
               alt={`Gallery image ${index + 1}`}
               className='absolute inset-0 w-full h-full object-cover border border-almostblack dark:border-white'
             />
@@ -65,7 +65,7 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
               className='relative shrink-0 w-[80%] md:w-[60%] aspect-video snap-center'
             >
               <img
-                src={image.image.imgix_url}
+                src={`${image.image.imgix_url}?w=1200&h=675&fit=crop&auto=format,compress`}
                 alt={`Gallery image ${index + 1}`}
                 className='absolute inset-0 w-full h-full object-cover border border-almostblack dark:border-white'
               />
@@ -100,7 +100,7 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
       {/* Main Image */}
       <div className='relative w-full mb-4'>
         <img
-          src={selectedImage.image.imgix_url}
+          src={`${selectedImage.image.imgix_url}?w=1000&auto=format,compress`}
           alt={`Gallery image ${selectedImageIndex + 1}`}
           style={{ width: '100%', height: 'auto' }}
           className='object-contain border border-almostblack dark:border-white'
@@ -117,7 +117,7 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
               className={`shrink-0 relative w-20 h-20 border transition-all ${index === selectedImageIndex ? 'border-almostblack dark:border-white opacity-100' : 'border-gray-300 dark:border-gray-600 opacity-70 hover:opacity-90'}`}
             >
               <img
-                src={image.image.imgix_url}
+                src={`${image.image.imgix_url}?w=100&h=100&fit=crop&auto=format,compress`}
                 alt={`Gallery thumbnail ${index + 1}`}
                 className='absolute inset-0 w-full h-full object-cover'
               />

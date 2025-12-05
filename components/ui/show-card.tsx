@@ -59,7 +59,9 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   };
 
   const getShowImage = (show: any) => {
-    return show.metadata?.image?.imgix_url || show.metadata?.image?.url || '/image-placeholder.png';
+    const baseUrl = show.metadata?.image?.imgix_url || show.metadata?.image?.url;
+    if (!baseUrl) return '/image-placeholder.png';
+    return `${baseUrl}?w=400&h=400&fit=crop&auto=format,compress`;
   };
 
   const getShowTags = (show: any): Array<{ id: string; title: string }> => {

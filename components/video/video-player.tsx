@@ -70,7 +70,7 @@ export function VideoPlayer({ video, className }: VideoPlayerProps) {
       <video
         className='w-full h-full object-cover'
         controls
-        poster={video.metadata?.image?.imgix_url}
+        poster={video.metadata?.image?.imgix_url ? `${video.metadata.image.imgix_url}?w=1200&h=675&fit=crop&auto=format,compress` : undefined}
       >
         <source src={videoUrl} type='video/mp4' />
         Your browser does not support the video tag.

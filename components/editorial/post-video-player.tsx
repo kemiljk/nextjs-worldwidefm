@@ -41,9 +41,13 @@ export function PostVideoPlayer({ post, className }: PostVideoPlayerProps) {
   const vimeoId = getVimeoId(videoUrl);
 
   const potentialThumbnails = [
-    metadata?.youtube_video_thumbnail?.imgix_url,
+    metadata?.youtube_video_thumbnail?.imgix_url 
+      ? `${metadata.youtube_video_thumbnail.imgix_url}?w=1200&h=675&fit=crop&auto=format,compress`
+      : null,
     metadata?.youtube_video_thumbnail?.url,
-    metadata?.video_thumbnail?.imgix_url,
+    metadata?.video_thumbnail?.imgix_url
+      ? `${metadata.video_thumbnail.imgix_url}?w=1200&h=675&fit=crop&auto=format,compress`
+      : null,
     metadata?.video_thumbnail?.url,
   ];
   const providedThumbnail = potentialThumbnails.find(

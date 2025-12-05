@@ -32,8 +32,10 @@ const stripHtmlTags = (html: string): string => {
     .trim();
 };
 
-const getImage = (meta: any): string | undefined =>
-  meta?.image?.imgix_url || meta?.image?.url || undefined;
+const getImage = (meta: any): string | undefined => {
+  const baseUrl = meta?.image?.imgix_url || meta?.image?.url;
+  return baseUrl ? `${baseUrl}?w=400&h=400&fit=crop&auto=format,compress` : undefined;
+};
 const getGenres = (meta: any): FilterItem[] =>
   (meta?.categories || meta?.genres || []).filter(Boolean).map((cat: any) => ({
     title: cat.title,
@@ -229,7 +231,9 @@ export async function fetchEpisodesForSearch(): Promise<SearchResult[]> {
       slug: episode.slug,
       title: episode.title,
       description: stripHtmlTags(episode.metadata?.description || episode.title),
-      image: episode.metadata?.image?.imgix_url,
+      image: episode.metadata?.image?.imgix_url 
+        ? `${episode.metadata.image.imgix_url}?w=400&h=400&fit=crop&auto=format,compress`
+        : undefined,
       date: episode.metadata?.broadcast_date || episode.created_at,
       genres: (episode.metadata?.genres || []).map(mapGenreToFilterItem),
       locations: (episode.metadata?.locations || []).map(mapLocationToFilterItem),

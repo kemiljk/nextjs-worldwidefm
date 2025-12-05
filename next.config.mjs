@@ -12,7 +12,6 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -21,6 +20,14 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'i1.wp.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'imgix.cosmicjs.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.cosmicjs.com',
       },
     ],
   },

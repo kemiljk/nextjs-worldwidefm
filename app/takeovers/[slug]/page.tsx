@@ -22,12 +22,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const takeover = await getTakeoverBySlug(slug);
 
     if (takeover) {
+      const ogImage = takeover.metadata?.image?.imgix_url
+        ? `${takeover.metadata.image.imgix_url}?w=1200&h=630&fit=crop&auto=format,compress`
+        : undefined;
       return generateBaseMetadata({
         title: `${takeover.title} - Takeover - Worldwide FM`,
         description:
           takeover.metadata?.description ||
           `Experience the ${takeover.title} takeover on Worldwide FM.`,
-        image: takeover.metadata?.image?.imgix_url,
+        image: ogImage,
         keywords: [
           'takeover',
           'guest programming',
@@ -126,7 +129,10 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
   const initialEpisodes = await getTakeoverEpisodes(takeover.id, 20);
 
   const displayName = takeover.title || 'Untitled Takeover';
-  const displayImage = takeover.metadata?.image?.imgix_url || '/image-placeholder.png';
+  const baseImageUrl = takeover.metadata?.image?.imgix_url;
+  const displayImage = baseImageUrl 
+    ? `${baseImageUrl}?w=1200&auto=format,compress`
+    : '/image-placeholder.png';
 
   const show = {
     id: takeover.id,

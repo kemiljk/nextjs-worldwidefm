@@ -28,11 +28,21 @@ function getVimeoThumbnail(url: string): string {
   return '';
 }
 
+// Helper to add imgix optimization params
+const optimizeImgix = (url: string | undefined, size: number = 600): string | undefined => {
+  if (!url) return undefined;
+  // Only add params to imgix URLs (not YouTube/Vimeo thumbnails)
+  if (url.includes('imgix.cosmicjs.com')) {
+    return `${url}?w=${size}&h=${size}&fit=crop&auto=format,compress`;
+  }
+  return url;
+};
+
 export function getPostThumbnail(post: PostObject): string {
   const metadata = post.metadata;
   
   if (!metadata) {
-    return post.thumbnail?.imgix_url || '/image-placeholder.png';
+    return optimizeImgix(post.thumbnail?.imgix_url, 600) || '/image-placeholder.png';
   }
 
   // Check for video_url first (new field), then fall back to youtube_video
@@ -42,7 +52,7 @@ export function getPostThumbnail(post: PostObject): string {
   if (videoUrl) {
     const customThumbnail = metadata.youtube_video_thumbnail?.imgix_url || metadata.video_thumbnail?.imgix_url;
     if (customThumbnail) {
-      return customThumbnail;
+      return optimizeImgix(customThumbnail, 600) || customThumbnail;
     }
     const youtubeThumbnail = getYouTubeThumbnail(videoUrl);
     if (youtubeThumbnail) {
@@ -57,16 +67,16 @@ export function getPostThumbnail(post: PostObject): string {
   if (directVideo) {
     const customThumbnail = metadata.video_thumbnail?.imgix_url;
     if (customThumbnail) {
-      return customThumbnail;
+      return optimizeImgix(customThumbnail, 600) || customThumbnail;
     }
     if (typeof directVideo === 'object' && directVideo.imgix_url) {
-      return directVideo.imgix_url;
+      return optimizeImgix(directVideo.imgix_url, 600) || directVideo.imgix_url;
     }
   }
   
   return (
-    post.thumbnail?.imgix_url ||
-    metadata.image?.imgix_url ||
+    optimizeImgix(post.thumbnail?.imgix_url, 600) ||
+    optimizeImgix(metadata.image?.imgix_url, 600) ||
     '/image-placeholder.png'
   );
 }
@@ -104,7 +114,7 @@ export function getPostVideoThumbnail(post: PostObject): string | null {
   if (videoUrl) {
     const customThumbnail = metadata.youtube_video_thumbnail?.imgix_url || metadata.video_thumbnail?.imgix_url;
     if (customThumbnail) {
-      return customThumbnail;
+      return optimizeImgix(customThumbnail, 1200) || customThumbnail;
     }
     const youtubeThumbnail = getYouTubeThumbnail(videoUrl);
     if (youtubeThumbnail) {
@@ -119,10 +129,10 @@ export function getPostVideoThumbnail(post: PostObject): string | null {
   if (directVideo) {
     const customThumbnail = metadata.video_thumbnail?.imgix_url;
     if (customThumbnail) {
-      return customThumbnail;
+      return optimizeImgix(customThumbnail, 1200) || customThumbnail;
     }
     if (typeof directVideo === 'object' && directVideo.imgix_url) {
-      return directVideo.imgix_url;
+      return optimizeImgix(directVideo.imgix_url, 1200) || directVideo.imgix_url;
     }
   }
   

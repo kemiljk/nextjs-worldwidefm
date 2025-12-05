@@ -313,7 +313,10 @@ export async function getSchedule(): Promise<CosmicResponse<Schedule> | null> {
  * Helper function to transform Cosmic data to the format used in the mock data
  */
 export function transformShowToViewData(show: RadioShowObject | EpisodeObject) {
-  const imageUrl = show.metadata?.image?.imgix_url || '/image-placeholder.png';
+  const baseImageUrl = show.metadata?.image?.imgix_url;
+  const imageUrl = baseImageUrl 
+    ? `${baseImageUrl}?w=400&h=400&fit=crop&auto=format,compress`
+    : '/image-placeholder.png';
   const transformed = {
     id: show.id,
     title: show.title,
@@ -322,7 +325,7 @@ export function transformShowToViewData(show: RadioShowObject | EpisodeObject) {
     description: show.metadata?.description || '',
     featured_on_homepage: show.metadata?.featured_on_homepage || false,
     image: imageUrl,
-    thumbnail: imageUrl ? `${imageUrl}?w=100&h=100&fit=crop` : '/image-placeholder.png',
+    thumbnail: baseImageUrl ? `${baseImageUrl}?w=100&h=100&fit=crop&auto=format,compress` : '/image-placeholder.png',
     slug: show.slug,
     broadcast_date: show.metadata?.broadcast_date || '',
     broadcast_time: show.metadata?.broadcast_time || '',

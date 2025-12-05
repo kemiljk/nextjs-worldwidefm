@@ -63,7 +63,9 @@ export function UserProfileForm({ user }: UserProfileFormProps) {
   };
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
-    user.metadata.avatar?.imgix_url || null
+    user.metadata.avatar?.imgix_url 
+      ? `${user.metadata.avatar.imgix_url}?w=200&h=200&fit=crop&auto=format,compress`
+      : null
   );
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
