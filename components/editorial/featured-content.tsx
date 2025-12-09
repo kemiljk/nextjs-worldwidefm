@@ -33,18 +33,23 @@ export default function FeaturedContent({ posts }: FeaturedContentProps) {
     ? featuredPost.metadata.featured_link 
     : undefined;
 
+  const aspectRatio = featuredPost.metadata?.image_aspect_ratio?.key;
+  const isSquare = aspectRatio === '1_1';
+  const imageSize = isSquare ? 1000 : 1600;
+
   return (
-    <div className='py-20 w-full'>
+    <div className={`py-20 w-full ${isSquare ? 'px-5 md:px-20' : 'flex justify-center'}`}>
       <ArticleCard
         key={featuredPost.slug}
         slug={featuredPost.slug}
         title={featuredPost.title ?? ''}
         date={featuredPost.metadata?.date ?? undefined}
         excerpt={featuredPost.metadata?.excerpt ?? undefined}
-        image={getPostThumbnail(featuredPost)}
+        image={getPostThumbnail(featuredPost, imageSize)}
         tags={featuredPost.metadata.categories?.map(c => c.title) ?? []}
         variant='featured'
         href={customLink}
+        aspectRatio={aspectRatio}
       />
     </div>
   );

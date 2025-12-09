@@ -38,11 +38,11 @@ const optimizeImgix = (url: string | undefined, size: number = 600): string | un
   return url;
 };
 
-export function getPostThumbnail(post: PostObject): string {
+export function getPostThumbnail(post: PostObject, size: number = 600): string {
   const metadata = post.metadata;
   
   if (!metadata) {
-    return optimizeImgix(post.thumbnail?.imgix_url, 600) || '/image-placeholder.png';
+    return optimizeImgix(post.thumbnail?.imgix_url, size) || '/image-placeholder.png';
   }
 
   // Check for video_url first (new field), then fall back to youtube_video
@@ -52,7 +52,7 @@ export function getPostThumbnail(post: PostObject): string {
   if (videoUrl) {
     const customThumbnail = metadata.youtube_video_thumbnail?.imgix_url || metadata.video_thumbnail?.imgix_url;
     if (customThumbnail) {
-      return optimizeImgix(customThumbnail, 600) || customThumbnail;
+      return optimizeImgix(customThumbnail, size) || customThumbnail;
     }
     const youtubeThumbnail = getYouTubeThumbnail(videoUrl);
     if (youtubeThumbnail) {
@@ -67,16 +67,16 @@ export function getPostThumbnail(post: PostObject): string {
   if (directVideo) {
     const customThumbnail = metadata.video_thumbnail?.imgix_url;
     if (customThumbnail) {
-      return optimizeImgix(customThumbnail, 600) || customThumbnail;
+      return optimizeImgix(customThumbnail, size) || customThumbnail;
     }
     if (typeof directVideo === 'object' && directVideo.imgix_url) {
-      return optimizeImgix(directVideo.imgix_url, 600) || directVideo.imgix_url;
+      return optimizeImgix(directVideo.imgix_url, size) || directVideo.imgix_url;
     }
   }
   
   return (
-    optimizeImgix(post.thumbnail?.imgix_url, 600) ||
-    optimizeImgix(metadata.image?.imgix_url, 600) ||
+    optimizeImgix(post.thumbnail?.imgix_url, size) ||
+    optimizeImgix(metadata.image?.imgix_url, size) ||
     '/image-placeholder.png'
   );
 }

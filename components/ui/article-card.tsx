@@ -13,6 +13,7 @@ interface ArticleCardProps {
   categories?: Array<{ slug: string; title: string }>;
   variant?: 'default' | 'white' | 'featured';
   href?: string;
+  aspectRatio?: string;
 }
 
 export function ArticleCard({
@@ -24,9 +25,12 @@ export function ArticleCard({
   categories,
   variant = 'default',
   href,
+  aspectRatio,
 }: ArticleCardProps) {
   const borderClass = variant === 'white' ? '' : 'border-black';
   const dateTextClass = variant === 'white' ? 'text-white' : 'text-almostblack';
+  const isSquare = aspectRatio === '1_1';
+  const isFeatured = variant === 'featured';
 
   // Use categories if available, otherwise fall back to tags
   const displayTags =
@@ -37,27 +41,47 @@ export function ArticleCard({
   const linkHref = href || `/editorial/${slug}`;
   const isExternalLink = href?.startsWith('http');
 
+  const getFeaturedContainerClasses = () => {
+    if (!isFeatured) return '';
+    if (isSquare) {
+      return 'flex flex-col md:flex-row gap-6 md:gap-10 items-start';
+    }
+    return 'flex flex-col gap-6 items-start';
+  };
+
+  const getFeaturedImageClasses = () => {
+    if (!isFeatured) return '';
+    if (isSquare) {
+      return 'w-full md:w-1/2 h-auto';
+    }
+    return 'w-full md:max-w-[75vw] h-auto';
+  };
+
+  const getFeaturedTextClasses = () => {
+    if (!isFeatured) return 'w-[90%]';
+    if (isSquare) {
+      return 'w-full md:w-1/2 flex flex-col justify-center';
+    }
+    return 'w-full lg:w-2/3 flex flex-col justify-center';
+  };
+
   return (
     <Link 
       href={linkHref} 
-      className='block group'
+      className={`block group ${isFeatured ? 'w-full' : ''}`}
       {...(isExternalLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
     >
-      <div
-        className={`relative w-full ${variant === 'featured' ? 'flex flex-col gap-6 items-start' : ''}`}
-      >
-        <div className={`flex-1 relative ${variant === 'featured' ? 'w-full h-auto' : ''}`}>
+      <div className={`relative w-full ${getFeaturedContainerClasses()}`}>
+        <div className={`flex-1 relative ${getFeaturedImageClasses()}`}>
           <img
             src={image}
             alt={title}
-            className={`w-full ${variant === 'featured' ? 'h-auto object-contain' : 'h-full object-fill'} border ${borderClass}`}
+            className={`w-full ${isFeatured ? 'h-auto object-contain' : 'h-full object-fill'} border ${borderClass}`}
           />
         </div>
-        <div
-          className={`pt-4 pb-4 ${variant === 'featured' ? 'w-full lg:w-2/3' : 'w-[90%]'} ${variant === 'featured' ? 'flex flex-col justify-center' : ''}`}
-        >
+        <div className={`pt-4 pb-4 ${getFeaturedTextClasses()}`}>
           <div
-            className={`pl-1 pb-6 font-sans ${variant === 'featured' ? 'text-[28px] md:text-[40px] lg:text-[50px] leading-none' : 'text-b2'}`}
+            className={`pl-1 pb-6 font-sans ${isFeatured ? 'text-[28px] md:text-[40px] lg:text-[50px] leading-none' : 'text-b2'}`}
           >
             {title}
           </div>
