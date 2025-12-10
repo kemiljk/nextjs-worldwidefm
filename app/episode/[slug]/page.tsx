@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getEpisodeBySlug, getRelatedEpisodes } from '@/lib/episode-service';
+import { getEpisodeBySlug, getRelatedEpisodes, getEpisodes } from '@/lib/episode-service';
 import { addMinutes } from 'date-fns';
 import { displayNameToSlug } from '@/lib/host-matcher';
 import { ShowCard } from '@/components/ui/show-card';
@@ -15,6 +15,13 @@ import { ListenBackButton } from '@/components/listen-back-button';
 
 export const revalidate = 60; // 1 minute - shows update quickly
 export const dynamicParams = true;
+
+export async function generateStaticParams() {
+  const { episodes } = await getEpisodes({ limit: 100 });
+  return episodes.map((episode) => ({
+    slug: episode.slug,
+  }));
+}
 
 function HostLink({ host, className }: { host: any; className: string }) {
   // Handle case where host might be just an ID string instead of an object

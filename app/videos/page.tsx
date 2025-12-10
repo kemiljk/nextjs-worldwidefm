@@ -5,6 +5,8 @@ import { getVideos, getVideoCategories, getVideosPageConfig } from '@/lib/action
 import VideosClient from './videos-client';
 import { generateVideosMetadata } from '@/lib/metadata-utils';
 
+export const revalidate = 300; // 5 minutes - videos change infrequently
+
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateVideosMetadata();
 };

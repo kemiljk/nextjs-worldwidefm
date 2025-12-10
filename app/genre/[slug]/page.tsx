@@ -4,6 +4,8 @@ import GenreDetail from './genre-detail-client';
 import { getEpisodesForShows, getRegularHosts, getTakeovers } from '@/lib/episode-service';
 import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
 
+export const revalidate = 300; // 5 minutes - genre pages change infrequently
+
 type ActiveType = 'all' | 'hosts-series' | 'takeovers';
 
 export default async function GenreDetailPage({

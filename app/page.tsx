@@ -347,20 +347,15 @@ export default async function Home() {
     }
   }
 
-  // Get shows from the archive with timeout protection
+  // Get shows from the archive - use offset instead of random for better performance
   let archiveShowsRaw: any[] = [];
   try {
-    const archiveFetch = Promise.race([
-      getEpisodesForShows({ random: true, limit: 20 }),
-      new Promise<{ shows: any[] }>((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout')), 6000)
-      ),
-    ]);
-    const archiveResponse = await archiveFetch;
+    // Pick a random offset between 50-200 to get varied older episodes
+    const randomOffset = Math.floor(Math.random() * 150) + 50;
+    const archiveResponse = await getEpisodesForShows({ limit: 20, offset: randomOffset });
     archiveShowsRaw = archiveResponse.shows || [];
   } catch (error) {
     console.error('Error fetching archive shows:', error);
-    // Continue without archive shows
   }
   const archiveShows = archiveShowsRaw.map(show => {
     const transformed = transformShowToViewData(show);

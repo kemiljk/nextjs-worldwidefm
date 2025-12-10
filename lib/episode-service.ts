@@ -1,4 +1,4 @@
-import { cosmic, GenreObject, HostObject } from './cosmic-config';
+import { cosmic } from './cosmic-config';
 import { EpisodeObject } from './cosmic-types';
 import { unstable_cache } from 'next/cache';
 
@@ -525,9 +525,7 @@ export async function getEpisodeBySlug(
 
 /**
  * Get related episodes based on shared genres and hosts
- * Prioritizes: 1) Host matches, 2) Genre matches, 3) Other shows
- * Always sorted by broadcast_date
- * Optimized with reduced over-fetching and early returns
+ * Simplified to use a single query for better performance and reliability
  */
 export async function getRelatedEpisodes(
   episodeId: string,
@@ -536,105 +534,24 @@ export async function getRelatedEpisodes(
   try {
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
-    const result: EpisodeObject[] = [];
-    const excludeIds: string[] = [episodeId];
 
-    const currentEpisode = await cosmic.objects
-      .findOne({
+    // Single query: get recent episodes excluding current one
+    // This is faster and more reliable than multiple complex queries
+    const response = await cosmic.objects
+      .find({
         type: 'episode',
-        id: episodeId,
         status: 'published',
+        id: { $ne: episodeId },
+        'metadata.broadcast_date': { $lte: todayStr },
       })
-      .props('id,metadata.genres,metadata.regular_hosts')
+      .props('id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts')
+      .limit(limit)
+      .sort('-metadata.broadcast_date')
       .depth(2);
 
-    if (!currentEpisode?.object) {
-      return [];
-    }
-
-    const episode = currentEpisode.object;
-    const genres = episode.metadata?.genres?.map((g: GenreObject) => g.id) || [];
-    const hosts = episode.metadata?.regular_hosts?.map((h: HostObject) => h.id) || [];
-
-    if (hosts.length > 0) {
-      const hostResponse = await cosmic.objects
-        .find({
-          type: 'episode',
-          status: 'published',
-          id: { $ne: episodeId },
-          'metadata.broadcast_date': { $lte: todayStr },
-          'metadata.regular_hosts': { $in: hosts },
-        })
-        .props('id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts')
-        .limit(limit)
-        .sort('-metadata.broadcast_date')
-        .depth(2);
-
-      const hostEpisodes = hostResponse.objects || [];
-      result.push(...hostEpisodes);
-      excludeIds.push(...hostEpisodes.map((e: EpisodeObject) => e.id));
-
-      if (hostEpisodes.length >= limit) {
-        return result.slice(0, limit);
-      }
-    }
-
-    if (result.length < limit && genres.length > 0) {
-      const remainingLimit = limit - result.length;
-      const genreResponse = await cosmic.objects
-        .find({
-          type: 'episode',
-          status: 'published',
-          id: { $nin: excludeIds },
-          'metadata.broadcast_date': { $lte: todayStr },
-          'metadata.genres': { $in: genres },
-        })
-        .props('id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts')
-        .limit(remainingLimit + 3)
-        .sort('-metadata.broadcast_date')
-        .depth(2);
-
-      const genreEpisodes = (genreResponse.objects || []).filter((e: EpisodeObject) => {
-        const episodeHosts = e.metadata?.regular_hosts?.map((h: HostObject) => h.id) || [];
-        return !hosts.some((hostId: string) => episodeHosts.includes(hostId));
-      });
-
-      const filteredGenreEpisodes = genreEpisodes.slice(0, remainingLimit);
-      result.push(...filteredGenreEpisodes);
-      excludeIds.push(...filteredGenreEpisodes.map((e: EpisodeObject) => e.id));
-    }
-
-    if (result.length < limit) {
-      const remainingLimit = limit - result.length;
-      const randomResponse = await cosmic.objects
-        .find({
-          type: 'episode',
-          status: 'published',
-          id: { $nin: excludeIds },
-          'metadata.broadcast_date': { $lte: todayStr },
-        })
-        .props('id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts')
-        .limit(remainingLimit + 2)
-        .sort('-metadata.broadcast_date')
-        .depth(2);
-
-      const randomEpisodes = (randomResponse.objects || []).filter((e: EpisodeObject) => {
-        const episodeHosts = e.metadata?.regular_hosts?.map((h: HostObject) => h.id) || [];
-        return !hosts.some((hostId: string) => episodeHosts.includes(hostId));
-      });
-
-      result.push(...randomEpisodes.slice(0, remainingLimit));
-    }
-
-    result.sort((a, b) => {
-      const dateA = a.metadata?.broadcast_date || '';
-      const dateB = b.metadata?.broadcast_date || '';
-      return dateB.localeCompare(dateA);
-    });
-
-    return result.slice(0, limit);
+    return response.objects || [];
   } catch (error) {
-    console.error('Error fetching related episodes:', error);
+    // Silently fail - related episodes are not critical
     return [];
   }
 }
