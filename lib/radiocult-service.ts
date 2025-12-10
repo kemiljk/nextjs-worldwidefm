@@ -1,13 +1,6 @@
 import { RadioShowObject, CosmicImage, GenreObject, HostObject, cosmic } from './cosmic-config';
 import { extractDatePart, extractTimePart } from './date-utils';
 
-function normalizeSlug(str: string): string {
-  return str
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
 function normalizeTitle(str: string): string {
   return str
     .toLowerCase()
@@ -765,20 +758,19 @@ export async function getTags(forceRefresh = false, useSecretKey = false): Promi
 }
 
 /**
- * Find a matching Cosmic show for a RadioCult event
- * Matches by slug first, then falls back to title comparison
+ * Find a matching Cosmic episode for a RadioCult event by title
+ * RadioCult slugs don't match Cosmic slugs, so we only match by title
  */
 export async function findMatchingShow(
   event: RadioCultEvent | { slug?: string; showName?: string; title?: string }
 ): Promise<RadioShowObject | null> {
-  const eventSlug = event.slug || '';
   const eventTitle = 'showName' in event ? event.showName : (event as { title?: string }).title || '';
 
-  if (!eventSlug && !eventTitle) {
+  if (!eventTitle) {
     return null;
   }
 
-  const cacheKey = createCacheKey('findMatchingShow', { slug: eventSlug, title: eventTitle });
+  const cacheKey = createCacheKey('findMatchingShow', { title: eventTitle });
   const cached = dataCache.get(cacheKey);
 
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
@@ -786,72 +778,52 @@ export async function findMatchingShow(
   }
 
   try {
-    // First, try exact slug match
-    if (eventSlug) {
-      const normalizedEventSlug = normalizeSlug(eventSlug);
-      
-      const slugResponse = await cosmic.objects
-        .find({
-          type: 'episode',
-          slug: normalizedEventSlug,
-          status: 'published',
-        })
-        .props('id,slug,title,metadata,type,created_at,modified_at,published_at,status')
-        .depth(1)
-        .limit(1);
-
-      if (slugResponse.objects && slugResponse.objects.length > 0) {
-        const match = slugResponse.objects[0] as RadioShowObject;
-        dataCache.set(cacheKey, { data: match, timestamp: Date.now() });
-        return match;
-      }
+    const normalizedEventTitle = normalizeTitle(eventTitle);
+    
+    if (!normalizedEventTitle) {
+      dataCache.set(cacheKey, { data: null, timestamp: Date.now() });
+      return null;
     }
 
-    // Second, try title match using regex search
-    if (eventTitle) {
-      const normalizedEventTitle = normalizeTitle(eventTitle);
-      const searchTerms = normalizedEventTitle.split(' ').filter(term => term.length > 2);
-      
-      if (searchTerms.length > 0) {
-        // Search for shows with similar titles
-        const titleResponse = await cosmic.objects
-          .find({
-            type: 'episode',
-            status: 'published',
-          })
-          .props('id,slug,title,metadata,type,created_at,modified_at,published_at,status')
-          .depth(1)
-          .sort('-metadata.broadcast_date')
-          .limit(50);
+    // Fetch recent episodes to match against
+    const response = await cosmic.objects
+      .find({
+        type: 'episode',
+        status: 'published',
+      })
+      .props('id,slug,title,metadata')
+      .depth(1)
+      .sort('-metadata.broadcast_date')
+      .limit(50);
 
-        if (titleResponse.objects && titleResponse.objects.length > 0) {
-          // Find the best title match
-          const shows = titleResponse.objects as RadioShowObject[];
-          
-          // Exact title match (case-insensitive)
-          const exactMatch = shows.find(
-            show => normalizeTitle(show.title) === normalizedEventTitle
-          );
-          if (exactMatch) {
-            dataCache.set(cacheKey, { data: exactMatch, timestamp: Date.now() });
-            return exactMatch;
-          }
+    if (!response.objects || response.objects.length === 0) {
+      dataCache.set(cacheKey, { data: null, timestamp: Date.now() });
+      return null;
+    }
 
-          // Partial title match - show title contains event title or vice versa
-          const partialMatch = shows.find(show => {
-            const normalizedShowTitle = normalizeTitle(show.title);
-            return (
-              normalizedShowTitle.includes(normalizedEventTitle) ||
-              normalizedEventTitle.includes(normalizedShowTitle)
-            );
-          });
-          
-          if (partialMatch) {
-            dataCache.set(cacheKey, { data: partialMatch, timestamp: Date.now() });
-            return partialMatch;
-          }
-        }
-      }
+    const shows = response.objects as RadioShowObject[];
+
+    // 1. Exact title match (case-insensitive)
+    const exactMatch = shows.find(
+      show => normalizeTitle(show.title) === normalizedEventTitle
+    );
+    if (exactMatch) {
+      dataCache.set(cacheKey, { data: exactMatch, timestamp: Date.now() });
+      return exactMatch;
+    }
+
+    // 2. Partial match - show title contains event title or vice versa
+    const partialMatch = shows.find(show => {
+      const normalizedShowTitle = normalizeTitle(show.title);
+      return (
+        normalizedShowTitle.includes(normalizedEventTitle) ||
+        normalizedEventTitle.includes(normalizedShowTitle)
+      );
+    });
+
+    if (partialMatch) {
+      dataCache.set(cacheKey, { data: partialMatch, timestamp: Date.now() });
+      return partialMatch;
     }
 
     // No match found
