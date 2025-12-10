@@ -90,27 +90,24 @@ async function getHostBySlug(slug: string) {
   }
 }
 
-async function getHostEpisodes(hostId: string, limit: number = 20, retries: number = 3) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const response = await getRadioShows({
-        filters: { host: hostId },
-        limit,
-        sort: '-metadata.broadcast_date',
-      });
+async function getHostEpisodes(hostId: string, limit: number = 20) {
+  try {
+    const response = await getRadioShows({
+      filters: { host: hostId },
+      limit,
+      sort: '-metadata.broadcast_date',
+    });
 
-      return (response.objects || []).map(transformShowToViewData);
-    } catch (error) {
-      const isLastAttempt = attempt === retries;
-      if (isLastAttempt) {
-        console.error(`Error fetching episodes for host ${hostId} after ${retries} attempts:`, error);
-        return [];
-      }
-      // Exponential backoff: 500ms, 1000ms, 2000ms
-      await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt - 1)));
+    return (response.objects || []).map(transformShowToViewData);
+  } catch (error: any) {
+    // 404 means no episodes for this host - expected, return empty array
+    if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('No objects found')) {
+      return [];
     }
+    // Only log unexpected errors
+    console.error(`Error fetching episodes for host ${hostId}:`, error);
+    return [];
   }
-  return [];
 }
 
 export default async function HostPage({ params }: { params: Promise<{ slug: string }> }) {
