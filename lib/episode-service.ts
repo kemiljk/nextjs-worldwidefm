@@ -1,6 +1,5 @@
 import { cosmic } from './cosmic-config';
 import { EpisodeObject } from './cosmic-types';
-import { unstable_cache } from 'next/cache';
 
 export interface EpisodeParams {
   limit?: number;
@@ -165,51 +164,13 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       query['metadata.broadcast_date'] = { $lte: todayStr };
     }
 
-    // Fetch episodes from Cosmic with conditional caching (server-side only)
-    // unstable_cache only works in Server Components/Actions, so we detect context
-    const fetchEpisodes = async () => {
-      return await cosmic.objects
-        .find(query)
-        .limit(baseLimit)
-        .skip(offset)
-        .sort('-metadata.broadcast_date')
-        .depth(2);
-    };
-
-    let response;
-    try {
-      // Only use caching in server context (unstable_cache requires server-side)
-      if (typeof window === 'undefined') {
-        try {
-          const cacheKey = `episodes-${JSON.stringify(query)}-${baseLimit}-${offset}`;
-          const getCachedEpisodes = unstable_cache(fetchEpisodes, [cacheKey], {
-            tags: ['episodes', 'shows'],
-            revalidate: 60,
-          });
-          response = await getCachedEpisodes();
-        } catch (cacheError: unknown) {
-          // If cache fails (e.g., missing incrementalCache), fallback to direct fetch
-          const isCacheError =
-            cacheError &&
-            typeof cacheError === 'object' &&
-            'message' in cacheError &&
-            typeof (cacheError as { message: unknown }).message === 'string' &&
-            ((cacheError as { message: string }).message.includes('incrementalCache') ||
-              (cacheError as { message: string }).message.includes('cache'));
-          if (isCacheError) {
-            response = await fetchEpisodes();
-          } else {
-            throw cacheError;
-          }
-        }
-      } else {
-        // Client-side: fetch directly without caching
-        response = await fetchEpisodes();
-      }
-    } catch {
-      // Final fallback to direct fetch if caching fails
-      response = await fetchEpisodes();
-    }
+    // Fetch episodes from Cosmic
+    const response = await cosmic.objects
+      .find(query)
+      .limit(baseLimit)
+      .skip(offset)
+      .sort('-metadata.broadcast_date')
+      .depth(2);
 
     const episodes = response.objects || [];
     const total = response.total || episodes.length;
@@ -301,26 +262,7 @@ export async function getRegularHosts(
       query.title = { $regex: `^${letter}`, $options: 'i' };
     }
 
-    const fetchHosts = async () => {
-      return await cosmic.objects.find(query).limit(limit).skip(offset).depth(1);
-    };
-
-    let response;
-    try {
-      // Only use caching in server context
-      if (typeof window === 'undefined') {
-        const cacheKey = `regular-hosts-${JSON.stringify(query)}-${limit}-${offset}`;
-        const getCachedHosts = unstable_cache(fetchHosts, [cacheKey], {
-          tags: ['hosts', 'shows'],
-          revalidate: 60,
-        });
-        response = await getCachedHosts();
-      } else {
-        response = await fetchHosts();
-      }
-    } catch {
-      response = await fetchHosts();
-    }
+    const response = await cosmic.objects.find(query).limit(limit).skip(offset).depth(1);
 
     const shows = response.objects || [];
     const total = response.total || shows.length;
@@ -367,26 +309,7 @@ export async function getTakeovers(
       query['metadata.location.slug'] = { $in: location };
     }
 
-    const fetchTakeovers = async () => {
-      return await cosmic.objects.find(query).limit(limit).skip(offset).depth(1);
-    };
-
-    let response;
-    try {
-      // Only use caching in server context
-      if (typeof window === 'undefined') {
-        const cacheKey = `takeovers-${JSON.stringify(query)}-${limit}-${offset}`;
-        const getCachedTakeovers = unstable_cache(fetchTakeovers, [cacheKey], {
-          tags: ['takeovers', 'shows'],
-          revalidate: 60,
-        });
-        response = await getCachedTakeovers();
-      } else {
-        response = await fetchTakeovers();
-      }
-    } catch {
-      response = await fetchTakeovers();
-    }
+    const response = await cosmic.objects.find(query).limit(limit).skip(offset).depth(1);
 
     const shows = response.objects || [];
     const total = response.total || shows.length;
@@ -544,7 +467,9 @@ export async function getRelatedEpisodes(
         id: { $ne: episodeId },
         'metadata.broadcast_date': { $lte: todayStr },
       })
-      .props('id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts')
+      .props(
+        'id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts'
+      )
       .limit(limit)
       .sort('-metadata.broadcast_date')
       .depth(2);

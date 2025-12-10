@@ -5,8 +5,6 @@ import { PageHeader } from '@/components/shared/page-header';
 import ScheduleDisplay from '@/components/schedule-display';
 import { getWeeklySchedule } from '@/lib/schedule-service';
 
-export const dynamic = 'force-dynamic';
-
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateScheduleMetadata();
 };

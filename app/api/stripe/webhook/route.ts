@@ -3,7 +3,6 @@ import Stripe from 'stripe';
 import { cosmic } from '@/cosmic/client';
 
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {

@@ -10,8 +10,6 @@ import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
 import TakeoverClient from './takeover-client';
 
-export const revalidate = 300; // 5 minutes - takeover profiles change infrequently
-
 interface Props {
   params: Promise<{ slug: string }>;
 }

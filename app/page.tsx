@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react';
 import { Metadata } from 'next';
+import { connection } from 'next/server';
 import {
   getCosmicHomepageData,
   fetchCosmicObjectById,
@@ -8,8 +9,9 @@ import {
   createColouredSections,
 } from '@/lib/actions';
 import { generateHomepageMetadata } from '@/lib/metadata-utils';
-import { getEpisodesForShows, getEpisodeBySlug } from '@/lib/episode-service';
+import { getEpisodesForShows, getEpisodeBySlug, getEpisodes } from '@/lib/episode-service';
 import { transformShowToViewData } from '@/lib/cosmic-service';
+import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import EditorialSection from '@/components/editorial/editorial-section';
 import VideoSection from '@/components/video/video-section';
 import ArchiveSection from '@/components/archive/archive-section';
@@ -25,9 +27,6 @@ import { ForYouSection } from '@/components/for-you-section';
 import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
 import { ShowsGridSkeleton } from '@/components/shows-grid-skeleton';
 
-// Revalidate frequently to show new shows quickly
-export const revalidate = 60; // 1 minute
-
 // Generate metadata for the homepage
 export async function generateMetadata(): Promise<Metadata> {
   try {
@@ -39,7 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-// Helper function to render page order items
+// Helper function to render page order items (sync only - async components handled separately)
 function renderPageOrderItem(
   item: PageOrderItem,
   colouredSections: any[],
@@ -47,7 +46,8 @@ function renderPageOrderItem(
 ): React.ReactNode {
   switch (item.type) {
     case 'latest-episodes':
-      return <LatestEpisodes config={item.metadata} hasHeroItems={hasHeroItems} />;
+      // Async component - handled separately in the main render
+      return null;
 
     case 'sections':
       const sectionType = item.metadata?.type;
@@ -125,32 +125,47 @@ function renderPageOrderItem(
 }
 
 export default async function Home() {
-  const [homepageData, videosData, postsData, user] = await Promise.all([
-    getCosmicHomepageData(),
-    getVideos(),
-    getAllPosts(),
-    getAuthUser(),
-  ]);
+  // Opt into dynamic rendering - homepage uses new Date() for filtering
+  await connection();
+  
+  // Parallel fetch all initial data in a single Promise.all
+  const [homepageData, videosData, postsData, user, canonicalGenres, recentEpisodesResponse] =
+    await Promise.all([
+      getCosmicHomepageData(),
+      getVideos(),
+      getAllPosts(),
+      getAuthUser(),
+      getCanonicalGenres(),
+      getEpisodesForShows({ limit: 20 }),
+    ]);
+
+  // Transform recent episodes once
+  const shows = (recentEpisodesResponse?.shows || []).map(show => {
+    const transformed = transformShowToViewData(show);
+    return {
+      ...transformed,
+      key: transformed.slug,
+    };
+  });
+
+  // Fetch user data in parallel if user exists (non-blocking)
+  const userDataPromise = user
+    ? getUserData(user.id).catch(() => ({ data: null }))
+    : Promise.resolve({ data: null });
 
   let favoriteGenreIds: string[] = [];
   let favoriteHostIds: string[] = [];
 
-  if (user) {
-    try {
-      const { data: userData } = await getUserData(user.id);
-      if (userData?.metadata?.favourite_genres) {
-        favoriteGenreIds = userData.metadata.favourite_genres
-          .map((g: any) => (typeof g === 'string' ? g : g.id))
-          .filter(Boolean);
-      }
-      if (userData?.metadata?.favourite_hosts) {
-        favoriteHostIds = userData.metadata.favourite_hosts
-          .map((h: any) => (typeof h === 'string' ? h : h.id))
-          .filter(Boolean);
-      }
-    } catch (error) {
-      console.error('Error fetching user favorites:', error);
-    }
+  const { data: userData } = await userDataPromise;
+  if (userData?.metadata?.favourite_genres) {
+    favoriteGenreIds = userData.metadata.favourite_genres
+      .map((g: any) => (typeof g === 'string' ? g : g.id))
+      .filter(Boolean);
+  }
+  if (userData?.metadata?.favourite_hosts) {
+    favoriteHostIds = userData.metadata.favourite_hosts
+      .map((h: any) => (typeof h === 'string' ? h : h.id))
+      .filter(Boolean);
   }
 
   const hasFavorites = favoriteGenreIds.length > 0 || favoriteHostIds.length > 0;
@@ -185,8 +200,6 @@ export default async function Home() {
                 typeof section.show_type === 'object' && section.show_type?.id
                   ? section.show_type.id
                   : section.show_type;
-
-              const { getEpisodes } = await import('@/lib/episode-service');
 
               // Add timeout protection
               const fetchWithTimeout = Promise.race([
@@ -256,20 +269,6 @@ export default async function Home() {
     }
   }
 
-  // Get recent published episodes from Cosmic
-  const response = await getEpisodesForShows({ limit: 20 });
-  const shows = (response?.shows || []).map(show => {
-    const transformed = transformShowToViewData(show);
-    return {
-      ...transformed,
-      key: transformed.slug,
-    };
-  });
-
-  // Fetch ALL genres from Cosmic
-  const { getCanonicalGenres } = await import('@/lib/get-canonical-genres');
-  const canonicalGenres = await getCanonicalGenres();
-
   // Get top genres from recent shows for initial default view
   const genreCounts = shows.reduce(
     (acc, episode) => {
@@ -290,79 +289,60 @@ export default async function Home() {
     .slice(0, 10)
     .map(([name]) => name);
 
-  // Fetch random shows for top genres only (for initial default view)
-  // GenreSelector will fetch dynamically when a genre is selected
-  const randomShowsByGenre: Record<string, any> = {};
-  const topGenresToPreload = topGenres.slice(0, 5); // Only preload top 5 genres
+  // Fetch random shows for top genres AND archive shows in parallel
+  const topGenresToPreload = topGenres.slice(0, 5);
+  const randomOffset = Math.floor(Math.random() * 150) + 50;
 
-  // Process top genres sequentially (not in parallel) to avoid timeouts
-  for (const genreTitle of topGenresToPreload) {
+  // Build parallel fetch promises for genres
+  const genrePromises = topGenresToPreload.map(async genreTitle => {
+    const canonicalGenre = canonicalGenres.find(
+      g => g.title.toLowerCase() === genreTitle.toLowerCase()
+    );
+    if (!canonicalGenre) return { genreTitle, show: null };
+
     try {
-      const canonicalGenre = canonicalGenres.find(
-        g => g.title.toLowerCase() === genreTitle.toLowerCase()
-      );
-
-      if (!canonicalGenre) continue;
-
-      // Fetch with timeout protection
-      const fetchWithTimeout = Promise.race([
+      const response = await Promise.race([
         getEpisodesForShows({
           genre: [canonicalGenre.id],
           random: true,
           limit: 1,
-        }).catch(err => {
-          // Handle 404s gracefully - genres with no episodes are expected
-          const is404 =
-            err?.status === 404 ||
-            err?.message?.includes('404') ||
-            err?.message?.includes('No objects found');
-          if (!is404) {
-            throw err;
-          }
-          return { shows: [], total: 0, hasNext: false };
-        }),
+        }).catch(() => ({ shows: [], total: 0, hasNext: false })),
         new Promise<{ shows: any[] }>((_, reject) =>
           setTimeout(() => reject(new Error('Timeout')), 5000)
         ),
       ]);
 
-      const randomResponse = await fetchWithTimeout;
-
-      if (randomResponse?.shows && randomResponse.shows.length > 0) {
-        const transformed = transformShowToViewData(randomResponse.shows[0]);
-        randomShowsByGenre[genreTitle] = {
-          ...transformed,
-          key: transformed.slug,
-        };
+      if (response?.shows?.[0]) {
+        const transformed = transformShowToViewData(response.shows[0]);
+        return { genreTitle, show: { ...transformed, key: transformed.slug } };
       }
-    } catch (error: any) {
-      // Silently fail for individual genres (404s are expected for genres with no episodes)
-      const is404 =
-        error?.status === 404 ||
-        error?.message?.includes('404') ||
-        error?.message?.includes('No objects found');
-      if (process.env.NODE_ENV === 'development' && !is404) {
-        console.debug(`Failed to fetch random show for genre ${genreTitle}:`, error);
-      }
+    } catch {
+      // Silently fail for individual genres
     }
+    return { genreTitle, show: null };
+  });
+
+  // Fetch archive shows promise
+  const archivePromise = getEpisodesForShows({ limit: 20, offset: randomOffset }).catch(() => ({
+    shows: [],
+  }));
+
+  // Execute all in parallel
+  const [genreResults, archiveResponse] = await Promise.all([
+    Promise.all(genrePromises),
+    archivePromise,
+  ]);
+
+  // Build randomShowsByGenre from parallel results
+  const randomShowsByGenre: Record<string, any> = {};
+  for (const { genreTitle, show } of genreResults) {
+    if (show) randomShowsByGenre[genreTitle] = show;
   }
 
-  // Get shows from the archive - use offset instead of random for better performance
-  let archiveShowsRaw: any[] = [];
-  try {
-    // Pick a random offset between 50-200 to get varied older episodes
-    const randomOffset = Math.floor(Math.random() * 150) + 50;
-    const archiveResponse = await getEpisodesForShows({ limit: 20, offset: randomOffset });
-    archiveShowsRaw = archiveResponse.shows || [];
-  } catch (error) {
-    console.error('Error fetching archive shows:', error);
-  }
-  const archiveShows = archiveShowsRaw.map(show => {
+  // Transform archive shows
+  const archiveShows = (archiveResponse.shows || []).map(show => {
     const transformed = transformShowToViewData(show);
-    return {
-      ...transformed,
-      key: transformed.slug,
-    };
+    return { ...transformed, key: transformed.slug };
   });
 
   const displayHeroItems = homepageData?.metadata?.display_hero_items ?? false;
@@ -454,15 +434,27 @@ export default async function Home() {
         )}
 
         {/* Dynamic page order rendering - ONLY render sections that ARE in page_order */}
-        {pageOrder.map((item, index) => (
-          <Suspense key={`${item.type}-${item.id}-${index}`} fallback={<div>Loading...</div>}>
-            {renderPageOrderItem(
-              item,
-              colouredSections,
-              !!(displayHeroItems && heroLayout && heroItems.length > 0)
-            )}
-          </Suspense>
-        ))}
+        {pageOrder.map((item, index) => {
+          const hasHeroItemsFlag = !!(displayHeroItems && heroLayout && heroItems.length > 0);
+
+          // Handle async LatestEpisodes component directly (not through sync helper)
+          if (item.type === 'latest-episodes') {
+            return (
+              <Suspense
+                key={`${item.type}-${item.id}-${index}`}
+                fallback={<ShowsGridSkeleton count={10} />}
+              >
+                <LatestEpisodes config={item.metadata} hasHeroItems={hasHeroItemsFlag} />
+              </Suspense>
+            );
+          }
+
+          return (
+            <Suspense key={`${item.type}-${item.id}-${index}`} fallback={<div>Loading...</div>}>
+              {renderPageOrderItem(item, colouredSections, hasHeroItemsFlag)}
+            </Suspense>
+          );
+        })}
 
         {/* From The Archive Section */}
         {archiveShows.length > 0 && <ArchiveSection shows={archiveShows} className='pt-8' />}

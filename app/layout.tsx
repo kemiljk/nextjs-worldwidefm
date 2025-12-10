@@ -1,19 +1,16 @@
 import type React from 'react';
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Script from 'next/script';
 import Nimbus from 'next/font/local';
 import AirCompressed from 'next/font/local';
 import FoundersGrotesk from 'next/font/local';
-import { ThemeProvider } from '@/components/providers/theme-provider';
-import SearchProvider from '@/components/providers/search-provider';
-import { AuthProvider } from '@/cosmic/blocks/user-management/AuthContext';
-import { MediaPlayerProvider } from '@/components/providers/media-player-provider';
+import { Providers } from '@/components/providers';
 import NavWrapper from '@/components/nav-wrapper';
 import Footer from '@/components/footer';
 import LivePlayer from '@/components/live-player';
 import ArchivePlayer from '@/components/archive-player';
 import DiscordButton from '@/components/discord-button';
-import PlausibleProvider from 'next-plausible';
 import './globals.css';
 
 const sans = Nimbus({
@@ -41,6 +38,7 @@ const mono = FoundersGrotesk({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://worldwidefm.net'),
   title: 'Worldwide FM',
   description:
     'A global music radio platform founded by Gilles Peterson, connecting people through music that transcends borders and cultures.',
@@ -59,32 +57,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${sans.variable} ${display.variable} ${mono.variable} min-h-screen w-full bg-background font-sans`}
       >
-        <Script
-          src='https://cdn.socket.io/4.7.2/socket.io.min.js'
-          strategy='beforeInteractive'
-        />
-        <PlausibleProvider domain='worldwidefm.net'>
-          <ThemeProvider
-            attribute='class'
-            defaultTheme='system'
-            enableSystem
-            disableTransitionOnChange
-            storageKey='worldwidefm-theme'
+        <Script src='https://cdn.socket.io/4.7.2/socket.io.min.js' strategy='beforeInteractive' />
+        <Providers>
+          <LivePlayer />
+          <NavWrapper />
+          <main className='w-full pt-14 overflow-x-hidden'>{children}</main>
+          <ArchivePlayer />
+          <Suspense
+            fallback={
+              <footer className='bg-white dark:bg-gray-900 pt-8 border-t border-almostblack w-full h-64' />
+            }
           >
-            <AuthProvider>
-              <SearchProvider>
-                <MediaPlayerProvider>
-                  <LivePlayer />
-                  <NavWrapper />
-                  <main className='w-full pt-14 overflow-x-hidden'>{children}</main>
-                  <ArchivePlayer />
-                  <Footer />
-                  <DiscordButton />
-                </MediaPlayerProvider>
-              </SearchProvider>
-            </AuthProvider>
-          </ThemeProvider>
-        </PlausibleProvider>
+            <Footer />
+          </Suspense>
+          <DiscordButton />
+        </Providers>
       </body>
     </html>
   );

@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getFormTexts, getDefaultFormTexts } from '@/lib/form-text-service';
 
-export const revalidate = 300;
-
 export async function GET() {
   try {
     const formTexts = await getFormTexts();

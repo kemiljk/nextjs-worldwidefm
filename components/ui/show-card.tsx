@@ -2,7 +2,6 @@
 
 import { Play, Pause } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useMediaPlayer } from '../providers/media-player-provider';
 import { GenreTag } from './genre-tag';
@@ -26,7 +25,6 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   variant = 'default',
   canonicalGenres = [],
 }) => {
-  const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const isEpisode = show?.__source === 'episode' || show?.episodeData || show?.type === 'episode';
   const hasAudioContent = show?.url || show?.player || show?.metadata?.player;
@@ -64,25 +62,25 @@ export const ShowCard: React.FC<ShowCardProps> = ({
     return `${baseUrl}?w=400&h=400&fit=crop&auto=format,compress`;
   };
 
-  const getShowTags = (show: any): Array<{ id: string; title: string }> => {
+  const getShowTags = (show: any): Array<{ id: string; title: string; slug?: string }> => {
     // Try to get genre objects with IDs first
     if (show.metadata?.genres && Array.isArray(show.metadata.genres)) {
       return show.metadata.genres
         .filter((genre: any) => genre.id && genre.title)
         .slice(0, 3)
-        .map((genre: any) => ({ id: genre.id, title: genre.title }));
+        .map((genre: any) => ({ id: genre.id, title: genre.title, slug: genre.slug }));
     }
     if (show.enhanced_genres && Array.isArray(show.enhanced_genres)) {
       return show.enhanced_genres
         .filter((genre: any) => genre.id && genre.title)
         .slice(0, 3)
-        .map((genre: any) => ({ id: genre.id, title: genre.title }));
+        .map((genre: any) => ({ id: genre.id, title: genre.title, slug: genre.slug }));
     }
     if (show.genres && Array.isArray(show.genres)) {
       return show.genres
         .filter((genre: any) => genre.id && genre.title)
         .slice(0, 3)
-        .map((genre: any) => ({ id: genre.id, title: genre.title }));
+        .map((genre: any) => ({ id: genre.id, title: genre.title, slug: genre.slug }));
     }
     // Fallback to legacy tags format
     if (show.tags && Array.isArray(show.tags)) {
@@ -92,18 +90,28 @@ export const ShowCard: React.FC<ShowCardProps> = ({
         .map((tag: any) => ({
           id: tag.key || tag.slug || tag.name || tag.title || tag,
           title: tag.name || tag.title || tag,
+          slug: tag.slug,
         }));
     }
     return [];
   };
 
-  // Map genre IDs to canonical genre slugs for linking
-  const getGenreLink = (genreId: string): string | undefined => {
-    if (!canonicalGenres.length) return undefined;
-
-    const canonicalGenre = canonicalGenres.find(genre => genre.id === genreId);
-
-    return canonicalGenre ? `/genre/${canonicalGenre.slug}` : undefined;
+  // Get genre link - prefer slug from tag, fallback to canonical genres lookup
+  const getGenreLink = (tag: { id: string; title: string; slug?: string }): string | undefined => {
+    // Use slug directly if available
+    if (tag.slug) {
+      return `/genre/${tag.slug}`;
+    }
+    
+    // Fallback to canonical genres lookup
+    if (canonicalGenres.length) {
+      const canonicalGenre = canonicalGenres.find(genre => genre.id === tag.id);
+      if (canonicalGenre) {
+        return `/genre/${canonicalGenre.slug}`;
+      }
+    }
+    
+    return undefined;
   };
 
   const formatShowTime = (
@@ -279,17 +287,14 @@ export const ShowCard: React.FC<ShowCardProps> = ({
         <div className='flex flex-row w-full pr-1'>
           <div className='flex flex-row flex-wrap'>
             {showTags.map((tag, idx) => {
-              const genreLink = getGenreLink(tag.id);
+              const genreLink = getGenreLink(tag);
               return (
                 <GenreTag
                   key={tag.id + idx}
                   variant={genreTagVariant as 'default' | 'transparent' | 'white' | 'light'}
+                  href={genreLink}
                   onClick={e => {
-                    if (genreLink) {
-                      router.push(genreLink);
-                    } else {
-                      console.warn('No genre link found for tag:', tag);
-                    }
+                    e.stopPropagation();
                   }}
                 >
                   {tag.title}

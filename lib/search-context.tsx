@@ -4,7 +4,7 @@ import { createContext, useContext } from 'react';
 import { SearchContextType as UnifiedSearchContextType } from './search/unified-types';
 
 // Re-export types for backward compatibility
-export type { SearchResult, SearchFilters, FilterItem } from './search/unified-types';
+export type { SearchResult, SearchFilters, FilterItem, AnySearchResult } from './search/unified-types';
 
 // Use the unified search context type
 export type SearchContextType = UnifiedSearchContextType;
@@ -17,6 +17,8 @@ export const SearchContext = createContext<SearchContextType>({
   results: [],
   setResults: () => {},
   isLoading: false,
+  isInitialized: false,
+  initializeSearch: () => Promise.resolve(),
   performSearch: () => Promise.resolve(),
   availableFilters: {
     genres: [],

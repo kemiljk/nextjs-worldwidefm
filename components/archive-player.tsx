@@ -6,11 +6,6 @@ import { useMediaPlayer } from './providers/media-player-provider';
 import { usePlausible } from 'next-plausible';
 import { Button } from '@/components/ui/button';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'no-store';
-export const runtime = 'nodejs';
-
 const ArchivePlayer: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);

@@ -8,8 +8,6 @@ import { getEpisodesForShows } from '@/lib/episode-service';
 import { transformShowToViewData } from '@/lib/cosmic-service';
 import { ShowsGridSkeleton } from '@/components/shows-grid-skeleton';
 
-export const revalidate = 60; // 1 minute - shows list updates frequently
-
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateShowsMetadata();
 };

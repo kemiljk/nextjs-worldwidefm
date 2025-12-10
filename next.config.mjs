@@ -7,7 +7,7 @@ try {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false,
+  reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -32,11 +32,16 @@ const nextConfig = {
     ],
   },
   experimental: {
+    cacheComponents: true,
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
     serverActions: {
       bodySizeLimit: '100mb',
+    },
+    staleTimes: {
+      dynamic: 30,
+      static: 180,
     },
   },
   serverExternalPackages: ['prettier', '@react-email/render'],

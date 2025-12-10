@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
+import { connection } from 'next/server';
 import { getScheduleData, findMatchingShow } from '@/lib/radiocult-service';
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 /**
  * API endpoint to get the current live event
@@ -10,6 +8,8 @@ export const revalidate = 0;
  * Also includes matching Cosmic show info for linking to episode detail pages
  */
 export async function GET() {
+  await connection(); // Force dynamic - always fresh data
+  
   try {
     const { currentEvent } = await getScheduleData();
 

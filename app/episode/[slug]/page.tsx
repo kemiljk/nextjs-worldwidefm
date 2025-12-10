@@ -13,9 +13,6 @@ import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { PreviewBanner } from '@/components/ui/preview-banner';
 import { ListenBackButton } from '@/components/listen-back-button';
 
-export const revalidate = 60; // 1 minute - shows update quickly
-export const dynamicParams = true;
-
 export async function generateStaticParams() {
   const { episodes } = await getEpisodes({ limit: 100 });
   return episodes.map((episode) => ({

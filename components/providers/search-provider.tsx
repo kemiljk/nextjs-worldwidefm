@@ -1,18 +1,14 @@
 'use client';
 
-import { ReactNode, useCallback, useEffect, useState } from 'react';
+import { ReactNode, useCallback, useRef, useState } from 'react';
 import {
-  SearchResult,
   FilterItem,
   SearchContextType,
   SearchContext,
+  AnySearchResult,
 } from '@/lib/search-context';
 import { getAllSearchResultsAndFilters } from '@/lib/search-engine';
-import {
-  getFilterItems,
-  SearchFilters,
-  SearchResultType,
-} from '@/lib/search/unified-types';
+import { getFilterItems, SearchFilters, SearchResultType } from '@/lib/search/unified-types';
 
 interface SearchProviderProps {
   children: ReactNode;
@@ -30,10 +26,12 @@ const TYPE_FILTERS: FilterItem[] = [
 export default function SearchProvider({ children }: SearchProviderProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({});
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [allContent, setAllContent] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<AnySearchResult[]>([]);
+  const [allContent, setAllContent] = useState<AnySearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const initializingRef = useRef(false);
   const [availableFilters, setAvailableFilters] = useState<{
     genres: FilterItem[];
     locations: FilterItem[];
@@ -50,59 +48,54 @@ export default function SearchProvider({ children }: SearchProviderProps) {
     types: TYPE_FILTERS,
   });
 
-  // Add a flag to track repeated failures
-  const [consecutiveFailures, setConsecutiveFailures] = useState(0);
-  const [lastError, setLastError] = useState<string | null>(null);
+  // Lazy initialization - only fetch when search is first used
+  const initializeSearch = useCallback(async () => {
+    // Skip if already initialized or currently initializing
+    if (isInitialized || initializingRef.current) return;
 
-  // Function to check if an item looks like a person name (copied from shows page)
-  const isLikelyPerson = (title: string): boolean => {
-    // Check for common patterns in people's names
-    return (
-      // Check for first and last name pattern (contains space and both parts start with capital)
-      /^[A-Z][a-z]+ [A-Z][a-z]+/.test(title) ||
-      // Check for titles with "DJ" prefix
-      /^DJ /.test(title) ||
-      // Names with middle initials
-      /^[A-Z][a-z]+ [A-Z]\. [A-Z][a-z]+/.test(title)
-    );
-  };
-
-  // Fetch all content and filters on mount
-  useEffect(() => {
+    initializingRef.current = true;
     setIsLoading(true);
     setError(null);
-    getAllSearchResultsAndFilters()
-      .then(({ results, filters }) => {
-        setAllContent(results);
-        setResults(results);
-        setAvailableFilters(prev => ({
-          genres: filters.genres,
-          locations: filters.locations,
-          hosts: filters.hosts,
-          takeovers: prev.takeovers,
-          categories: prev.categories,
-          types: prev.types.length ? prev.types : TYPE_FILTERS,
-        }));
-      })
-      .catch(() => {
-        setError('Failed to load content. Please try again later.');
-        setAllContent([]);
-        setResults([]);
-        setAvailableFilters({
-          genres: [],
-          locations: [],
-          hosts: [],
-          takeovers: [],
-          categories: [],
-          types: TYPE_FILTERS,
-        });
-      })
-      .finally(() => setIsLoading(false));
-  }, []);
 
-  // Perform search
+    try {
+      const { results, filters } = await getAllSearchResultsAndFilters();
+      setAllContent(results);
+      setResults(results);
+      setAvailableFilters(prev => ({
+        genres: filters.genres,
+        locations: filters.locations,
+        hosts: filters.hosts,
+        takeovers: prev.takeovers,
+        categories: prev.categories,
+        types: prev.types.length ? prev.types : TYPE_FILTERS,
+      }));
+      setIsInitialized(true);
+    } catch {
+      setError('Failed to load content. Please try again later.');
+      setAllContent([]);
+      setResults([]);
+      setAvailableFilters({
+        genres: [],
+        locations: [],
+        hosts: [],
+        takeovers: [],
+        categories: [],
+        types: TYPE_FILTERS,
+      });
+    } finally {
+      setIsLoading(false);
+      initializingRef.current = false;
+    }
+  }, [isInitialized]);
+
+  // Perform search - automatically initializes if needed
   const performSearch = useCallback(
     async (term: string) => {
+      // Auto-initialize if not yet initialized
+      if (!isInitialized && !initializingRef.current) {
+        await initializeSearch();
+      }
+
       console.log(`Performing search with term: "${term}"`);
       setIsLoading(true);
       setError(null);
@@ -123,11 +116,11 @@ export default function SearchProvider({ children }: SearchProviderProps) {
               const titleMatch = item.title?.toLowerCase().includes(lowercaseTerm) ?? false;
               const descriptionMatch =
                 item.description?.toLowerCase().includes(lowercaseTerm) ?? false;
-              const excerptMatch =
-                ('excerpt' in item && typeof item.excerpt === 'string'
+              const excerptMatch = (
+                'excerpt' in item && typeof item.excerpt === 'string'
                   ? item.excerpt.toLowerCase()
                   : ''
-                ).includes(lowercaseTerm);
+              ).includes(lowercaseTerm);
 
               const filterItems = getFilterItems(item);
               const hostsMatch = filterItems.hosts.some(host =>
@@ -196,34 +189,30 @@ export default function SearchProvider({ children }: SearchProviderProps) {
           }
 
           if (Array.isArray(filters.genres) && filters.genres.length > 0) {
-            filtered = filtered.filter(
-              item =>
-                getFilterItems(item).genres.some(genre => filters.genres?.includes(genre.slug))
+            filtered = filtered.filter(item =>
+              getFilterItems(item).genres.some(genre => filters.genres?.includes(genre.slug))
             );
           }
 
           if (Array.isArray(filters.locations) && filters.locations.length > 0) {
-            filtered = filtered.filter(
-              item =>
-                getFilterItems(item).locations.some(location =>
-                  filters.locations?.includes(location.slug)
-                )
+            filtered = filtered.filter(item =>
+              getFilterItems(item).locations.some(location =>
+                filters.locations?.includes(location.slug)
+              )
             );
           }
 
           if (Array.isArray(filters.hosts) && filters.hosts.length > 0) {
-            filtered = filtered.filter(
-              item =>
-                getFilterItems(item).hosts.some(host => filters.hosts?.includes(host.slug))
+            filtered = filtered.filter(item =>
+              getFilterItems(item).hosts.some(host => filters.hosts?.includes(host.slug))
             );
           }
 
           if (Array.isArray(filters.takeovers) && filters.takeovers.length > 0) {
-            filtered = filtered.filter(
-              item =>
-                getFilterItems(item).takeovers.some(takeover =>
-                  filters.takeovers?.includes(takeover.slug)
-                )
+            filtered = filtered.filter(item =>
+              getFilterItems(item).takeovers.some(takeover =>
+                filters.takeovers?.includes(takeover.slug)
+              )
             );
           }
 
@@ -262,7 +251,7 @@ export default function SearchProvider({ children }: SearchProviderProps) {
         setIsLoading(false);
       }
     },
-    [allContent, filters]
+    [allContent, filters, isInitialized, initializeSearch]
   );
 
   // Toggle filter functions
@@ -393,6 +382,8 @@ export default function SearchProvider({ children }: SearchProviderProps) {
     results,
     setResults,
     isLoading,
+    isInitialized,
+    initializeSearch,
     performSearch,
     availableFilters,
     toggleGenreFilter,

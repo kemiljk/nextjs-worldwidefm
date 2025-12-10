@@ -115,65 +115,31 @@ export function isHostSearchResult(result: SearchResult): result is HostSearchRe
   return result.type === 'hosts-series';
 }
 
-// Helper function to get filter items based on content type
-export function getFilterItems(result: SearchResult): {
+// Generic result type that works with both discriminated union and simple interface
+export interface GenericSearchResult {
+  type: string;
+  genres?: FilterItem[];
+  locations?: FilterItem[];
+  hosts?: FilterItem[];
+  takeovers?: FilterItem[];
+  categories?: FilterItem[];
+}
+
+// Helper function to get filter items - accepts both SearchResult types
+export function getFilterItems(result: GenericSearchResult): {
   genres: FilterItem[];
   locations: FilterItem[];
   hosts: FilterItem[];
   takeovers: FilterItem[];
   categories: FilterItem[];
 } {
-  switch (result.type) {
-    case 'posts':
-    case 'videos':
-      return {
-        genres: [],
-        locations: [],
-        hosts: [],
-        takeovers: [],
-        categories: result.categories,
-      };
-    case 'episodes':
-      return {
-        genres: result.genres,
-        locations: result.locations,
-        hosts: result.hosts,
-        takeovers: result.takeovers,
-        categories: [],
-      };
-    case 'events':
-      return {
-        genres: [],
-        locations: [],
-        hosts: [],
-        takeovers: [],
-        categories: [],
-      };
-    case 'takeovers':
-      return {
-        genres: [],
-        locations: [],
-        hosts: result.hosts,
-        takeovers: [],
-        categories: [],
-      };
-    case 'hosts-series':
-      return {
-        genres: result.genres,
-        locations: result.locations,
-        hosts: [],
-        takeovers: [],
-        categories: [],
-      };
-    default:
-      return {
-        genres: [],
-        locations: [],
-        hosts: [],
-        takeovers: [],
-        categories: [],
-      };
-  }
+  return {
+    genres: result.genres || [],
+    locations: result.locations || [],
+    hosts: result.hosts || [],
+    takeovers: result.takeovers || [],
+    categories: result.categories || [],
+  };
 }
 
 // Search filters interface
@@ -186,15 +152,30 @@ export interface SearchFilters {
   categories?: string[];
 }
 
+// Generic search result for context (compatible with both type systems)
+export interface AnySearchResult extends GenericSearchResult {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string;
+  excerpt?: string;
+  image?: string;
+  date?: string;
+  featured?: boolean;
+  metadata?: any;
+}
+
 // Search context interface
 export interface SearchContextType {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   filters: SearchFilters;
   setFilters: (filters: SearchFilters) => void;
-  results: SearchResult[];
-  setResults: (results: SearchResult[]) => void;
+  results: AnySearchResult[];
+  setResults: (results: AnySearchResult[]) => void;
   isLoading: boolean;
+  isInitialized: boolean;
+  initializeSearch: () => Promise<void>;
   performSearch: (term: string) => Promise<void>;
   availableFilters: {
     genres: FilterItem[];
@@ -210,6 +191,6 @@ export interface SearchContextType {
   toggleTakeoverFilter: (takeover: FilterItem) => void;
   toggleCategoryFilter: (category: FilterItem) => void;
   toggleTypeFilter: (type: FilterItem) => void;
-  allContent: SearchResult[];
+  allContent: AnySearchResult[];
   error: string | null;
 }

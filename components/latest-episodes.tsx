@@ -1,6 +1,3 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import { getEpisodesForShows } from '@/lib/episode-service';
 import { ShowCard } from './ui/show-card';
 
@@ -11,38 +8,16 @@ interface LatestEpisodesProps {
   hasHeroItems?: boolean;
 }
 
-const LatestEpisodes: React.FC<LatestEpisodesProps> = ({ config, hasHeroItems = false }) => {
-  const [episodes, setEpisodes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+export default async function LatestEpisodes({ config, hasHeroItems = false }: LatestEpisodesProps) {
   const baseLimit = config?.number_of_latest_shows || 5;
   const limit = hasHeroItems ? 20 : baseLimit;
   const offset = hasHeroItems ? 0 : 2;
 
-  useEffect(() => {
-    const fetchEpisodes = async () => {
-      try {
-        setLoading(true);
-        const response = await getEpisodesForShows({ limit, offset });
-        setEpisodes(response.shows || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch episodes');
-        console.error('Error fetching latest episodes:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEpisodes();
-  }, [limit, offset]);
-
-  if (error) {
-    return;
-  }
+  const response = await getEpisodesForShows({ limit, offset });
+  const episodes = response.shows || [];
 
   if (episodes.length === 0) {
-    return;
+    return null;
   }
 
   return (
@@ -54,13 +29,11 @@ const LatestEpisodes: React.FC<LatestEpisodesProps> = ({ config, hasHeroItems = 
             key={episode.key || episode.id || episode.slug}
             show={{
               ...episode,
-              // Add Mixcloud player URL for episodes
               url: episode.metadata?.player
                 ? episode.metadata.player.startsWith('http')
                   ? episode.metadata.player
                   : `https://www.mixcloud.com${episode.metadata.player}`
                 : episode.url || '',
-              // Add key for ShowCard (used for show identification in media player)
               key: episode.slug,
             }}
             slug={`/episode/${episode.slug}`}
@@ -70,6 +43,4 @@ const LatestEpisodes: React.FC<LatestEpisodesProps> = ({ config, hasHeroItems = 
       </div>
     </section>
   );
-};
-
-export default LatestEpisodes;
+}

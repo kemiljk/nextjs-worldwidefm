@@ -12,8 +12,6 @@ import { FavoriteButton } from '@/components/favorite-button';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import HostClient from './host-client';
 
-export const revalidate = 300; // 5 minutes - host profiles change infrequently
-
 interface Props {
   params: Promise<{ slug: string }>;
 }
