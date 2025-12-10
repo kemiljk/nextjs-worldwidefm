@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import React from 'react';
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 import { getRadioShows, transformShowToViewData } from '@/lib/cosmic-service';
 import { cosmic } from '@/lib/cosmic-config';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
@@ -109,6 +110,8 @@ async function getHostEpisodes(hostId: string, limit: number = 20) {
 }
 
 export default async function HostPage({ params }: { params: Promise<{ slug: string }> }) {
+  await connection();
+  
   const { slug } = await params;
 
   const host = await getHostBySlug(slug);

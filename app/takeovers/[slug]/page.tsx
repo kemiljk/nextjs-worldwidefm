@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import React from 'react';
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 import { cosmic } from '@/lib/cosmic-config';
 import { getEpisodesForShows } from '@/lib/episode-service';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
@@ -116,6 +117,8 @@ async function getTakeoverEpisodes(takeoverId: string, limit: number = 20, retri
 }
 
 export default async function TakeoverPage({ params }: { params: Promise<{ slug: string }> }) {
+  await connection();
+  
   const { slug } = await params;
 
   const takeover = await getTakeoverBySlug(slug);

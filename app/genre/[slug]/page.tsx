@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import GenreDetail from './genre-detail-client';
 import { getEpisodesForShows, getRegularHosts, getTakeovers } from '@/lib/episode-service';
@@ -13,6 +14,8 @@ export default async function GenreDetailPage({
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ type?: string; page?: string }>;
 }) {
+  await connection();
+  
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
 

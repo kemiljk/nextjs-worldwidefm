@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
+import { connection } from 'next/server';
 import { PageHeader } from '@/components/shared/page-header';
 import { getVideos, getVideoCategories, getVideosPageConfig } from '@/lib/actions';
 import VideosClient from './videos-client';
@@ -10,6 +11,8 @@ export const generateMetadata = async (): Promise<Metadata> => {
 };
 
 export default async function VideosPage() {
+  await connection();
+  
   const [videos, videoCategories, pageConfig] = await Promise.all([
     getVideos({ limit: 50 }),
     getVideoCategories(),

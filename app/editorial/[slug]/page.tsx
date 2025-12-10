@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { connection } from 'next/server';
 import { getPostBySlug, getRelatedPosts } from '@/lib/actions';
 import { format } from 'date-fns';
 import EditorialSection from '@/components/editorial/editorial-section';
@@ -43,6 +44,8 @@ export default async function EditorialArticlePage({
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ preview?: string }>;
 }) {
+  await connection();
+  
   // Await the entire params object first
   const resolvedParams = await params;
   const resolvedSearchParams = await (searchParams || Promise.resolve({ preview: undefined }));

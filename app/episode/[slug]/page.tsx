@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { connection } from 'next/server';
 import { getEpisodeBySlug, getRelatedEpisodes, getEpisodes } from '@/lib/episode-service';
 import { addMinutes } from 'date-fns';
 import { displayNameToSlug } from '@/lib/host-matcher';
@@ -53,6 +54,8 @@ export default async function EpisodePage({
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ preview?: string }>;
 }) {
+  await connection();
+  
   const { slug: showSlug } = await params;
   const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
 
