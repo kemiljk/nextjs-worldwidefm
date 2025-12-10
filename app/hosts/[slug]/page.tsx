@@ -50,28 +50,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export async function generateStaticParams() {
-  try {
-    const response = await cosmic.objects
-      .find({
-        type: 'regular-hosts',
-        status: 'published',
-      })
-      .props('slug')
-      .limit(1000);
-
-    const params =
-      response.objects?.map((host: { slug: string }) => ({
-        slug: host.slug,
-      })) || [];
-
-    return params;
-  } catch (error) {
-    console.error('Error generating static params for hosts:', error);
-    return [];
-  }
-}
-
 async function getHostBySlug(slug: string) {
   try {
     const response = await cosmic.objects

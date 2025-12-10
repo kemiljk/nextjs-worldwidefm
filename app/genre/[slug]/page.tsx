@@ -78,8 +78,3 @@ export default async function GenreDetailPage({
     />
   );
 }
-
-export async function generateStaticParams() {
-  const canonicalGenres = await getCanonicalGenres();
-  return canonicalGenres.map(genre => ({ slug: genre.slug }));
-}

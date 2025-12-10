@@ -55,28 +55,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export async function generateStaticParams() {
-  try {
-    const response = await cosmic.objects
-      .find({
-        type: 'takeovers',
-        status: 'published',
-      })
-      .props('slug')
-      .limit(1000);
-
-    const params =
-      response.objects?.map((takeover: { slug: string }) => ({
-        slug: takeover.slug,
-      })) || [];
-
-    return params;
-  } catch (error) {
-    console.error('Error generating static params for takeovers:', error);
-    return [];
-  }
-}
-
 async function getTakeoverBySlug(slug: string) {
   try {
     const response = await cosmic.objects

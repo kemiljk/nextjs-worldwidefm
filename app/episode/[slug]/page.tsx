@@ -14,13 +14,6 @@ import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { PreviewBanner } from '@/components/ui/preview-banner';
 import { ListenBackButton } from '@/components/listen-back-button';
 
-export async function generateStaticParams() {
-  const { episodes } = await getEpisodes({ limit: 100 });
-  return episodes.map((episode) => ({
-    slug: episode.slug,
-  }));
-}
-
 function HostLink({ host, className }: { host: any; className: string }) {
   // Handle case where host might be just an ID string instead of an object
   if (!host || typeof host === 'string') {
