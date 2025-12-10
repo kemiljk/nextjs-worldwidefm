@@ -8,6 +8,7 @@ try {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  cacheComponents: true,
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -32,7 +33,6 @@ const nextConfig = {
     ],
   },
   experimental: {
-    cacheComponents: true,
     webpackBuildWorker: true,
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,

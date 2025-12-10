@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createBucketClient } from '@cosmicjs/sdk';
 
-// Force Node.js runtime to allow large multipart uploads (Edge has ~4.5MB limit)
-export const runtime = 'nodejs';
-export const maxDuration = 300;
-
 export async function POST(request: NextRequest) {
   try {
     console.log('🎵 Media upload API called');
