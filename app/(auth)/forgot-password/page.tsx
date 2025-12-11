@@ -9,11 +9,11 @@ export const generateMetadata = async (): Promise<Metadata> => {
   return generateBaseMetadata({
     title: 'Forgot Password - Worldwide FM',
     description: "Reset your Worldwide FM account password if you've forgotten it.",
-    noIndex: true, // Don't index authentication pages
+    noIndex: true,
   });
 };
 
-export default function ForgotPasswordPage() {
+export default async function ForgotPasswordPage() {
   return (
     <div className='container mx-auto py-8 px-4'>
       <Suspense fallback={<Loader2 className='text-accent mx-auto w-8 h-8 animate-spin' />}>

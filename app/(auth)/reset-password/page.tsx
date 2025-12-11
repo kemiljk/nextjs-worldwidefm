@@ -8,7 +8,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
   return generateBaseMetadata({
     title: 'Reset Password - Worldwide FM',
     description: 'Set a new password for your Worldwide FM account.',
-    noIndex: true, // Don't index authentication pages
+    noIndex: true,
   });
 };
 

@@ -9,11 +9,11 @@ export const generateMetadata = async (): Promise<Metadata> => {
   return generateBaseMetadata({
     title: 'Login - Worldwide FM',
     description: 'Sign in to your Worldwide FM account to access your dashboard and preferences.',
-    noIndex: true, // Don't index authentication pages
+    noIndex: true,
   });
 };
 
-export default function LoginPage() {
+export default async function LoginPage() {
   return (
     <div className='container mx-auto py-8 px-4'>
       <Suspense fallback={<Loader2 className='text-accent mx-auto w-8 h-8 animate-spin' />}>

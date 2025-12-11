@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { connection } from 'next/server';
 import { getScheduleData, findMatchingShow } from '@/lib/radiocult-service';
 
 /**
@@ -8,8 +7,6 @@ import { getScheduleData, findMatchingShow } from '@/lib/radiocult-service';
  * Also includes matching Cosmic show info for linking to episode detail pages
  */
 export async function GET() {
-  await connection(); // Force dynamic - always fresh data
-  
   try {
     const { currentEvent } = await getScheduleData();
 

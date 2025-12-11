@@ -1,5 +1,4 @@
 import { cosmic } from './cosmic-config';
-import { unstable_cache } from 'next/cache';
 
 export interface CanonicalGenre {
   id: string;
@@ -7,7 +6,7 @@ export interface CanonicalGenre {
   title: string;
 }
 
-async function fetchCanonicalGenres(): Promise<CanonicalGenre[]> {
+export async function getCanonicalGenres(): Promise<CanonicalGenre[]> {
   const res = await cosmic.objects
     .find({ type: 'genres' })
     .props('id,slug,title,metadata,type')
@@ -17,19 +16,4 @@ async function fetchCanonicalGenres(): Promise<CanonicalGenre[]> {
     slug: g.slug,
     title: g.title,
   }));
-}
-
-export async function getCanonicalGenres(): Promise<CanonicalGenre[]> {
-  if (typeof window === 'undefined') {
-    try {
-      const getCachedGenres = unstable_cache(fetchCanonicalGenres, ['canonical-genres'], {
-        tags: ['genres'],
-        revalidate: 300,
-      });
-      return await getCachedGenres();
-    } catch {
-      return await fetchCanonicalGenres();
-    }
-  }
-  return await fetchCanonicalGenres();
 }

@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { connection } from 'next/server';
 import DashboardClient from '@/cosmic/blocks/user-management/DashboardClient';
 import { getAuthUser, getDashboardData } from '@/cosmic/blocks/user-management/actions';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
@@ -9,14 +8,11 @@ export const generateMetadata = async (): Promise<Metadata> => {
   return generateBaseMetadata({
     title: 'Dashboard - Worldwide FM',
     description: 'Manage your Worldwide FM account, preferences, and favorites.',
-    noIndex: true, // Don't index authenticated pages
+    noIndex: true,
   });
 };
 
 export default async function DashboardPage() {
-  await connection();
-  
-  // Get the authenticated user
   const user = await getAuthUser();
 
   if (!user) {

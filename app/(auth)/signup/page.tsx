@@ -7,11 +7,11 @@ export const generateMetadata = async (): Promise<Metadata> => {
   return generateBaseMetadata({
     title: 'Sign Up - Worldwide FM',
     description: 'Create a new Worldwide FM account to access personalized content and features.',
-    noIndex: true, // Don't index authentication pages
+    noIndex: true,
   });
 };
 
-export default function SignUpPage() {
+export default async function SignUpPage() {
   return (
     <div className='container mx-auto py-8 px-4'>
       <SignUpClient onSubmit={signUp} />

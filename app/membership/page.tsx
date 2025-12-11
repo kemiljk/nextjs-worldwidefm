@@ -11,7 +11,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
       description:
         membership.metadata.description ||
         'Support Worldwide FM, an independent radio station bringing you quality music from around the world.',
-      noIndex: true, // Don't index subscription pages
+      noIndex: true,
     });
   } catch (error) {
     console.error('Error generating membership metadata:', error);

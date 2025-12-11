@@ -8,11 +8,11 @@ export const generateMetadata = async (): Promise<Metadata> => {
   return generateBaseMetadata({
     title: 'Verify Account - Worldwide FM',
     description: 'Verify your Worldwide FM account to complete the registration process.',
-    noIndex: true, // Don't index authentication pages
+    noIndex: true,
   });
 };
 
-export default function VerifyPage() {
+export default async function VerifyPage() {
   return (
     <Suspense fallback={<Loader2 className='text-accent mx-auto w-8 h-8 animate-spin' />}>
       <VerifyClient />

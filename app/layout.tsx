@@ -57,21 +57,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${sans.variable} ${display.variable} ${mono.variable} min-h-screen w-full bg-background font-sans`}
       >
-        <Script src='https://cdn.socket.io/4.7.2/socket.io.min.js' strategy='beforeInteractive' />
+        <Script src='https://cdn.socket.io/4.7.2/socket.io.min.js' strategy='lazyOnload' />
+        <Suspense
+          fallback={
+            <nav className='fixed top-11 z-40 w-full border-b border-almostblack bg-almostwhite dark:bg-almostblack h-14' />
+          }
+        >
+          <NavWrapper />
+        </Suspense>
         <Providers>
           <LivePlayer />
-          <NavWrapper />
-          <main className='w-full pt-14 overflow-x-hidden'>{children}</main>
+          <main className='w-full pt-14 overflow-x-hidden'>
+            <Suspense>{children}</Suspense>
+          </main>
           <ArchivePlayer />
-          <Suspense
-            fallback={
-              <footer className='bg-white dark:bg-gray-900 pt-8 border-t border-almostblack w-full h-64' />
-            }
-          >
-            <Footer />
-          </Suspense>
           <DiscordButton />
         </Providers>
+        <Suspense
+          fallback={
+            <footer className='bg-white dark:bg-gray-900 pt-8 border-t border-almostblack w-full h-64' />
+          }
+        >
+          <Footer />
+        </Suspense>
       </body>
     </html>
   );
