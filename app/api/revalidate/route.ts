@@ -26,10 +26,18 @@ export async function POST(request: NextRequest) {
 
     // Revalidate by tag if specified
     if (tag || body.tag) {
-      const tagToRevalidate = tag || body.tag;
-      revalidateTag(tagToRevalidate, 'max');
-      revalidatedItems.push(`tag:${tagToRevalidate}`);
-      console.log(`Revalidated tag: ${tagToRevalidate}`);
+      const tagInput = (tag || body.tag) as unknown;
+      const rawTagString = typeof tagInput === 'string' ? tagInput : '';
+      const tagsToRevalidate = rawTagString
+        .split(',')
+        .map(t => t.trim())
+        .filter(Boolean);
+
+      for (const tagToRevalidate of tagsToRevalidate) {
+        revalidateTag(tagToRevalidate, 'max');
+        revalidatedItems.push(`tag:${tagToRevalidate}`);
+        console.log(`Revalidated tag: ${tagToRevalidate}`);
+      }
     }
 
     // Revalidate by path if specified
@@ -43,12 +51,19 @@ export async function POST(request: NextRequest) {
 
     // If no specific tag or path, revalidate common show-related tags
     if (!tag && !path && !body.tag && !body.path) {
-      // Default: revalidate shows and episodes
+      // Default: revalidate homepage + shows and episodes
+      revalidateTag('homepage', 'max');
       revalidateTag('episodes', 'max');
       revalidateTag('shows', 'max');
       revalidatePath('/', 'page');
       revalidatePath('/shows', 'page');
-      revalidatedItems.push('tag:episodes', 'tag:shows', 'path:/(page)', 'path:/shows(page)');
+      revalidatedItems.push(
+        'tag:homepage',
+        'tag:episodes',
+        'tag:shows',
+        'path:/(page)',
+        'path:/shows(page)'
+      );
       console.log('Revalidated default show content');
     }
 
