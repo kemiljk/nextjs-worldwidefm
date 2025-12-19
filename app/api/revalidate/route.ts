@@ -34,7 +34,9 @@ export async function POST(request: NextRequest) {
         .filter(Boolean);
 
       for (const tagToRevalidate of tagsToRevalidate) {
-        revalidateTag(tagToRevalidate, 'max');
+        // For webhook/manual triggers we want immediate expiration so the next visit
+        // blocks and returns fresh data (no stale-while-revalidate surprise).
+        revalidateTag(tagToRevalidate, { expire: 0 });
         revalidatedItems.push(`tag:${tagToRevalidate}`);
         console.log(`Revalidated tag: ${tagToRevalidate}`);
       }
@@ -52,9 +54,9 @@ export async function POST(request: NextRequest) {
     // If no specific tag or path, revalidate common show-related tags
     if (!tag && !path && !body.tag && !body.path) {
       // Default: revalidate homepage + shows and episodes
-      revalidateTag('homepage', 'max');
-      revalidateTag('episodes', 'max');
-      revalidateTag('shows', 'max');
+      revalidateTag('homepage', { expire: 0 });
+      revalidateTag('episodes', { expire: 0 });
+      revalidateTag('shows', { expire: 0 });
       revalidatePath('/', 'page');
       revalidatePath('/shows', 'page');
       revalidatedItems.push(
