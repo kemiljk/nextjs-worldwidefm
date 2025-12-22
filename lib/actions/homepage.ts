@@ -2,13 +2,8 @@
 
 import { CosmicHomepageData, HomepageSectionItem, ProcessedHomepageSection } from '../cosmic-types';
 import { cosmic } from '../cosmic-config';
-import { cacheLife, cacheTag } from 'next/cache';
 
 export async function getCosmicHomepageData(): Promise<CosmicHomepageData | null> {
-  'use cache';
-  cacheLife('minutes');
-  cacheTag('homepage');
-  
   try {
     const response = await cosmic.objects
       .findOne({
