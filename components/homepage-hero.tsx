@@ -8,6 +8,7 @@ import { GenreObject } from '@/lib/cosmic-config';
 import { PlayButton } from '@/components/play-button';
 import { HighlightedText } from '@/components/ui/highlighted-text';
 import { useMediaPlayer } from '@/components/providers/media-player-provider';
+import { getOptimizedImageUrl } from '@/components/ui/optimized-image';
 
 // Using any for now since heroItems come from transformed show data
 interface HomepageHeroProps {
@@ -53,20 +54,14 @@ const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
         <CardContent className='p-0 grow flex flex-col'>
           <div className='relative w-full h-[90vh] flex items-center justify-center'>
             <img
-              src={
-                (item.metadata?.image?.imgix_url || item.metadata?.image?.url)
-                  ? `${item.metadata?.image?.imgix_url || item.metadata?.image?.url}?w=1200&auto=format,compress`
-                  : '/image-placeholder.png'
-              }
+              src={getOptimizedImageUrl(
+                item.metadata?.image?.imgix_url || item.metadata?.image?.url,
+                { width: 1200, quality: 85 }
+              )}
               alt={item.title || 'Hero item'}
               className='absolute inset-0 w-full h-full object-cover'
-              onError={(e: any) => {
-                if (e?.currentTarget) {
-                  try {
-                    e.currentTarget.src = '/image-placeholder.png';
-                  } catch {}
-                }
-              }}
+              loading={isPriority ? 'eager' : 'lazy'}
+              fetchPriority={isPriority ? 'high' : 'auto'}
             />
             {/* Play button for episodes */}
             {shouldShowPlayButton && (
@@ -199,18 +194,22 @@ export const EpisodeHero = ({
         />
       </div>
       <img
-        src={displayImage}
+        src={getOptimizedImageUrl(displayImage, { width: 1920, quality: 85 })}
         alt={displayName}
         className='absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none'
+        loading='eager'
+        fetchPriority='high'
       />
       {/* Overlay: Play Button and Text - Always show artwork and title */}
       <div className='relative inset-0 flex justify-center pt-5 z-30'>
         <div className='flex flex-col md:max-w-full md:flex-row gap-10 px-10 items-start md:items-center '>
           <div className='relative w-[80vw] sm:w-[400px] md:w-[450px] lg:w-[600px] aspect-square border border-almostblack z-30'>
             <img
-              src={displayImage}
+              src={getOptimizedImageUrl(displayImage, { width: 600, height: 600, quality: 85 })}
               alt={displayName}
               className='absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none'
+              loading='eager'
+              fetchPriority='high'
             />
             {/* Only show play button if there's audio content */}
             {(isEpisode || hasAudioContent) && show?.metadata?.player && (

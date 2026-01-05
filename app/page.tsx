@@ -125,9 +125,9 @@ function renderPageOrderItem(
 }
 
 export default async function Home() {
-  // Opt into dynamic rendering - homepage uses new Date() for filtering
+  // Opt into dynamic rendering - ensures Cosmic changes show instantly
   await connection();
-  
+
   // Parallel fetch all initial data in a single Promise.all
   const [homepageData, videosData, postsData, user, canonicalGenres, recentEpisodesResponse] =
     await Promise.all([

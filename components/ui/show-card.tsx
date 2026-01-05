@@ -7,6 +7,7 @@ import { useMediaPlayer } from '../providers/media-player-provider';
 import { GenreTag } from './genre-tag';
 import type { CanonicalGenre } from '@/lib/get-canonical-genres';
 import { getUKTimezoneAbbreviation } from '@/lib/date-utils';
+import { getOptimizedImageUrl } from '@/components/ui/optimized-image';
 
 interface ShowCardProps {
   show: any; // Using any to work with both episode and legacy show formats
@@ -58,8 +59,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
 
   const getShowImage = (show: any) => {
     const baseUrl = show.metadata?.image?.imgix_url || show.metadata?.image?.url;
-    if (!baseUrl) return '/image-placeholder.png';
-    return `${baseUrl}?w=400&h=400&fit=crop&auto=format,compress`;
+    return getOptimizedImageUrl(baseUrl, { width: 400, height: 400, quality: 75 });
   };
 
   const getShowTags = (show: any): Array<{ id: string; title: string; slug?: string }> => {
@@ -234,13 +234,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
             src={showImage}
             alt={showName}
             className={`absolute inset-0 w-full h-full object-cover border ${imageBorderClass} hover:cursor-pointer`}
-            onError={(e: any) => {
-              if (e?.currentTarget) {
-                try {
-                  e.currentTarget.src = '/image-placeholder.png';
-                } catch {}
-              }
-            }}
+            loading='lazy'
           />
           {isMounted && shouldShowPlayButton && (
             <div className='absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20'>

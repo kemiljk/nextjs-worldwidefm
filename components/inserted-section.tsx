@@ -1,13 +1,11 @@
 import React from 'react';
 import { ProcessedHomepageSection, CosmicItem, ColouredSection } from '@/lib/cosmic-types';
 import UniqueHomepageSection from './unique-homepage-section';
+import { getOptimizedImageUrl } from '@/components/ui/optimized-image';
 
 // Reusable Item Card (similar to the one in HomepageHero, could be centralized)
 const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
-  const baseImageUrl = item.metadata?.image?.imgix_url || item.metadata?.image?.url;
-  const imageUrl = baseImageUrl 
-    ? `${baseImageUrl}?w=400&h=400&fit=crop&auto=format,compress`
-    : '/image-placeholder.png';
+  const imageUrl = item.metadata?.image?.imgix_url || item.metadata?.image?.url;
   const title = item.title || 'Untitled';
   const subtitle = item.metadata?.subtitle || '';
   const description = item.metadata?.description || '';
@@ -17,9 +15,10 @@ const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
     <div className='border border-almostblack dark:border-white overflow-hidden'>
       <div className='aspect-square relative overflow-hidden'>
         <img
-          src={imageUrl}
+          src={getOptimizedImageUrl(imageUrl, { width: 400, height: 400, quality: 80 })}
           alt={title}
           className='absolute inset-0 w-full h-full object-cover'
+          loading='lazy'
         />
       </div>
       <div className='p-4'>

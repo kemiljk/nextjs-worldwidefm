@@ -14,12 +14,13 @@ import { getAllShows, getRegularHosts, getTakeovers } from './shows';
 
 export async function getAllSearchableContent(limit?: number): Promise<SearchResult[]> {
   try {
-    const showsLimit = limit ?? 1000;
+    // Optimized: Reduced default limit from 1000 to 200 for better performance
+    const showsLimit = limit ?? 200;
     const [postsResponse, showsResponse, hostsResponse, takeoversResponse] = await Promise.all([
       getAllPosts(),
       getAllShows(0, showsLimit),
-      getRegularHosts({ limit: showsLimit }),
-      getTakeovers({ limit: showsLimit }),
+      getRegularHosts({ limit: Math.min(showsLimit, 100) }),
+      getTakeovers({ limit: Math.min(showsLimit, 50) }),
     ]);
 
     const normalizeFilterItems = (items: any[] = []): FilterItem[] => {
@@ -126,7 +127,7 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
 export async function searchContent(
   query?: string,
   source?: string,
-  limit: number = 100
+  limit: number = 50
 ): Promise<SearchResult[]> {
   try {
     const safeString = (val: any): string | undefined =>

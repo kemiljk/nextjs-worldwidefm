@@ -176,11 +176,11 @@ export async function getRadioShows(
 
     const response = await cosmic.objects
       .find(query)
-      .props('id,slug,title,metadata,type')
+      .props('id,slug,title,type,created_at,metadata.image,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage')
       .limit(params.limit || 10)
       .skip(params.skip || 0)
       .sort(params.sort || '-metadata.broadcast_date')
-      .depth(2);
+      .depth(1);
 
     return {
       objects: response.objects || [],
@@ -455,7 +455,7 @@ export async function getEditorialHomepage(): Promise<any> {
         slug: 'editorial',
       })
       .props('slug,title,metadata')
-      .depth(2); // Increased depth to get nested objects
+      .depth(1);
 
     return response;
   } catch (error) {
@@ -531,8 +531,8 @@ export async function getAboutPage(): Promise<AboutPage> {
       type: 'about',
       slug: 'about',
     })
-    .props('metadata')
-    .depth(2);
+    .props('slug,title,type,metadata')
+    .depth(1);
 
   return object;
 }

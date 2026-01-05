@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { connection } from 'next/server';
-import { getEpisodeBySlug, getRelatedEpisodes, getEpisodes } from '@/lib/episode-service';
+import { getEpisodeBySlug, getRelatedEpisodes } from '@/lib/episode-service';
 import { addMinutes } from 'date-fns';
 import { displayNameToSlug } from '@/lib/host-matcher';
 import { ShowCard } from '@/components/ui/show-card';
@@ -47,8 +47,9 @@ export default async function EpisodePage({
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ preview?: string }>;
 }) {
+  // Opt into dynamic rendering - ensures Cosmic changes show instantly
   await connection();
-  
+
   const { slug: showSlug } = await params;
   const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
 

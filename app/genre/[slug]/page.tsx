@@ -14,8 +14,9 @@ export default async function GenreDetailPage({
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ type?: string; page?: string }>;
 }) {
+  // Opt into dynamic rendering - ensures Cosmic changes show instantly
   await connection();
-  
+
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
 

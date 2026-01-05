@@ -89,40 +89,52 @@ const mapTakeoverToFilterItem = (takeover: TakeoverObject): FilterItem => ({
 });
 
 // Fetch and normalize all content types from Cosmic
+// Optimized: Reduced limits from 1000 to 200 per type, using specific field selection
 export async function fetchAllCosmicContent(): Promise<SearchResult[]> {
+  const searchProps = 'id,slug,title,created_at,metadata.image,metadata.description,metadata.subtitle,metadata.excerpt,metadata.broadcast_date,metadata.date,metadata.genres,metadata.categories,metadata.locations,metadata.regular_hosts,metadata.takeovers';
+  
   const [showsRes, eventsRes, postsRes, videosRes, takeoversRes] = await Promise.all([
     cosmic.objects
       .find({
         type: 'episode',
-        props: 'id,slug,title,metadata,created_at',
         status: 'published',
-        limit: 1000,
       })
-      .sort('-metadata.broadcast_date'),
-    cosmic.objects.find({
-      type: 'events',
-      props: 'id,slug,title,metadata,created_at',
-      status: 'published',
-      limit: 1000,
-    }),
-    cosmic.objects.find({
-      type: 'posts',
-      props: 'id,slug,title,metadata,created_at',
-      status: 'published',
-      limit: 1000,
-    }),
-    cosmic.objects.find({
-      type: 'videos',
-      props: 'id,slug,title,metadata,created_at',
-      status: 'published',
-      limit: 1000,
-    }),
-    cosmic.objects.find({
-      type: 'takeovers',
-      props: 'id,slug,title,metadata,created_at',
-      status: 'published',
-      limit: 1000,
-    }),
+      .props(searchProps)
+      .limit(200)
+      .sort('-metadata.broadcast_date')
+      .depth(1),
+    cosmic.objects
+      .find({
+        type: 'events',
+        status: 'published',
+      })
+      .props(searchProps)
+      .limit(100)
+      .depth(1),
+    cosmic.objects
+      .find({
+        type: 'posts',
+        status: 'published',
+      })
+      .props(searchProps)
+      .limit(100)
+      .depth(1),
+    cosmic.objects
+      .find({
+        type: 'videos',
+        status: 'published',
+      })
+      .props(searchProps)
+      .limit(100)
+      .depth(1),
+    cosmic.objects
+      .find({
+        type: 'takeovers',
+        status: 'published',
+      })
+      .props(searchProps)
+      .limit(50)
+      .depth(1),
   ]);
   const shows = (showsRes.objects || [])
     .map((item: any) => {
@@ -245,15 +257,16 @@ export async function fetchEpisodesForSearch(): Promise<SearchResult[]> {
 }
 
 // Fetch all filter facets
+// Optimized: Reduced limits and using chained API
 export async function fetchAllFilters(): Promise<{
   genres: FilterItem[];
   locations: FilterItem[];
   hosts: FilterItem[];
 }> {
   const [genresRes, locationsRes, hostsRes] = await Promise.all([
-    cosmic.objects.find({ type: 'genres', props: 'id,slug,title', limit: 1000 }),
-    cosmic.objects.find({ type: 'locations', props: 'id,slug,title', limit: 1000 }),
-    cosmic.objects.find({ type: 'regular-hosts', props: 'id,slug,title', limit: 1000 }),
+    cosmic.objects.find({ type: 'genres', status: 'published' }).props('id,slug,title').limit(200),
+    cosmic.objects.find({ type: 'locations', status: 'published' }).props('id,slug,title').limit(100),
+    cosmic.objects.find({ type: 'regular-hosts', status: 'published' }).props('id,slug,title').limit(200),
   ]);
   const genres = (genresRes.objects || []).map((g: any) => ({
     title: g.title,

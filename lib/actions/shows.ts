@@ -343,11 +343,12 @@ export async function getFeaturedShows({
         type: 'episode',
         status: 'published',
         'metadata.featured_on_homepage': true,
-        limit,
-        skip: offset,
-        sort: '-metadata.broadcast_date',
       })
-      .depth(2);
+      .props('id,slug,title,type,created_at,metadata.image,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage')
+      .limit(limit)
+      .skip(offset)
+      .sort('-metadata.broadcast_date')
+      .depth(1);
 
     return {
       shows: response.objects || [],
@@ -368,12 +369,15 @@ export async function getSeries({
 }> {
   try {
     const cosmicImport = await import('../cosmic-config');
-    const response = await cosmicImport.cosmic.objects.find({
-      type: 'series',
-      status: 'published',
-      limit,
-      skip: offset,
-    });
+    const response = await cosmicImport.cosmic.objects
+      .find({
+        type: 'series',
+        status: 'published',
+      })
+      .props('id,slug,title,type,metadata.image,metadata.description')
+      .limit(limit)
+      .skip(offset)
+      .depth(1);
 
     return {
       shows: response.objects || [],
@@ -417,7 +421,10 @@ export async function getRegularHosts({
       query.title = { $regex: `^${letter}`, $options: 'i' };
     }
 
-    const response = await cosmicImport.cosmic.objects.find(query).depth(2);
+    const response = await cosmicImport.cosmic.objects
+      .find(query)
+      .props('id,slug,title,type,content,metadata.image,metadata.description,metadata.genres,metadata.locations')
+      .depth(1);
     return {
       shows: response.objects || [],
       hasNext: (response.objects || []).length === limit,

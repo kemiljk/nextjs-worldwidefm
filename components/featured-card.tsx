@@ -6,6 +6,7 @@ import { GenreTag } from '@/components/ui/genre-tag';
 import { HighlightedText } from '@/components/ui/highlighted-text';
 import { formatDateShort } from '@/lib/utils';
 import { useMediaPlayer } from './providers/media-player-provider';
+import { getOptimizedImageUrl } from '@/components/ui/optimized-image';
 
 interface FeaturedCardProps {
   show: any; // can type more strictly if you have a Show type
@@ -43,20 +44,13 @@ export function FeaturedCard({ show, priority = false, className = '', href }: F
         <CardContent className='p-0 h-full'>
           <div className='relative group w-full h-full'>
             <img
-              src={
-                (show.metadata?.image?.imgix_url || show.metadata?.image?.url || show.imgix_url)
-                  ? `${show.metadata?.image?.imgix_url || show.metadata?.image?.url || show.imgix_url}?w=600&h=600&fit=crop&auto=format,compress`
-                  : '/image-placeholder.png'
-              }
+              src={getOptimizedImageUrl(
+                show.metadata?.image?.imgix_url || show.metadata?.image?.url || show.imgix_url,
+                { width: 600, height: 600, quality: 80 }
+              )}
               alt={show.title || show.name || 'Show'}
               className='absolute inset-0 w-full h-full object-cover'
-              onError={(e: any) => {
-                if (e?.currentTarget) {
-                  try {
-                    e.currentTarget.src = '/image-placeholder.png';
-                  } catch {}
-                }
-              }}
+              loading='lazy'
             />
             <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-30 transition-opacity pointer-events-none z-10' />
 

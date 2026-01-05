@@ -14,8 +14,9 @@ export const generateMetadata = async (): Promise<Metadata> => {
 };
 
 export default async function ShowsPage() {
+  // Opt into dynamic rendering - ensures Cosmic changes show instantly
   await connection();
-  
+
   const [canonicalGenres, availableFilters, initialShowsData] = await Promise.all([
     getCanonicalGenres(),
     getShowsFilters(),

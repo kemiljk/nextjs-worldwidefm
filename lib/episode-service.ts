@@ -1,3 +1,4 @@
+import { connection } from 'next/server';
 import { cosmic } from './cosmic-config';
 import { EpisodeObject } from './cosmic-types';
 
@@ -24,6 +25,9 @@ export interface EpisodeResponse {
  * Simplified episode service that works directly with Cosmic data
  */
 export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeResponse> {
+  // Signal dynamic rendering before using new Date()
+  await connection();
+
   const baseLimit = params.limit || 20;
   const offset = params.offset || 0;
 
@@ -61,7 +65,11 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
 
         // Fetch a larger set to randomize from
         const fetchLimit = Math.min(baseLimit * 5, 200);
-        const response = await cosmic.objects.find(query).limit(fetchLimit).depth(2);
+        const response = await cosmic.objects
+          .find(query)
+          .props('id,slug,title,type,created_at,metadata.image,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage')
+          .limit(fetchLimit)
+          .depth(1);
 
         const episodes = response.objects || [];
         const shuffled = [...episodes].sort(() => Math.random() - 0.5);
@@ -167,10 +175,11 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     // Fetch episodes from Cosmic
     const response = await cosmic.objects
       .find(query)
+      .props('id,slug,title,type,created_at,metadata.image,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage')
       .limit(baseLimit)
       .skip(offset)
       .sort('-metadata.broadcast_date')
-      .depth(2);
+      .depth(1);
 
     const episodes = response.objects || [];
     const total = response.total || episodes.length;
@@ -262,7 +271,12 @@ export async function getRegularHosts(
       query.title = { $regex: `^${letter}`, $options: 'i' };
     }
 
-    const response = await cosmic.objects.find(query).limit(limit).skip(offset).depth(1);
+    const response = await cosmic.objects
+      .find(query)
+      .props('id,slug,title,type,content,metadata.image,metadata.description,metadata.genres,metadata.locations')
+      .limit(limit)
+      .skip(offset)
+      .depth(1);
 
     const shows = response.objects || [];
     const total = response.total || shows.length;
@@ -309,7 +323,12 @@ export async function getTakeovers(
       query['metadata.location.slug'] = { $in: location };
     }
 
-    const response = await cosmic.objects.find(query).limit(limit).skip(offset).depth(1);
+    const response = await cosmic.objects
+      .find(query)
+      .props('id,slug,title,type,content,metadata.image,metadata.description,metadata.regular_hosts')
+      .limit(limit)
+      .skip(offset)
+      .depth(1);
 
     const shows = response.objects || [];
     const total = response.total || shows.length;
@@ -409,8 +428,10 @@ export async function getEpisodeBySlug(
     status: preview ? 'any' : 'published',
   };
 
+  const episodeProps = 'id,slug,title,type,status,created_at,metadata.image,metadata.broadcast_date,metadata.broadcast_date_old,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.body_text,metadata.player,metadata.tracklist,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage';
+
   try {
-    const response = await cosmic.objects.findOne(query).depth(2);
+    const response = await cosmic.objects.findOne(query).props(episodeProps).depth(1);
     if (response.object) {
       return response.object;
     }
@@ -431,7 +452,7 @@ export async function getEpisodeBySlug(
     };
 
     try {
-      const response = await cosmic.objects.findOne(query).depth(2);
+      const response = await cosmic.objects.findOne(query).props(episodeProps).depth(1);
       if (response.object) {
         return response.object;
       }

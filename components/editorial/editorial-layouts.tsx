@@ -3,6 +3,7 @@ import { ImageGallery } from '@/components/ui/image-gallery';
 import { PostObject } from '@/lib/cosmic-config';
 import { PostVideoPlayer } from './post-video-player';
 import { getPostVideoUrl } from '@/lib/post-thumbnail-utils';
+import { getOptimizedImageUrl } from '@/components/ui/optimized-image';
 
 interface Category {
   id: string;
@@ -28,8 +29,7 @@ interface EditorialLayoutProps {
 // Standard Layout - Current layout
 export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
   const { title, metadata } = post;
-  const baseImageUrl = metadata?.image?.imgix_url;
-  const imageUrl = baseImageUrl ? `${baseImageUrl}?w=1000&auto=format,compress` : '';
+  const imageUrl = metadata?.image?.imgix_url || '';
   const description = metadata?.excerpt || '';
   const content = metadata?.content || '';
   const categories = metadata?.categories || [];
@@ -45,14 +45,14 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
         <div className='sm:w-[80vw] lg:w-[50vw] flex items-center justify-center overflow-hidden relative'>
           {hasVideo ? (
             <PostVideoPlayer post={post} />
-          ) : (
+          ) : imageUrl ? (
             <img
-              src={imageUrl}
+              src={getOptimizedImageUrl(imageUrl, { width: 1000, quality: 85 })}
               alt={`${title} - Featured image`}
               style={{ width: '100%', height: 'auto' }}
               className='object-contain'
             />
-          )}
+          ) : null}
         </div>
 
         {/* Text */}
@@ -108,8 +108,7 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
 // Featured Layout - Large hero with centered content
 export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
   const { title, metadata } = post;
-  const baseImageUrl = metadata?.image?.imgix_url;
-  const imageUrl = baseImageUrl ? `${baseImageUrl}?w=1920&h=1080&fit=crop&auto=format,compress` : '';
+  const imageUrl = metadata?.image?.imgix_url || '';
   const description = metadata?.excerpt || '';
   const content = metadata?.content || '';
   const categories = metadata?.categories || [];
@@ -123,9 +122,13 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
       <div className='relative w-full h-[60vh] mb-20'>
         {hasVideo ? (
           <PostVideoPlayer post={post} className='h-full' />
-        ) : (
-          <img src={imageUrl} alt={`${title} - Featured image`} className='absolute inset-0 w-full h-full object-cover' />
-        )}
+        ) : imageUrl ? (
+          <img
+            src={getOptimizedImageUrl(imageUrl, { width: 1920, height: 1080, quality: 85 })}
+            alt={`${title} - Featured image`}
+            className='absolute inset-0 w-full h-full object-cover'
+          />
+        ) : null}
         <div className='absolute inset-0 bg-black bg-opacity-40 flex items-end'>
           <div className='w-full px-5 md:px-20 pb-20 text-white'>
             <text className='text-[32px] md:text-[60px] lg:text-[80px] leading-none mb-6'>
@@ -179,8 +182,7 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
 // Gallery Layout - Image-focused layout
 export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
   const { title, metadata } = post;
-  const baseImageUrl = metadata?.image?.imgix_url;
-  const imageUrl = baseImageUrl ? `${baseImageUrl}?w=1920&auto=format,compress` : '';
+  const imageUrl = metadata?.image?.imgix_url || '';
   const description = metadata?.excerpt || '';
   const content = metadata?.content || '';
   const categories = metadata?.categories || [];
@@ -220,18 +222,16 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
         <div className='w-full mb-20 px-5 md:px-20'>
           <PostVideoPlayer post={post} />
         </div>
-      ) : (
-        imageUrl && (
-          <div className='w-full mb-20'>
-            <img
-              src={imageUrl}
-              alt={`${title} - Featured image`}
-              style={{ width: '100%', height: 'auto' }}
-              className='object-contain'
-            />
-          </div>
-        )
-      )}
+      ) : imageUrl ? (
+        <div className='w-full mb-20'>
+          <img
+            src={getOptimizedImageUrl(imageUrl, { width: 1920, quality: 85 })}
+            alt={`${title} - Featured image`}
+            style={{ width: '100%', height: 'auto' }}
+            className='object-contain'
+          />
+        </div>
+      ) : null}
 
       {/* Content */}
       {content && (
