@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { connection } from 'next/server';
 import { cosmic } from '@/lib/cosmic-config';
 import { getEpisodesForShows } from '@/lib/episode-service';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
@@ -9,7 +8,9 @@ import { transformShowToViewData } from '@/lib/cosmic-service';
 import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
-import TakeoverClient from './takeover-client';
+import { ShowCard } from '@/components/ui/show-card';
+
+export const revalidate = 60;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -21,15 +22,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const takeover = await getTakeoverBySlug(slug);
 
     if (takeover) {
-      const ogImage = takeover.metadata?.image?.imgix_url
-        ? `${takeover.metadata.image.imgix_url}?w=1200&h=630&fit=crop&auto=format,compress`
-        : undefined;
       return generateBaseMetadata({
         title: `${takeover.title} - Takeover - Worldwide FM`,
         description:
           takeover.metadata?.description ||
           `Experience the ${takeover.title} takeover on Worldwide FM.`,
-        image: ogImage,
+        image: takeover.metadata?.external_image_url || takeover.metadata?.image?.imgix_url,
         keywords: [
           'takeover',
           'guest programming',
@@ -55,6 +53,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
+export async function generateStaticParams() {
+  try {
+    const response = await cosmic.objects
+      .find({
+        type: 'takeovers',
+        status: 'published',
+      })
+      .props('slug')
+      .limit(1000);
+
+    const params =
+      response.objects?.map((takeover: { slug: string }) => ({
+        slug: takeover.slug,
+      })) || [];
+
+    return params;
+  } catch (error) {
+    console.error('Error generating static params for takeovers:', error);
+    return [];
+  }
+}
+
 async function getTakeoverBySlug(slug: string) {
   try {
     const response = await cosmic.objects
@@ -72,31 +92,21 @@ async function getTakeoverBySlug(slug: string) {
   }
 }
 
-async function getTakeoverEpisodes(takeoverId: string, limit: number = 20, retries: number = 3) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const response = await getEpisodesForShows({
-        takeover: takeoverId,
-        limit,
-      });
+async function getRelatedEpisodes(takeoverId: string, limit: number = 12) {
+  try {
+    const response = await getEpisodesForShows({
+      takeover: takeoverId,
+      limit,
+    });
 
-      return (response.shows || []).map(transformShowToViewData);
-    } catch (error) {
-      const isLastAttempt = attempt === retries;
-      if (isLastAttempt) {
-        console.error(`Error fetching episodes for takeover ${takeoverId} after ${retries} attempts:`, error);
-        return [];
-      }
-      // Exponential backoff: 500ms, 1000ms, 2000ms
-      await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt - 1)));
-    }
+    return (response.shows || []).map(transformShowToViewData);
+  } catch (error) {
+    console.error(`Error fetching episodes for takeover ${takeoverId}:`, error);
+    return [];
   }
-  return [];
 }
 
 export default async function TakeoverPage({ params }: { params: Promise<{ slug: string }> }) {
-  await connection();
-  
   const { slug } = await params;
 
   const takeover = await getTakeoverBySlug(slug);
@@ -105,13 +115,10 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
     notFound();
   }
 
-  const initialEpisodes = await getTakeoverEpisodes(takeover.id, 20);
+  const relatedEpisodes = await getRelatedEpisodes(takeover.id, 12);
 
   const displayName = takeover.title || 'Untitled Takeover';
-  const baseImageUrl = takeover.metadata?.image?.imgix_url;
-  const displayImage = baseImageUrl 
-    ? `${baseImageUrl}?w=1200&auto=format,compress`
-    : '/image-placeholder.png';
+  const displayImage = takeover.metadata?.external_image_url || takeover.metadata?.image?.imgix_url || '/image-placeholder.png';
 
   const show = {
     id: takeover.id,
@@ -158,9 +165,28 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
         </div>
       </div>
 
-      <div className='w-full px-5 pt-8'>
-        <TakeoverClient takeoverId={takeover.id} takeoverTitle={takeover.title} initialShows={initialEpisodes} />
-      </div>
+      {relatedEpisodes.length > 0 && (
+        <div className='w-full px-5 pt-8'>
+          <div>
+            <h2 className='text-h8 md:text-h7 font-bold tracking-tight leading-none mb-3'>
+              RELATED EPISODES
+            </h2>
+            <div className='grid grid-cols-2 lg:grid-cols-4 md:grid-cols-3 gap-3'>
+              {relatedEpisodes.map(relatedEpisode => {
+                const slug = `/episode/${relatedEpisode.slug}`;
+                return (
+                  <ShowCard
+                    key={relatedEpisode.id || relatedEpisode.slug}
+                    show={relatedEpisode}
+                    slug={slug}
+                    playable
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

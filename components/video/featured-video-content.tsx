@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { VideoObject } from '@/lib/cosmic-config';
 import { GenreTag } from '@/components/ui/genre-tag';
@@ -57,9 +58,8 @@ export default function FeaturedVideoContent({
   const vimeoId = featuredVideo.metadata?.video_url
     ? getVimeoThumbnail(featuredVideo.metadata.video_url)
     : '';
-  const thumbnailUrl = featuredVideo.metadata?.image?.imgix_url
-    ? `${featuredVideo.metadata.image.imgix_url}?w=1200&h=675&fit=crop&auto=format,compress`
-    : youtubeId || vimeoId || '/image-placeholder.png';
+  const thumbnailUrl =
+    featuredVideo.metadata?.external_image_url || featuredVideo.metadata?.image?.imgix_url || youtubeId || vimeoId || '/image-placeholder.png';
 
   const categoryObjects = Array.isArray(featuredVideo.metadata.categories)
     ? featuredVideo.metadata.categories
@@ -85,10 +85,11 @@ export default function FeaturedVideoContent({
           <Card className='flex flex-col h-full'>
             <CardContent className='flex flex-col flex-1 p-0 border border-white group-hover:border-almostblack'>
               <div className={`relative ${aspectRatioClass} w-full`}>
-                <img
+                <Image
                   src={thumbnailUrl}
                   alt={featuredVideo.title}
-                  className='absolute inset-0 w-full h-full object-cover'
+                  fill
+                  className='object-cover'
                 />
                 {categoryObjects.length > 0 && (
                   <div className='absolute top-3 left-3 flex flex-wrap gap-1'>

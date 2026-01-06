@@ -605,9 +605,7 @@ export function mapShowsToSearchItems(shows: any[]): SearchItem[] {
         description: show.metadata?.description || '',
         excerpt: show.metadata?.subtitle || '',
         date: show.metadata?.broadcast_date || show.created_at,
-        image: (show.metadata?.image?.imgix_url || show.metadata?.image?.url)
-          ? `${show.metadata?.image?.imgix_url || show.metadata?.image?.url}?w=400&h=400&fit=crop&auto=format,compress`
-          : '',
+        image: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || show.metadata?.image?.url || '',
         contentType: 'episodes',
         genres: mapFilterItems(show.metadata?.genres || [], 'genres'),
         locations: mapFilterItems(show.metadata?.locations || [], 'locations'),
@@ -630,9 +628,7 @@ function mapPostsToSearchItems(posts: any[]): SearchItem[] {
     description: post.metadata?.description || '',
     excerpt: post.metadata?.excerpt || post.metadata?.content || '',
     date: post.metadata?.date || post.created_at,
-    image: (post.metadata?.image?.imgix_url || post.metadata?.image?.url)
-      ? `${post.metadata?.image?.imgix_url || post.metadata?.image?.url}?w=400&h=400&fit=crop&auto=format,compress`
-      : '',
+    image: post.metadata?.external_image_url || post.metadata?.image?.imgix_url || post.metadata?.image?.url || '',
     contentType: 'posts',
     genres: mapFilterItems(post.metadata?.categories || [], 'genres'),
     locations: [],
@@ -653,10 +649,12 @@ function mapVideosToSearchItems(videos: any[]): SearchItem[] {
     description: video.metadata?.description || '',
     excerpt: video.metadata?.excerpt || '',
     date: video.metadata?.date || video.created_at,
-    image: (() => {
-      const baseUrl = video.metadata?.image?.imgix_url || video.metadata?.image?.url || video.metadata?.thumbnail?.imgix_url;
-      return baseUrl ? `${baseUrl}?w=400&h=400&fit=crop&auto=format,compress` : '';
-    })(),
+    image:
+      video.metadata?.external_image_url ||
+      video.metadata?.image?.imgix_url ||
+      video.metadata?.image?.url ||
+      video.metadata?.thumbnail?.imgix_url ||
+      '',
     contentType: 'videos',
     genres: mapFilterItems(video.metadata?.genres || [], 'genres'),
     locations: mapFilterItems(video.metadata?.locations || [], 'locations'),

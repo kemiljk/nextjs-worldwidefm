@@ -32,6 +32,10 @@ const OBJECT_TYPES_WITH_IMAGES = [
   'events',
   'genres',
   'locations',
+  'show-types',
+  'about',
+  'post-categories',
+  'video-categories',
 ];
 
 interface MediaItem {

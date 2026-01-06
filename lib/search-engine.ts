@@ -33,7 +33,7 @@ const stripHtmlTags = (html: string): string => {
 };
 
 const getImage = (meta: any): string | undefined =>
-  meta?.image?.imgix_url || meta?.image?.url || undefined;
+  meta?.external_image_url || meta?.image?.imgix_url || meta?.image?.url || undefined;
 const getGenres = (meta: any): FilterItem[] =>
   (meta?.categories || meta?.genres || []).filter(Boolean).map((cat: any) => ({
     title: cat.title,

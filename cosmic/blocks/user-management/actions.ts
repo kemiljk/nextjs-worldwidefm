@@ -609,36 +609,30 @@ export async function getDashboardData(userId: string) {
         });
 
         // Transform Cosmic data to match ShowCard expectations
-        return (cosmicResponse.objects || []).map((show: any) => {
-          const baseImageUrl = show.metadata?.image?.imgix_url;
-          const optimizedImage = baseImageUrl 
-            ? `${baseImageUrl}?w=400&h=400&fit=crop&auto=format,compress`
-            : '/image-placeholder.png';
-          return {
-            ...show,
-            key: show.slug || show.id,
-            name: show.title || 'Untitled Show',
-            url: `/episode/${show.slug || show.id}`,
-            pictures: {
-              large: optimizedImage,
-              extra_large: optimizedImage,
-            },
-            enhanced_image: optimizedImage,
-            created_time: show.metadata?.broadcast_date || show.created_at,
-            broadcast_date: show.metadata?.broadcast_date || show.created_at,
-            tags: (show.metadata?.genres || []).map((genre: any) => ({
-              name: genre.title || genre.name || 'Unknown Genre',
-              title: genre.title || genre.name || 'Unknown Genre',
-            })),
-            enhanced_genres: show.metadata?.genres || [],
-            user: {
-              name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
-            },
-            host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
-            location: show.metadata?.locations?.[0] || null,
-            __source: 'episode' as const,
-          };
-        });
+        return (cosmicResponse.objects || []).map((show: any) => ({
+          ...show,
+          key: show.slug || show.id,
+          name: show.title || 'Untitled Show',
+          url: `/episode/${show.slug || show.id}`,
+          pictures: {
+            large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            extra_large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+          },
+          enhanced_image: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+          created_time: show.metadata?.broadcast_date || show.created_at,
+          broadcast_date: show.metadata?.broadcast_date || show.created_at,
+          tags: (show.metadata?.genres || []).map((genre: any) => ({
+            name: genre.title || genre.name || 'Unknown Genre',
+            title: genre.title || genre.name || 'Unknown Genre',
+          })),
+          enhanced_genres: show.metadata?.genres || [],
+          user: {
+            name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
+          },
+          host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
+          location: show.metadata?.locations?.[0] || null,
+          __source: 'episode' as const,
+        }));
       } catch (error: any) {
         console.error('Error fetching shows by genre:', error);
         return [];
@@ -660,36 +654,30 @@ export async function getDashboardData(userId: string) {
         });
 
         // Transform Cosmic data to match ShowCard expectations
-        return (cosmicResponse.objects || []).map((show: any) => {
-          const baseImageUrl = show.metadata?.image?.imgix_url;
-          const optimizedImage = baseImageUrl 
-            ? `${baseImageUrl}?w=400&h=400&fit=crop&auto=format,compress`
-            : '/image-placeholder.png';
-          return {
-            ...show,
-            key: show.slug,
-            name: show.title,
-            url: `/episode/${show.slug}`,
-            pictures: {
-              large: optimizedImage,
-              extra_large: optimizedImage,
-            },
-            enhanced_image: optimizedImage,
-            created_time: show.metadata?.broadcast_date || show.created_at,
-            broadcast_date: show.metadata?.broadcast_date || show.created_at,
-            tags: (show.metadata?.genres || []).map((genre: any) => ({
-              name: genre.title || genre.name,
-              title: genre.title || genre.name,
-            })),
-            enhanced_genres: show.metadata?.genres || [],
-            user: {
-              name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
-            },
-            host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
-            location: show.metadata?.locations?.[0] || null,
-            __source: 'episode' as const,
-          };
-        });
+        return (cosmicResponse.objects || []).map((show: any) => ({
+          ...show,
+          key: show.slug,
+          name: show.title,
+          url: `/episode/${show.slug}`,
+          pictures: {
+            large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            extra_large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+          },
+          enhanced_image: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+          created_time: show.metadata?.broadcast_date || show.created_at,
+          broadcast_date: show.metadata?.broadcast_date || show.created_at,
+          tags: (show.metadata?.genres || []).map((genre: any) => ({
+            name: genre.title || genre.name,
+            title: genre.title || genre.name,
+          })),
+          enhanced_genres: show.metadata?.genres || [],
+          user: {
+            name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
+          },
+          host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
+          location: show.metadata?.locations?.[0] || null,
+          __source: 'episode' as const,
+        }));
       } catch (error: any) {
         console.error('Error fetching shows by host:', error);
         return [];

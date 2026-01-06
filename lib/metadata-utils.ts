@@ -104,8 +104,9 @@ export function generateHomepageMetadata(cosmicData?: any): Metadata {
   };
 
   // Try to get a hero image from Cosmic data
-  if (cosmicData?.metadata?.heroItems?.[0]?.metadata?.image?.imgix_url) {
-    baseConfig.image = `${cosmicData.metadata.heroItems[0].metadata.image.imgix_url}?w=1200&h=630&fit=crop&auto=format,compress`;
+  const heroItem = cosmicData?.metadata?.heroItems?.[0];
+  if (heroItem?.metadata?.external_image_url || heroItem?.metadata?.image?.imgix_url) {
+    baseConfig.image = heroItem.metadata.external_image_url || heroItem.metadata.image.imgix_url;
   }
 
   return generateBaseMetadata(baseConfig);
@@ -129,7 +130,7 @@ export function generateAboutMetadata(cosmicData?: any): Metadata {
   };
 
   if (cosmicData?.metadata?.hero_image?.imgix_url) {
-    baseConfig.image = `${cosmicData.metadata.hero_image.imgix_url}?w=1200&h=630&fit=crop&auto=format,compress`;
+    baseConfig.image = cosmicData.metadata.hero_image.imgix_url;
   }
 
   return generateBaseMetadata(baseConfig);
@@ -172,14 +173,12 @@ export function generateEditorialMetadata(cosmicData?: any): Metadata {
     ],
     ogTitle: cosmicData?.metadata?.seo?.og_title,
     ogDescription: cosmicData?.metadata?.seo?.og_description,
-    ogImage: cosmicData?.metadata?.seo?.og_image?.imgix_url 
-      ? `${cosmicData.metadata.seo.og_image.imgix_url}?w=1200&h=630&fit=crop&auto=format,compress`
-      : undefined,
+    ogImage: cosmicData?.metadata?.seo?.og_image?.imgix_url,
   };
 
   // Try to get a hero image from Cosmic data if no OG image is set
   if (!baseConfig.ogImage && cosmicData?.metadata?.hero_image?.imgix_url) {
-    baseConfig.image = `${cosmicData.metadata.hero_image.imgix_url}?w=1200&h=630&fit=crop&auto=format,compress`;
+    baseConfig.image = cosmicData.metadata.hero_image.imgix_url;
   }
 
   return generateBaseMetadata(baseConfig);
@@ -279,9 +278,7 @@ export function generateShowMetadata(showData: any): Metadata {
     title: `${title} - Worldwide FM`,
     description,
     keywords: ['radio show', 'music', 'worldwide fm', title.toLowerCase()],
-    image: showData?.metadata?.image?.imgix_url 
-      ? `${showData.metadata.image.imgix_url}?w=1200&h=630&fit=crop&auto=format,compress`
-      : undefined,
+    image: showData?.metadata?.external_image_url || showData?.metadata?.image?.imgix_url,
   });
 }
 
@@ -302,9 +299,8 @@ export function generatePostMetadata(postData: any): Metadata {
     postData?.metadata?.description ||
     `Read ${title} on Worldwide FM`;
 
-  // Use OG image if available, otherwise fall back to regular image - optimize for OG size
-  const rawImage = ogImage || postData?.metadata?.image?.imgix_url;
-  const image = rawImage ? `${rawImage}?w=1200&h=630&fit=crop&auto=format,compress` : undefined;
+  // Use OG image if available, otherwise fall back to regular image
+  const image = ogImage || postData?.metadata?.external_image_url || postData?.metadata?.image?.imgix_url;
 
   // Generate keywords from categories and title
   const categoryKeywords =
@@ -339,8 +335,6 @@ export function generateVideoMetadata(videoData: any): Metadata {
     title: `${title} - Worldwide FM`,
     description,
     keywords: ['video', 'music video', 'worldwide fm', title.toLowerCase()],
-    image: videoData?.metadata?.image?.imgix_url
-      ? `${videoData.metadata.image.imgix_url}?w=1200&h=630&fit=crop&auto=format,compress`
-      : undefined,
+    image: videoData?.metadata?.external_image_url || videoData?.metadata?.image?.imgix_url,
   });
 }

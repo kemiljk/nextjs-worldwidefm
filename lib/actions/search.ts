@@ -14,13 +14,12 @@ import { getAllShows, getRegularHosts, getTakeovers } from './shows';
 
 export async function getAllSearchableContent(limit?: number): Promise<SearchResult[]> {
   try {
-    // Optimized: Reduced default limit from 1000 to 200 for better performance
-    const showsLimit = limit ?? 200;
+    const showsLimit = limit ?? 1000;
     const [postsResponse, showsResponse, hostsResponse, takeoversResponse] = await Promise.all([
       getAllPosts(),
       getAllShows(0, showsLimit),
-      getRegularHosts({ limit: Math.min(showsLimit, 100) }),
-      getTakeovers({ limit: Math.min(showsLimit, 50) }),
+      getRegularHosts({ limit: showsLimit }),
+      getTakeovers({ limit: showsLimit }),
     ]);
 
     const normalizeFilterItems = (items: any[] = []): FilterItem[] => {
@@ -44,9 +43,7 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           type: 'posts',
           description: post.metadata?.content || '',
           excerpt: post.metadata?.excerpt || '',
-          image: post.metadata?.image?.imgix_url 
-            ? `${post.metadata.image.imgix_url}?w=400&h=400&fit=crop&auto=format,compress`
-            : '/image-placeholder.png',
+          image: post.metadata?.external_image_url || post.metadata?.image?.imgix_url || '/image-placeholder.png',
           date: post.metadata?.date || '',
           categories: normalizeFilterItems(categories),
           author:
@@ -66,9 +63,7 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           type: 'episodes',
           description: show.metadata?.description || '',
           excerpt: show.metadata?.subtitle || '',
-          image: show.metadata?.image?.imgix_url 
-            ? `${show.metadata.image.imgix_url}?w=400&h=400&fit=crop&auto=format,compress`
-            : '/image-placeholder.png',
+          image: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
           date: show.metadata?.broadcast_date || '',
           genres: normalizeFilterItems(show.metadata?.genres || []),
           locations: normalizeFilterItems(show.metadata?.locations || []),
@@ -87,9 +82,7 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           slug: host.slug,
           type: 'hosts-series',
           description: host.metadata?.description || host.content || '',
-          image: host.metadata?.image?.imgix_url 
-            ? `${host.metadata.image.imgix_url}?w=400&h=400&fit=crop&auto=format,compress`
-            : '/image-placeholder.png',
+          image: host.metadata?.external_image_url || host.metadata?.image?.imgix_url || '/image-placeholder.png',
           date: host.created_at || '',
           genres: normalizeFilterItems(host.metadata?.genres || []),
           locations: normalizeFilterItems(host.metadata?.locations || []),
@@ -103,9 +96,7 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           slug: takeover.slug,
           type: 'takeovers',
           description: takeover.metadata?.description || takeover.content || '',
-          image: takeover.metadata?.image?.imgix_url 
-            ? `${takeover.metadata.image.imgix_url}?w=400&h=400&fit=crop&auto=format,compress`
-            : '/image-placeholder.png',
+          image: takeover.metadata?.external_image_url || takeover.metadata?.image?.imgix_url || '/image-placeholder.png',
           date: takeover.created_at || '',
           hosts: normalizeFilterItems(takeover.metadata?.regular_hosts || []),
           metadata: takeover.metadata || {},
@@ -127,15 +118,13 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
 export async function searchContent(
   query?: string,
   source?: string,
-  limit: number = 50
+  limit: number = 100
 ): Promise<SearchResult[]> {
   try {
     const safeString = (val: any): string | undefined =>
       typeof val === 'string' && val.trim() ? val : undefined;
-    const getImage = (meta: any): string | undefined => {
-      const baseUrl = meta?.image?.imgix_url || meta?.image?.url;
-      return baseUrl ? `${baseUrl}?w=400&h=400&fit=crop&auto=format,compress` : undefined;
-    };
+    const getImage = (meta: any): string | undefined =>
+      meta?.external_image_url || meta?.image?.imgix_url || meta?.image?.url || undefined;
     const getGenres = (meta: any): FilterItem[] =>
       (meta?.categories || [])
         .filter(Boolean)

@@ -1,10 +1,10 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { PostObject, AuthorObject } from '@/lib/cosmic-config';
 import { Card, CardContent } from '@/components/ui/card';
 import { GenreTag } from '@/components/ui/genre-tag';
 import { formatDate } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
-import { getOptimizedImageUrl } from '@/components/ui/optimized-image';
 
 interface ArticlesSectionProps {
   title: string;
@@ -41,11 +41,11 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
             >
               <CardContent className='p-0 grow flex flex-col'>
                 <div className='relative aspect-[1.1/1] w-full border-b border-black dark:border-white bg-gray-100 flex items-center justify-center'>
-                  <img
-                    src={getOptimizedImageUrl(article.metadata.image?.imgix_url, { width: 600, height: 660, quality: 80 })}
+                  <Image
+                    src={article.metadata.external_image_url || article.metadata.image?.imgix_url || '/image-placeholder.png'}
                     alt={article.title}
-                    className='absolute inset-0 w-full h-full object-cover'
-                    loading='lazy'
+                    fill
+                    className='object-cover'
                   />
                 </div>
                 <div className='flex flex-col gap-2 p-5 flex-1 justify-end'>

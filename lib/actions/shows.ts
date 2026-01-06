@@ -105,14 +105,14 @@ export async function getShowBySlug(slug: string): Promise<ShowData | null> {
           name: show.title,
           url: `/episode/${show.slug}`,
           pictures: {
-            small: show.metadata?.image?.imgix_url ? `${show.metadata.image.imgix_url}?w=100&h=100&fit=crop&auto=format,compress` : '/image-placeholder.png',
-            thumbnail: show.metadata?.image?.imgix_url ? `${show.metadata.image.imgix_url}?w=150&h=150&fit=crop&auto=format,compress` : '/image-placeholder.png',
-            medium_mobile: show.metadata?.image?.imgix_url ? `${show.metadata.image.imgix_url}?w=300&h=300&fit=crop&auto=format,compress` : '/image-placeholder.png',
-            medium: show.metadata?.image?.imgix_url ? `${show.metadata.image.imgix_url}?w=400&h=400&fit=crop&auto=format,compress` : '/image-placeholder.png',
-            large: show.metadata?.image?.imgix_url ? `${show.metadata.image.imgix_url}?w=600&h=600&fit=crop&auto=format,compress` : '/image-placeholder.png',
-            '320wx320h': show.metadata?.image?.imgix_url ? `${show.metadata.image.imgix_url}?w=320&h=320&fit=crop&auto=format,compress` : '/image-placeholder.png',
-            extra_large: show.metadata?.image?.imgix_url ? `${show.metadata.image.imgix_url}?w=800&h=800&fit=crop&auto=format,compress` : '/image-placeholder.png',
-            '640wx640h': show.metadata?.image?.imgix_url ? `${show.metadata.image.imgix_url}?w=640&h=640&fit=crop&auto=format,compress` : '/image-placeholder.png',
+            small: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            thumbnail: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            medium_mobile: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            medium: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            '320wx320h': show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            extra_large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            '640wx640h': show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
           },
           created_time: show.metadata?.broadcast_date || show.created_at,
           updated_time: show.modified_at,
@@ -133,14 +133,14 @@ export async function getShowBySlug(slug: string): Promise<ShowData | null> {
             name: host.title || '',
             username: host.slug || host.id || '',
             pictures: {
-              small: host.metadata?.image?.imgix_url ? `${host.metadata.image.imgix_url}?w=100&h=100&fit=crop&auto=format,compress` : '/image-placeholder.png',
-              thumbnail: host.metadata?.image?.imgix_url ? `${host.metadata.image.imgix_url}?w=150&h=150&fit=crop&auto=format,compress` : '/image-placeholder.png',
-              medium_mobile: host.metadata?.image?.imgix_url ? `${host.metadata.image.imgix_url}?w=300&h=300&fit=crop&auto=format,compress` : '/image-placeholder.png',
-              medium: host.metadata?.image?.imgix_url ? `${host.metadata.image.imgix_url}?w=400&h=400&fit=crop&auto=format,compress` : '/image-placeholder.png',
-              large: host.metadata?.image?.imgix_url ? `${host.metadata.image.imgix_url}?w=600&h=600&fit=crop&auto=format,compress` : '/image-placeholder.png',
-              '320wx320h': host.metadata?.image?.imgix_url ? `${host.metadata.image.imgix_url}?w=320&h=320&fit=crop&auto=format,compress` : '/image-placeholder.png',
-              extra_large: host.metadata?.image?.imgix_url ? `${host.metadata.image.imgix_url}?w=800&h=800&fit=crop&auto=format,compress` : '/image-placeholder.png',
-              '640wx640h': host.metadata?.image?.imgix_url ? `${host.metadata.image.imgix_url}?w=640&h=640&fit=crop&auto=format,compress` : '/image-placeholder.png',
+              small: host.metadata?.external_image_url || host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              thumbnail: host.metadata?.external_image_url || host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              medium_mobile: host.metadata?.external_image_url || host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              medium: host.metadata?.external_image_url || host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              large: host.metadata?.external_image_url || host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              '320wx320h': host.metadata?.external_image_url || host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              extra_large: host.metadata?.external_image_url || host.metadata?.image?.imgix_url || '/image-placeholder.png',
+              '640wx640h': host.metadata?.external_image_url || host.metadata?.image?.imgix_url || '/image-placeholder.png',
             },
           })),
           hidden_stats: false,
@@ -343,12 +343,11 @@ export async function getFeaturedShows({
         type: 'episode',
         status: 'published',
         'metadata.featured_on_homepage': true,
+        limit,
+        skip: offset,
+        sort: '-metadata.broadcast_date',
       })
-      .props('id,slug,title,type,created_at,metadata.image,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage')
-      .limit(limit)
-      .skip(offset)
-      .sort('-metadata.broadcast_date')
-      .depth(1);
+      .depth(2);
 
     return {
       shows: response.objects || [],
@@ -369,15 +368,12 @@ export async function getSeries({
 }> {
   try {
     const cosmicImport = await import('../cosmic-config');
-    const response = await cosmicImport.cosmic.objects
-      .find({
-        type: 'series',
-        status: 'published',
-      })
-      .props('id,slug,title,type,metadata.image,metadata.description')
-      .limit(limit)
-      .skip(offset)
-      .depth(1);
+    const response = await cosmicImport.cosmic.objects.find({
+      type: 'series',
+      status: 'published',
+      limit,
+      skip: offset,
+    });
 
     return {
       shows: response.objects || [],
@@ -421,10 +417,7 @@ export async function getRegularHosts({
       query.title = { $regex: `^${letter}`, $options: 'i' };
     }
 
-    const response = await cosmicImport.cosmic.objects
-      .find(query)
-      .props('id,slug,title,type,content,metadata.image,metadata.description,metadata.genres,metadata.locations')
-      .depth(1);
+    const response = await cosmicImport.cosmic.objects.find(query).depth(2);
     return {
       shows: response.objects || [],
       hasNext: (response.objects || []).length === limit,

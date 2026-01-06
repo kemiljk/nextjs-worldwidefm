@@ -233,9 +233,7 @@ export default function EditorialSection({
                     key={`event-${event.id}`}
                     title={event.title}
                     slug={event.slug}
-                    image={event.metadata?.image?.imgix_url 
-                      ? `${event.metadata.image.imgix_url}?w=600&h=600&fit=crop&auto=format,compress`
-                      : '/image-placeholder.png'}
+                    image={event.metadata?.external_image_url || event.metadata?.image?.imgix_url || '/image-placeholder.png'}
                     eventDate={event.metadata.event_date}
                     location={event.metadata.location}
                     ticketLink={event.metadata.ticket_link}

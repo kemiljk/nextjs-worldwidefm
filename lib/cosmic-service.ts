@@ -143,27 +143,25 @@ export async function getRadioShows(
       }
 
       if (genre) {
-        // Match genre IDs directly - genres stores ID strings, not objects
         query = {
           ...query,
-          'metadata.genres': genre,
+          'metadata.genres.id': genre,
         };
       }
 
       if (host) {
         const hosts = Array.isArray(host) ? host : [host];
-        // Match host IDs directly - regular_hosts stores ID strings, not objects
+        // Try a simpler approach - match any host ID in the regular_hosts array
         query = {
           ...query,
-          'metadata.regular_hosts': { $in: hosts },
+          'metadata.regular_hosts.id': { $in: hosts },
         };
       }
 
       if (takeover) {
-        // Match takeover IDs directly - takeovers stores ID strings, not objects
         query = {
           ...query,
-          'metadata.takeovers': takeover,
+          'metadata.takeovers.id': takeover,
         };
       }
     } else {
@@ -176,11 +174,11 @@ export async function getRadioShows(
 
     const response = await cosmic.objects
       .find(query)
-      .props('id,slug,title,type,created_at,metadata.image,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage')
+      .props('slug,title,metadata,type')
       .limit(params.limit || 10)
       .skip(params.skip || 0)
       .sort(params.sort || '-metadata.broadcast_date')
-      .depth(1);
+      .depth(3);
 
     return {
       objects: response.objects || [],
@@ -313,10 +311,7 @@ export async function getSchedule(): Promise<CosmicResponse<Schedule> | null> {
  * Helper function to transform Cosmic data to the format used in the mock data
  */
 export function transformShowToViewData(show: RadioShowObject | EpisodeObject) {
-  const baseImageUrl = show.metadata?.image?.imgix_url;
-  const imageUrl = baseImageUrl 
-    ? `${baseImageUrl}?w=400&h=400&fit=crop&auto=format,compress`
-    : '/image-placeholder.png';
+  const imageUrl = (show.metadata as any)?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png';
   const transformed = {
     id: show.id,
     title: show.title,
@@ -325,7 +320,7 @@ export function transformShowToViewData(show: RadioShowObject | EpisodeObject) {
     description: show.metadata?.description || '',
     featured_on_homepage: show.metadata?.featured_on_homepage || false,
     image: imageUrl,
-    thumbnail: baseImageUrl ? `${baseImageUrl}?w=100&h=100&fit=crop&auto=format,compress` : '/image-placeholder.png',
+    thumbnail: imageUrl ? `${imageUrl}?w=100&h=100&fit=crop` : '/image-placeholder.png',
     slug: show.slug,
     broadcast_date: show.metadata?.broadcast_date || '',
     broadcast_time: show.metadata?.broadcast_time || '',
@@ -455,7 +450,7 @@ export async function getEditorialHomepage(): Promise<any> {
         slug: 'editorial',
       })
       .props('slug,title,metadata')
-      .depth(1);
+      .depth(2); // Increased depth to get nested objects
 
     return response;
   } catch (error) {
@@ -531,8 +526,8 @@ export async function getAboutPage(): Promise<AboutPage> {
       type: 'about',
       slug: 'about',
     })
-    .props('slug,title,type,metadata')
-    .depth(1);
+    .props('metadata')
+    .depth(2);
 
   return object;
 }
@@ -551,7 +546,7 @@ export async function getHosts(
   try {
     const response = await cosmic.objects
       .find({
-        type: 'regular-hosts',
+        type: 'hosts',
         status: params.status || 'published',
       })
       .props('id,slug,title,content,metadata')
@@ -576,7 +571,7 @@ export async function getHosts(
 export async function getHostBySlug(slug: string): Promise<CosmicResponse<any>> {
   try {
     const response = await cosmic.objects
-      .findOne({ type: 'regular-hosts', slug })
+      .findOne({ type: 'hosts', slug })
       .props('id,slug,title,content,metadata')
       .depth(1);
     return response;
@@ -593,7 +588,7 @@ export async function getHostByName(name: string): Promise<any | null> {
   try {
     const response = await cosmic.objects
       .find({
-        type: 'regular-hosts',
+        type: 'hosts',
         title: { $regex: name, $options: 'i' },
       })
       .props('id,slug,title,content,metadata')

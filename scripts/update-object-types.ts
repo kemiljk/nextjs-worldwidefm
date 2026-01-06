@@ -41,7 +41,7 @@ const externalImageUrlField: Metafield = {
   helptext: 'URL for images stored externally (Vercel Blob). Used for cold storage to reduce Cosmic storage costs.',
 };
 
-// Existing object type updates
+// Existing object type updates - add external_image_url to ALL object types with images
 const updates: ObjectTypeUpdateConfig[] = [
   {
     slug: 'posts',
@@ -82,6 +82,35 @@ const updates: ObjectTypeUpdateConfig[] = [
   },
   {
     slug: 'locations',
+    newMetafields: [externalImageUrlField],
+  },
+  {
+    slug: 'show-types',
+    newMetafields: [externalImageUrlField],
+  },
+  {
+    slug: 'about',
+    newMetafields: [
+      {
+        ...externalImageUrlField,
+        title: 'External Hero Image URL',
+        key: 'external_hero_image_url',
+        helptext: 'URL for hero image stored externally (Vercel Blob). Used for cold storage.',
+      },
+      {
+        ...externalImageUrlField,
+        title: 'External Story Image URL',
+        key: 'external_story_image_url',
+        helptext: 'URL for story image stored externally (Vercel Blob). Used for cold storage.',
+      },
+    ],
+  },
+  {
+    slug: 'post-categories',
+    newMetafields: [externalImageUrlField],
+  },
+  {
+    slug: 'video-categories',
     newMetafields: [externalImageUrlField],
   },
 ];

@@ -66,6 +66,10 @@ const CONFIG = {
     'events',
     'genres',
     'locations',
+    'show-types',
+    'about',
+    'post-categories',
+    'video-categories',
   ],
 };
 

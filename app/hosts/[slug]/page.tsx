@@ -1,17 +1,19 @@
 import { Metadata } from 'next';
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { connection } from 'next/server';
-import { getRadioShows, transformShowToViewData } from '@/lib/cosmic-service';
+import { getRadioShows } from '@/lib/cosmic-service';
 import { cosmic } from '@/lib/cosmic-config';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
+import { transformShowToViewData } from '@/lib/cosmic-service';
 import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
+import { ShowCard } from '@/components/ui/show-card';
 import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
 import { FavoriteButton } from '@/components/favorite-button';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
-import HostClient from './host-client';
+
+export const revalidate = 60;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -23,14 +25,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const host = await getHostBySlug(slug);
 
     if (host) {
-      const ogImage = host.metadata?.image?.imgix_url
-        ? `${host.metadata.image.imgix_url}?w=1200&h=630&fit=crop&auto=format,compress`
-        : undefined;
       return generateBaseMetadata({
         title: `${host.title} - Host - Worldwide FM`,
         description:
           host.metadata?.description || `Listen to shows hosted by ${host.title} on Worldwide FM.`,
-        image: ogImage,
+        image: host.metadata?.external_image_url || host.metadata?.image?.imgix_url,
         keywords: ['host', 'dj', 'presenter', 'radio', 'worldwide fm', host.title.toLowerCase()],
       });
     }
@@ -47,6 +46,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: 'The requested host could not be found.',
       noIndex: true,
     });
+  }
+}
+
+export async function generateStaticParams() {
+  try {
+    const response = await cosmic.objects
+      .find({
+        type: 'regular-hosts',
+        status: 'published',
+      })
+      .props('slug')
+      .limit(1000);
+
+    const params =
+      response.objects?.map((host: { slug: string }) => ({
+        slug: host.slug,
+      })) || [];
+
+    return params;
+  } catch (error) {
+    console.error('Error generating static params for hosts:', error);
+    return [];
   }
 }
 
@@ -67,29 +88,85 @@ async function getHostBySlug(slug: string) {
   }
 }
 
-async function getHostEpisodes(hostId: string, limit: number = 20) {
+async function getRelatedShows(hostId: string, limit: number = 12) {
   try {
-    const response = await getRadioShows({
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const result: any[] = [];
+    const excludeIds: string[] = [];
+
+    const hostResponse = await getRadioShows({
       filters: { host: hostId },
       limit,
       sort: '-metadata.broadcast_date',
     });
 
-    return (response.objects || []).map(transformShowToViewData);
-  } catch (error: any) {
-    // 404 means no episodes for this host - expected, return empty array
-    if (error?.status === 404 || error?.message?.includes('404') || error?.message?.includes('No objects found')) {
-      return [];
+    const hostShows = (hostResponse.objects || []).map(transformShowToViewData);
+    result.push(...hostShows);
+    excludeIds.push(...hostShows.map((s: any) => s.id));
+
+    if (result.length < limit) {
+      const hostGenres =
+        hostShows.length > 0 ? hostShows[0]?.metadata?.genres?.map((g: any) => g.id) || [] : [];
+
+      if (hostGenres.length > 0) {
+        const genreResponse = await getRadioShows({
+          filters: { genre: hostGenres[0] },
+          limit: limit - result.length + 10,
+          sort: '-metadata.broadcast_date',
+        });
+
+        const genreShows = (genreResponse.objects || [])
+          .map(transformShowToViewData)
+          .filter((show: any) => {
+            const showHostIds = show.metadata?.regular_hosts?.map((h: any) => h.id) || [];
+            return !showHostIds.includes(hostId) && !excludeIds.includes(show.id);
+          })
+          .slice(0, limit - result.length);
+
+        result.push(...genreShows);
+        excludeIds.push(...genreShows.map((s: any) => s.id));
+      }
+
+      if (result.length < limit) {
+        const remainingLimit = limit - result.length;
+        const randomResponse = await cosmic.objects
+          .find({
+            type: 'episode',
+            status: 'published',
+            id: { $nin: excludeIds },
+            'metadata.broadcast_date': { $lte: todayStr },
+          })
+          .limit(remainingLimit * 2)
+          .sort('-metadata.broadcast_date')
+          .depth(2);
+
+        const randomShows = (randomResponse.objects || [])
+          .map(transformShowToViewData)
+          .filter((show: any) => {
+            const showHostIds = show.metadata?.regular_hosts?.map((h: any) => h.id) || [];
+            return !showHostIds.includes(hostId) && !excludeIds.includes(show.id);
+          })
+          .slice(0, remainingLimit);
+
+        result.push(...randomShows);
+      }
     }
-    // Only log unexpected errors
-    console.error(`Error fetching episodes for host ${hostId}:`, error);
+
+    result.sort((a, b) => {
+      const dateA = a.broadcast_date || a.metadata?.broadcast_date || '';
+      const dateB = b.broadcast_date || b.metadata?.broadcast_date || '';
+      return dateB.localeCompare(dateA);
+    });
+
+    return result.slice(0, limit);
+  } catch (error) {
+    console.error(`Error fetching related shows for host ${hostId}:`, error);
     return [];
   }
 }
 
 export default async function HostPage({ params }: { params: Promise<{ slug: string }> }) {
-  await connection();
-  
   const { slug } = await params;
 
   const host = await getHostBySlug(slug);
@@ -98,7 +175,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
     notFound();
   }
 
-  const initialEpisodes = await getHostEpisodes(host.id, 20);
+  const relatedShows = await getRelatedShows(host.id, 12);
 
   const user = await getAuthUser();
   let isFavorited = false;
@@ -118,10 +195,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
   }
 
   const displayName = host.title || 'Untitled Host';
-  const baseImageUrl = host.metadata?.image?.imgix_url;
-  const displayImage = baseImageUrl 
-    ? `${baseImageUrl}?w=1200&auto=format,compress`
-    : '/image-placeholder.png';
+  const displayImage = host.metadata?.external_image_url || host.metadata?.image?.imgix_url || '/image-placeholder.png';
 
   const canonicalGenres = await getCanonicalGenres();
   const getGenreLink = (genreId: string): string | undefined => {
@@ -182,9 +256,28 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
         </div>
       </div>
 
-      <div className='w-full px-5 pt-8'>
-        <HostClient hostId={host.id} hostTitle={host.title} initialShows={initialEpisodes} />
-      </div>
+      {relatedShows.length > 0 && (
+        <div className='w-full px-5 pt-8'>
+          <div>
+            <h2 className='text-h8 md:text-h7 font-bold tracking-tight leading-none mb-3'>
+              RELATED EPISODES
+            </h2>
+            <div className='grid grid-cols-2 lg:grid-cols-4 md:grid-cols-3 gap-3'>
+              {relatedShows.map(relatedShow => {
+                const slug = `/episode/${relatedShow.slug}`;
+                return (
+                  <ShowCard
+                    key={relatedShow.id || relatedShow.slug}
+                    show={relatedShow}
+                    slug={slug}
+                    playable
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

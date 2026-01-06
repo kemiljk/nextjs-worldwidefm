@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -64,20 +65,21 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
                 <CardContent className='p-0 flex flex-col aspect-video w-full'>
                   {/* Image takes remaining space */}
                   <div className='relative flex-1'>
-                    <img
+                    <Image
                       src={
-                        firstVideo.metadata?.image?.imgix_url
-                          ? `${firstVideo.metadata.image.imgix_url}?w=1200&h=675&fit=crop&auto=format,compress`
-                          : (firstVideo.metadata?.video_url
-                            ? getYouTubeThumbnail(firstVideo.metadata.video_url)
-                            : null) ||
-                          (firstVideo.metadata?.video_url
-                            ? getVimeoThumbnail(firstVideo.metadata.video_url)
-                            : null) ||
-                          '/image-placeholder.png'
+                        firstVideo.metadata?.external_image_url ||
+                        firstVideo.metadata?.image?.imgix_url ||
+                        (firstVideo.metadata?.video_url
+                          ? getYouTubeThumbnail(firstVideo.metadata.video_url)
+                          : null) ||
+                        (firstVideo.metadata?.video_url
+                          ? getVimeoThumbnail(firstVideo.metadata.video_url)
+                          : null) ||
+                        '/image-placeholder.png'
                       }
                       alt={firstVideo.title}
-                      className='absolute inset-0 w-full h-full object-cover'
+                      fill
+                      className='object-cover'
                     />
                   </div>
 
@@ -104,16 +106,15 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
             const vimeoId = video.metadata?.video_url
               ? getVimeoThumbnail(video.metadata.video_url)
               : '';
-            const thumbnailUrl = video.metadata?.image?.imgix_url
-              ? `${video.metadata.image.imgix_url}?w=800&h=450&fit=crop&auto=format,compress`
-              : youtubeId || vimeoId || '/image-placeholder.png';
+            const thumbnailUrl =
+              video.metadata?.external_image_url || video.metadata?.image?.imgix_url || youtubeId || vimeoId || '/image-placeholder.png';
 
             return (
               <Link key={video.id} href={`/videos/${video.slug}`} className='w-full flex-1'>
                 <Card className='overflow-hidden transition-shadow border border-white group hover:bg-white hover:text-almostblack'>
                   <CardContent className='p-0 flex flex-col aspect-video h-auto w-full'>
                     <div className='relative flex-1'>
-                      <img src={thumbnailUrl} alt={video.title} className='absolute inset-0 w-full h-full object-cover' />
+                      <Image src={thumbnailUrl} alt={video.title} fill className='object-cover' />
                     </div>
                     <div className='relative border-t border-white flex-row flex justify-between pl-2 h-auto w-auto bg-almostblack text-white items-center group-hover:bg-white group-hover:text-almostblack group-hover:border-black'>
                       <h3 className='text-[25px] font-bold line-clamp-1 group-hover:text-almostblack'>
