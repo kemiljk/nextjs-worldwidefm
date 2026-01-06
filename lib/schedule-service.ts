@@ -14,22 +14,15 @@ export interface WeeklyScheduleResult {
   error?: string;
 }
 
+const episodeCache = new Map<string, EpisodeObject>();
+
 function parseDurationToSeconds(duration: string | null | undefined): number {
   if (!duration) return 0;
-  
-  const trimmed = duration.trim();
-  const parts = trimmed.split(':').map(Number);
-  
-  if (parts.length === 1 && !isNaN(parts[0])) {
-    // Plain number like "1" or "2" - treat as hours
-    return parts[0] * 3600;
-  }
+  const parts = duration.split(':').map(Number);
   if (parts.length === 2) {
-    // HH:MM format like "1:30" - hours and minutes
-    return parts[0] * 3600 + parts[1] * 60;
+    return parts[0] * 60 + parts[1];
   }
   if (parts.length === 3) {
-    // HH:MM:SS format like "1:30:00"
     return parts[0] * 3600 + parts[1] * 60 + parts[2];
   }
   return 0;
@@ -46,6 +39,9 @@ function isEpisodeObject(value: unknown): value is EpisodeObject {
 }
 
 async function fetchEpisodeById(id: string): Promise<EpisodeObject | null> {
+  if (episodeCache.has(id)) {
+    return episodeCache.get(id) ?? null;
+  }
   try {
     const response = await cosmic.objects
       .findOne({
@@ -53,7 +49,11 @@ async function fetchEpisodeById(id: string): Promise<EpisodeObject | null> {
         id,
       })
       .depth(2);
-    return (response?.object as EpisodeObject) || null;
+    const episode = (response?.object as EpisodeObject) || null;
+    if (episode) {
+      episodeCache.set(id, episode);
+    }
+    return episode;
   } catch (error) {
     console.warn(`[Schedule] Unable to fetch episode by ID ${id}`, error);
     return null;
@@ -148,10 +148,11 @@ function buildScheduleShow(params: {
 
   const title = fallbackTitle || episode?.title || 'Untitled';
   const slug = episode?.slug;
-  const baseImageUrl = episode?.metadata?.image?.imgix_url || episode?.metadata?.image?.url;
-  const imageUrl = baseImageUrl 
-    ? `${baseImageUrl}?w=400&h=400&fit=crop&auto=format,compress`
-    : PLACEHOLDER_IMAGE;
+  const imageUrl =
+    episode?.metadata?.external_image_url ||
+    episode?.metadata?.image?.imgix_url ||
+    episode?.metadata?.image?.url ||
+    PLACEHOLDER_IMAGE;
 
   const url =
     urlOverride ||

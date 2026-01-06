@@ -1,12 +1,12 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { GenreTag } from '@/components/ui/genre-tag';
 import { HighlightedText } from '@/components/ui/highlighted-text';
 import { formatDateShort } from '@/lib/utils';
 import { useMediaPlayer } from './providers/media-player-provider';
-import { getOptimizedImageUrl } from '@/components/ui/optimized-image';
 
 interface FeaturedCardProps {
   show: any; // can type more strictly if you have a Show type
@@ -43,14 +43,26 @@ export function FeaturedCard({ show, priority = false, className = '', href }: F
       <Card className='aspect-square overflow-hidden shadow-none relative cursor-pointer border border-almostblack dark:border-white hover:shadow-lg transition-shadow w-full h-full aspect-square'>
         <CardContent className='p-0 h-full'>
           <div className='relative group w-full h-full'>
-            <img
-              src={getOptimizedImageUrl(
-                show.metadata?.image?.imgix_url || show.metadata?.image?.url || show.imgix_url,
-                { width: 600, height: 600, quality: 80 }
-              )}
+            <Image
+              src={
+                show.metadata?.external_image_url ||
+                show.metadata?.image?.imgix_url ||
+                show.metadata?.image?.url ||
+                show.imgix_url ||
+                '/image-placeholder.png'
+              }
               alt={show.title || show.name || 'Show'}
-              className='absolute inset-0 w-full h-full object-cover'
-              loading='lazy'
+              fill
+              className='object-cover'
+              sizes='(max-width: 768px) 100vw, 50vw'
+              priority={priority}
+              onError={(e: any) => {
+                if (e?.currentTarget) {
+                  try {
+                    e.currentTarget.src = '/image-placeholder.png';
+                  } catch {}
+                }
+              }}
             />
             <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-30 transition-opacity pointer-events-none z-10' />
 

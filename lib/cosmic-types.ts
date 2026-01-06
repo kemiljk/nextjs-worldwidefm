@@ -360,6 +360,12 @@ export interface EpisodeObject {
     duration: string | null;
     description: string | null;
     image: CosmicImage | null;
+    /**
+     * External image URL for cold storage (Vercel Blob).
+     * Used for episodes beyond position 1000 to reduce Cosmic storage costs.
+     * Frontend should check this field first, then fall back to image.
+     */
+    external_image_url?: string | null;
     player: string | null;
     tracklist: string | null;
     body_text: string | null;
@@ -376,4 +382,22 @@ export interface EpisodeObject {
   modified_at: string;
   published_at: string;
   status: string;
+}
+
+/**
+ * Get the display image URL for an episode.
+ * Checks external_image_url first (cold storage), then falls back to Cosmic image.
+ */
+export function getEpisodeImageUrl(episode: EpisodeObject | null | undefined): string {
+  if (!episode) return '/image-placeholder.png';
+  
+  // Check external image URL first (cold storage)
+  if (episode.metadata?.external_image_url) {
+    return episode.metadata.external_image_url;
+  }
+  
+  // Fall back to Cosmic image
+  return episode.metadata?.image?.imgix_url || 
+         episode.metadata?.image?.url || 
+         '/image-placeholder.png';
 }

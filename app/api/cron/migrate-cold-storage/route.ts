@@ -211,13 +211,10 @@ export async function GET(request: NextRequest) {
           blobUrl = blob.url;
         }
 
-        // Update Cosmic metadata
+        // Update Cosmic metadata with external image URL
         await cosmic.objects.updateOne(episode.id, {
           metadata: {
-            image: {
-              url: blobUrl,
-              imgix_url: blobUrl,
-            },
+            external_image_url: blobUrl,
           },
         });
 

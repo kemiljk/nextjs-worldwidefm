@@ -344,16 +344,13 @@ async function migrateEpisodeImage(episode, index, total) {
       await sleep(CONFIG.uploadDelay);
     }
     
-    // Update Cosmic episode metadata to point to Blob
-    console.log(`    📝 Updating Cosmic metadata...`);
-    await cosmic.objects.updateOne(episode.id, {
-      metadata: {
-        image: {
-          url: blobUrl,
-          imgix_url: blobUrl, // Keep structure consistent
-        },
-      },
-    });
+        // Update Cosmic episode metadata with external image URL
+        console.log(`    📝 Updating Cosmic metadata...`);
+        await cosmic.objects.updateOne(episode.id, {
+          metadata: {
+            external_image_url: blobUrl,
+          },
+        });
     
     // Find and delete the old Cosmic media
     console.log(`    🗑️  Deleting from Cosmic media...`);

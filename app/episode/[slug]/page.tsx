@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { connection } from 'next/server';
 import { getEpisodeBySlug, getRelatedEpisodes } from '@/lib/episode-service';
 import { addMinutes } from 'date-fns';
 import { displayNameToSlug } from '@/lib/host-matcher';
@@ -13,19 +12,15 @@ import { transformShowToViewData } from '@/lib/cosmic-service';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { PreviewBanner } from '@/components/ui/preview-banner';
 import { ListenBackButton } from '@/components/listen-back-button';
+import { getEpisodeImageUrl } from '@/lib/cosmic-types';
+
+export const revalidate = 60; // 1 minute - shows update quickly
+export const dynamicParams = true;
 
 function HostLink({ host, className }: { host: any; className: string }) {
-  // Handle case where host might be just an ID string instead of an object
-  if (!host || typeof host === 'string') {
-    return null;
-  }
-
+  let href = '#';
   const displayName = host.title || host.name;
-  if (!displayName) {
-    return null;
-  }
 
-  let href: string;
   if (host.slug) {
     href = `/hosts/${host.slug}`;
   } else {
@@ -47,9 +42,6 @@ export default async function EpisodePage({
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ preview?: string }>;
 }) {
-  // Opt into dynamic rendering - ensures Cosmic changes show instantly
-  await connection();
-
   const { slug: showSlug } = await params;
   const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
 
@@ -95,10 +87,7 @@ export default async function EpisodePage({
   };
 
   const displayName = episode.title || 'Untitled Episode';
-  const baseImageUrl = episode.metadata.image?.imgix_url;
-  const displayImage = baseImageUrl 
-    ? `${baseImageUrl}?w=1200&auto=format,compress`
-    : '/image-placeholder.png';
+  const displayImage = getEpisodeImageUrl(episode);
 
   // Check if this is a draft episode
   const isDraft = episode.status === 'draft';
