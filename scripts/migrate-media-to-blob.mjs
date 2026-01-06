@@ -15,8 +15,8 @@
  *   # Step 2: Migrate (upload to Blob + update Cosmic objects, but keep Cosmic media)
  *   DRY_RUN=false bun run scripts/migrate-media-to-blob.mjs
  * 
- *   # Step 3: After verifying no regression, delete Cosmic media
- *   DRY_RUN=false DELETE_MEDIA=true bun run scripts/migrate-media-to-blob.mjs
+ *   # Step 3: After verifying no regression, delete Cosmic media (fast mode)
+ *   DELETE_ONLY=true bun run scripts/migrate-media-to-blob.mjs
  * 
  * Environment variables:
  *   # Cosmic
@@ -30,6 +30,7 @@
  *   # Options
  *   DRY_RUN              - "true" (default) or "false"
  *   DELETE_MEDIA         - "true" to delete Cosmic media after migration (default: false)
+ *   DELETE_ONLY          - "true" to skip migration, just delete cold media (fast cleanup)
  *   HOT_STORAGE_LIMIT    - Number of media items to keep on Cosmic (default: 1000)
  *   BATCH_SIZE           - Items to fetch per batch (default: 100)
  */
@@ -51,6 +52,7 @@ const CONFIG = {
   // Options
   dryRun: process.env.DRY_RUN !== 'false',
   deleteMedia: process.env.DELETE_MEDIA === 'true', // Only delete if explicitly set
+  deleteOnly: process.env.DELETE_ONLY === 'true', // Skip migration, just delete cold media
   hotStorageLimit: parseInt(process.env.HOT_STORAGE_LIMIT || '1000', 10),
   batchSize: parseInt(process.env.BATCH_SIZE || '100', 10),
   
@@ -507,13 +509,19 @@ function saveState(state) {
 async function main() {
   console.log('═══════════════════════════════════════════════════════════════════');
   console.log('  Cosmic Media Cold Storage Migration');
-  console.log('  Keep 1000 most recent → Migrate older to Vercel Blob');
+  console.log(CONFIG.deleteOnly 
+    ? '  DELETE ONLY MODE - Skip migration, just delete cold media'
+    : '  Keep 1000 most recent → Migrate older to Vercel Blob');
   console.log('═══════════════════════════════════════════════════════════════════');
   console.log(`  Cosmic Bucket: ${CONFIG.bucketSlug}`);
   console.log(`  Hot Storage Limit: ${CONFIG.hotStorageLimit} media items`);
-  console.log(`  Mode: ${CONFIG.dryRun ? '🏃 DRY RUN (preview only)' : '🚀 LIVE (will migrate)'}`);
-  console.log(`  Delete Media: ${CONFIG.deleteMedia ? '🗑️  YES (will delete from Cosmic)' : '⏸️  NO (keep on Cosmic for verification)'}`);
-  console.log(`  Vercel Blob: ${blobConfigured ? '✅ Configured' : '⚠️ Not configured'}`);
+  if (CONFIG.deleteOnly) {
+    console.log(`  Mode: 🗑️  DELETE ONLY (will delete cold media from Cosmic)`);
+  } else {
+    console.log(`  Mode: ${CONFIG.dryRun ? '🏃 DRY RUN (preview only)' : '🚀 LIVE (will migrate)'}`);
+    console.log(`  Delete Media: ${CONFIG.deleteMedia ? '🗑️  YES (will delete from Cosmic)' : '⏸️  NO (keep on Cosmic for verification)'}`);
+    console.log(`  Vercel Blob: ${blobConfigured ? '✅ Configured' : '⚠️ Not configured'}`);
+  }
   console.log('═══════════════════════════════════════════════════════════════════');
   
   const startTime = Date.now();
@@ -557,6 +565,57 @@ async function main() {
       hotSize,
       coldSize,
     });
+    
+    // DELETE_ONLY mode - just delete cold media, skip migration
+    if (CONFIG.deleteOnly) {
+      console.log(`\n🗑️  DELETE ONLY: Removing ${coldMedia.length} cold media items from Cosmic...`);
+      
+      let deleted = 0;
+      let failed = 0;
+      const errors = [];
+      
+      for (let i = 0; i < coldMedia.length; i++) {
+        const mediaItem = coldMedia[i];
+        
+        try {
+          await cosmic.media.deleteOne(mediaItem.id);
+          deleted++;
+          
+          if ((i + 1) % 50 === 0 || i === coldMedia.length - 1) {
+            console.log(`  Progress: ${i + 1}/${coldMedia.length} (${deleted} deleted, ${failed} failed)`);
+          }
+        } catch (error) {
+          failed++;
+          errors.push({ id: mediaItem.id, name: mediaItem.name, error: error.message });
+        }
+        
+        // Small delay to avoid rate limiting
+        await sleep(50);
+      }
+      
+      console.log('\n═══════════════════════════════════════════════════════════════════');
+      console.log('  DELETE ONLY SUMMARY');
+      console.log('═══════════════════════════════════════════════════════════════════');
+      console.log(`  Cold media items: ${coldMedia.length}`);
+      console.log(`  Successfully deleted: ${deleted}`);
+      console.log(`  Failed: ${failed}`);
+      console.log(`  Storage freed: ~${formatBytes(coldSize)}`);
+      console.log('═══════════════════════════════════════════════════════════════════');
+      
+      // Save report
+      const report = {
+        timestamp: new Date().toISOString(),
+        mode: 'DELETE_ONLY',
+        stats: { totalMedia: allMedia.length, coldMedia: coldMedia.length },
+        results: { deleted, failed, errors },
+      };
+      fs.writeFileSync(CONFIG.reportFile, JSON.stringify(report, null, 2));
+      console.log(`\n📝 Report saved to: ${CONFIG.reportFile}`);
+      
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`\n✅ Completed in ${elapsed}s`);
+      return;
+    }
     
     // Phase 3: Build reference map (which objects use which media)
     const referenceMap = await buildMediaReferenceMap(coldMedia);
