@@ -59,14 +59,13 @@ const CONFIG = {
   // Add external_image_url field to these in Cosmic
   objectTypesWithImages: [
     'episode',
-    'hosts',
+    'regular-hosts',
     'takeovers',
     'posts',
     'videos',
     'events',
     'genres',
     'locations',
-    'show-types',
     'about',
     'post-categories',
     'video-categories',

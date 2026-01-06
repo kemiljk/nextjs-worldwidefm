@@ -25,14 +25,13 @@ const MAX_MIGRATIONS_PER_RUN = 100; // Limit per cron run to avoid timeouts
 // Object types that can have images
 const OBJECT_TYPES_WITH_IMAGES = [
   'episode',
-  'hosts',
+  'regular-hosts',
   'takeovers',
   'posts',
   'videos',
   'events',
   'genres',
   'locations',
-  'show-types',
   'about',
   'post-categories',
   'video-categories',

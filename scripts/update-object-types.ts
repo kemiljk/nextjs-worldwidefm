@@ -61,7 +61,7 @@ const updates: ObjectTypeUpdateConfig[] = [
     newMetafields: [externalImageUrlField],
   },
   {
-    slug: 'hosts',
+    slug: 'regular-hosts',
     newMetafields: [externalImageUrlField],
   },
   {
@@ -82,10 +82,6 @@ const updates: ObjectTypeUpdateConfig[] = [
   },
   {
     slug: 'locations',
-    newMetafields: [externalImageUrlField],
-  },
-  {
-    slug: 'show-types',
     newMetafields: [externalImageUrlField],
   },
   {
