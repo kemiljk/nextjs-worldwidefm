@@ -1,0 +1,656 @@
+#!/usr/bin/env node
+
+/**
+ * Cosmic Media Cold Storage Migration Script
+ * 
+ * Keeps the 1000 most recently uploaded media items on Cosmic.
+ * Migrates all older media to Vercel Blob, updating any objects that reference them.
+ * 
+ * This reduces Cosmic storage costs while keeping images accessible.
+ * 
+ * Usage:
+ *   DRY_RUN=true bun run scripts/migrate-media-to-blob.mjs   # Preview (default)
+ *   DRY_RUN=false bun run scripts/migrate-media-to-blob.mjs  # Actually migrate
+ * 
+ * Environment variables:
+ *   # Cosmic
+ *   NEXT_PUBLIC_COSMIC_BUCKET_SLUG
+ *   NEXT_PUBLIC_COSMIC_READ_KEY
+ *   COSMIC_WRITE_KEY
+ *   
+ *   # Vercel Blob
+ *   BLOB_READ_WRITE_TOKEN - Get from Vercel Dashboard > Storage > Blob
+ *   
+ *   # Options
+ *   DRY_RUN              - "true" (default) or "false"
+ *   HOT_STORAGE_LIMIT    - Number of media items to keep on Cosmic (default: 1000)
+ *   BATCH_SIZE           - Items to fetch per batch (default: 100)
+ */
+
+import { createBucketClient } from '@cosmicjs/sdk';
+import { put, head } from '@vercel/blob';
+import fs from 'fs';
+
+// Configuration
+const CONFIG = {
+  // Cosmic
+  bucketSlug: process.env.COSMIC_BUCKET_SLUG || process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG,
+  readKey: process.env.COSMIC_READ_KEY || process.env.NEXT_PUBLIC_COSMIC_READ_KEY,
+  writeKey: process.env.COSMIC_WRITE_KEY,
+  
+  // Vercel Blob
+  blobToken: process.env.BLOB_READ_WRITE_TOKEN,
+  
+  // Options
+  dryRun: process.env.DRY_RUN !== 'false',
+  hotStorageLimit: parseInt(process.env.HOT_STORAGE_LIMIT || '1000', 10),
+  batchSize: parseInt(process.env.BATCH_SIZE || '100', 10),
+  
+  // Rate limiting
+  downloadDelay: 100,
+  uploadDelay: 50,
+  cosmicWriteDelay: 200,
+  
+  // Files
+  stateFile: './media-migration-state.json',
+  reportFile: './media-migration-report.json',
+  
+  // Object types that can have images
+  // Add external_image_url field to these in Cosmic
+  objectTypesWithImages: [
+    'episode',
+    'hosts',
+    'takeovers',
+    'posts',
+    'videos',
+    'events',
+    'genres',
+    'locations',
+  ],
+};
+
+// Validate Cosmic credentials
+if (!CONFIG.bucketSlug || !CONFIG.readKey || !CONFIG.writeKey) {
+  console.error('❌ Missing Cosmic credentials');
+  process.exit(1);
+}
+
+// Check Vercel Blob token
+const blobConfigured = !!CONFIG.blobToken;
+
+if (!CONFIG.dryRun && !blobConfigured) {
+  console.error('❌ Missing BLOB_READ_WRITE_TOKEN');
+  console.error('  Get it from: Vercel Dashboard > Storage > Create Blob Store');
+  process.exit(1);
+}
+
+// Initialize Cosmic client
+const cosmic = createBucketClient({
+  bucketSlug: CONFIG.bucketSlug,
+  readKey: CONFIG.readKey,
+  writeKey: CONFIG.writeKey,
+});
+
+/**
+ * Sleep utility
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Format bytes to human readable
+ */
+function formatBytes(bytes) {
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * Extract filename from Cosmic URL
+ */
+function extractFilename(url) {
+  if (!url) return null;
+  try {
+    const urlPath = new URL(url).pathname;
+    return urlPath.split('/').pop()?.split('?')[0] || null;
+  } catch {
+    return url.split('/').pop()?.split('?')[0] || null;
+  }
+}
+
+/**
+ * Generate blob pathname preserving folder structure
+ */
+function generateBlobPath(mediaItem) {
+  // Use original name if available, otherwise extract from URL
+  const filename = mediaItem.name || extractFilename(mediaItem.url) || `media-${mediaItem.id}`;
+  // Store in cosmic-archive folder to organize
+  return `cosmic-archive/${filename}`;
+}
+
+/**
+ * Check if file exists in Vercel Blob
+ */
+async function existsInBlob(pathname) {
+  if (!blobConfigured) return false;
+  
+  try {
+    const result = await head(pathname);
+    return result?.url || false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Upload file to Vercel Blob
+ */
+async function uploadToBlob(pathname, buffer, contentType) {
+  const blob = await put(pathname, buffer, {
+    access: 'public',
+    contentType,
+    addRandomSuffix: false,
+  });
+  
+  return blob.url;
+}
+
+/**
+ * Download media from URL
+ */
+async function downloadMedia(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to download: HTTP ${response.status}`);
+  }
+  
+  const contentType = response.headers.get('content-type') || 'application/octet-stream';
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  
+  return { buffer, contentType, size: buffer.length };
+}
+
+/**
+ * Fetch all Cosmic media sorted by created_at DESC (newest first)
+ */
+async function fetchAllMedia() {
+  console.log('\n📸 Fetching all Cosmic media (sorted by upload date)...');
+  const allMedia = [];
+  let skip = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    try {
+      const response = await cosmic.media
+        .find()
+        .props(['id', 'name', 'url', 'imgix_url', 'size', 'created_at', 'type'])
+        .sort('-created_at')
+        .limit(CONFIG.batchSize)
+        .skip(skip);
+
+      const media = response.media || [];
+      allMedia.push(...media);
+
+      if (allMedia.length % 500 === 0) {
+        console.log(`  ... ${allMedia.length} media items fetched`);
+      }
+
+      hasMore = media.length === CONFIG.batchSize;
+      skip += CONFIG.batchSize;
+    } catch (error) {
+      if (error?.message?.includes('No media found')) {
+        hasMore = false;
+      } else {
+        console.error(`  ⚠️  Error at skip=${skip}: ${error.message}`);
+        await sleep(2000);
+        hasMore = false;
+      }
+    }
+  }
+
+  console.log(`  ✅ Total media items: ${allMedia.length}`);
+  return allMedia;
+}
+
+/**
+ * Find all objects that reference a media item
+ */
+async function findObjectsReferencingMedia(mediaItem) {
+  const filename = mediaItem.name || extractFilename(mediaItem.url);
+  const imgixUrl = mediaItem.imgix_url;
+  const url = mediaItem.url;
+  
+  const referencingObjects = [];
+  
+  for (const objectType of CONFIG.objectTypesWithImages) {
+    try {
+      // Fetch objects of this type and check for image references
+      let skip = 0;
+      const limit = 100;
+      
+      while (true) {
+        const response = await cosmic.objects
+          .find({ type: objectType })
+          .props('id,slug,title,type,metadata')
+          .limit(limit)
+          .skip(skip)
+          .status('any');
+        
+        const objects = response.objects || [];
+        if (objects.length === 0) break;
+        
+        for (const obj of objects) {
+          // Check if object references this media
+          const objImageUrl = obj.metadata?.image?.url || obj.metadata?.image?.imgix_url;
+          const objImageName = obj.metadata?.image?.name;
+          
+          if (objImageUrl === url || 
+              objImageUrl === imgixUrl ||
+              objImageName === filename ||
+              (objImageUrl && filename && objImageUrl.includes(filename))) {
+            referencingObjects.push({
+              id: obj.id,
+              slug: obj.slug,
+              title: obj.title,
+              type: obj.type,
+            });
+          }
+        }
+        
+        if (objects.length < limit) break;
+        skip += limit;
+      }
+    } catch (error) {
+      // Skip object types that don't exist or have errors
+      if (!error?.message?.includes('Object type not found')) {
+        console.error(`  ⚠️  Error checking ${objectType}: ${error.message}`);
+      }
+    }
+  }
+  
+  return referencingObjects;
+}
+
+/**
+ * Update an object to use external_image_url
+ */
+async function updateObjectWithExternalUrl(obj, blobUrl) {
+  try {
+    await cosmic.objects.updateOne(obj.id, {
+      metadata: {
+        external_image_url: blobUrl,
+      },
+    });
+    return true;
+  } catch (error) {
+    console.error(`    ⚠️  Failed to update ${obj.type}/${obj.slug}: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * Migrate a single media item to Vercel Blob
+ */
+async function migrateMediaItem(mediaItem, index, total, allReferences) {
+  console.log(`\n  [${index + 1}/${total}] ${mediaItem.name || mediaItem.id}`);
+  console.log(`    Size: ${formatBytes(mediaItem.size)}`);
+  console.log(`    Uploaded: ${mediaItem.created_at}`);
+  
+  const blobPath = generateBlobPath(mediaItem);
+  const downloadUrl = mediaItem.imgix_url || mediaItem.url;
+  
+  // Find objects referencing this media
+  const references = allReferences.get(mediaItem.id) || [];
+  console.log(`    Referenced by: ${references.length} object(s)`);
+  
+  if (CONFIG.dryRun) {
+    console.log(`    ⏭️  DRY RUN - Would migrate to: ${blobPath}`);
+    if (references.length > 0) {
+      console.log(`    Would update: ${references.map(r => `${r.type}/${r.slug}`).join(', ')}`);
+    }
+    return { success: true, dryRun: true, references: references.length };
+  }
+  
+  try {
+    // Check if already exists in Blob
+    const existingBlobUrl = await existsInBlob(blobPath);
+    let blobUrl;
+    let bytesUploaded = 0;
+    
+    if (existingBlobUrl) {
+      console.log(`    ✅ Already in Blob`);
+      blobUrl = existingBlobUrl;
+    } else {
+      // Download from Cosmic
+      console.log(`    ⬇️  Downloading from Cosmic...`);
+      const { buffer, contentType, size } = await downloadMedia(downloadUrl);
+      bytesUploaded = size;
+      
+      await sleep(CONFIG.downloadDelay);
+      
+      // Upload to Vercel Blob
+      console.log(`    ⬆️  Uploading to Vercel Blob...`);
+      blobUrl = await uploadToBlob(blobPath, buffer, contentType);
+      
+      await sleep(CONFIG.uploadDelay);
+    }
+    
+    // Update all referencing objects
+    let objectsUpdated = 0;
+    for (const ref of references) {
+      console.log(`    📝 Updating ${ref.type}/${ref.slug}...`);
+      const updated = await updateObjectWithExternalUrl(ref, blobUrl);
+      if (updated) objectsUpdated++;
+      await sleep(CONFIG.cosmicWriteDelay);
+    }
+    
+    // Delete from Cosmic media
+    console.log(`    🗑️  Deleting from Cosmic media...`);
+    try {
+      await cosmic.media.deleteOne(mediaItem.id);
+      console.log(`    ✅ Deleted from Cosmic`);
+    } catch (deleteError) {
+      console.log(`    ⚠️  Could not delete: ${deleteError.message}`);
+    }
+    
+    console.log(`    ✅ Migrated to: ${blobUrl}`);
+    return { 
+      success: true, 
+      blobUrl, 
+      bytesUploaded, 
+      objectsUpdated,
+      references: references.length,
+    };
+    
+  } catch (error) {
+    console.log(`    ❌ Failed: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Build a map of media -> referencing objects for efficiency
+ */
+async function buildMediaReferenceMap(mediaToMigrate) {
+  console.log('\n🔗 Building media reference map...');
+  
+  const referenceMap = new Map();
+  
+  // Initialize empty arrays for all media
+  for (const media of mediaToMigrate) {
+    referenceMap.set(media.id, []);
+  }
+  
+  // Build a lookup of filenames/URLs to media IDs
+  const mediaLookup = new Map();
+  for (const media of mediaToMigrate) {
+    const filename = media.name || extractFilename(media.url);
+    if (filename) mediaLookup.set(filename, media.id);
+    if (media.url) mediaLookup.set(media.url, media.id);
+    if (media.imgix_url) mediaLookup.set(media.imgix_url, media.id);
+  }
+  
+  // Scan all object types for references
+  for (const objectType of CONFIG.objectTypesWithImages) {
+    console.log(`  Scanning ${objectType}...`);
+    
+    try {
+      let skip = 0;
+      const limit = 100;
+      let objectCount = 0;
+      
+      while (true) {
+        const response = await cosmic.objects
+          .find({ type: objectType })
+          .props('id,slug,title,type,metadata.image')
+          .limit(limit)
+          .skip(skip)
+          .status('any');
+        
+        const objects = response.objects || [];
+        if (objects.length === 0) break;
+        
+        for (const obj of objects) {
+          const objImageUrl = obj.metadata?.image?.url;
+          const objImgixUrl = obj.metadata?.image?.imgix_url;
+          const objImageName = obj.metadata?.image?.name;
+          
+          // Check all possible matches
+          let mediaId = null;
+          if (objImageName && mediaLookup.has(objImageName)) {
+            mediaId = mediaLookup.get(objImageName);
+          } else if (objImageUrl && mediaLookup.has(objImageUrl)) {
+            mediaId = mediaLookup.get(objImageUrl);
+          } else if (objImgixUrl && mediaLookup.has(objImgixUrl)) {
+            mediaId = mediaLookup.get(objImgixUrl);
+          } else if (objImageUrl) {
+            // Try filename extraction
+            const filename = extractFilename(objImageUrl);
+            if (filename && mediaLookup.has(filename)) {
+              mediaId = mediaLookup.get(filename);
+            }
+          }
+          
+          if (mediaId && referenceMap.has(mediaId)) {
+            referenceMap.get(mediaId).push({
+              id: obj.id,
+              slug: obj.slug,
+              title: obj.title,
+              type: obj.type,
+            });
+          }
+        }
+        
+        objectCount += objects.length;
+        if (objects.length < limit) break;
+        skip += limit;
+      }
+      
+      console.log(`    Found ${objectCount} ${objectType} objects`);
+    } catch (error) {
+      if (!error?.message?.includes('Object type not found')) {
+        console.error(`    ⚠️  Error: ${error.message}`);
+      }
+    }
+  }
+  
+  // Count references
+  let totalRefs = 0;
+  for (const refs of referenceMap.values()) {
+    totalRefs += refs.length;
+  }
+  console.log(`  ✅ Found ${totalRefs} total references across ${mediaToMigrate.length} media items`);
+  
+  return referenceMap;
+}
+
+/**
+ * Save state for resumability
+ */
+function saveState(state) {
+  try {
+    fs.writeFileSync(
+      CONFIG.stateFile, 
+      JSON.stringify({ ...state, timestamp: new Date().toISOString() }, null, 2)
+    );
+  } catch {
+    // Non-critical
+  }
+}
+
+/**
+ * Main execution
+ */
+async function main() {
+  console.log('═══════════════════════════════════════════════════════════════════');
+  console.log('  Cosmic Media Cold Storage Migration');
+  console.log('  Keep 1000 most recent → Migrate older to Vercel Blob');
+  console.log('═══════════════════════════════════════════════════════════════════');
+  console.log(`  Cosmic Bucket: ${CONFIG.bucketSlug}`);
+  console.log(`  Hot Storage Limit: ${CONFIG.hotStorageLimit} media items`);
+  console.log(`  Mode: ${CONFIG.dryRun ? '🏃 DRY RUN (preview only)' : '🚀 LIVE (will migrate)'}`);
+  console.log(`  Vercel Blob: ${blobConfigured ? '✅ Configured' : '⚠️ Not configured'}`);
+  console.log('═══════════════════════════════════════════════════════════════════');
+  
+  const startTime = Date.now();
+  saveState({ phase: 'starting' });
+  
+  try {
+    // Phase 1: Fetch all media (already sorted by created_at DESC)
+    const allMedia = await fetchAllMedia();
+    
+    if (allMedia.length === 0) {
+      console.log('\n❌ No media found');
+      return;
+    }
+    
+    saveState({ phase: 'media_fetched', count: allMedia.length });
+    
+    // Phase 2: Split into hot and cold storage
+    const hotMedia = allMedia.slice(0, CONFIG.hotStorageLimit);
+    const coldMedia = allMedia.slice(CONFIG.hotStorageLimit);
+    
+    console.log(`\n📊 Media Storage Split:`);
+    console.log(`  🔥 Hot storage (newest ${CONFIG.hotStorageLimit}): ${hotMedia.length} items`);
+    console.log(`  ❄️  Cold storage (older): ${coldMedia.length} items`);
+    
+    // Calculate sizes
+    const hotSize = hotMedia.reduce((sum, m) => sum + (m.size || 0), 0);
+    const coldSize = coldMedia.reduce((sum, m) => sum + (m.size || 0), 0);
+    console.log(`\n  💾 Storage breakdown:`);
+    console.log(`    Hot (Cosmic): ${formatBytes(hotSize)}`);
+    console.log(`    Cold (to migrate): ${formatBytes(coldSize)}`);
+    
+    if (coldMedia.length === 0) {
+      console.log('\n✅ No media needs migration - already at or below limit!');
+      return;
+    }
+    
+    saveState({ 
+      phase: 'split_identified',
+      hot: hotMedia.length,
+      cold: coldMedia.length,
+      hotSize,
+      coldSize,
+    });
+    
+    // Phase 3: Build reference map (which objects use which media)
+    const referenceMap = await buildMediaReferenceMap(coldMedia);
+    
+    saveState({ phase: 'references_mapped' });
+    
+    // Phase 4: Migrate cold media
+    console.log(`\n🚀 Starting migration of ${coldMedia.length} media items...`);
+    
+    const results = {
+      migrated: 0,
+      failed: 0,
+      skipped: 0,
+      bytesUploaded: 0,
+      objectsUpdated: 0,
+      errors: [],
+    };
+    
+    for (let i = 0; i < coldMedia.length; i++) {
+      const mediaItem = coldMedia[i];
+      const result = await migrateMediaItem(mediaItem, i, coldMedia.length, referenceMap);
+      
+      if (result.success) {
+        if (result.dryRun) {
+          results.skipped++;
+        } else {
+          results.migrated++;
+          results.bytesUploaded += result.bytesUploaded || 0;
+          results.objectsUpdated += result.objectsUpdated || 0;
+        }
+      } else {
+        results.failed++;
+        results.errors.push({
+          mediaId: mediaItem.id,
+          name: mediaItem.name,
+          error: result.error,
+        });
+      }
+      
+      // Save progress periodically
+      if ((i + 1) % 50 === 0) {
+        saveState({ 
+          phase: 'migrating', 
+          progress: i + 1, 
+          total: coldMedia.length,
+          ...results,
+        });
+        console.log(`\n  📊 Progress: ${i + 1}/${coldMedia.length} (${formatBytes(results.bytesUploaded)} uploaded)`);
+      }
+    }
+    
+    // Phase 5: Summary
+    console.log('\n═══════════════════════════════════════════════════════════════════');
+    console.log('  MIGRATION SUMMARY');
+    console.log('═══════════════════════════════════════════════════════════════════');
+    console.log(`  Total media items: ${allMedia.length}`);
+    console.log(`  Hot storage (kept on Cosmic): ${hotMedia.length} (${formatBytes(hotSize)})`);
+    console.log(`  Cold storage (migrated): ${coldMedia.length} (${formatBytes(coldSize)})`);
+    
+    if (CONFIG.dryRun) {
+      console.log(`\n  🏃 DRY RUN RESULTS:`);
+      console.log(`    Would migrate: ${results.skipped} media items`);
+      console.log(`    Would upload: ~${formatBytes(coldSize)}`);
+    } else {
+      console.log(`\n  🚀 MIGRATION RESULTS:`);
+      console.log(`    Successfully migrated: ${results.migrated}`);
+      console.log(`    Bytes uploaded to Blob: ${formatBytes(results.bytesUploaded)}`);
+      console.log(`    Objects updated: ${results.objectsUpdated}`);
+      console.log(`    Failed: ${results.failed}`);
+    }
+    console.log('═══════════════════════════════════════════════════════════════════');
+    
+    // After migration, verify final count
+    if (!CONFIG.dryRun && results.migrated > 0) {
+      console.log('\n🔍 Verifying final media count...');
+      const finalMediaCount = await cosmic.media.find().props(['id']).limit(1);
+      console.log(`  Cosmic media remaining: ~${CONFIG.hotStorageLimit} items (target)`);
+    }
+    
+    // Save report
+    const report = {
+      timestamp: new Date().toISOString(),
+      dryRun: CONFIG.dryRun,
+      hotStorageLimit: CONFIG.hotStorageLimit,
+      cosmicBucket: CONFIG.bucketSlug,
+      stats: {
+        totalMedia: allMedia.length,
+        hotStorage: hotMedia.length,
+        coldStorage: coldMedia.length,
+        hotStorageSize: hotSize,
+        coldStorageSize: coldSize,
+      },
+      results,
+    };
+    
+    fs.writeFileSync(CONFIG.reportFile, JSON.stringify(report, null, 2));
+    console.log(`\n📝 Report saved to: ${CONFIG.reportFile}`);
+    
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    console.log(`\n✅ Completed in ${elapsed}s`);
+    saveState({ phase: 'complete', ...results, elapsed });
+    
+  } catch (error) {
+    console.error('\n❌ Fatal error:', error.message);
+    console.error(error.stack);
+    saveState({ phase: 'error', error: error.message });
+    process.exit(1);
+  }
+}
+
+// Run
+main().catch(error => {
+  console.error('\n❌ Unhandled error:', error);
+  process.exit(1);
+});
+

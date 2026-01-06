@@ -3,12 +3,14 @@ import { cosmic } from '@/lib/cosmic-config';
 import { put, head } from '@vercel/blob';
 
 /**
- * Cron job to migrate old episode images from Cosmic to Vercel Blob.
+ * Cron job to keep Cosmic media storage at or below 1000 items.
  * 
- * This keeps Cosmic storage costs down by moving images for episodes
- * beyond position 1000 (sorted by broadcast_date) to Vercel Blob.
- * 
- * Vercel Pro plan includes 5 GB Blob storage.
+ * Strategy:
+ * 1. Fetch all Cosmic media sorted by upload date (newest first)
+ * 2. Keep the 1000 most recent
+ * 3. Migrate older media to Vercel Blob
+ * 4. Update any objects referencing the migrated media
+ * 5. Delete migrated media from Cosmic
  * 
  * Schedule: Weekly (configured in vercel.json)
  * 
@@ -18,82 +20,105 @@ import { put, head } from '@vercel/blob';
  */
 
 const HOT_STORAGE_LIMIT = 1000;
-const BATCH_SIZE = 50;
 const MAX_MIGRATIONS_PER_RUN = 100; // Limit per cron run to avoid timeouts
 
-interface EpisodeImage {
-  url?: string;
-  imgix_url?: string;
-  name?: string;
+// Object types that can have images
+const OBJECT_TYPES_WITH_IMAGES = [
+  'episode',
+  'hosts',
+  'takeovers',
+  'posts',
+  'videos',
+  'events',
+  'genres',
+  'locations',
+];
+
+interface MediaItem {
+  id: string;
+  name: string;
+  url: string;
+  imgix_url: string;
+  size?: number;
+  created_at: string;
 }
 
-interface Episode {
+interface CosmicObject {
   id: string;
   slug: string;
   title: string;
-  metadata: {
-    image?: EpisodeImage;
-    broadcast_date?: string;
+  type: string;
+  metadata?: {
+    image?: {
+      url?: string;
+      imgix_url?: string;
+      name?: string;
+    };
   };
 }
 
-function isCosmicUrl(url: string | undefined): boolean {
-  if (!url) return false;
-  return url.includes('imgix.cosmicjs.com') || 
-         url.includes('cdn.cosmicjs.com') ||
-         url.includes('cosmic-s3.imgix.net');
+function extractFilename(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    const urlPath = new URL(url).pathname;
+    return urlPath.split('/').pop()?.split('?')[0] || null;
+  } catch {
+    return url.split('/').pop()?.split('?')[0] || null;
+  }
 }
 
-function isVercelBlobUrl(url: string | undefined): boolean {
-  if (!url) return false;
-  return url.includes('.public.blob.vercel-storage.com') || 
-         url.includes('.blob.vercel-storage.com');
+function generateBlobPath(mediaItem: MediaItem): string {
+  const filename = mediaItem.name || extractFilename(mediaItem.url) || `media-${mediaItem.id}`;
+  return `cosmic-archive/${filename}`;
 }
 
-function generateBlobPath(slug: string, originalFilename?: string): string {
-  const ext = (originalFilename || 'image.jpg').split('.').pop()?.toLowerCase() || 'jpg';
-  return `episodes/${slug}.${ext}`;
-}
-
-async function downloadImage(url: string): Promise<{ buffer: Buffer; contentType: string }> {
+async function downloadMedia(url: string): Promise<{ buffer: Buffer; contentType: string }> {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to download: HTTP ${response.status}`);
   }
   
-  const contentType = response.headers.get('content-type') || 'image/jpeg';
+  const contentType = response.headers.get('content-type') || 'application/octet-stream';
   const arrayBuffer = await response.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
   
   return { buffer, contentType };
 }
 
-async function findCosmicMediaByUrl(imageUrl: string): Promise<{ id: string; name: string } | null> {
-  try {
-    const urlParts = imageUrl.split('/');
-    const filename = urlParts[urlParts.length - 1].split('?')[0];
-    
-    const response = await cosmic.media
-      .find()
-      .props(['id', 'name', 'url', 'imgix_url'])
-      .limit(100);
-    
-    const media = response.media || [];
-    
-    for (const item of media) {
-      if (item.url === imageUrl || 
-          item.imgix_url === imageUrl ||
-          item.name === filename ||
-          item.url?.includes(filename) ||
-          item.imgix_url?.includes(filename)) {
-        return { id: item.id, name: item.name };
+async function findObjectsReferencingMedia(mediaItem: MediaItem): Promise<CosmicObject[]> {
+  const filename = mediaItem.name || extractFilename(mediaItem.url);
+  const results: CosmicObject[] = [];
+  
+  for (const objectType of OBJECT_TYPES_WITH_IMAGES) {
+    try {
+      const response = await cosmic.objects
+        .find({ type: objectType })
+        .props('id,slug,title,type,metadata.image')
+        .limit(100)
+        .status('any');
+      
+      const objects = response.objects || [];
+      
+      for (const obj of objects) {
+        const objImageUrl = obj.metadata?.image?.url;
+        const objImgixUrl = obj.metadata?.image?.imgix_url;
+        const objImageName = obj.metadata?.image?.name;
+        
+        // Check all possible matches
+        if (objImageName === filename ||
+            objImageUrl === mediaItem.url ||
+            objImgixUrl === mediaItem.imgix_url ||
+            (objImageUrl && filename && objImageUrl.includes(filename)) ||
+            (objImgixUrl && filename && objImgixUrl.includes(filename))) {
+          results.push(obj as CosmicObject);
+        }
       }
+    } catch {
+      // Skip object types that don't exist
     }
-    
-    return null;
-  } catch {
-    return null;
   }
+  
+  return results;
 }
 
 export async function GET(request: NextRequest) {
@@ -117,79 +142,67 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('[COLD-STORAGE] Starting cold storage migration...');
-    console.log(`[COLD-STORAGE] Hot storage limit: ${HOT_STORAGE_LIMIT} episodes`);
+    console.log(`[COLD-STORAGE] Hot storage limit: ${HOT_STORAGE_LIMIT} media items`);
 
-    // Fetch episodes sorted by broadcast_date DESC
-    const allEpisodes: Episode[] = [];
+    // Fetch media sorted by created_at DESC (newest first)
+    const allMedia: MediaItem[] = [];
     let skip = 0;
     let hasMore = true;
 
-    while (hasMore && allEpisodes.length < HOT_STORAGE_LIMIT + MAX_MIGRATIONS_PER_RUN + 100) {
+    while (hasMore && allMedia.length < HOT_STORAGE_LIMIT + MAX_MIGRATIONS_PER_RUN + 100) {
       try {
-        const response = await cosmic.objects
-          .find({ type: 'episode' })
-          .props('id,slug,title,metadata.image,metadata.broadcast_date')
-          .sort('-metadata.broadcast_date')
-          .limit(BATCH_SIZE)
-          .skip(skip)
-          .status('any');
+        const response = await cosmic.media
+          .find()
+          .props(['id', 'name', 'url', 'imgix_url', 'size', 'created_at'])
+          .sort('-created_at')
+          .limit(100)
+          .skip(skip);
 
-        const episodes = response.objects || [];
-        allEpisodes.push(...episodes);
+        const media = response.media || [];
+        allMedia.push(...media);
 
-        hasMore = episodes.length === BATCH_SIZE;
-        skip += BATCH_SIZE;
+        hasMore = media.length === 100;
+        skip += 100;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        if (message.includes('No objects found')) {
-          hasMore = false;
-        } else {
-          console.error(`[COLD-STORAGE] Error fetching episodes: ${message}`);
-          hasMore = false;
-        }
+        console.error(`[COLD-STORAGE] Error fetching media: ${message}`);
+        hasMore = false;
       }
     }
 
-    console.log(`[COLD-STORAGE] Fetched ${allEpisodes.length} episodes`);
+    console.log(`[COLD-STORAGE] Fetched ${allMedia.length} media items`);
 
-    // Identify cold episodes with Cosmic images
-    const coldEpisodes = allEpisodes.slice(HOT_STORAGE_LIMIT);
-    const needsMigration = coldEpisodes.filter(ep => {
-      const imageUrl = ep.metadata?.image?.url || ep.metadata?.image?.imgix_url;
-      return imageUrl && isCosmicUrl(imageUrl);
-    });
+    // Identify cold media (beyond position 1000)
+    const coldMedia = allMedia.slice(HOT_STORAGE_LIMIT);
+    
+    console.log(`[COLD-STORAGE] Hot media (kept): ${Math.min(allMedia.length, HOT_STORAGE_LIMIT)}`);
+    console.log(`[COLD-STORAGE] Cold media (to migrate): ${coldMedia.length}`);
 
-    console.log(`[COLD-STORAGE] Cold episodes: ${coldEpisodes.length}`);
-    console.log(`[COLD-STORAGE] Need migration: ${needsMigration.length}`);
-
-    if (needsMigration.length === 0) {
+    if (coldMedia.length === 0) {
       return NextResponse.json({
         success: true,
-        message: 'No episodes need migration',
+        message: 'Media count is at or below limit, nothing to migrate',
         stats: {
-          totalEpisodes: allEpisodes.length,
-          coldEpisodes: coldEpisodes.length,
-          needsMigration: 0,
+          totalMedia: allMedia.length,
+          hotMedia: allMedia.length,
+          coldMedia: 0,
         },
         duration: `${((Date.now() - startTime) / 1000).toFixed(1)}s`,
       });
     }
 
-    // Migrate up to MAX_MIGRATIONS_PER_RUN episodes
-    const toMigrate = needsMigration.slice(0, MAX_MIGRATIONS_PER_RUN);
+    // Migrate up to MAX_MIGRATIONS_PER_RUN media items
+    const toMigrate = coldMedia.slice(0, MAX_MIGRATIONS_PER_RUN);
     const results = {
       migrated: 0,
       failed: 0,
-      cosmicMediaDeleted: 0,
+      objectsUpdated: 0,
       errors: [] as string[],
     };
 
-    for (const episode of toMigrate) {
-      const imageUrl = episode.metadata?.image?.url || episode.metadata?.image?.imgix_url;
-      if (!imageUrl) continue;
-
-      const imageName = episode.metadata?.image?.name || imageUrl.split('/').pop()?.split('?')[0];
-      const blobPath = generateBlobPath(episode.slug, imageName);
+    for (const mediaItem of toMigrate) {
+      const blobPath = generateBlobPath(mediaItem);
+      const downloadUrl = mediaItem.imgix_url || mediaItem.url;
 
       try {
         // Check if already in Blob
@@ -197,11 +210,11 @@ export async function GET(request: NextRequest) {
         try {
           const existing = await head(blobPath);
           blobUrl = existing.url;
-          console.log(`[COLD-STORAGE] ${episode.slug}: Already in Blob`);
+          console.log(`[COLD-STORAGE] ${mediaItem.name}: Already in Blob`);
         } catch {
           // Download and upload
-          console.log(`[COLD-STORAGE] ${episode.slug}: Migrating...`);
-          const { buffer, contentType } = await downloadImage(imageUrl);
+          console.log(`[COLD-STORAGE] ${mediaItem.name}: Migrating...`);
+          const { buffer, contentType } = await downloadMedia(downloadUrl);
           
           const blob = await put(blobPath, buffer, {
             access: 'public',
@@ -211,31 +224,37 @@ export async function GET(request: NextRequest) {
           blobUrl = blob.url;
         }
 
-        // Update Cosmic metadata with external image URL
-        await cosmic.objects.updateOne(episode.id, {
-          metadata: {
-            external_image_url: blobUrl,
-          },
-        });
-
-        // Delete Cosmic media
-        const cosmicMedia = await findCosmicMediaByUrl(imageUrl);
-        if (cosmicMedia) {
+        // Find and update objects referencing this media
+        const referencingObjects = await findObjectsReferencingMedia(mediaItem);
+        
+        for (const obj of referencingObjects) {
           try {
-            await cosmic.media.deleteOne(cosmicMedia.id);
-            results.cosmicMediaDeleted++;
-          } catch {
-            // Non-critical
+            await cosmic.objects.updateOne(obj.id, {
+              metadata: {
+                external_image_url: blobUrl,
+              },
+            });
+            results.objectsUpdated++;
+            console.log(`[COLD-STORAGE] Updated ${obj.type}/${obj.slug}`);
+          } catch (updateError) {
+            console.error(`[COLD-STORAGE] Failed to update ${obj.type}/${obj.slug}`);
           }
         }
 
+        // Delete from Cosmic media
+        try {
+          await cosmic.media.deleteOne(mediaItem.id);
+          console.log(`[COLD-STORAGE] ${mediaItem.name}: ✅ Migrated and deleted`);
+        } catch {
+          console.log(`[COLD-STORAGE] ${mediaItem.name}: ✅ Migrated (delete failed)`);
+        }
+
         results.migrated++;
-        console.log(`[COLD-STORAGE] ${episode.slug}: ✅ Migrated`);
       } catch (error) {
         results.failed++;
         const message = error instanceof Error ? error.message : 'Unknown error';
-        results.errors.push(`${episode.slug}: ${message}`);
-        console.error(`[COLD-STORAGE] ${episode.slug}: ❌ ${message}`);
+        results.errors.push(`${mediaItem.name}: ${message}`);
+        console.error(`[COLD-STORAGE] ${mediaItem.name}: ❌ ${message}`);
       }
     }
 
@@ -245,11 +264,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       stats: {
-        totalEpisodes: allEpisodes.length,
-        coldEpisodes: coldEpisodes.length,
-        needsMigration: needsMigration.length,
+        totalMedia: allMedia.length,
+        hotMedia: Math.min(allMedia.length, HOT_STORAGE_LIMIT),
+        coldMedia: coldMedia.length,
         processedThisRun: toMigrate.length,
-        remainingToMigrate: needsMigration.length - toMigrate.length,
+        remainingToMigrate: coldMedia.length - toMigrate.length,
       },
       results,
       duration: `${duration}s`,
@@ -263,4 +282,3 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
-

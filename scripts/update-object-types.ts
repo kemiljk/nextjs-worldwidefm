@@ -32,7 +32,16 @@ interface NewObjectTypeConfig {
   metafields: Metafield[];
 }
 
-// Existing object type updates (keeping featured_link for posts)
+// External image URL field definition (reused across object types)
+const externalImageUrlField: Metafield = {
+  title: 'External Image URL',
+  key: 'external_image_url',
+  type: 'text',
+  required: false,
+  helptext: 'URL for images stored externally (Vercel Blob). Used for cold storage to reduce Cosmic storage costs.',
+};
+
+// Existing object type updates
 const updates: ObjectTypeUpdateConfig[] = [
   {
     slug: 'posts',
@@ -44,19 +53,36 @@ const updates: ObjectTypeUpdateConfig[] = [
         required: false,
         helptext: 'Optional URL to link to when this post is featured (used with is_featured)',
       },
+      externalImageUrlField,
     ],
   },
   {
     slug: 'episode',
-    newMetafields: [
-      {
-        title: 'External Image URL',
-        key: 'external_image_url',
-        type: 'text',
-        required: false,
-        helptext: 'URL for images stored externally (Vercel Blob). Used for cold storage of old episode images to reduce Cosmic storage costs.',
-      },
-    ],
+    newMetafields: [externalImageUrlField],
+  },
+  {
+    slug: 'hosts',
+    newMetafields: [externalImageUrlField],
+  },
+  {
+    slug: 'takeovers',
+    newMetafields: [externalImageUrlField],
+  },
+  {
+    slug: 'videos',
+    newMetafields: [externalImageUrlField],
+  },
+  {
+    slug: 'events',
+    newMetafields: [externalImageUrlField],
+  },
+  {
+    slug: 'genres',
+    newMetafields: [externalImageUrlField],
+  },
+  {
+    slug: 'locations',
+    newMetafields: [externalImageUrlField],
   },
 ];
 
