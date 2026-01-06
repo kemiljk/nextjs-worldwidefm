@@ -116,6 +116,25 @@ SUPPORT_EMAIL=noreply@worldwidefm.net
 - Resend dashboard: https://resend.com/api-keys
 - Support email should match your verified domain in Resend
 
+## 📦 Vercel Blob (Cold Storage)
+
+```bash
+BLOB_READ_WRITE_TOKEN=vercel_blob_...
+```
+
+**What it's for:**
+- Stores old episode images (beyond latest 1000)
+- Reduces Cosmic storage costs
+- Auto-migrated weekly via cron job
+
+**Setup:**
+1. Go to Vercel Dashboard → Storage
+2. Create a Blob store
+3. Token is auto-added to deployments
+4. For local dev, copy from Storage → Settings
+
+See `docs/cold-storage-migration.md` for full details.
+
 ## 🔍 Analytics (Optional)
 
 ```bash

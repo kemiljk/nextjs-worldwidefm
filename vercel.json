@@ -1,1 +1,16 @@
-{}
+{
+  "crons": [
+    {
+      "path": "/api/cron/sync-episodes",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/sync-player-urls",
+      "schedule": "0 */12 * * *"
+    },
+    {
+      "path": "/api/cron/migrate-cold-storage",
+      "schedule": "0 2 * * 0"
+    }
+  ]
+}
