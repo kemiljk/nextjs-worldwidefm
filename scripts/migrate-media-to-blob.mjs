@@ -9,8 +9,14 @@
  * This reduces Cosmic storage costs while keeping images accessible.
  * 
  * Usage:
- *   DRY_RUN=true bun run scripts/migrate-media-to-blob.mjs   # Preview (default)
- *   DRY_RUN=false bun run scripts/migrate-media-to-blob.mjs  # Actually migrate
+ *   # Step 1: Preview what would be migrated
+ *   DRY_RUN=true bun run scripts/migrate-media-to-blob.mjs
+ * 
+ *   # Step 2: Migrate (upload to Blob + update Cosmic objects, but keep Cosmic media)
+ *   DRY_RUN=false bun run scripts/migrate-media-to-blob.mjs
+ * 
+ *   # Step 3: After verifying no regression, delete Cosmic media
+ *   DRY_RUN=false DELETE_MEDIA=true bun run scripts/migrate-media-to-blob.mjs
  * 
  * Environment variables:
  *   # Cosmic
@@ -23,6 +29,7 @@
  *   
  *   # Options
  *   DRY_RUN              - "true" (default) or "false"
+ *   DELETE_MEDIA         - "true" to delete Cosmic media after migration (default: false)
  *   HOT_STORAGE_LIMIT    - Number of media items to keep on Cosmic (default: 1000)
  *   BATCH_SIZE           - Items to fetch per batch (default: 100)
  */
@@ -43,6 +50,7 @@ const CONFIG = {
   
   // Options
   dryRun: process.env.DRY_RUN !== 'false',
+  deleteMedia: process.env.DELETE_MEDIA === 'true', // Only delete if explicitly set
   hotStorageLimit: parseInt(process.env.HOT_STORAGE_LIMIT || '1000', 10),
   batchSize: parseInt(process.env.BATCH_SIZE || '100', 10),
   
@@ -352,13 +360,19 @@ async function migrateMediaItem(mediaItem, index, total, allReferences) {
       await sleep(CONFIG.cosmicWriteDelay);
     }
     
-    // Delete from Cosmic media
-    console.log(`    🗑️  Deleting from Cosmic media...`);
-    try {
-      await cosmic.media.deleteOne(mediaItem.id);
-      console.log(`    ✅ Deleted from Cosmic`);
-    } catch (deleteError) {
-      console.log(`    ⚠️  Could not delete: ${deleteError.message}`);
+    // Delete from Cosmic media (only if DELETE_MEDIA=true)
+    let mediaDeleted = false;
+    if (CONFIG.deleteMedia) {
+      console.log(`    🗑️  Deleting from Cosmic media...`);
+      try {
+        await cosmic.media.deleteOne(mediaItem.id);
+        console.log(`    ✅ Deleted from Cosmic`);
+        mediaDeleted = true;
+      } catch (deleteError) {
+        console.log(`    ⚠️  Could not delete: ${deleteError.message}`);
+      }
+    } else {
+      console.log(`    ⏭️  Skipping deletion (DELETE_MEDIA not set)`);
     }
     
     console.log(`    ✅ Migrated to: ${blobUrl}`);
@@ -368,6 +382,7 @@ async function migrateMediaItem(mediaItem, index, total, allReferences) {
       bytesUploaded, 
       objectsUpdated,
       references: references.length,
+      mediaDeleted,
     };
     
   } catch (error) {
@@ -497,6 +512,7 @@ async function main() {
   console.log(`  Cosmic Bucket: ${CONFIG.bucketSlug}`);
   console.log(`  Hot Storage Limit: ${CONFIG.hotStorageLimit} media items`);
   console.log(`  Mode: ${CONFIG.dryRun ? '🏃 DRY RUN (preview only)' : '🚀 LIVE (will migrate)'}`);
+  console.log(`  Delete Media: ${CONFIG.deleteMedia ? '🗑️  YES (will delete from Cosmic)' : '⏸️  NO (keep on Cosmic for verification)'}`);
   console.log(`  Vercel Blob: ${blobConfigured ? '✅ Configured' : '⚠️ Not configured'}`);
   console.log('═══════════════════════════════════════════════════════════════════');
   
@@ -556,6 +572,7 @@ async function main() {
       skipped: 0,
       bytesUploaded: 0,
       objectsUpdated: 0,
+      mediaDeleted: 0,
       errors: [],
     };
     
@@ -570,6 +587,7 @@ async function main() {
           results.migrated++;
           results.bytesUploaded += result.bytesUploaded || 0;
           results.objectsUpdated += result.objectsUpdated || 0;
+          if (result.mediaDeleted) results.mediaDeleted++;
         }
       } else {
         results.failed++;
@@ -609,16 +627,16 @@ async function main() {
       console.log(`    Successfully migrated: ${results.migrated}`);
       console.log(`    Bytes uploaded to Blob: ${formatBytes(results.bytesUploaded)}`);
       console.log(`    Objects updated: ${results.objectsUpdated}`);
+      console.log(`    Cosmic media deleted: ${results.mediaDeleted}${!CONFIG.deleteMedia ? ' (DELETE_MEDIA not set)' : ''}`);
       console.log(`    Failed: ${results.failed}`);
+      
+      if (!CONFIG.deleteMedia && results.migrated > 0) {
+        console.log(`\n  📋 NEXT STEP:`);
+        console.log(`    Verify images load correctly from Vercel Blob, then run:`);
+        console.log(`    DRY_RUN=false DELETE_MEDIA=true bun run scripts/migrate-media-to-blob.mjs`);
+      }
     }
     console.log('═══════════════════════════════════════════════════════════════════');
-    
-    // After migration, verify final count
-    if (!CONFIG.dryRun && results.migrated > 0) {
-      console.log('\n🔍 Verifying final media count...');
-      const finalMediaCount = await cosmic.media.find().props(['id']).limit(1);
-      console.log(`  Cosmic media remaining: ~${CONFIG.hotStorageLimit} items (target)`);
-    }
     
     // Save report
     const report = {
