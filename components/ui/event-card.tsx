@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { buildImgixUrl, QUALITY_PRESETS, isImgixUrl, convertToImgixUrl } from '@/lib/image-utils';
 
 interface EventCardProps {
   title: string;
@@ -26,9 +27,14 @@ export function EventCard({
       <div className='relative w-full flex flex-col md:flex-row gap-6 items-start'>
         <div className='flex-1 relative h-auto'>
           <img
-            src={image}
+            src={
+              isImgixUrl(convertToImgixUrl(image))
+                ? buildImgixUrl(image, { width: 800, quality: QUALITY_PRESETS.card })
+                : image
+            }
             alt={title}
             className='w-full max-h-100 h-full object-cover border border-black'
+            loading='lazy'
           />
         </div>
         <div className='pt-4 pb-4 flex-1 flex flex-col justify-center'>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { CategoryTag } from './category-tag';
+import { buildImgixUrl, QUALITY_PRESETS, isImgixUrl, convertToImgixUrl } from '@/lib/image-utils';
 
 interface ArticleCardProps {
   title: string;
@@ -74,9 +75,17 @@ export function ArticleCard({
       <div className={`relative w-full ${getFeaturedContainerClasses()}`}>
         <div className={`flex-1 relative ${getFeaturedImageClasses()}`}>
           <img
-            src={image}
+            src={
+              isImgixUrl(convertToImgixUrl(image))
+                ? buildImgixUrl(image, {
+                    width: isFeatured ? 1200 : 600,
+                    quality: isFeatured ? QUALITY_PRESETS.featured : QUALITY_PRESETS.card,
+                  })
+                : image
+            }
             alt={title}
             className={`w-full ${isFeatured ? 'h-auto object-contain' : 'h-full object-fill'} border ${borderClass}`}
+            loading='lazy'
           />
         </div>
         <div className={`pt-4 pb-4 ${getFeaturedTextClasses()}`}>

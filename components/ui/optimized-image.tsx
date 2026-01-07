@@ -1,6 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import {
+  buildImgixUrl,
+  generateSrcSet,
+  isImgixUrl,
+  convertToImgixUrl,
+  QUALITY_PRESETS,
+  SRCSET_CONFIGS,
+  getPlaceholderUrl,
+} from '@/lib/image-utils';
 
 interface OptimizedImageProps {
   src: string;
@@ -11,23 +20,23 @@ interface OptimizedImageProps {
   priority?: boolean;
   aspectRatio?: 'square' | 'video' | 'portrait' | 'auto';
   fill?: boolean;
-  sizes?: {
-    mobile?: number;
-    tablet?: number;
-    desktop: number;
-  };
-  quality?: number;
+  sizes?: string;
+  quality?: 'thumbnail' | 'card' | 'featured' | 'hero' | 'gallery' | number;
+  variant?: 'thumbnail' | 'card' | 'hero' | 'video' | 'featured';
+  onError?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 /**
  * Optimized image component using native <picture> element with imgix params.
- * 
- * Benefits over Next.js Image:
- * - No Vercel image optimization costs
- * - Uses imgix CDN directly (already included with Cosmic)
- * - WebP/AVIF auto-format via imgix
+ *
+ * Key optimizations for bandwidth savings:
+ * - Auto WebP/AVIF format detection via imgix
+ * - Aggressive quality compression (55-75 range)
  * - Responsive srcset generation
- * - Better control over caching
+ * - Lazy loading by default
+ * - Metadata stripping
+ * - No Vercel image optimization costs
  */
 export function OptimizedImage({
   src,
@@ -38,69 +47,118 @@ export function OptimizedImage({
   priority = false,
   aspectRatio = 'auto',
   fill = false,
-  sizes = { desktop: 800 },
-  quality = 80,
+  sizes,
+  quality,
+  variant = 'card',
+  onError,
+  onClick,
 }: OptimizedImageProps) {
   const [hasError, setHasError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Determine quality based on variant or explicit quality prop
+  const qualityValue = useMemo(() => {
+    if (typeof quality === 'number') return quality;
+    if (quality && quality in QUALITY_PRESETS) return QUALITY_PRESETS[quality as keyof typeof QUALITY_PRESETS];
+    if (variant in QUALITY_PRESETS) return QUALITY_PRESETS[variant as keyof typeof QUALITY_PRESETS];
+    return QUALITY_PRESETS.card;
+  }, [quality, variant]);
+
+  // Get srcset config based on variant
+  const srcsetWidths = useMemo(() => {
+    switch (variant) {
+      case 'thumbnail':
+        return SRCSET_CONFIGS.thumbnail;
+      case 'hero':
+        return SRCSET_CONFIGS.hero;
+      case 'video':
+        return SRCSET_CONFIGS.video;
+      case 'featured':
+        return SRCSET_CONFIGS.featured;
+      default:
+        return SRCSET_CONFIGS.card;
+    }
+  }, [variant]);
+
+  // Default sizes attribute based on variant
+  const defaultSizes = useMemo(() => {
+    switch (variant) {
+      case 'thumbnail':
+        return '100px';
+      case 'hero':
+        return '100vw';
+      case 'video':
+        return '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw';
+      case 'featured':
+        return '(max-width: 768px) 100vw, 50vw';
+      default:
+        return '(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw';
+    }
+  }, [variant]);
+
+  // Calculate aspect ratio for height
+  const aspectRatioValue = useMemo(() => {
+    switch (aspectRatio) {
+      case 'square':
+        return 1;
+      case 'video':
+        return 9 / 16;
+      case 'portrait':
+        return 4 / 3;
+      default:
+        return undefined;
+    }
+  }, [aspectRatio]);
 
   // If no src or error, show placeholder
   if (!src || hasError) {
     return (
       <img
-        src="/image-placeholder.png"
+        src='/image-placeholder.png'
         alt={alt}
         className={className}
-        style={fill ? { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } : undefined}
+        style={
+          fill
+            ? {
+                position: 'absolute',
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }
+            : undefined
+        }
+        onClick={onClick}
       />
     );
   }
 
   // Check if this is an imgix URL
-  const isImgix = src.includes('imgix.cosmicjs.com');
-  
-  // Build imgix params
-  const buildImgixUrl = (baseUrl: string, w: number, extraParams: string = '') => {
-    const separator = baseUrl.includes('?') ? '&' : '?';
-    const params = [
-      `w=${w}`,
-      height ? `h=${height}` : '',
-      'fit=crop',
-      'auto=format,compress',
-      `q=${quality}`,
-      extraParams,
-    ].filter(Boolean).join('&');
-    return `${baseUrl}${separator}${params}`;
-  };
+  const normalizedSrc = convertToImgixUrl(src);
+  const canOptimize = isImgixUrl(normalizedSrc);
 
-  // Generate srcset for responsive images
-  const generateSrcSet = (baseUrl: string) => {
-    if (!isImgix) return undefined;
-    
-    const widths = [
-      sizes.mobile || Math.round(sizes.desktop * 0.5),
-      sizes.tablet || Math.round(sizes.desktop * 0.75),
-      sizes.desktop,
-      sizes.desktop * 1.5,
-      sizes.desktop * 2,
-    ].filter((w, i, arr) => arr.indexOf(w) === i); // Remove duplicates
+  // Build the main image URL
+  const mainWidth = srcsetWidths[srcsetWidths.length - 1] || 800;
+  const mainHeight = aspectRatioValue ? Math.round(mainWidth * aspectRatioValue) : undefined;
 
-    return widths
-      .map(w => `${buildImgixUrl(baseUrl, w)} ${w}w`)
-      .join(', ');
-  };
+  const finalSrc = canOptimize
+    ? buildImgixUrl(normalizedSrc, {
+        width: mainWidth,
+        height: mainHeight,
+        quality: qualityValue,
+        fit: 'crop',
+      })
+    : src;
 
-  // Generate sizes attribute
-  const generateSizes = () => {
-    const parts = [];
-    if (sizes.mobile) {
-      parts.push(`(max-width: 640px) ${sizes.mobile}px`);
-    }
-    if (sizes.tablet) {
-      parts.push(`(max-width: 1024px) ${sizes.tablet}px`);
-    }
-    parts.push(`${sizes.desktop}px`);
-    return parts.join(', ');
-  };
+  // Generate srcset
+  const srcSet = canOptimize
+    ? generateSrcSet(normalizedSrc, {
+        widths: srcsetWidths,
+        quality: qualityValue,
+        aspectRatio: aspectRatioValue,
+        fit: 'crop',
+      })
+    : undefined;
 
   const aspectRatioClass = {
     square: 'aspect-square',
@@ -109,25 +167,25 @@ export function OptimizedImage({
     auto: '',
   }[aspectRatio];
 
-  const imgStyle = fill 
-    ? { position: 'absolute' as const, inset: 0, width: '100%', height: '100%', objectFit: 'cover' as const }
+  const imgStyle = fill
+    ? {
+        position: 'absolute' as const,
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover' as const,
+      }
     : undefined;
 
-  const finalSrc = isImgix 
-    ? buildImgixUrl(src, sizes.desktop)
-    : src;
+  const handleError = () => {
+    setHasError(true);
+    onError?.();
+  };
 
   return (
     <picture className={aspectRatioClass}>
-      {isImgix && (
-        <>
-          {/* WebP source for modern browsers */}
-          <source
-            type="image/webp"
-            srcSet={generateSrcSet(src)}
-            sizes={generateSizes()}
-          />
-        </>
+      {canOptimize && srcSet && (
+        <source type='image/webp' srcSet={srcSet} sizes={sizes || defaultSizes} />
       )}
       <img
         src={finalSrc}
@@ -139,15 +197,83 @@ export function OptimizedImage({
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
         fetchPriority={priority ? 'high' : 'auto'}
-        onError={() => setHasError(true)}
+        onError={handleError}
+        onLoad={() => setIsLoaded(true)}
+        onClick={onClick}
       />
     </picture>
   );
 }
 
 /**
+ * Simple image component for when you just need a basic optimized img tag
+ * Useful for replacing Next.js Image in simple cases
+ */
+export function SimpleOptimizedImage({
+  src,
+  alt,
+  width,
+  height,
+  className = '',
+  priority = false,
+  quality = 'card',
+  onError,
+}: {
+  src: string;
+  alt: string;
+  width: number;
+  height?: number;
+  className?: string;
+  priority?: boolean;
+  quality?: 'thumbnail' | 'card' | 'featured' | 'hero' | 'gallery' | number;
+  onError?: () => void;
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  const qualityValue = typeof quality === 'number' ? quality : QUALITY_PRESETS[quality];
+
+  if (!src || hasError) {
+    return (
+      <img
+        src='/image-placeholder.png'
+        alt={alt}
+        width={width}
+        height={height}
+        className={className}
+      />
+    );
+  }
+
+  const normalizedSrc = convertToImgixUrl(src);
+  const canOptimize = isImgixUrl(normalizedSrc);
+
+  const finalSrc = canOptimize
+    ? buildImgixUrl(normalizedSrc, { width, height, quality: qualityValue, fit: 'crop' })
+    : src;
+
+  return (
+    <img
+      src={finalSrc}
+      alt={alt}
+      width={width}
+      height={height}
+      className={className}
+      loading={priority ? 'eager' : 'lazy'}
+      decoding={priority ? 'sync' : 'async'}
+      fetchPriority={priority ? 'high' : 'auto'}
+      onError={() => {
+        setHasError(true);
+        onError?.();
+      }}
+    />
+  );
+}
+
+/**
  * Helper to build imgix URL with optimization params
  * Use this when you need just the URL string (e.g., for background-image)
+ *
+ * @deprecated Use buildImgixUrl from '@/lib/image-utils' instead
  */
 export function getOptimizedImageUrl(
   src: string | undefined,
@@ -155,25 +281,298 @@ export function getOptimizedImageUrl(
     width: number;
     height?: number;
     quality?: number;
-    fit?: 'crop' | 'clip' | 'fill' | 'scale';
+    fit?: 'crop' | 'clip' | 'fill' | 'scale' | 'max';
   }
 ): string {
   if (!src) return '/image-placeholder.png';
-  
-  const { width, height, quality = 80, fit = 'crop' } = options;
-  const isImgix = src.includes('imgix.cosmicjs.com');
-  
-  if (!isImgix) return src;
-  
-  const separator = src.includes('?') ? '&' : '?';
-  const params = [
-    `w=${width}`,
-    height ? `h=${height}` : '',
-    `fit=${fit}`,
-    'auto=format,compress',
-    `q=${quality}`,
-  ].filter(Boolean).join('&');
-  
-  return `${src}${separator}${params}`;
+
+  const { width, height, quality = QUALITY_PRESETS.card, fit = 'crop' } = options;
+  const normalizedSrc = convertToImgixUrl(src);
+
+  if (!isImgixUrl(normalizedSrc)) return src;
+
+  return buildImgixUrl(normalizedSrc, { width, height, quality, fit });
 }
 
+/**
+ * Responsive image component with srcset for different screen sizes
+ * Ideal for cards and grid layouts
+ */
+export function ResponsiveCardImage({
+  src,
+  alt,
+  className = '',
+  priority = false,
+  aspectRatio = 'square',
+  sizes = '(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw',
+  onError,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  priority?: boolean;
+  aspectRatio?: 'square' | 'video' | 'portrait';
+  sizes?: string;
+  onError?: () => void;
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  const aspectRatioValue = {
+    square: 1,
+    video: 9 / 16,
+    portrait: 4 / 3,
+  }[aspectRatio];
+
+  if (!src || hasError) {
+    return (
+      <img
+        src='/image-placeholder.png'
+        alt={alt}
+        className={className}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+        }}
+      />
+    );
+  }
+
+  const normalizedSrc = convertToImgixUrl(src);
+  const canOptimize = isImgixUrl(normalizedSrc);
+
+  // Use card sizes: 400, 600, 800
+  const widths = SRCSET_CONFIGS.card;
+  const mainWidth = widths[widths.length - 1];
+  const mainHeight = Math.round(mainWidth * aspectRatioValue);
+
+  const finalSrc = canOptimize
+    ? buildImgixUrl(normalizedSrc, {
+        width: mainWidth,
+        height: mainHeight,
+        quality: QUALITY_PRESETS.card,
+        fit: 'crop',
+      })
+    : src;
+
+  const srcSet = canOptimize
+    ? generateSrcSet(normalizedSrc, {
+        widths,
+        quality: QUALITY_PRESETS.card,
+        aspectRatio: aspectRatioValue,
+        fit: 'crop',
+      })
+    : undefined;
+
+  return (
+    <picture>
+      {canOptimize && srcSet && <source type='image/webp' srcSet={srcSet} sizes={sizes} />}
+      <img
+        src={finalSrc}
+        alt={alt}
+        className={className}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+        }}
+        loading={priority ? 'eager' : 'lazy'}
+        decoding={priority ? 'sync' : 'async'}
+        fetchPriority={priority ? 'high' : 'auto'}
+        onError={() => {
+          setHasError(true);
+          onError?.();
+        }}
+      />
+    </picture>
+  );
+}
+
+/**
+ * Hero image component optimized for full-width displays
+ */
+export function HeroImage({
+  src,
+  alt,
+  className = '',
+  priority = true,
+  aspectRatio,
+  onError,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  priority?: boolean;
+  aspectRatio?: number; // height/width, e.g., 0.5625 for 16:9
+  onError?: () => void;
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!src || hasError) {
+    return (
+      <img
+        src='/image-placeholder.png'
+        alt={alt}
+        className={className}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+        }}
+      />
+    );
+  }
+
+  const normalizedSrc = convertToImgixUrl(src);
+  const canOptimize = isImgixUrl(normalizedSrc);
+
+  // Hero sizes: 768, 1024, 1400, 1920
+  const widths = SRCSET_CONFIGS.hero;
+  const mainWidth = widths[widths.length - 1];
+  const mainHeight = aspectRatio ? Math.round(mainWidth * aspectRatio) : undefined;
+
+  const finalSrc = canOptimize
+    ? buildImgixUrl(normalizedSrc, {
+        width: mainWidth,
+        height: mainHeight,
+        quality: QUALITY_PRESETS.hero,
+        fit: 'crop',
+      })
+    : src;
+
+  const srcSet = canOptimize
+    ? generateSrcSet(normalizedSrc, {
+        widths,
+        quality: QUALITY_PRESETS.hero,
+        aspectRatio,
+        fit: 'crop',
+      })
+    : undefined;
+
+  return (
+    <picture>
+      {canOptimize && srcSet && <source type='image/webp' srcSet={srcSet} sizes='100vw' />}
+      <img
+        src={finalSrc}
+        alt={alt}
+        className={className}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+        }}
+        loading={priority ? 'eager' : 'lazy'}
+        decoding={priority ? 'sync' : 'async'}
+        fetchPriority={priority ? 'high' : 'auto'}
+        onError={() => {
+          setHasError(true);
+          onError?.();
+        }}
+      />
+    </picture>
+  );
+}
+
+/**
+ * Video thumbnail image component
+ */
+export function VideoThumbnailImage({
+  src,
+  alt,
+  className = '',
+  priority = false,
+  large = false,
+  onError,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  priority?: boolean;
+  large?: boolean;
+  onError?: () => void;
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!src || hasError) {
+    return (
+      <img
+        src='/image-placeholder.png'
+        alt={alt}
+        className={className}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+        }}
+      />
+    );
+  }
+
+  const normalizedSrc = convertToImgixUrl(src);
+  const canOptimize = isImgixUrl(normalizedSrc);
+
+  // Video thumbnail: 16:9 aspect ratio
+  const aspectRatioValue = 9 / 16;
+  const widths = SRCSET_CONFIGS.video;
+  const mainWidth = large ? widths[widths.length - 1] : widths[1];
+  const mainHeight = Math.round(mainWidth * aspectRatioValue);
+
+  const finalSrc = canOptimize
+    ? buildImgixUrl(normalizedSrc, {
+        width: mainWidth,
+        height: mainHeight,
+        quality: QUALITY_PRESETS.card,
+        fit: 'crop',
+      })
+    : src;
+
+  const srcSet = canOptimize
+    ? generateSrcSet(normalizedSrc, {
+        widths,
+        quality: QUALITY_PRESETS.card,
+        aspectRatio: aspectRatioValue,
+        fit: 'crop',
+      })
+    : undefined;
+
+  return (
+    <picture>
+      {canOptimize && srcSet && (
+        <source
+          type='image/webp'
+          srcSet={srcSet}
+          sizes={large ? '(max-width: 768px) 100vw, 50vw' : '(max-width: 640px) 100vw, 33vw'}
+        />
+      )}
+      <img
+        src={finalSrc}
+        alt={alt}
+        className={className}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+        }}
+        loading={priority ? 'eager' : 'lazy'}
+        decoding={priority ? 'sync' : 'async'}
+        fetchPriority={priority ? 'high' : 'auto'}
+        onError={() => {
+          setHasError(true);
+          onError?.();
+        }}
+      />
+    </picture>
+  );
+}

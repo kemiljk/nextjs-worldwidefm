@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDateShort } from '@/lib/utils';
@@ -9,6 +8,7 @@ import { GenreObject } from '@/lib/cosmic-config';
 import { PlayButton } from '@/components/play-button';
 import { HighlightedText } from '@/components/ui/highlighted-text';
 import { useMediaPlayer } from '@/components/providers/media-player-provider';
+import { HeroImage, ResponsiveCardImage } from '@/components/ui/optimized-image';
 
 // Using any for now since heroItems come from transformed show data
 interface HomepageHeroProps {
@@ -53,7 +53,7 @@ const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
       <Link href={href} className='flex flex-col h-full'>
         <CardContent className='p-0 grow flex flex-col'>
           <div className='relative w-full h-[90vh] flex items-center justify-center'>
-            <Image
+            <HeroImage
               src={
                 item.metadata?.external_image_url ||
                 item.metadata?.image?.imgix_url ||
@@ -61,17 +61,8 @@ const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
                 '/image-placeholder.png'
               }
               alt={item.title || 'Hero item'}
-              fill
               className='object-cover'
-              sizes='(max-width: 768px) 100vw, 50vw'
               priority={isPriority}
-              onError={(e: any) => {
-                if (e?.currentTarget) {
-                  try {
-                    e.currentTarget.src = '/image-placeholder.png';
-                  } catch {}
-                }
-              }}
             />
             {/* Play button for episodes */}
             {shouldShowPlayButton && (
@@ -203,25 +194,23 @@ export const EpisodeHero = ({
           }}
         />
       </div>
-      <Image
+      <HeroImage
         src={displayImage}
         alt={displayName}
-        fill
-        priority
         className='object-cover object-center w-full h-full select-none pointer-events-none'
-        sizes='100vw'
+        priority
       />
       {/* Overlay: Play Button and Text - Always show artwork and title */}
       <div className='relative inset-0 flex justify-center pt-5 z-30'>
         <div className='flex flex-col md:max-w-full md:flex-row gap-10 px-10 items-start md:items-center '>
           <div className='relative w-[80vw] sm:w-[400px] md:w-[450px] lg:w-[600px] aspect-square border border-almostblack z-30'>
-            <Image
+            <ResponsiveCardImage
               src={displayImage}
               alt={displayName}
-              fill
-              priority
               className='object-cover object-center w-full h-full select-none pointer-events-none'
-              sizes='100vw'
+              priority
+              aspectRatio='square'
+              sizes='(max-width: 640px) 80vw, (max-width: 768px) 400px, (max-width: 1024px) 450px, 600px'
             />
             {/* Only show play button if there's audio content */}
             {(isEpisode || hasAudioContent) && show?.metadata?.player && (

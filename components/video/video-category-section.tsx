@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { VideoObject } from '@/lib/cosmic-config';
 import { GenreTag } from '@/components/ui/genre-tag';
@@ -12,6 +11,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import { VideoThumbnailImage } from '@/components/ui/optimized-image';
 
 interface VideoCategorySectionProps {
   title: string;
@@ -103,7 +103,7 @@ export default function VideoCategorySection({
                     <Card className='flex flex-col h-full'>
                       <CardContent className='flex flex-col flex-1 p-0 border border-white group-hover:border-almostblack'>
                         <div className='relative aspect-video'>
-                          <Image src={thumbnailUrl} alt={video.title} fill className='object-cover' />
+                          <VideoThumbnailImage src={thumbnailUrl} alt={video.title} className='object-cover' />
                           {categoryObjects.length > 0 && (
                             <div className='absolute top-3 left-3 flex flex-wrap gap-1'>
                               {categoryObjects.map(cat =>

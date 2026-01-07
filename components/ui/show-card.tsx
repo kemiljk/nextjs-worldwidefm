@@ -1,12 +1,12 @@
 'use client';
 
 import { Play, Pause } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useMediaPlayer } from '../providers/media-player-provider';
 import { GenreTag } from './genre-tag';
+import { ResponsiveCardImage } from './optimized-image';
 import type { CanonicalGenre } from '@/lib/get-canonical-genres';
 import { getUKTimezoneAbbreviation } from '@/lib/date-utils';
 
@@ -225,20 +225,13 @@ export const ShowCard: React.FC<ShowCardProps> = ({
         <div className='group relative aspect-square cursor-pointer'>
           {/* Overlay for dimming on hover */}
           <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-50 transition-opacity pointer-events-none z-10' />
-          <Image
+          <ResponsiveCardImage
             src={showImage}
             alt={showName}
-            fill
             className={`object-cover border ${imageBorderClass} hover:cursor-pointer`}
             sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
             priority={false}
-            onError={(e: any) => {
-              if (e?.currentTarget) {
-                try {
-                  e.currentTarget.src = '/image-placeholder.png';
-                } catch {}
-              }
-            }}
+            aspectRatio='square'
           />
           {isMounted && shouldShowPlayButton && (
             <div className='absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20'>

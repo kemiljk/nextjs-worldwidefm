@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { VideoObject } from '@/lib/cosmic-config';
 import { cn } from '@/lib/utils';
+import { buildImgixUrl, QUALITY_PRESETS, isImgixUrl, convertToImgixUrl } from '@/lib/image-utils';
 
 function getYouTubeId(url: string): string | null {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -65,12 +66,17 @@ export function VideoPlayer({ video, className }: VideoPlayerProps) {
   }
 
   // Handle direct video URLs (Cosmic or other sources)
+  const posterUrl = video.metadata?.external_image_url || video.metadata?.image?.imgix_url;
+  const optimizedPoster = posterUrl && isImgixUrl(convertToImgixUrl(posterUrl))
+    ? buildImgixUrl(posterUrl, { width: 1280, height: 720, quality: QUALITY_PRESETS.video })
+    : posterUrl;
+
   return (
     <div className={cn('relative aspect-video w-full', className)}>
       <video
         className='w-full h-full object-cover'
         controls
-        poster={video.metadata?.external_image_url || video.metadata?.image?.imgix_url}
+        poster={optimizedPoster}
       >
         <source src={videoUrl} type='video/mp4' />
         Your browser does not support the video tag.

@@ -3,7 +3,7 @@ import { ImageGallery } from '@/components/ui/image-gallery';
 import { PostObject } from '@/lib/cosmic-config';
 import { PostVideoPlayer } from './post-video-player';
 import { getPostVideoUrl } from '@/lib/post-thumbnail-utils';
-import { getOptimizedImageUrl } from '@/components/ui/optimized-image';
+import { buildImgixUrl, QUALITY_PRESETS } from '@/lib/image-utils';
 
 interface Category {
   id: string;
@@ -47,10 +47,11 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
             <PostVideoPlayer post={post} />
           ) : imageUrl ? (
             <img
-              src={getOptimizedImageUrl(imageUrl, { width: 1000, quality: 85 })}
+              src={buildImgixUrl(imageUrl, { width: 1000, quality: QUALITY_PRESETS.featured })}
               alt={`${title} - Featured image`}
               style={{ width: '100%', height: 'auto' }}
               className='object-contain'
+              loading='lazy'
             />
           ) : null}
         </div>
@@ -124,9 +125,10 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
           <PostVideoPlayer post={post} className='h-full' />
         ) : imageUrl ? (
           <img
-            src={getOptimizedImageUrl(imageUrl, { width: 1920, height: 1080, quality: 85 })}
+            src={buildImgixUrl(imageUrl, { width: 1920, height: 1080, quality: QUALITY_PRESETS.hero })}
             alt={`${title} - Featured image`}
             className='absolute inset-0 w-full h-full object-cover'
+            loading='eager'
           />
         ) : null}
         <div className='absolute inset-0 bg-black bg-opacity-40 flex items-end'>
@@ -225,10 +227,11 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
       ) : imageUrl ? (
         <div className='w-full mb-20'>
           <img
-            src={getOptimizedImageUrl(imageUrl, { width: 1920, quality: 85 })}
+            src={buildImgixUrl(imageUrl, { width: 1920, quality: QUALITY_PRESETS.hero })}
             alt={`${title} - Featured image`}
             style={{ width: '100%', height: 'auto' }}
             className='object-contain'
+            loading='lazy'
           />
         </div>
       ) : null}
