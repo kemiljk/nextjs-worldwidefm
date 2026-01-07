@@ -1,7 +1,7 @@
 import React from 'react';
-import Image from 'next/image';
 import { ProcessedHomepageSection, CosmicItem, ColouredSection } from '@/lib/cosmic-types';
 import UniqueHomepageSection from './unique-homepage-section';
+import { ResponsiveCardImage } from '@/components/ui/optimized-image';
 
 // Reusable Item Card (similar to the one in HomepageHero, could be centralized)
 const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
@@ -19,12 +19,12 @@ const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
   return (
     <div className='border border-almostblack dark:border-white overflow-hidden'>
       <div className='aspect-square relative overflow-hidden'>
-        <Image
+        <ResponsiveCardImage
           src={imageUrl}
           alt={title}
-          fill
           className='object-cover'
           sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
+          aspectRatio='square'
         />
       </div>
       <div className='p-4'>

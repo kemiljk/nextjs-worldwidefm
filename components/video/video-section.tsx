@@ -1,11 +1,11 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { VideoObject } from '@/lib/cosmic-config';
+import { VideoThumbnailImage } from '@/components/ui/optimized-image';
 
 interface Video extends VideoObject {}
 
@@ -65,7 +65,7 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
                 <CardContent className='p-0 flex flex-col aspect-video w-full'>
                   {/* Image takes remaining space */}
                   <div className='relative flex-1'>
-                    <Image
+                    <VideoThumbnailImage
                       src={
                         firstVideo.metadata?.external_image_url ||
                         firstVideo.metadata?.image?.imgix_url ||
@@ -78,8 +78,8 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
                         '/image-placeholder.png'
                       }
                       alt={firstVideo.title}
-                      fill
                       className='object-cover'
+                      large
                     />
                   </div>
 
@@ -114,7 +114,7 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
                 <Card className='overflow-hidden transition-shadow border border-white group hover:bg-white hover:text-almostblack'>
                   <CardContent className='p-0 flex flex-col aspect-video h-auto w-full'>
                     <div className='relative flex-1'>
-                      <Image src={thumbnailUrl} alt={video.title} fill className='object-cover' />
+                      <VideoThumbnailImage src={thumbnailUrl} alt={video.title} className='object-cover' />
                     </div>
                     <div className='relative border-t border-white flex-row flex justify-between pl-2 h-auto w-auto bg-almostblack text-white items-center group-hover:bg-white group-hover:text-almostblack group-hover:border-black'>
                       <h3 className='text-[25px] font-bold line-clamp-1 group-hover:text-almostblack'>
