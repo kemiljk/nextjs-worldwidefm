@@ -30,6 +30,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'cdn.cosmicjs.com',
       },
+      {
+        protocol: 'https',
+        hostname: '*.public.blob.vercel-storage.com',
+      },
     ],
   },
   experimental: {
