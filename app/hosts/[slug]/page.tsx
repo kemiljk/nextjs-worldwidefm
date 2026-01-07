@@ -13,8 +13,6 @@ import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/action
 import { FavoriteButton } from '@/components/favorite-button';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 
-export const revalidate = 60;
-
 interface Props {
   params: Promise<{ slug: string }>;
 }

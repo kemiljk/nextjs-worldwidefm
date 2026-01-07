@@ -14,9 +14,6 @@ import { PreviewBanner } from '@/components/ui/preview-banner';
 import { ListenBackButton } from '@/components/listen-back-button';
 import { getEpisodeImageUrl } from '@/lib/cosmic-types';
 
-export const revalidate = 60; // 1 minute - shows update quickly
-export const dynamicParams = true;
-
 function HostLink({ host, className }: { host: any; className: string }) {
   let href = '#';
   const displayName = host.title || host.name;

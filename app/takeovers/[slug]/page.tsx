@@ -10,8 +10,6 @@ import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
 import { ShowCard } from '@/components/ui/show-card';
 
-export const revalidate = 60;
-
 interface Props {
   params: Promise<{ slug: string }>;
 }
