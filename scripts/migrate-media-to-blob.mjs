@@ -3,7 +3,7 @@
 /**
  * Cosmic Media Cold Storage Migration Script
  * 
- * Keeps the 1000 most recently uploaded media items on Cosmic.
+ * Keeps the 500 most recently uploaded media items on Cosmic.
  * Migrates all older media to Vercel Blob, updating any objects that reference them.
  * 
  * This reduces Cosmic storage costs while keeping images accessible.
@@ -31,7 +31,7 @@
  *   DRY_RUN              - "true" (default) or "false"
  *   DELETE_MEDIA         - "true" to delete Cosmic media after migration (default: false)
  *   DELETE_ONLY          - "true" to skip migration, just delete cold media (fast cleanup)
- *   HOT_STORAGE_LIMIT    - Number of media items to keep on Cosmic (default: 1000)
+ *   HOT_STORAGE_LIMIT    - Number of media items to keep on Cosmic (default: 500)
  *   BATCH_SIZE           - Items to fetch per batch (default: 100)
  */
 
@@ -53,7 +53,7 @@ const CONFIG = {
   dryRun: process.env.DRY_RUN !== 'false',
   deleteMedia: process.env.DELETE_MEDIA === 'true', // Only delete if explicitly set
   deleteOnly: process.env.DELETE_ONLY === 'true', // Skip migration, just delete cold media
-  hotStorageLimit: parseInt(process.env.HOT_STORAGE_LIMIT || '1000', 10),
+  hotStorageLimit: parseInt(process.env.HOT_STORAGE_LIMIT || '500', 10),
   batchSize: parseInt(process.env.BATCH_SIZE || '100', 10),
   
   // Rate limiting
@@ -511,7 +511,7 @@ async function main() {
   console.log('  Cosmic Media Cold Storage Migration');
   console.log(CONFIG.deleteOnly 
     ? '  DELETE ONLY MODE - Skip migration, just delete cold media'
-    : '  Keep 1000 most recent → Migrate older to Vercel Blob');
+    : '  Keep 500 most recent → Migrate older to Vercel Blob');
   console.log('═══════════════════════════════════════════════════════════════════');
   console.log(`  Cosmic Bucket: ${CONFIG.bucketSlug}`);
   console.log(`  Hot Storage Limit: ${CONFIG.hotStorageLimit} media items`);

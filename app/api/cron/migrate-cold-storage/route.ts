@@ -3,11 +3,11 @@ import { cosmic } from '@/lib/cosmic-config';
 import { put, head } from '@vercel/blob';
 
 /**
- * Cron job to keep Cosmic media storage at or below 1000 items.
+ * Cron job to keep Cosmic media storage at or below 500 items.
  * 
  * Strategy:
  * 1. Fetch all Cosmic media sorted by upload date (newest first)
- * 2. Keep the 1000 most recent
+ * 2. Keep the 500 most recent
  * 3. Migrate older media to Vercel Blob
  * 4. Update any objects referencing the migrated media
  * 5. Delete migrated media from Cosmic (only if DELETE_MEDIA=true)
@@ -20,7 +20,7 @@ import { put, head } from '@vercel/blob';
  *   DELETE_MEDIA          - Set to "true" to delete Cosmic media after migration (default: false)
  */
 
-const HOT_STORAGE_LIMIT = 1000;
+const HOT_STORAGE_LIMIT = 500;
 const MAX_MIGRATIONS_PER_RUN = 100; // Limit per cron run to avoid timeouts
 const DELETE_MEDIA = process.env.DELETE_MEDIA === 'true';
 
@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
 
     console.log(`[COLD-STORAGE] Fetched ${allMedia.length} media items`);
 
-    // Identify cold media (beyond position 1000)
+    // Identify cold media (beyond position 500)
     const coldMedia = allMedia.slice(HOT_STORAGE_LIMIT);
     
     console.log(`[COLD-STORAGE] Hot media (kept): ${Math.min(allMedia.length, HOT_STORAGE_LIMIT)}`);
