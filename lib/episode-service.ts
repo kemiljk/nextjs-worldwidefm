@@ -67,7 +67,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         const fetchLimit = Math.min(baseLimit * 5, 200);
         const response = await cosmic.objects
           .find(query)
-          .props('id,slug,title,type,created_at,metadata.image,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage')
+          .props('id,slug,title,type,created_at,metadata.image,metadata.external_image_url,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage')
           .limit(fetchLimit)
           .depth(1);
 
@@ -175,7 +175,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     // Fetch episodes from Cosmic
     const response = await cosmic.objects
       .find(query)
-      .props('id,slug,title,type,created_at,metadata.image,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage')
+      .props('id,slug,title,type,created_at,metadata.image,metadata.external_image_url,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage')
       .limit(baseLimit)
       .skip(offset)
       .sort('-metadata.broadcast_date')
@@ -273,7 +273,7 @@ export async function getRegularHosts(
 
     const response = await cosmic.objects
       .find(query)
-      .props('id,slug,title,type,content,metadata.image,metadata.description,metadata.genres,metadata.locations')
+      .props('id,slug,title,type,content,metadata.image,metadata.external_image_url,metadata.description,metadata.genres,metadata.locations')
       .limit(limit)
       .skip(offset)
       .depth(1);
@@ -325,7 +325,7 @@ export async function getTakeovers(
 
     const response = await cosmic.objects
       .find(query)
-      .props('id,slug,title,type,content,metadata.image,metadata.description,metadata.regular_hosts')
+      .props('id,slug,title,type,content,metadata.image,metadata.external_image_url,metadata.description,metadata.regular_hosts')
       .limit(limit)
       .skip(offset)
       .depth(1);
@@ -428,7 +428,7 @@ export async function getEpisodeBySlug(
     status: preview ? 'any' : 'published',
   };
 
-  const episodeProps = 'id,slug,title,type,status,created_at,metadata.image,metadata.broadcast_date,metadata.broadcast_date_old,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.body_text,metadata.player,metadata.tracklist,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage';
+  const episodeProps = 'id,slug,title,type,status,created_at,metadata.image,metadata.external_image_url,metadata.broadcast_date,metadata.broadcast_date_old,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.body_text,metadata.player,metadata.tracklist,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage';
 
   try {
     const response = await cosmic.objects.findOne(query).props(episodeProps).depth(1);
@@ -489,7 +489,7 @@ export async function getRelatedEpisodes(
         'metadata.broadcast_date': { $lte: todayStr },
       })
       .props(
-        'id,slug,title,metadata.broadcast_date,metadata.image,metadata.genres,metadata.regular_hosts'
+        'id,slug,title,metadata.broadcast_date,metadata.image,metadata.external_image_url,metadata.genres,metadata.regular_hosts'
       )
       .limit(limit)
       .sort('-metadata.broadcast_date')
