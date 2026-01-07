@@ -1,22 +1,22 @@
 {
-  "timestamp": "2026-01-07T00:38:22.113Z",
+  "timestamp": "2026-01-07T12:14:00.773Z",
   "dryRun": false,
-  "hotStorageLimit": 1000,
+  "hotStorageLimit": 500,
   "cosmicBucket": "worldwide-fm-production",
   "stats": {
-    "totalMedia": 12075,
-    "hotStorage": 1000,
-    "coldStorage": 11075,
-    "hotStorageSize": 1964307032,
-    "coldStorageSize": 3075345777
+    "totalMedia": 1000,
+    "hotStorage": 500,
+    "coldStorage": 500,
+    "hotStorageSize": 1602427867,
+    "coldStorageSize": 361879165
   },
   "results": {
-    "migrated": 11075,
+    "migrated": 500,
     "failed": 0,
     "skipped": 0,
-    "bytesUploaded": 3075345777,
-    "objectsUpdated": 11313,
-    "mediaDeleted": 0,
+    "bytesUploaded": 361879203,
+    "objectsUpdated": 401,
+    "mediaDeleted": 500,
     "errors": []
   }
 }

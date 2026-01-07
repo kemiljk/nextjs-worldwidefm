@@ -1,12 +1,12 @@
 {
   "phase": "complete",
-  "migrated": 11075,
+  "migrated": 500,
   "failed": 0,
   "skipped": 0,
-  "bytesUploaded": 3075345777,
-  "objectsUpdated": 11313,
-  "mediaDeleted": 0,
+  "bytesUploaded": 361879203,
+  "objectsUpdated": 401,
+  "mediaDeleted": 500,
   "errors": [],
-  "elapsed": "26130.1",
-  "timestamp": "2026-01-07T00:38:22.117Z"
+  "elapsed": "1699.8",
+  "timestamp": "2026-01-07T12:14:00.773Z"
 }
