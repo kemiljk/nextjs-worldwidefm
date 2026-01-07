@@ -10,17 +10,19 @@ import { put, head } from '@vercel/blob';
  * 2. Keep the 1000 most recent
  * 3. Migrate older media to Vercel Blob
  * 4. Update any objects referencing the migrated media
- * 5. Delete migrated media from Cosmic
+ * 5. Delete migrated media from Cosmic (only if DELETE_MEDIA=true)
  * 
  * Schedule: Weekly (configured in vercel.json)
  * 
  * Environment variables:
  *   CRON_SECRET           - For authentication
  *   BLOB_READ_WRITE_TOKEN - Vercel Blob token (auto-available in Vercel)
+ *   DELETE_MEDIA          - Set to "true" to delete Cosmic media after migration (default: false)
  */
 
 const HOT_STORAGE_LIMIT = 1000;
 const MAX_MIGRATIONS_PER_RUN = 100; // Limit per cron run to avoid timeouts
+const DELETE_MEDIA = process.env.DELETE_MEDIA === 'true';
 
 // Object types that can have images
 const OBJECT_TYPES_WITH_IMAGES = [
@@ -146,6 +148,7 @@ export async function GET(request: NextRequest) {
 
     console.log('[COLD-STORAGE] Starting cold storage migration...');
     console.log(`[COLD-STORAGE] Hot storage limit: ${HOT_STORAGE_LIMIT} media items`);
+    console.log(`[COLD-STORAGE] Delete media: ${DELETE_MEDIA ? 'YES' : 'NO (set DELETE_MEDIA=true to enable)'}`);
 
     // Fetch media sorted by created_at DESC (newest first)
     const allMedia: MediaItem[] = [];
@@ -244,12 +247,16 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // Delete from Cosmic media
-        try {
-          await cosmic.media.deleteOne(mediaItem.id);
-          console.log(`[COLD-STORAGE] ${mediaItem.name}: ✅ Migrated and deleted`);
-        } catch {
-          console.log(`[COLD-STORAGE] ${mediaItem.name}: ✅ Migrated (delete failed)`);
+        // Delete from Cosmic media (only if DELETE_MEDIA is set)
+        if (DELETE_MEDIA) {
+          try {
+            await cosmic.media.deleteOne(mediaItem.id);
+            console.log(`[COLD-STORAGE] ${mediaItem.name}: ✅ Migrated and deleted`);
+          } catch {
+            console.log(`[COLD-STORAGE] ${mediaItem.name}: ✅ Migrated (delete failed)`);
+          }
+        } else {
+          console.log(`[COLD-STORAGE] ${mediaItem.name}: ✅ Migrated (kept on Cosmic)`);
         }
 
         results.migrated++;

@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-01-06T16:49:50.321Z",
+  "dryRun": true,
+  "hotStorageLimit": 1000,
+  "cosmicBucket": "worldwide-fm-production",
+  "stats": {
+    "totalEpisodes": 11805,
+    "hotStorage": 1000,
+    "coldStorage": 10805,
+    "alreadyMigrated": 0,
+    "noImage": 61,
+    "needsMigration": 10744
+  },
+  "results": {
+    "migrated": 0,
+    "failed": 0,
+    "skipped": 10744,
+    "bytesUploaded": 0,
+    "cosmicMediaDeleted": 0,
+    "errors": []
+  }
+}
