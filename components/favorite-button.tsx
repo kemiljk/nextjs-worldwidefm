@@ -80,7 +80,7 @@ export function FavoriteButton({
         isFavorited && 'bg-almostblack text-white dark:bg-white dark:text-almostblack',
         className
       )}
-      aria-label={isFavorited ? `Remove ${type} from favorites` : `Add ${type} to favorites`}
+      aria-label={isFavorited ? `Remove ${type} from favourites` : `Add ${type} to favourites`}
     >
       <Heart
         className={cn(
@@ -88,7 +88,7 @@ export function FavoriteButton({
           isFavorited && 'fill-current'
         )}
       />
-      {isFavorited ? 'Favorited' : 'Favorite'}
+      {isFavorited ? 'Favourited' : 'Favourite'}
     </Button>
   );
 }

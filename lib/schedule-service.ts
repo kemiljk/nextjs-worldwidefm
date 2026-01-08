@@ -359,12 +359,16 @@ export async function getWeeklySchedule(): Promise<WeeklyScheduleResult> {
 
     const dedupeMap = new Map<string, ScheduleShow>();
     for (const item of manualOverrides) {
-      dedupeMap.set(item.event_id || item.show_key, item);
+      if (item.name !== 'Untitled') {
+        dedupeMap.set(item.event_id || item.show_key, item);
+      }
     }
     for (const item of automaticEpisodes) {
-      const key = item.event_id || item.show_key;
-      if (!dedupeMap.has(key)) {
-        dedupeMap.set(key, item);
+      if (item.name !== 'Untitled') {
+        const key = item.event_id || item.show_key;
+        if (!dedupeMap.has(key)) {
+          dedupeMap.set(key, item);
+        }
       }
     }
 

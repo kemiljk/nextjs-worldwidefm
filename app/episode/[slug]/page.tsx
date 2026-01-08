@@ -1,3 +1,4 @@
+import React from 'react';
 import Link from 'next/link';
 import { getEpisodeBySlug, getRelatedEpisodes } from '@/lib/episode-service';
 import { addMinutes } from 'date-fns';
@@ -70,7 +71,8 @@ export default async function EpisodePage({
     new Date(episode.created_at);
 
   // Get related episodes based on genres and hosts
-  const relatedEpisodesRaw = await getRelatedEpisodes(episode.id, 3);
+  const hostIds = episode.metadata.regular_hosts?.map((host: any) => host.id).filter(Boolean) || [];
+  const relatedEpisodesRaw = await getRelatedEpisodes(episode.id, 3, hostIds);
   const relatedEpisodes = relatedEpisodesRaw.map(ep => transformShowToViewData(ep));
 
   // Get canonical genres for genre tag linking
@@ -153,22 +155,42 @@ export default async function EpisodePage({
             </div>
           )}
 
-          {/* Hosts, Duration, and Broadcast Info Row */}
-          {(episode.metadata.regular_hosts?.length > 0 ||
+          {/* Show Type, Hosts, Duration, and Broadcast Info Row */}
+          {(episode.metadata.type?.title ||
+            episode.metadata.regular_hosts?.length > 0 ||
             episode.metadata.duration ||
             episode.metadata.broadcast_date ||
             episode.metadata.broadcast_date_old) && (
             <div className='flex flex-row flex-wrap items-center gap-2'>
+              {/* Show Type */}
+              {episode.metadata.type?.title && (
+                <>
+                  <span className='text-m8 font-mono uppercase text-muted-foreground underline'>
+                    {episode.metadata.type.title}
+                  </span>
+                  {(episode.metadata.regular_hosts?.length > 0 ||
+                    episode.metadata.duration ||
+                    episode.metadata.broadcast_date ||
+                    episode.metadata.broadcast_date_old) && (
+                    <span className='text-muted-foreground text-m8'>|</span>
+                  )}
+                </>
+              )}
+
               {/* Hosts */}
               {episode.metadata.regular_hosts?.length > 0 && (
                 <>
                   <div className='flex flex-row flex-wrap items-center gap-1'>
-                    {episode.metadata.regular_hosts.map((host: any) => (
-                      <HostLink
-                        key={host.id || host.slug}
-                        host={host}
-                        className='text-m8 font-mono uppercase text-muted-foreground hover:text-foreground transition-colors'
-                      />
+                    {episode.metadata.regular_hosts.map((host: any, index: number) => (
+                      <React.Fragment key={host.id || host.slug}>
+                        <HostLink
+                          host={host}
+                          className='text-m8 font-mono uppercase text-muted-foreground hover:text-foreground hover:underline underline transition-colors'
+                        />
+                        {index < episode.metadata.regular_hosts.length - 1 && (
+                          <span className='text-muted-foreground text-m8'>|</span>
+                        )}
+                      </React.Fragment>
                     ))}
                   </div>
                   {(episode.metadata.duration ||
@@ -198,7 +220,11 @@ export default async function EpisodePage({
                     episode.metadata.broadcast_date,
                     episode.metadata.broadcast_time,
                     episode.metadata.broadcast_date_old
-                  )?.toLocaleDateString()}
+                  )?.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  })}
                   {episode.metadata.broadcast_time && ` | ${episode.metadata.broadcast_time}`}
                 </span>
               )}

@@ -58,10 +58,11 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
           query['metadata.locations'] = { $in: locations };
         }
 
-        // Exclude future broadcast dates
-        const today = new Date();
-        const todayStr = today.toISOString().slice(0, 10);
-        query['metadata.broadcast_date'] = { $lte: todayStr };
+        // Exclude future broadcast dates and episodes from today (1-day delay)
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().slice(0, 10);
+        query['metadata.broadcast_date'] = { $lte: yesterdayStr };
 
         // Fetch a larger set to randomize from
         const fetchLimit = Math.min(baseLimit * 5, 200);
@@ -158,18 +159,19 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       }
     }
 
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().slice(0, 10);
 
     if (params.isNew) {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       query['metadata.broadcast_date'] = {
         $gte: thirtyDaysAgo.toISOString().slice(0, 10),
-        $lte: todayStr,
+        $lte: yesterdayStr,
       };
     } else {
-      query['metadata.broadcast_date'] = { $lte: todayStr };
+      query['metadata.broadcast_date'] = { $lte: yesterdayStr };
     }
 
     // Fetch episodes from Cosmic
@@ -298,6 +300,7 @@ export async function getTakeovers(
     offset?: number;
     genre?: string[];
     location?: string[];
+    host?: string[];
   } = {}
 ): Promise<{
   shows: EpisodeObject[];
@@ -305,7 +308,7 @@ export async function getTakeovers(
   hasNext: boolean;
 }> {
   try {
-    const { limit = 100, offset = 0, genre, location } = params;
+    const { limit = 100, offset = 0, genre, location, host } = params;
 
     // Build the query
     const query: Record<string, unknown> = {
@@ -321,6 +324,11 @@ export async function getTakeovers(
     // Add location filter
     if (location && location.length > 0) {
       query['metadata.location.slug'] = { $in: location };
+    }
+
+    // Add host filter
+    if (host && host.length > 0) {
+      query['metadata.regular_hosts'] = { $in: host };
     }
 
     const response = await cosmic.objects
@@ -469,18 +477,68 @@ export async function getEpisodeBySlug(
 
 /**
  * Get related episodes based on shared genres and hosts
- * Simplified to use a single query for better performance and reliability
+ * Prioritizes episodes with the same hosts, then falls back to recent episodes
  */
 export async function getRelatedEpisodes(
   episodeId: string,
-  limit: number = 5
+  limit: number = 5,
+  hostIds?: string[]
 ): Promise<EpisodeObject[]> {
   try {
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
 
-    // Single query: get recent episodes excluding current one
-    // This is faster and more reliable than multiple complex queries
+    // First try to get episodes by same host if host IDs are provided
+    if (hostIds && hostIds.length > 0) {
+      try {
+        const hostResponse = await cosmic.objects
+          .find({
+            type: 'episode',
+            status: 'published',
+            id: { $ne: episodeId },
+            'metadata.regular_hosts': { $in: hostIds },
+            'metadata.broadcast_date': { $lte: todayStr },
+          })
+          .props(
+            'id,slug,title,metadata.broadcast_date,metadata.image,metadata.external_image_url,metadata.genres,metadata.regular_hosts'
+          )
+          .limit(limit)
+          .sort('-metadata.broadcast_date')
+          .depth(2);
+
+        const hostEpisodes = hostResponse.objects || [];
+        if (hostEpisodes.length >= limit) {
+          return hostEpisodes.slice(0, limit);
+        }
+
+        // If we have some host matches but not enough, we'll combine with recent episodes below
+        // For now, return what we have and fill the rest with recent episodes
+        if (hostEpisodes.length > 0) {
+          const remainingLimit = limit - hostEpisodes.length;
+          const recentResponse = await cosmic.objects
+            .find({
+              type: 'episode',
+              status: 'published',
+              id: { $ne: episodeId, $nin: hostEpisodes.map(e => e.id) },
+              'metadata.broadcast_date': { $lte: todayStr },
+            })
+            .props(
+              'id,slug,title,metadata.broadcast_date,metadata.image,metadata.external_image_url,metadata.genres,metadata.regular_hosts'
+            )
+            .limit(remainingLimit)
+            .sort('-metadata.broadcast_date')
+            .depth(2);
+
+          const recentEpisodes = recentResponse.objects || [];
+          return [...hostEpisodes, ...recentEpisodes].slice(0, limit);
+        }
+      } catch (hostError) {
+        // If host query fails, fall through to recent episodes query
+        console.warn('Error fetching episodes by host:', hostError);
+      }
+    }
+
+    // Fallback: get recent episodes excluding current one
     const response = await cosmic.objects
       .find({
         type: 'episode',

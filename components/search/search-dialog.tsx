@@ -126,8 +126,12 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     setHasNext(true);
 
     async function fetchResults() {
-      // If search term is too short (1 char), wait for more input
-      if (debouncedSearchTerm && debouncedSearchTerm.trim().length > 0 && debouncedSearchTerm.trim().length < 2 && selectedGenres.length === 0 && selectedLocations.length === 0 && selectedHosts.length === 0) {
+      // If search term is cleared (empty) and no filters, fetch default content immediately
+      const hasSearchTerm = debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2;
+      const hasFilters = selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0;
+      
+      // If search term is too short (1 char) and no filters, wait for more input
+      if (debouncedSearchTerm && debouncedSearchTerm.trim().length > 0 && debouncedSearchTerm.trim().length < 2 && !hasFilters) {
         if (isMounted && currentRequestId === requestIdRef.current) {
           setResults([]);
           setIsLoading(false);
@@ -146,7 +150,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             offset: 0,
           };
 
-          if (debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2) {
+          if (hasSearchTerm) {
             searchParams.searchTerm = debouncedSearchTerm.trim();
           }
 
@@ -158,21 +162,25 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             searchParams.location = selectedLocations;
           }
 
+          if (selectedHosts.length > 0) {
+            searchParams.host = selectedHosts;
+          }
+
           res = await searchEpisodes(searchParams);
           allResults = res?.shows || [];
           apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         } else if (selectedType === 'posts') {
           const searchParams: any = { limit: PAGE_SIZE, offset: 0 };
-          if (debouncedSearchTerm) {
-            searchParams.searchTerm = debouncedSearchTerm;
+          if (hasSearchTerm) {
+            searchParams.searchTerm = debouncedSearchTerm.trim();
           }
           res = await getAllPosts(searchParams);
           allResults = res?.posts || [];
           apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         } else if (selectedType === 'videos') {
           const searchParams: any = { limit: PAGE_SIZE, offset: 0 };
-          if (debouncedSearchTerm) {
-            searchParams.searchTerm = debouncedSearchTerm;
+          if (hasSearchTerm) {
+            searchParams.searchTerm = debouncedSearchTerm.trim();
           }
           res = await getVideos(searchParams);
           allResults = res?.videos || [];
@@ -182,7 +190,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             limit: PAGE_SIZE,
             offset: 0,
           };
-          if (debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2) {
+          if (hasSearchTerm) {
             searchParams.searchTerm = debouncedSearchTerm.trim();
           }
           if (selectedGenres.length > 0) {
@@ -190,6 +198,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           }
           if (selectedLocations.length > 0) {
             searchParams.location = selectedLocations;
+          }
+          if (selectedHosts.length > 0) {
+            searchParams.host = selectedHosts;
           }
           res = await getTakeovers(searchParams);
           allResults = res?.shows || [];
@@ -199,6 +210,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             limit: PAGE_SIZE,
             offset: 0,
           };
+          if (hasSearchTerm) {
+            searchParams.searchTerm = debouncedSearchTerm.trim();
+          }
           if (selectedGenres.length > 0) {
             searchParams.genre = selectedGenres;
           }
@@ -207,16 +221,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           }
           res = await getRegularHosts(searchParams);
           allResults = res?.shows || [];
-          
-          // Client-side filter for search term on hosts
-          if (debouncedSearchTerm) {
-            const searchLower = debouncedSearchTerm.toLowerCase();
-            allResults = allResults.filter((host: any) =>
-              host.title?.toLowerCase().includes(searchLower) ||
-              host.metadata?.description?.toLowerCase().includes(searchLower) ||
-              host.content?.toLowerCase().includes(searchLower)
-            );
-          }
           apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         }
 
@@ -236,17 +240,14 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             console.warn('Error fetching search results:', error);
           }
           
-          if (isTimeout && debouncedSearchTerm) {
-            // For timeout errors with a search term, show a helpful message
-            setResults([]);
-            setHasNext(false);
-          } else {
-            setResults([]);
-            setHasNext(false);
-          }
+          // If search was cleared and there's an error, still reset to empty results
+          // This prevents getting stuck in loading state
+          setResults([]);
+          setHasNext(false);
           setIsLoading(false);
         }
       } finally {
+        // Always ensure loading state is reset, even if there was an error
         if (isMounted && currentRequestId === requestIdRef.current) {
           setIsLoading(false);
         }
@@ -296,6 +297,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               if (selectedLocations.length > 0) {
                 searchParams.location = selectedLocations;
               }
+              if (selectedHosts.length > 0) {
+                searchParams.host = selectedHosts;
+              }
               res = await searchEpisodes(searchParams);
               setResults(prev => [...prev, ...(res?.shows || [])]);
               setHasNext(res?.hasNext || false);
@@ -327,6 +331,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               if (selectedLocations.length > 0) {
                 searchParams.location = selectedLocations;
               }
+              if (selectedHosts.length > 0) {
+                searchParams.host = selectedHosts;
+              }
               res = await getTakeovers(searchParams);
               setResults(prev => [...prev, ...(res?.shows || [])]);
               setHasNext(res?.hasNext || false);
@@ -335,6 +342,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 limit: PAGE_SIZE,
                 offset: nextOffset,
               };
+              if (debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2) {
+                searchParams.searchTerm = debouncedSearchTerm.trim();
+              }
               if (selectedGenres.length > 0) {
                 searchParams.genre = selectedGenres;
               }
@@ -342,17 +352,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 searchParams.location = selectedLocations;
               }
               res = await getRegularHosts(searchParams);
-              let hosts = res?.shows || [];
-              if (debouncedSearchTerm) {
-                const searchLower = debouncedSearchTerm.toLowerCase();
-                hosts = hosts.filter((host: any) =>
-                  host.title?.toLowerCase().includes(searchLower) ||
-                  host.metadata?.description?.toLowerCase().includes(searchLower) ||
-                  host.content?.toLowerCase().includes(searchLower)
-                );
-              }
+              const hosts = res?.shows || [];
               setResults(prev => [...prev, ...hosts]);
-              setHasNext(hosts.length === PAGE_SIZE);
+              setHasNext(res?.hasNext || false);
             }
             setPage(prev => prev + 1);
           } catch (error) {
@@ -577,7 +579,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                             />
                           </div>
                         )}
-                        {selectedType === 'hosts-series' && availableFilters.hosts && availableFilters.hosts.length > 0 && (
+                        {(selectedType === 'episodes' || selectedType === 'takeovers') && availableFilters.hosts && availableFilters.hosts.length > 0 && (
                           <div>
                             <label className='block text-sm font-mono uppercase text-m8 mb-2'>Hosts</label>
                             <Combobox

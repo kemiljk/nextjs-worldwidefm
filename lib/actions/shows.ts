@@ -303,11 +303,13 @@ export async function getTakeovers({
   offset = 0,
   genre,
   location,
+  host,
 }: {
   limit?: number;
   offset?: number;
   genre?: string[];
   location?: string[];
+  host?: string[];
   letter?: string;
 } = {}): Promise<{ shows: unknown[]; hasNext: boolean }> {
   try {
@@ -317,6 +319,7 @@ export async function getTakeovers({
       offset,
       genre,
       location,
+      host,
     });
 
     return {
@@ -391,33 +394,42 @@ export async function getRegularHosts({
   genre,
   location,
   letter,
+  searchTerm,
 }: {
   limit?: number;
   offset?: number;
   genre?: string[];
   location?: string[];
   letter?: string;
+  searchTerm?: string;
 } = {}): Promise<{ shows: unknown[]; hasNext: boolean }> {
   try {
     const cosmicImport = await import('../cosmic-config');
     const query: Record<string, unknown> = {
       type: 'regular-hosts',
       status: 'published',
-      limit,
-      skip: offset,
     };
 
     if (genre && genre.length > 0) {
-      query['metadata.genres.id'] = { $in: genre };
+      query['metadata.genres'] = { $in: genre };
     }
     if (location && location.length > 0) {
-      query['metadata.locations.id'] = { $in: location };
+      query['metadata.locations'] = { $in: location };
     }
     if (letter) {
       query.title = { $regex: `^${letter}`, $options: 'i' };
     }
+    if (searchTerm && searchTerm.trim()) {
+      query.title = { $regex: searchTerm.trim(), $options: 'i' };
+    }
 
-    const response = await cosmicImport.cosmic.objects.find(query).depth(2);
+    const response = await cosmicImport.cosmic.objects
+      .find(query)
+      .props('id,slug,title,type,content,metadata.image,metadata.external_image_url,metadata.description,metadata.genres,metadata.locations')
+      .limit(limit)
+      .skip(offset)
+      .depth(1);
+      
     return {
       shows: response.objects || [],
       hasNext: (response.objects || []).length === limit,
@@ -432,6 +444,7 @@ export async function searchEpisodes(params: {
   searchTerm?: string;
   genre?: string[];
   location?: string[];
+  host?: string[];
   limit?: number;
   offset?: number;
 }): Promise<{ shows: EpisodeObject[]; hasNext: boolean }> {
@@ -441,6 +454,7 @@ export async function searchEpisodes(params: {
       searchTerm: params.searchTerm,
       genre: params.genre,
       location: params.location,
+      host: params.host,
       limit: params.limit || 20,
       offset: params.offset || 0,
     });

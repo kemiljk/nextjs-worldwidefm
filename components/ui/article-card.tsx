@@ -21,6 +21,7 @@ export function ArticleCard({
   title,
   slug,
   image,
+  excerpt,
   date,
   tags,
   categories,
@@ -94,6 +95,11 @@ export function ArticleCard({
           >
             {title}
           </div>
+          {isFeatured && excerpt && (
+            <p className='pl-1 pb-3 text-b3 font-sans text-almostblack dark:text-white'>
+              {excerpt}
+            </p>
+          )}
           {date && (
             <p className={`pl-1 pb-3 text-m8 font-mono dark:text-white ${dateTextClass}`}>
               {new Date(date)
