@@ -115,7 +115,11 @@ export default function AuthForm({ type, onSubmit }: AuthFormProps) {
             ) : (
               <div className='text-right'>
                 <Link
-                  href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : '/forgot-password'}
+                  href={
+                    email
+                      ? `/forgot-password?email=${encodeURIComponent(email)}`
+                      : '/forgot-password'
+                  }
                   className='text-xs text-primary hover:underline'
                 >
                   Forgot your password?

@@ -1,6 +1,6 @@
 import { cosmic, type GenreObject, type HostObject } from './cosmic-config';
 import type { EpisodeObject } from './cosmic-types';
-import { getCurrentUkWeek, type UkWeekday, type UkWeekInfo, UK_WEEK_DAYS } from './date-utils';
+import { getCurrentUkWeek, type UkWeekday, UK_WEEK_DAYS } from './date-utils';
 import type { ScheduleShow, ScheduleDayMap } from './types/schedule';
 
 const TARGET_DAYS: UkWeekday[] = ['Tuesday', 'Wednesday', 'Thursday', 'Friday'];
@@ -144,7 +144,8 @@ function buildScheduleShow(params: {
   overrideDuration?: string;
   urlOverride?: string;
 }): ScheduleShow {
-  const { episode, fallbackTitle, showDay, date, time, isManual, overrideDuration, urlOverride } = params;
+  const { episode, fallbackTitle, showDay, date, time, isManual, overrideDuration, urlOverride } =
+    params;
 
   const title = fallbackTitle || episode?.title || 'Untitled';
   const slug = episode?.slug;
@@ -180,7 +181,10 @@ function buildScheduleShow(params: {
   };
 }
 
-async function fetchManualOverrides(dayDates: Partial<ScheduleDayMap>): Promise<ScheduleShow[]> {
+/**
+ * Fetch for manual schedule overrides
+ */
+async function fetchScheduleMetadata(): Promise<Record<string, unknown> | null> {
   try {
     const response = await cosmic.objects
       .findOne({
@@ -190,7 +194,16 @@ async function fetchManualOverrides(dayDates: Partial<ScheduleDayMap>): Promise<
       .props('metadata')
       .depth(3);
 
-    const metadata = response?.object?.metadata as Record<string, unknown>;
+    return (response?.object?.metadata as Record<string, unknown>) || null;
+  } catch (error) {
+    console.warn('[Schedule] Failed to fetch schedule metadata', error);
+    return null;
+  }
+}
+
+async function fetchManualOverrides(dayDates: Partial<ScheduleDayMap>): Promise<ScheduleShow[]> {
+  try {
+    const metadata = await fetchScheduleMetadata();
     if (!metadata) {
       return [];
     }
@@ -200,34 +213,41 @@ async function fetchManualOverrides(dayDates: Partial<ScheduleDayMap>): Promise<
     for (const day of TARGET_DAYS) {
       const dayKey = day.toLowerCase();
       const scheduleBlock = metadata[dayKey];
-      const showEntries: any[] | undefined =
-        Array.isArray(scheduleBlock) ? scheduleBlock : (scheduleBlock as { show?: any[] })?.show;
+      const showEntries: unknown[] | undefined = Array.isArray(scheduleBlock)
+        ? scheduleBlock
+        : (scheduleBlock as { show?: unknown[] })?.show;
 
       if (!Array.isArray(showEntries) || !dayDates[day]) {
         continue;
       }
 
       for (const entry of showEntries) {
-        const episode = await resolveEpisodeFromEntry(entry);
+        const typedEntry = entry as Record<string, unknown>;
+        const episode = await resolveEpisodeFromEntry(typedEntry);
         const overrideTime =
-          entry?.broadcast_time_override ||
-          entry?.override_broadcast_time ||
-          entry?.metadata?.override_broadcast_time ||
+          typedEntry?.broadcast_time_override ||
+          typedEntry?.override_broadcast_time ||
+          (typedEntry?.metadata as Record<string, unknown>)?.override_broadcast_time ||
           episode?.metadata?.broadcast_time ||
           '00:00';
 
         const overrideDuration =
-          entry?.override_duration || entry?.metadata?.override_duration || undefined;
+          typedEntry?.override_duration ||
+          (typedEntry?.metadata as Record<string, unknown>)?.override_duration ||
+          undefined;
 
         const scheduleShow = buildScheduleShow({
           episode,
-          fallbackTitle: entry?.title || entry?.name || episode?.title || 'Untitled',
+          fallbackTitle: (typedEntry?.title ||
+            typedEntry?.name ||
+            episode?.title ||
+            'Untitled') as string,
           showDay: day,
           date: dayDates[day]!,
-          time: overrideTime,
+          time: overrideTime as string,
           isManual: true,
-          overrideDuration,
-          urlOverride: entry?.url,
+          overrideDuration: overrideDuration as string | undefined,
+          urlOverride: typedEntry?.url as string | undefined,
         });
 
         overrides.push(scheduleShow);
@@ -241,52 +261,50 @@ async function fetchManualOverrides(dayDates: Partial<ScheduleDayMap>): Promise<
   }
 }
 
+/**
+ * Fetch for episodes by date
+ */
+async function fetchEpisodesByDate(date: string): Promise<EpisodeObject[]> {
+  try {
+    const response = await cosmic.objects
+      .find({
+        type: 'episode',
+        status: 'published',
+        'metadata.broadcast_date': date,
+      })
+      .props('id,slug,title,metadata,created_at')
+      .limit(50)
+      .sort('metadata.broadcast_time')
+      .depth(2);
+
+    return (response?.objects as EpisodeObject[] | undefined) || [];
+  } catch (error: unknown) {
+    const typedError = error as { status?: number };
+    if (typedError?.status === 404) {
+      return [];
+    }
+    console.warn(`[Schedule] Failed to fetch episodes for date ${date}:`, error);
+    return [];
+  }
+}
+
 async function fetchAutomaticEpisodes(dayDates: Partial<ScheduleDayMap>): Promise<ScheduleShow[]> {
   const targetDates = TARGET_DAYS.map(day => dayDates[day]).filter(Boolean) as string[];
   if (targetDates.length === 0) {
-    console.log('[Schedule] No target dates for automatic episodes');
     return [];
   }
 
   try {
-    console.log('[Schedule] Fetching automatic episodes for dates:', targetDates);
-    
-    const allEpisodes: EpisodeObject[] = [];
-    
-    for (const date of targetDates) {
-      try {
-        const response = await cosmic.objects
-          .find({
-            type: 'episode',
-            status: 'published',
-            'metadata.broadcast_date': date,
-          })
-          .props('id,slug,title,metadata,created_at')
-          .limit(50)
-          .sort('metadata.broadcast_time')
-          .depth(2);
+    // Fetch episodes for all dates in parallel (each call is cached)
+    const episodeArrays = await Promise.all(targetDates.map(date => fetchEpisodesByDate(date)));
 
-        const episodes = (response?.objects as EpisodeObject[] | undefined) || [];
-        allEpisodes.push(...episodes);
-      } catch (dateError: any) {
-        // 404 means no episodes found for this date, which is fine
-        if (dateError?.status === 404) {
-          console.log(`[Schedule] No episodes found for date ${date}`);
-        } else {
-          console.warn(`[Schedule] Failed to fetch episodes for date ${date}:`, dateError);
-        }
-      }
-    }
+    const allEpisodes = episodeArrays.flat();
 
-    console.log(`[Schedule] Found ${allEpisodes.length} automatic episodes total`);
-    
     if (allEpisodes.length === 0) {
       return [];
     }
 
-    const episodes = allEpisodes;
-
-    return episodes
+    return allEpisodes
       .map(episode => {
         const broadcastDate = episode.metadata?.broadcast_date;
         if (!broadcastDate) {
@@ -314,10 +332,8 @@ async function fetchAutomaticEpisodes(dayDates: Partial<ScheduleDayMap>): Promis
       .filter((item): item is ScheduleShow => Boolean(item));
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : undefined;
     console.error('[Schedule] Failed to fetch automatic episodes', {
       error: errorMessage,
-      stack: errorStack,
       targetDates,
     });
     return [];
@@ -328,8 +344,7 @@ function sortScheduleItems(items: ScheduleShow[]): ScheduleShow[] {
   const dayOrder = new Map(UK_WEEK_DAYS.map((day, index) => [day, index]));
 
   return [...items].sort((a, b) => {
-    const dayComparison =
-      (dayOrder.get(a.show_day) ?? 0) - (dayOrder.get(b.show_day) ?? 0);
+    const dayComparison = (dayOrder.get(a.show_day) ?? 0) - (dayOrder.get(b.show_day) ?? 0);
     if (dayComparison !== 0) {
       return dayComparison;
     }
@@ -389,4 +404,3 @@ export async function getWeeklySchedule(): Promise<WeeklyScheduleResult> {
     };
   }
 }
-

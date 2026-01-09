@@ -87,7 +87,7 @@ export default function LivePlayer() {
               image: data.currentEvent.imageUrl,
             },
           });
-          
+
           // Set matching show slug for episode detail linking
           if (data.matchingShowSlug) {
             setMatchingShowSlug(data.matchingShowSlug);
@@ -135,12 +135,12 @@ export default function LivePlayer() {
 
       audio.addEventListener('error', () => {
         const error = audio.error;
-        
+
         // Ignore empty src errors (code 4) - these happen during cleanup/pause
         if (error && error.code === 4) {
           return;
         }
-        
+
         let errorMessage = 'Stream connection failed';
 
         if (error) {
@@ -396,23 +396,24 @@ export default function LivePlayer() {
 
   // Check if this is a playlist (not a scheduled show)
   const currentTitle = liveMetadata.content?.title || '';
-  const isPlaylist = currentTitle.toLowerCase().includes('playlist') || 
-                     currentTitle.toLowerCase().includes('wwfm') && !currentTitle.toLowerCase().includes('show');
-  
+  const isPlaylist =
+    currentTitle.toLowerCase().includes('playlist') ||
+    (currentTitle.toLowerCase().includes('wwfm') && !currentTitle.toLowerCase().includes('show'));
+
   // Display "Check out our schedule" for playlists, otherwise show the show name
-  const displayName = !hasShow 
-    ? 'Nothing currently live' 
-    : isPlaylist 
-      ? 'Check out our schedule' 
+  const displayName = !hasShow
+    ? 'Nothing currently live'
+    : isPlaylist
+      ? 'Check out our schedule'
       : currentTitle;
 
   // Link destination - schedule for playlists, episode page for matched shows, otherwise schedule
-  const linkHref = isPlaylist 
-    ? '/schedule' 
-    : matchingShowSlug 
-      ? `/episode/${matchingShowSlug}` 
-      : hasShow 
-        ? '/schedule' 
+  const linkHref = isPlaylist
+    ? '/schedule'
+    : matchingShowSlug
+      ? `/episode/${matchingShowSlug}`
+      : hasShow
+        ? '/schedule'
         : undefined;
 
   return (
@@ -434,8 +435,8 @@ export default function LivePlayer() {
       </div>
       <div className='flex items-center mx-2 gap-2 overflow-hidden flex-1'>
         {linkHref ? (
-          <Link 
-            href={linkHref} 
+          <Link
+            href={linkHref}
             className='text-m7 font-mono uppercase whitespace-nowrap hover:underline transition-all'
           >
             {displayName}

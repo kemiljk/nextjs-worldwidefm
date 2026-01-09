@@ -5,7 +5,13 @@
  * using discriminated unions for different content types.
  */
 
-export type SearchResultType = 'posts' | 'episodes' | 'events' | 'videos' | 'takeovers' | 'hosts-series';
+export type SearchResultType =
+  | 'posts'
+  | 'episodes'
+  | 'events'
+  | 'videos'
+  | 'takeovers'
+  | 'hosts-series';
 
 export interface FilterItem {
   title: string;

@@ -137,15 +137,19 @@ function EditorialContent() {
           .filter(Boolean) as string[];
 
         // Fetch featured post only when no filters are active
-        const hasFilters = currentFilters.article || currentFilters.video || categoryIds.length > 0 || currentFilters.search;
-        
+        const hasFilters =
+          currentFilters.article ||
+          currentFilters.video ||
+          categoryIds.length > 0 ||
+          currentFilters.search;
+
         if (!hasFilters) {
           const featuredResult = await getPostsWithFilters({
             limit: 1,
             offset: 0,
             featured: true,
           });
-          
+
           if (featuredResult.posts.length > 0) {
             setFeaturedPost(featuredResult.posts[0]);
           } else {
@@ -160,11 +164,7 @@ function EditorialContent() {
           offset: 0,
           searchTerm: currentFilters.search,
           categories: categoryIds,
-          postType: currentFilters.article
-            ? 'article'
-            : currentFilters.video
-              ? 'video'
-              : undefined,
+          postType: currentFilters.article ? 'article' : currentFilters.video ? 'video' : undefined,
         });
 
         setPosts(postsResult.posts);
@@ -267,7 +267,13 @@ function EditorialContent() {
 
   // Group posts by category for display
   const groupedPosts = useMemo(() => {
-    if (!categoryOrder.length || currentFilters.article || currentFilters.video || currentFilters.categories.length > 0 || currentFilters.search) {
+    if (
+      !categoryOrder.length ||
+      currentFilters.article ||
+      currentFilters.video ||
+      currentFilters.categories.length > 0 ||
+      currentFilters.search
+    ) {
       return null; // Don't group when filters are active
     }
 
@@ -279,7 +285,9 @@ function EditorialContent() {
       const categoryPosts = posts.filter(post => {
         if (usedPostIds.has(post.id)) return false;
         const postCategories = post.metadata?.categories || [];
-        return postCategories.some((cat: any) => cat.id === category.id || cat.slug === category.slug);
+        return postCategories.some(
+          (cat: any) => cat.id === category.id || cat.slug === category.slug
+        );
       });
 
       if (categoryPosts.length > 0) {
@@ -300,7 +308,11 @@ function EditorialContent() {
     return groups;
   }, [posts, categoryOrder, currentFilters]);
 
-  const hasFiltersActive = currentFilters.article || currentFilters.video || currentFilters.categories.length > 0 || currentFilters.search;
+  const hasFiltersActive =
+    currentFilters.article ||
+    currentFilters.video ||
+    currentFilters.categories.length > 0 ||
+    currentFilters.search;
 
   return (
     <div className='w-full overflow-x-hidden mb-20'>
@@ -349,7 +361,7 @@ function EditorialContent() {
                 {(featuredPost || groupedPosts[0]?.posts[0]) && (
                   <FeaturedContent posts={[featuredPost || groupedPosts[0].posts[0]]} />
                 )}
-                
+
                 {/* Category-grouped sections */}
                 {groupedPosts.map((group, index) => {
                   // Skip the featured post if it's in this group
@@ -366,9 +378,9 @@ function EditorialContent() {
                     // If no featured post, skip the first post of the first group
                     postsToShow = group.posts.slice(1);
                   }
-                  
+
                   if (postsToShow.length === 0) return null;
-                  
+
                   return (
                     <EditorialCategorySection
                       key={group.category.id}
@@ -386,9 +398,9 @@ function EditorialContent() {
                 )}
                 <EditorialSection
                   title='All Posts'
-                  posts={featuredPost 
-                    ? posts.filter(p => p.id !== featuredPost.id)
-                    : posts.slice(1)}
+                  posts={
+                    featuredPost ? posts.filter(p => p.id !== featuredPost.id) : posts.slice(1)
+                  }
                   currentFilters={{
                     searchTerm: currentFilters.search,
                     categories: currentFilters.categories,

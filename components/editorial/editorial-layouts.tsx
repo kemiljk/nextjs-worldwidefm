@@ -125,7 +125,11 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
           <PostVideoPlayer post={post} className='h-full' />
         ) : imageUrl ? (
           <img
-            src={buildImgixUrl(imageUrl, { width: 1920, height: 1080, quality: QUALITY_PRESETS.hero })}
+            src={buildImgixUrl(imageUrl, {
+              width: 1920,
+              height: 1080,
+              quality: QUALITY_PRESETS.hero,
+            })}
             alt={`${title} - Featured image`}
             className='absolute inset-0 w-full h-full object-cover'
             loading='eager'

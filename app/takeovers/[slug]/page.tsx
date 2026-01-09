@@ -116,7 +116,10 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
   const relatedEpisodes = await getRelatedEpisodes(takeover.id, 12);
 
   const displayName = takeover.title || 'Untitled Takeover';
-  const displayImage = takeover.metadata?.external_image_url || takeover.metadata?.image?.imgix_url || '/image-placeholder.png';
+  const displayImage =
+    takeover.metadata?.external_image_url ||
+    takeover.metadata?.image?.imgix_url ||
+    '/image-placeholder.png';
 
   const show = {
     id: takeover.id,

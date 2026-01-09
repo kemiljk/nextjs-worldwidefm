@@ -2,7 +2,7 @@
 
 /**
  * Verify Episode Image References
- * 
+ *
  * Checks how episodes reference images and verifies the cleanup script's detection logic
  */
 
@@ -94,7 +94,7 @@ function analyzeEpisodeImages(episodes, allMedia) {
   const mediaByName = new Map(allMedia.map(m => [m.name, m]));
   const mediaByUrl = new Map();
   const mediaByImgixUrl = new Map();
-  
+
   allMedia.forEach(m => {
     if (m.url) mediaByUrl.set(m.url, m);
     if (m.imgix_url) mediaByImgixUrl.set(m.imgix_url, m);
@@ -106,7 +106,7 @@ function analyzeEpisodeImages(episodes, allMedia) {
   let episodesWithThumbnailString = 0;
   let episodesWithImageString = 0;
   let episodesWithNullImage = 0;
-  
+
   const imageReferences = {
     byId: 0,
     byName: 0,
@@ -134,10 +134,10 @@ function analyzeEpisodeImages(episodes, allMedia) {
 
     if (typeof image === 'object' && image !== null) {
       episodesWithImageObject++;
-      
+
       const imageUrl = image.url || '';
       const imageImgixUrl = image.imgix_url || '';
-      
+
       let found = false;
       let foundBy = null;
 
@@ -169,7 +169,7 @@ function analyzeEpisodeImages(episodes, allMedia) {
       }
     } else if (typeof image === 'string') {
       episodesWithImageString++;
-      
+
       if (mediaByName.has(image)) {
         imageReferences.byName++;
       } else if (mediaById.has(image)) {
@@ -208,7 +208,9 @@ function analyzeEpisodeImages(episodes, allMedia) {
   console.log('═══════════════════════════════════════════════════════════');
 
   if (unmatchedImages.length > 0) {
-    console.log(`\n⚠️  ${unmatchedImages.length} episodes have image references that don't match any media:`);
+    console.log(
+      `\n⚠️  ${unmatchedImages.length} episodes have image references that don't match any media:`
+    );
     unmatchedImages.slice(0, 10).forEach((item, i) => {
       console.log(`  ${i + 1}. ${item.episodeTitle}`);
       if (item.imageObject) {
@@ -255,4 +257,3 @@ main().catch(error => {
   console.error('\n❌ Fatal error:', error);
   process.exit(1);
 });
-

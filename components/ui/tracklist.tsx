@@ -25,7 +25,7 @@ export function Tracklist({ content, className = '' }: TracklistProps) {
       .replace(/<p[^>]*>/gi, '')
       .replace(/<\/div>/gi, '\n')
       .replace(/<div[^>]*>/gi, '');
-    
+
     // Create a temporary DOM element to extract text content
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = normalizedContent;
@@ -138,7 +138,7 @@ export function TracklistServer({ content, className = '' }: TracklistProps) {
       .replace(/<p[^>]*>/gi, '')
       .replace(/<\/div>/gi, '\n')
       .replace(/<div[^>]*>/gi, '');
-    
+
     // Remove remaining HTML tags and split by lines
     const cleanContent = normalizedContent.replace(/<[^>]*>/g, '');
     const lines = cleanContent.split('\n');

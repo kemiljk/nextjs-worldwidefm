@@ -23,13 +23,10 @@ export function Providers({ children }: ProvidersProps) {
       >
         <AuthProvider>
           <SearchProvider>
-            <MediaPlayerProvider>
-              {children}
-            </MediaPlayerProvider>
+            <MediaPlayerProvider>{children}</MediaPlayerProvider>
           </SearchProvider>
         </AuthProvider>
       </ThemeProvider>
     </PlausibleProvider>
   );
 }
-

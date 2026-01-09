@@ -4,6 +4,27 @@ import { getPosts, getEditorialHomepage } from '../cosmic-service';
 import { PostObject } from '../cosmic-config';
 import { cosmic } from '../cosmic-config';
 
+/**
+ * Fetch for posts with filters
+ */
+async function fetchPostsWithFiltersFromCosmic(
+  query: Record<string, unknown>,
+  limit: number,
+  offset: number
+): Promise<{ objects: PostObject[]; total: number }> {
+  const response = await cosmic.objects
+    .find(query)
+    .limit(limit)
+    .skip(offset)
+    .sort('-metadata.date')
+    .depth(2);
+
+  return {
+    objects: response.objects || [],
+    total: response.total || 0,
+  };
+}
+
 export async function getPostsWithFilters({
   limit = 20,
   offset = 0,
@@ -24,7 +45,7 @@ export async function getPostsWithFilters({
   total: number;
 }> {
   try {
-    const query: any = {
+    const query: Record<string, unknown> = {
       type: 'posts',
       status: 'published',
     };
@@ -52,15 +73,7 @@ export async function getPostsWithFilters({
       query['metadata.is_featured'] = featured;
     }
 
-    const response = await cosmic.objects
-      .find(query)
-      .limit(limit)
-      .skip(offset)
-      .sort('-metadata.date')
-      .depth(2);
-
-    const posts = response.objects || [];
-    const total = response.total || posts.length;
+    const { objects: posts, total } = await fetchPostsWithFiltersFromCosmic(query, limit, offset);
     const hasNext = posts.length === limit && offset + limit < total;
 
     return { posts, hasNext, total };
@@ -104,11 +117,11 @@ export async function getAllPosts({
   }
 }
 
-export async function getPostBySlug(slug: string): Promise<{ object: PostObject } | null> {
+/**
+ * Fetch for single post by slug
+ */
+async function fetchPostBySlugFromCosmic(slug: string): Promise<{ object: PostObject } | null> {
   try {
-    // Use .status('any') as a chained method to allow draft posts
-    // Note: .status() must be chained, not in the query object
-    // Don't use .props() - it can strip nested metadata fields like youtube_video_thumbnail
     const response = await cosmic.objects
       .findOne({
         type: 'posts',
@@ -118,22 +131,14 @@ export async function getPostBySlug(slug: string): Promise<{ object: PostObject 
       .status('any');
 
     return response || null;
-  } catch (error: unknown) {
-    const errorDetails =
-      error instanceof Error
-        ? {
-            message: error.message,
-            stack: error.stack,
-            name: error.name,
-          }
-        : error;
-    console.error('Error in getPostBySlug:', {
-      slug,
-      error: errorDetails,
-      errorType: typeof error,
-    });
+  } catch (error) {
+    console.error('Error fetching post by slug:', error);
     return null;
   }
+}
+
+export async function getPostBySlug(slug: string): Promise<{ object: PostObject } | null> {
+  return fetchPostBySlugFromCosmic(slug);
 }
 
 export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
@@ -178,7 +183,7 @@ export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
       return [];
     }
 
-    const query: any = {
+    const query: Record<string, unknown> = {
       type: 'posts',
       status: 'published',
     };
@@ -189,14 +194,13 @@ export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
       query['metadata.categories.slug'] = { $in: searchTerms };
     }
 
-    const relatedPosts = await cosmic.objects
-      .find(query)
-      .limit(5)
-      .depth(2);
+    const relatedPosts = await cosmic.objects.find(query).limit(5).depth(2);
 
     const filteredPosts = (relatedPosts.objects || [])
       .filter((relatedPost: PostObject) => relatedPost.slug !== post.slug)
-      .map((post: any) => post.object || post)
+      .map((p: { object?: PostObject } | PostObject) =>
+        'object' in p && p.object ? p.object : (p as PostObject)
+      )
       .slice(0, 3);
 
     return filteredPosts;
@@ -213,7 +217,7 @@ export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
   }
 }
 
-export async function getPostCategories(): Promise<any[]> {
+export async function getPostCategories(): Promise<unknown[]> {
   try {
     const response = await cosmic.objects.find({
       type: 'categories',
@@ -236,12 +240,14 @@ export async function getEditorialContent(): Promise<{
     let featuredPosts: PostObject[] = [];
 
     try {
-      const editorialResponse = await getEditorialHomepage();
-      if (editorialResponse.object?.metadata?.featured_posts) {
+      const editorialResponse = (await getEditorialHomepage()) as {
+        object?: { metadata?: { featured_posts?: PostObject[] } };
+      };
+      if (editorialResponse?.object?.metadata?.featured_posts) {
         posts = editorialResponse.object.metadata.featured_posts;
         featuredPosts = posts.slice(0, 3);
       }
-    } catch (error) {
+    } catch {
       console.log('No editorial homepage found, fetching posts directly');
     }
 

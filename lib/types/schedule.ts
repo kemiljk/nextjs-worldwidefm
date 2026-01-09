@@ -17,4 +17,3 @@ export interface ScheduleShow {
 }
 
 export type ScheduleDayMap = Record<UkWeekday, string>;
-

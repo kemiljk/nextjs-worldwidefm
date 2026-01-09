@@ -44,8 +44,8 @@ export default async function VideosPage() {
       {/* Content */}
       <div className='px-5 pb-20 font-mono uppercase text-m8'>
         <Suspense fallback={<div>Loading...</div>}>
-          <VideosClient 
-            initialVideos={videos.videos} 
+          <VideosClient
+            initialVideos={videos.videos}
             availableCategories={videoCategories}
             categoryOrder={categoryOrder}
           />

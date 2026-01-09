@@ -79,7 +79,7 @@ export interface MembershipPage {
   title: string;
   content: string;
   type: string;
-  metadata: any;
+  metadata: unknown;
 }
 
 /**
@@ -101,13 +101,11 @@ export async function getRadioShows(
   } = {}
 ): Promise<{ objects: RadioShowObject[]; total: number }> {
   try {
-    // Start building the query
-    let query: any = {
+    let query: Record<string, unknown> = {
       type: 'episode',
       status: params.status || 'published',
     };
 
-    // If we have IDs to exclude, add them as a "not" condition
     if (params.exclude_ids && params.exclude_ids.length > 0) {
       query = {
         ...query,
@@ -117,11 +115,9 @@ export async function getRadioShows(
       };
     }
 
-    // Always exclude future broadcast dates
     const today = new Date();
     const todayStr = extractDatePart(today.toISOString());
 
-    // Add filter conditions
     if (params.filters) {
       const { genre, host, takeover, isNew } = params.filters;
 
@@ -151,7 +147,6 @@ export async function getRadioShows(
 
       if (host) {
         const hosts = Array.isArray(host) ? host : [host];
-        // Try a simpler approach - match any host ID in the regular_hosts array
         query = {
           ...query,
           'metadata.regular_hosts.id': { $in: hosts },
@@ -165,7 +160,6 @@ export async function getRadioShows(
         };
       }
     } else {
-      // No filters provided, but still exclude future dates
       query = {
         ...query,
         'metadata.broadcast_date': { $lte: todayStr },
@@ -178,7 +172,7 @@ export async function getRadioShows(
       .limit(params.limit || 10)
       .skip(params.skip || 0)
       .sort(params.sort || '-metadata.broadcast_date')
-      .depth(3);
+      .depth(2);
 
     return {
       objects: response.objects || [],
@@ -309,9 +303,14 @@ export async function getSchedule(): Promise<CosmicResponse<Schedule> | null> {
 
 /**
  * Helper function to transform Cosmic data to the format used in the mock data
+ * This is a pure utility function that can be used in both Server and Client Components
  */
 export function transformShowToViewData(show: RadioShowObject | EpisodeObject) {
-  const imageUrl = (show.metadata as any)?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png';
+  const metadata = show.metadata as Record<string, unknown> | undefined;
+  const imageUrl =
+    (metadata?.external_image_url as string) ||
+    (show.metadata?.image?.imgix_url as string) ||
+    '/image-placeholder.png';
   const transformed = {
     id: show.id,
     title: show.title,
@@ -327,7 +326,6 @@ export function transformShowToViewData(show: RadioShowObject | EpisodeObject) {
     broadcast_day: show.metadata?.broadcast_day || '',
     duration: show.metadata?.duration || '',
     player: show.metadata?.player || '',
-    // Convert relative player URLs to full Mixcloud URLs for the media player
     url: show.metadata?.player
       ? show.metadata.player.startsWith('http')
         ? show.metadata.player
@@ -337,9 +335,7 @@ export function transformShowToViewData(show: RadioShowObject | EpisodeObject) {
     body_text: show.metadata?.body_text || '',
     page_link: show.metadata?.page_link || '',
     source: show.metadata?.source || '',
-    // Preserve original metadata object
     metadata: show.metadata || {},
-    // Map all metadata fields with their full object structure
     genres: (show.metadata?.genres || []).map(genre => ({
       id: genre.id,
       slug: genre.slug,
@@ -352,21 +348,17 @@ export function transformShowToViewData(show: RadioShowObject | EpisodeObject) {
       modified_at: genre.modified_at,
       published_at: genre.published_at,
     })),
-
-    // Tags format for ShowCard compatibility
     tags: (show.metadata?.genres || []).map(genre => ({
       name: genre.title,
       title: genre.title,
     })),
-
-    // Additional properties for ShowCard compatibility
     name: show.title,
-    key: show.slug, // Use slug as unique key for show identification
+    key: show.slug,
     created_time:
       broadcastToISOString(
         show.metadata?.broadcast_date,
         show.metadata?.broadcast_time,
-        (show.metadata as any)?.broadcast_date_old
+        (metadata?.broadcast_date_old as string) || undefined
       ) || show.created_at,
     created_at: show.created_at,
     user: {
@@ -416,7 +408,7 @@ export function transformShowToViewData(show: RadioShowObject | EpisodeObject) {
 /**
  * Get navigation data
  */
-export async function getNavigation(slug: string = 'navigation'): Promise<any> {
+export async function getNavigation(slug: string = 'navigation'): Promise<unknown> {
   try {
     const response = await cosmic.objects
       .findOne({
@@ -442,7 +434,7 @@ export async function getNavigation(slug: string = 'navigation'): Promise<any> {
 /**
  * Get editorial homepage data
  */
-export async function getEditorialHomepage(): Promise<any> {
+export async function getEditorialHomepage(): Promise<unknown> {
   try {
     const response = await cosmic.objects
       .findOne({
@@ -450,7 +442,7 @@ export async function getEditorialHomepage(): Promise<any> {
         slug: 'editorial',
       })
       .props('slug,title,metadata')
-      .depth(2); // Increased depth to get nested objects
+      .depth(2);
 
     return response;
   } catch (error) {
@@ -480,18 +472,15 @@ export async function getPosts(
   } = {}
 ): Promise<CosmicResponse<PostObject>> {
   try {
-    // Build the query
-    const query: any = {
+    const query: Record<string, unknown> = {
       type: 'posts',
       status: params.status || 'published',
     };
 
-    // If featured flag is provided, add it to the query
     if (params.featured) {
       query['metadata.featured_on_homepage'] = true;
     }
 
-    // If post type is provided, add it to the query
     if (params.post_type) {
       query['metadata.post_type'] = params.post_type;
     }
@@ -542,7 +531,7 @@ export async function getHosts(
     sort?: string;
     status?: string;
   } = {}
-): Promise<{ objects: any[]; total: number }> {
+): Promise<{ objects: unknown[]; total: number }> {
   try {
     const response = await cosmic.objects
       .find({
@@ -568,7 +557,7 @@ export async function getHosts(
 /**
  * Get a single host by slug
  */
-export async function getHostBySlug(slug: string): Promise<CosmicResponse<any>> {
+export async function getHostBySlug(slug: string): Promise<CosmicResponse<unknown>> {
   try {
     const response = await cosmic.objects
       .findOne({ type: 'hosts', slug })
@@ -584,7 +573,7 @@ export async function getHostBySlug(slug: string): Promise<CosmicResponse<any>> 
 /**
  * Get host by name (for cases where we don't have the exact slug)
  */
-export async function getHostByName(name: string): Promise<any | null> {
+export async function getHostByName(name: string): Promise<unknown | null> {
   try {
     const response = await cosmic.objects
       .find({

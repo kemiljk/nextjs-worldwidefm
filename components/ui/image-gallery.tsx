@@ -42,7 +42,11 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
         {images.map((image, index) => (
           <div key={index} className='relative w-full aspect-square'>
             <img
-              src={buildImgixUrl(image.image.imgix_url, { width: 600, height: 600, quality: QUALITY_PRESETS.gallery })}
+              src={buildImgixUrl(image.image.imgix_url, {
+                width: 600,
+                height: 600,
+                quality: QUALITY_PRESETS.gallery,
+              })}
               alt={`Gallery image ${index + 1}`}
               className='absolute inset-0 w-full h-full object-cover border border-almostblack dark:border-white'
               loading='lazy'
@@ -67,7 +71,11 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
               className='relative shrink-0 w-[80%] md:w-[60%] aspect-video snap-center'
             >
               <img
-                src={buildImgixUrl(image.image.imgix_url, { width: 1200, height: 675, quality: QUALITY_PRESETS.gallery })}
+                src={buildImgixUrl(image.image.imgix_url, {
+                  width: 1200,
+                  height: 675,
+                  quality: QUALITY_PRESETS.gallery,
+                })}
                 alt={`Gallery image ${index + 1}`}
                 className='absolute inset-0 w-full h-full object-cover border border-almostblack dark:border-white'
                 loading='lazy'
@@ -103,7 +111,10 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
       {/* Main Image */}
       <div className='relative w-full mb-4'>
         <img
-          src={buildImgixUrl(selectedImage.image.imgix_url, { width: 1000, quality: QUALITY_PRESETS.gallery })}
+          src={buildImgixUrl(selectedImage.image.imgix_url, {
+            width: 1000,
+            quality: QUALITY_PRESETS.gallery,
+          })}
           alt={`Gallery image ${selectedImageIndex + 1}`}
           style={{ width: '100%', height: 'auto' }}
           className='object-contain border border-almostblack dark:border-white'
@@ -120,7 +131,11 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
               className={`shrink-0 relative w-20 h-20 border transition-all ${index === selectedImageIndex ? 'border-almostblack dark:border-white opacity-100' : 'border-gray-300 dark:border-gray-600 opacity-70 hover:opacity-90'}`}
             >
               <img
-                src={buildImgixUrl(image.image.imgix_url, { width: 100, height: 100, quality: QUALITY_PRESETS.thumbnail })}
+                src={buildImgixUrl(image.image.imgix_url, {
+                  width: 100,
+                  height: 100,
+                  quality: QUALITY_PRESETS.thumbnail,
+                })}
                 alt={`Gallery thumbnail ${index + 1}`}
                 className='absolute inset-0 w-full h-full object-cover'
                 loading='lazy'

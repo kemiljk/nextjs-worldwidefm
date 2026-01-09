@@ -42,7 +42,11 @@ export default function ArticlesSection({ title, articles, lastArticleRef }: Art
               <CardContent className='p-0 grow flex flex-col'>
                 <div className='relative aspect-[1.1/1] w-full border-b border-black dark:border-white bg-gray-100 flex items-center justify-center'>
                   <ResponsiveCardImage
-                    src={article.metadata.external_image_url || article.metadata.image?.imgix_url || '/image-placeholder.png'}
+                    src={
+                      article.metadata.external_image_url ||
+                      article.metadata.image?.imgix_url ||
+                      '/image-placeholder.png'
+                    }
                     alt={article.title}
                     className='object-cover'
                     aspectRatio='square'

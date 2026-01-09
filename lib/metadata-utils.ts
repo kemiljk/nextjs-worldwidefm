@@ -300,7 +300,8 @@ export function generatePostMetadata(postData: any): Metadata {
     `Read ${title} on Worldwide FM`;
 
   // Use OG image if available, otherwise fall back to regular image
-  const image = ogImage || postData?.metadata?.external_image_url || postData?.metadata?.image?.imgix_url;
+  const image =
+    ogImage || postData?.metadata?.external_image_url || postData?.metadata?.image?.imgix_url;
 
   // Generate keywords from categories and title
   const categoryKeywords =

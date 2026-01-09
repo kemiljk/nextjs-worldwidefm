@@ -30,7 +30,7 @@ export async function fetchShowsByGenre(genreId: string, limit: number = 10) {
       error?.status === 404 ||
       error?.message?.includes('404') ||
       error?.message?.includes('No objects found');
-    
+
     if (is404) {
       return { shows: [], isEmpty: true };
     }
@@ -39,4 +39,3 @@ export async function fetchShowsByGenre(genreId: string, limit: number = 10) {
     return { shows: [], isEmpty: false };
   }
 }
-

@@ -1,4 +1,3 @@
-import { connection } from 'next/server';
 import { cosmic } from './cosmic-config';
 import { EpisodeObject } from './cosmic-types';
 
@@ -21,15 +20,75 @@ export interface EpisodeResponse {
   hasNext: boolean;
 }
 
+const EPISODE_PROPS =
+  'id,slug,title,type,created_at,metadata.image,metadata.external_image_url,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage';
+
+const EPISODE_DETAIL_PROPS =
+  'id,slug,title,type,status,created_at,metadata.image,metadata.external_image_url,metadata.broadcast_date,metadata.broadcast_date_old,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.body_text,metadata.player,metadata.tracklist,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage';
+
+const RELATED_EPISODE_PROPS =
+  'id,slug,title,metadata.broadcast_date,metadata.image,metadata.external_image_url,metadata.genres,metadata.regular_hosts';
+
+/**
+ * Get yesterday's date string for filtering episodes (excludes future broadcasts)
+ * This is computed fresh each time to ensure date accuracy
+ */
+function getYesterdayDateString(): string {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return yesterday.toISOString().slice(0, 10);
+}
+
+/**
+ * Get date string for 30 days ago (for "new" episode filtering)
+ */
+function getThirtyDaysAgoDateString(): string {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  return thirtyDaysAgo.toISOString().slice(0, 10);
+}
+
+/**
+ * Episode fetching - core implementation
+ */
+async function fetchEpisodesFromCosmic(
+  query: Record<string, unknown>,
+  baseLimit: number,
+  offset: number
+): Promise<{ objects: EpisodeObject[]; total: number }> {
+  const response = await cosmic.objects
+    .find(query)
+    .props(EPISODE_PROPS)
+    .limit(baseLimit)
+    .skip(offset)
+    .sort('-metadata.broadcast_date')
+    .depth(1);
+
+  return {
+    objects: response.objects || [],
+    total: response.total || 0,
+  };
+}
+
+/**
+ * Random episodes fetching
+ */
+async function fetchRandomEpisodesFromCosmic(
+  query: Record<string, unknown>,
+  fetchLimit: number
+): Promise<EpisodeObject[]> {
+  const response = await cosmic.objects.find(query).props(EPISODE_PROPS).limit(fetchLimit).depth(1);
+
+  return response.objects || [];
+}
+
 /**
  * Simplified episode service that works directly with Cosmic data
  */
 export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeResponse> {
-  // Signal dynamic rendering before using new Date()
-  await connection();
-
   const baseLimit = params.limit || 20;
   const offset = params.offset || 0;
+  const yesterdayStr = getYesterdayDateString();
 
   try {
     // Handle random episodes
@@ -46,7 +105,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
           const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
           const validGenres = genres.filter(Boolean);
           if (validGenres.length > 0) {
-            // Match genre IDs directly - genres stores ID strings, not objects
             query['metadata.genres'] = { $in: validGenres };
           }
         }
@@ -54,25 +112,17 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         // Add location filter
         if (params.location) {
           const locations = Array.isArray(params.location) ? params.location : [params.location];
-          // Match location IDs directly - locations stores ID strings, not objects
           query['metadata.locations'] = { $in: locations };
         }
 
         // Exclude future broadcast dates and episodes from today (1-day delay)
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().slice(0, 10);
         query['metadata.broadcast_date'] = { $lte: yesterdayStr };
 
         // Fetch a larger set to randomize from
         const fetchLimit = Math.min(baseLimit * 5, 200);
-        const response = await cosmic.objects
-          .find(query)
-          .props('id,slug,title,type,created_at,metadata.image,metadata.external_image_url,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage')
-          .limit(fetchLimit)
-          .depth(1);
+        const episodes = await fetchRandomEpisodesFromCosmic(query, fetchLimit);
 
-        const episodes = response.objects || [];
+        // Shuffle client-side (randomization happens after fetch)
         const shuffled = [...episodes].sort(() => Math.random() - 0.5);
         const randomEpisodes = shuffled.slice(0, baseLimit);
 
@@ -116,14 +166,12 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
       const validGenres = genres.filter(Boolean);
       if (validGenres.length > 0) {
-        // Match genre IDs directly - genres stores ID strings, not objects
         query['metadata.genres'] = { $in: validGenres };
       }
     }
 
     if (params.location) {
       const locations = Array.isArray(params.location) ? params.location : [params.location];
-      // Match location IDs directly - locations stores ID strings, not objects
       query['metadata.locations'] = { $in: locations };
     }
 
@@ -132,7 +180,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         query['metadata.regular_hosts'] = { $exists: true, $ne: [] };
       } else {
         const hosts = Array.isArray(params.host) ? params.host : [params.host];
-        // Match host IDs directly - regular_hosts stores ID strings, not objects
         query['metadata.regular_hosts'] = { $in: hosts };
       }
     }
@@ -142,7 +189,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         query['metadata.takeovers'] = { $exists: true, $ne: [] };
       } else {
         const takeovers = Array.isArray(params.takeover) ? params.takeover : [params.takeover];
-        // Match takeover IDs directly - takeovers stores ID strings, not objects
         query['metadata.takeovers'] = { $in: takeovers };
       }
     }
@@ -159,15 +205,10 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       }
     }
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().slice(0, 10);
-
     if (params.isNew) {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const thirtyDaysAgoStr = getThirtyDaysAgoDateString();
       query['metadata.broadcast_date'] = {
-        $gte: thirtyDaysAgo.toISOString().slice(0, 10),
+        $gte: thirtyDaysAgoStr,
         $lte: yesterdayStr,
       };
     } else {
@@ -175,16 +216,13 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     }
 
     // Fetch episodes from Cosmic
-    const response = await cosmic.objects
-      .find(query)
-      .props('id,slug,title,type,created_at,metadata.image,metadata.external_image_url,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage')
-      .limit(baseLimit)
-      .skip(offset)
-      .sort('-metadata.broadcast_date')
-      .depth(1);
+    const { objects: episodes, total: totalCount } = await fetchEpisodesFromCosmic(
+      query,
+      baseLimit,
+      offset
+    );
 
-    const episodes = response.objects || [];
-    const total = response.total || episodes.length;
+    const total = totalCount || episodes.length;
     const hasNext = episodes.length === baseLimit && offset + baseLimit < total;
 
     return {
@@ -234,6 +272,29 @@ export async function getEpisodesForShows(params: EpisodeParams = {}): Promise<{
 }
 
 /**
+ * Fetch for regular hosts
+ */
+async function fetchRegularHostsFromCosmic(
+  query: Record<string, unknown>,
+  limit: number,
+  offset: number
+): Promise<{ objects: EpisodeObject[]; total: number }> {
+  const response = await cosmic.objects
+    .find(query)
+    .props(
+      'id,slug,title,type,content,metadata.image,metadata.external_image_url,metadata.description,metadata.genres,metadata.locations'
+    )
+    .limit(limit)
+    .skip(offset)
+    .depth(1);
+
+  return {
+    objects: response.objects || [],
+    total: response.total || 0,
+  };
+}
+
+/**
  * Get regular hosts from Cosmic
  */
 export async function getRegularHosts(
@@ -252,36 +313,30 @@ export async function getRegularHosts(
   try {
     const { limit = 100, offset = 0, genre, location, letter } = params;
 
-    // Build the query
     const query: Record<string, unknown> = {
       type: 'regular-hosts',
       status: 'published',
     };
 
-    // Add genre filter
     if (genre && genre.length > 0) {
       query['metadata.genre.slug'] = { $in: genre };
     }
 
-    // Add location filter
     if (location && location.length > 0) {
       query['metadata.location.slug'] = { $in: location };
     }
 
-    // Add letter filter (starts with)
     if (letter) {
       query.title = { $regex: `^${letter}`, $options: 'i' };
     }
 
-    const response = await cosmic.objects
-      .find(query)
-      .props('id,slug,title,type,content,metadata.image,metadata.external_image_url,metadata.description,metadata.genres,metadata.locations')
-      .limit(limit)
-      .skip(offset)
-      .depth(1);
+    const { objects: shows, total: totalCount } = await fetchRegularHostsFromCosmic(
+      query,
+      limit,
+      offset
+    );
 
-    const shows = response.objects || [];
-    const total = response.total || shows.length;
+    const total = totalCount || shows.length;
     const hasNext = shows.length === limit && offset + limit < total;
 
     return { shows, total, hasNext };
@@ -289,6 +344,29 @@ export async function getRegularHosts(
     console.error('Error fetching regular hosts:', error);
     return { shows: [], total: 0, hasNext: false };
   }
+}
+
+/**
+ * Fetch for takeovers
+ */
+async function fetchTakeoversFromCosmic(
+  query: Record<string, unknown>,
+  limit: number,
+  offset: number
+): Promise<{ objects: EpisodeObject[]; total: number }> {
+  const response = await cosmic.objects
+    .find(query)
+    .props(
+      'id,slug,title,type,content,metadata.image,metadata.external_image_url,metadata.description,metadata.regular_hosts'
+    )
+    .limit(limit)
+    .skip(offset)
+    .depth(1);
+
+  return {
+    objects: response.objects || [],
+    total: response.total || 0,
+  };
 }
 
 /**
@@ -310,36 +388,30 @@ export async function getTakeovers(
   try {
     const { limit = 100, offset = 0, genre, location, host } = params;
 
-    // Build the query
     const query: Record<string, unknown> = {
       type: 'takeovers',
       status: 'published',
     };
 
-    // Add genre filter
     if (genre && genre.length > 0) {
       query['metadata.genre.slug'] = { $in: genre };
     }
 
-    // Add location filter
     if (location && location.length > 0) {
       query['metadata.location.slug'] = { $in: location };
     }
 
-    // Add host filter
     if (host && host.length > 0) {
       query['metadata.regular_hosts'] = { $in: host };
     }
 
-    const response = await cosmic.objects
-      .find(query)
-      .props('id,slug,title,type,content,metadata.image,metadata.external_image_url,metadata.description,metadata.regular_hosts')
-      .limit(limit)
-      .skip(offset)
-      .depth(1);
+    const { objects: shows, total: totalCount } = await fetchTakeoversFromCosmic(
+      query,
+      limit,
+      offset
+    );
 
-    const shows = response.objects || [];
-    const total = response.total || shows.length;
+    const total = totalCount || shows.length;
     const hasNext = shows.length === limit && offset + limit < total;
 
     return { shows, total, hasNext };
@@ -422,6 +494,30 @@ function is404Error(error: unknown): boolean {
 }
 
 /**
+ * Episode fetch by slug
+ */
+async function fetchEpisodeBySlugFromCosmic(
+  slugToFetch: string,
+  isPreview: boolean
+): Promise<EpisodeObject | null> {
+  const query: Record<string, unknown> = {
+    type: 'episode',
+    slug: slugToFetch,
+    status: isPreview ? 'any' : 'published',
+  };
+
+  try {
+    const response = await cosmic.objects.findOne(query).props(EPISODE_DETAIL_PROPS).depth(1);
+    return response.object || null;
+  } catch (error) {
+    if (!is404Error(error)) {
+      console.error('Error fetching episode by slug:', error);
+    }
+    return null;
+  }
+}
+
+/**
  * Get episode by slug
  * Handles URL-encoded slugs and normalizes them to match stored slugs
  */
@@ -429,50 +525,69 @@ export async function getEpisodeBySlug(
   slug: string,
   preview?: string
 ): Promise<EpisodeObject | null> {
+  const isPreview = !!preview;
+
   // First try the original slug as-is
-  let query: Record<string, unknown> = {
-    type: 'episode',
-    slug: slug,
-    status: preview ? 'any' : 'published',
-  };
-
-  const episodeProps = 'id,slug,title,type,status,created_at,metadata.image,metadata.external_image_url,metadata.broadcast_date,metadata.broadcast_date_old,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.body_text,metadata.player,metadata.tracklist,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage';
-
-  try {
-    const response = await cosmic.objects.findOne(query).props(episodeProps).depth(1);
-    if (response.object) {
-      return response.object;
-    }
-  } catch (error) {
-    // Silently handle 404s - they're expected when slug doesn't match
-    if (!is404Error(error)) {
-      console.error('Error fetching episode by slug:', error);
-    }
+  const episode = await fetchEpisodeBySlugFromCosmic(slug, isPreview);
+  if (episode) {
+    return episode;
   }
 
   // If not found, try the normalized version
   const normalizedSlug = normalizeSlug(slug);
   if (normalizedSlug !== slug) {
-    query = {
-      type: 'episode',
-      slug: normalizedSlug,
-      status: preview ? 'any' : 'published',
-    };
-
-    try {
-      const response = await cosmic.objects.findOne(query).props(episodeProps).depth(1);
-      if (response.object) {
-        return response.object;
-      }
-    } catch (error) {
-      // Silently handle 404s - they're expected when slug doesn't match
-      if (!is404Error(error)) {
-        console.error('Error fetching episode by normalized slug:', error);
-      }
-    }
+    return fetchEpisodeBySlugFromCosmic(normalizedSlug, isPreview);
   }
 
   return null;
+}
+
+/**
+ * Fetch for related episodes by host
+ */
+async function fetchRelatedByHost(
+  episodeId: string,
+  hostIds: string[],
+  limit: number,
+  todayStr: string
+): Promise<EpisodeObject[]> {
+  const response = await cosmic.objects
+    .find({
+      type: 'episode',
+      status: 'published',
+      id: { $ne: episodeId },
+      'metadata.regular_hosts': { $in: hostIds },
+      'metadata.broadcast_date': { $lte: todayStr },
+    })
+    .props(RELATED_EPISODE_PROPS)
+    .limit(limit)
+    .sort('-metadata.broadcast_date')
+    .depth(2);
+
+  return response.objects || [];
+}
+
+/**
+ * Fetch for recent episodes (fallback)
+ */
+async function fetchRecentEpisodes(
+  excludeIds: string[],
+  limit: number,
+  todayStr: string
+): Promise<EpisodeObject[]> {
+  const response = await cosmic.objects
+    .find({
+      type: 'episode',
+      status: 'published',
+      id: { $nin: excludeIds },
+      'metadata.broadcast_date': { $lte: todayStr },
+    })
+    .props(RELATED_EPISODE_PROPS)
+    .limit(limit)
+    .sort('-metadata.broadcast_date')
+    .depth(2);
+
+  return response.objects || [];
 }
 
 /**
@@ -485,77 +600,31 @@ export async function getRelatedEpisodes(
   hostIds?: string[]
 ): Promise<EpisodeObject[]> {
   try {
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
+    const todayStr = new Date().toISOString().slice(0, 10);
 
     // First try to get episodes by same host if host IDs are provided
     if (hostIds && hostIds.length > 0) {
       try {
-        const hostResponse = await cosmic.objects
-          .find({
-            type: 'episode',
-            status: 'published',
-            id: { $ne: episodeId },
-            'metadata.regular_hosts': { $in: hostIds },
-            'metadata.broadcast_date': { $lte: todayStr },
-          })
-          .props(
-            'id,slug,title,metadata.broadcast_date,metadata.image,metadata.external_image_url,metadata.genres,metadata.regular_hosts'
-          )
-          .limit(limit)
-          .sort('-metadata.broadcast_date')
-          .depth(2);
-
-        const hostEpisodes = hostResponse.objects || [];
+        const hostEpisodes = await fetchRelatedByHost(episodeId, hostIds, limit, todayStr);
         if (hostEpisodes.length >= limit) {
           return hostEpisodes.slice(0, limit);
         }
 
-        // If we have some host matches but not enough, we'll combine with recent episodes below
-        // For now, return what we have and fill the rest with recent episodes
+        // If we have some host matches but not enough, fill with recent episodes
         if (hostEpisodes.length > 0) {
           const remainingLimit = limit - hostEpisodes.length;
-          const recentResponse = await cosmic.objects
-            .find({
-              type: 'episode',
-              status: 'published',
-              id: { $ne: episodeId, $nin: hostEpisodes.map(e => e.id) },
-              'metadata.broadcast_date': { $lte: todayStr },
-            })
-            .props(
-              'id,slug,title,metadata.broadcast_date,metadata.image,metadata.external_image_url,metadata.genres,metadata.regular_hosts'
-            )
-            .limit(remainingLimit)
-            .sort('-metadata.broadcast_date')
-            .depth(2);
-
-          const recentEpisodes = recentResponse.objects || [];
+          const excludeIds = [episodeId, ...hostEpisodes.map(e => e.id)];
+          const recentEpisodes = await fetchRecentEpisodes(excludeIds, remainingLimit, todayStr);
           return [...hostEpisodes, ...recentEpisodes].slice(0, limit);
         }
       } catch (hostError) {
-        // If host query fails, fall through to recent episodes query
         console.warn('Error fetching episodes by host:', hostError);
       }
     }
 
     // Fallback: get recent episodes excluding current one
-    const response = await cosmic.objects
-      .find({
-        type: 'episode',
-        status: 'published',
-        id: { $ne: episodeId },
-        'metadata.broadcast_date': { $lte: todayStr },
-      })
-      .props(
-        'id,slug,title,metadata.broadcast_date,metadata.image,metadata.external_image_url,metadata.genres,metadata.regular_hosts'
-      )
-      .limit(limit)
-      .sort('-metadata.broadcast_date')
-      .depth(2);
-
-    return response.objects || [];
-  } catch (error) {
-    // Silently fail - related episodes are not critical
+    return fetchRecentEpisodes([episodeId], limit, todayStr);
+  } catch {
     return [];
   }
 }

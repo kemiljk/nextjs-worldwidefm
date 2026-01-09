@@ -43,7 +43,10 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           type: 'posts',
           description: post.metadata?.content || '',
           excerpt: post.metadata?.excerpt || '',
-          image: post.metadata?.external_image_url || post.metadata?.image?.imgix_url || '/image-placeholder.png',
+          image:
+            post.metadata?.external_image_url ||
+            post.metadata?.image?.imgix_url ||
+            '/image-placeholder.png',
           date: post.metadata?.date || '',
           categories: normalizeFilterItems(categories),
           author:
@@ -63,7 +66,10 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           type: 'episodes',
           description: show.metadata?.description || '',
           excerpt: show.metadata?.subtitle || '',
-          image: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+          image:
+            show.metadata?.external_image_url ||
+            show.metadata?.image?.imgix_url ||
+            '/image-placeholder.png',
           date: show.metadata?.broadcast_date || '',
           genres: normalizeFilterItems(show.metadata?.genres || []),
           locations: normalizeFilterItems(show.metadata?.locations || []),
@@ -82,7 +88,10 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           slug: host.slug,
           type: 'hosts-series',
           description: host.metadata?.description || host.content || '',
-          image: host.metadata?.external_image_url || host.metadata?.image?.imgix_url || '/image-placeholder.png',
+          image:
+            host.metadata?.external_image_url ||
+            host.metadata?.image?.imgix_url ||
+            '/image-placeholder.png',
           date: host.created_at || '',
           genres: normalizeFilterItems(host.metadata?.genres || []),
           locations: normalizeFilterItems(host.metadata?.locations || []),
@@ -96,7 +105,10 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           slug: takeover.slug,
           type: 'takeovers',
           description: takeover.metadata?.description || takeover.content || '',
-          image: takeover.metadata?.external_image_url || takeover.metadata?.image?.imgix_url || '/image-placeholder.png',
+          image:
+            takeover.metadata?.external_image_url ||
+            takeover.metadata?.image?.imgix_url ||
+            '/image-placeholder.png',
           date: takeover.created_at || '',
           hosts: normalizeFilterItems(takeover.metadata?.regular_hosts || []),
           metadata: takeover.metadata || {},
@@ -167,13 +179,11 @@ export async function searchContent(
     const takeovers = takeoversResponse.objects || [];
 
     const normalizeFilterItems = (items: any[] = []): FilterItem[] => {
-      return items
-        .filter(Boolean)
-        .map((item: { title?: string; slug?: string; id?: string }) => ({
-          title: item.title || '',
-          slug: item.slug || item.id || '',
-          type: 'genres',
-        }));
+      return items.filter(Boolean).map((item: { title?: string; slug?: string; id?: string }) => ({
+        title: item.title || '',
+        slug: item.slug || item.id || '',
+        type: 'genres',
+      }));
     };
 
     const results = [
@@ -200,29 +210,33 @@ export async function searchContent(
           categories: getGenres(item.metadata || {}),
         }))
         .filter((item: any) => item.title),
-      ...hosts.map((item: any): HostSearchResult => ({
-        id: item.id,
-        title: item.title,
-        slug: item.slug,
-        type: 'hosts-series' as const,
-        description: item.metadata?.description || item.content || '',
-        image: getImage(item.metadata || item),
-        date: item.created_at || '',
-        genres: normalizeFilterItems(item.metadata?.genres || []),
-        locations: normalizeFilterItems(item.metadata?.locations || []),
-        metadata: item.metadata || {},
-      })),
-      ...takeovers.map((item: any): TakeoverSearchResult => ({
-        id: item.id,
-        title: item.title,
-        slug: item.slug,
-        type: 'takeovers' as const,
-        description: item.metadata?.description || item.content || '',
-        image: getImage(item.metadata || item),
-        date: item.created_at || '',
-        hosts: normalizeFilterItems(item.metadata?.regular_hosts || []),
-        metadata: item.metadata || {},
-      })),
+      ...hosts.map(
+        (item: any): HostSearchResult => ({
+          id: item.id,
+          title: item.title,
+          slug: item.slug,
+          type: 'hosts-series' as const,
+          description: item.metadata?.description || item.content || '',
+          image: getImage(item.metadata || item),
+          date: item.created_at || '',
+          genres: normalizeFilterItems(item.metadata?.genres || []),
+          locations: normalizeFilterItems(item.metadata?.locations || []),
+          metadata: item.metadata || {},
+        })
+      ),
+      ...takeovers.map(
+        (item: any): TakeoverSearchResult => ({
+          id: item.id,
+          title: item.title,
+          slug: item.slug,
+          type: 'takeovers' as const,
+          description: item.metadata?.description || item.content || '',
+          image: getImage(item.metadata || item),
+          date: item.created_at || '',
+          hosts: normalizeFilterItems(item.metadata?.regular_hosts || []),
+          metadata: item.metadata || {},
+        })
+      ),
     ];
 
     return results;

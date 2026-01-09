@@ -47,7 +47,9 @@ export default function MembershipPromoSection({ config }: MembershipPromoSectio
         <h2 className='relative font-display text-[40px] md:text-h5 font-bold uppercase text-white'>
           {title}
         </h2>
-        <p className='max-w-70 md:max-w-100 text-white leading-tight font-sans text-body'>{description}</p>
+        <p className='max-w-70 md:max-w-100 text-white leading-tight font-sans text-body'>
+          {description}
+        </p>
 
         <Link className='h-fit w-50 pt-5 ' href='/membership' onClick={handleMembershipClick}>
           <Button variant='inverted' className='font-mono uppercase'>

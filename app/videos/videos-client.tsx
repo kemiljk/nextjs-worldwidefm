@@ -28,7 +28,11 @@ interface VideosClientProps {
   categoryOrder?: CategoryOrder[];
 }
 
-export default function VideosClient({ initialVideos, availableCategories, categoryOrder = [] }: VideosClientProps) {
+export default function VideosClient({
+  initialVideos,
+  availableCategories,
+  categoryOrder = [],
+}: VideosClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -64,7 +68,7 @@ export default function VideosClient({ initialVideos, availableCategories, categ
     if (searchParam) {
       setSearchTerm(searchParam);
     }
-    
+
     setIsInitialized(true);
   }, []); // Only run once on mount
 
@@ -90,7 +94,7 @@ export default function VideosClient({ initialVideos, availableCategories, categ
 
     const newUrl = `/videos${params.toString() ? `?${params.toString()}` : ''}`;
     const currentUrl = `/videos${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-    
+
     // Only update if URL actually changed
     if (newUrl !== currentUrl) {
       router.replace(newUrl, { scroll: false });
@@ -168,12 +172,11 @@ export default function VideosClient({ initialVideos, availableCategories, categ
         return;
       }
 
-      const firstCatId = typeof videoCategories[0] === 'string' 
-        ? videoCategories[0] 
-        : videoCategories[0]?.id;
-      
+      const firstCatId =
+        typeof videoCategories[0] === 'string' ? videoCategories[0] : videoCategories[0]?.id;
+
       const category = availableCategories.find(cat => cat.id === firstCatId);
-      
+
       if (category) {
         if (!grouped[category.id]) {
           grouped[category.id] = { category, videos: [] };
@@ -186,7 +189,7 @@ export default function VideosClient({ initialVideos, availableCategories, categ
 
     // Sort groups by categoryOrder if provided, otherwise alphabetically
     let sortedGroups: { category: VideoCategory; videos: VideoObject[] }[];
-    
+
     if (categoryOrder.length > 0) {
       // Create ordered groups based on categoryOrder
       const orderedGroups: { category: VideoCategory; videos: VideoObject[] }[] = [];
@@ -204,11 +207,11 @@ export default function VideosClient({ initialVideos, availableCategories, categ
       const remainingGroups = Object.values(grouped)
         .filter(g => !usedCategoryIds.has(g.category.id))
         .sort((a, b) => a.category.title.localeCompare(b.category.title));
-      
+
       sortedGroups = [...orderedGroups, ...remainingGroups];
     } else {
       // Fallback to alphabetical sorting
-      sortedGroups = Object.values(grouped).sort((a, b) => 
+      sortedGroups = Object.values(grouped).sort((a, b) =>
         a.category.title.localeCompare(b.category.title)
       );
     }

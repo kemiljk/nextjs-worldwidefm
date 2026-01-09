@@ -4,16 +4,16 @@ import { put, head } from '@vercel/blob';
 
 /**
  * Cron job to keep Cosmic media storage at or below 500 items.
- * 
+ *
  * Strategy:
  * 1. Fetch all Cosmic media sorted by upload date (newest first)
  * 2. Keep the 500 most recent
  * 3. Migrate older media to Vercel Blob
  * 4. Update any objects referencing the migrated media
  * 5. Delete migrated media from Cosmic (only if DELETE_MEDIA=true)
- * 
+ *
  * Schedule: Weekly (configured in vercel.json)
- * 
+ *
  * Environment variables:
  *   CRON_SECRET           - For authentication
  *   BLOB_READ_WRITE_TOKEN - Vercel Blob token (auto-available in Vercel)
@@ -82,18 +82,18 @@ async function downloadMedia(url: string): Promise<{ buffer: Buffer; contentType
   if (!response.ok) {
     throw new Error(`Failed to download: HTTP ${response.status}`);
   }
-  
+
   const contentType = response.headers.get('content-type') || 'application/octet-stream';
   const arrayBuffer = await response.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
-  
+
   return { buffer, contentType };
 }
 
 async function findObjectsReferencingMedia(mediaItem: MediaItem): Promise<CosmicObject[]> {
   const filename = mediaItem.name || extractFilename(mediaItem.url);
   const results: CosmicObject[] = [];
-  
+
   for (const objectType of OBJECT_TYPES_WITH_IMAGES) {
     try {
       const response = await cosmic.objects
@@ -101,20 +101,22 @@ async function findObjectsReferencingMedia(mediaItem: MediaItem): Promise<Cosmic
         .props('id,slug,title,type,metadata.image')
         .limit(100)
         .status('any');
-      
+
       const objects = response.objects || [];
-      
+
       for (const obj of objects) {
         const objImageUrl = obj.metadata?.image?.url;
         const objImgixUrl = obj.metadata?.image?.imgix_url;
         const objImageName = obj.metadata?.image?.name;
-        
+
         // Check all possible matches
-        if (objImageName === filename ||
-            objImageUrl === mediaItem.url ||
-            objImgixUrl === mediaItem.imgix_url ||
-            (objImageUrl && filename && objImageUrl.includes(filename)) ||
-            (objImgixUrl && filename && objImgixUrl.includes(filename))) {
+        if (
+          objImageName === filename ||
+          objImageUrl === mediaItem.url ||
+          objImgixUrl === mediaItem.imgix_url ||
+          (objImageUrl && filename && objImageUrl.includes(filename)) ||
+          (objImgixUrl && filename && objImgixUrl.includes(filename))
+        ) {
           results.push(obj as CosmicObject);
         }
       }
@@ -122,13 +124,13 @@ async function findObjectsReferencingMedia(mediaItem: MediaItem): Promise<Cosmic
       // Skip object types that don't exist
     }
   }
-  
+
   return results;
 }
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
-  
+
   try {
     // Verify cron secret
     const authHeader = request.headers.get('authorization');
@@ -140,15 +142,20 @@ export async function GET(request: NextRequest) {
     // Check Blob token
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       console.error('[COLD-STORAGE] BLOB_READ_WRITE_TOKEN not configured');
-      return NextResponse.json({ 
-        error: 'Vercel Blob not configured',
-        hint: 'Create a Blob store in Vercel Dashboard > Storage',
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: 'Vercel Blob not configured',
+          hint: 'Create a Blob store in Vercel Dashboard > Storage',
+        },
+        { status: 500 }
+      );
     }
 
     console.log('[COLD-STORAGE] Starting cold storage migration...');
     console.log(`[COLD-STORAGE] Hot storage limit: ${HOT_STORAGE_LIMIT} media items`);
-    console.log(`[COLD-STORAGE] Delete media: ${DELETE_MEDIA ? 'YES' : 'NO (set DELETE_MEDIA=true to enable)'}`);
+    console.log(
+      `[COLD-STORAGE] Delete media: ${DELETE_MEDIA ? 'YES' : 'NO (set DELETE_MEDIA=true to enable)'}`
+    );
 
     // Fetch media sorted by created_at DESC (newest first)
     const allMedia: MediaItem[] = [];
@@ -180,7 +187,7 @@ export async function GET(request: NextRequest) {
 
     // Identify cold media (beyond position 500)
     const coldMedia = allMedia.slice(HOT_STORAGE_LIMIT);
-    
+
     console.log(`[COLD-STORAGE] Hot media (kept): ${Math.min(allMedia.length, HOT_STORAGE_LIMIT)}`);
     console.log(`[COLD-STORAGE] Cold media (to migrate): ${coldMedia.length}`);
 
@@ -221,7 +228,7 @@ export async function GET(request: NextRequest) {
           // Download and upload
           console.log(`[COLD-STORAGE] ${mediaItem.name}: Migrating...`);
           const { buffer, contentType } = await downloadMedia(downloadUrl);
-          
+
           const blob = await put(blobPath, buffer, {
             access: 'public',
             contentType,
@@ -232,7 +239,7 @@ export async function GET(request: NextRequest) {
 
         // Find and update objects referencing this media
         const referencingObjects = await findObjectsReferencingMedia(mediaItem);
-        
+
         for (const obj of referencingObjects) {
           try {
             await cosmic.objects.updateOne(obj.id, {
@@ -269,7 +276,9 @@ export async function GET(request: NextRequest) {
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-    console.log(`[COLD-STORAGE] Complete: ${results.migrated} migrated, ${results.failed} failed in ${duration}s`);
+    console.log(
+      `[COLD-STORAGE] Complete: ${results.migrated} migrated, ${results.failed} failed in ${duration}s`
+    );
 
     return NextResponse.json({
       success: true,
@@ -283,12 +292,14 @@ export async function GET(request: NextRequest) {
       results,
       duration: `${duration}s`,
     });
-
   } catch (error) {
     console.error('[COLD-STORAGE] Fatal error:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }

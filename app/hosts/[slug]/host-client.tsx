@@ -59,9 +59,7 @@ export default function HostClient({ hostId, hostTitle, initialShows }: HostClie
 
   return (
     <section className='space-y-3'>
-      <h2 className='text-h8 md:text-h7 font-bold tracking-tight leading-none'>
-        EPISODES
-      </h2>
+      <h2 className='text-h8 md:text-h7 font-bold tracking-tight leading-none'>EPISODES</h2>
       <div className='grid grid-cols-2 lg:grid-cols-4 md:grid-cols-3 gap-3'>
         {shows.map((show, index) => (
           <ShowCard

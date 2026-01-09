@@ -605,7 +605,11 @@ export function mapShowsToSearchItems(shows: any[]): SearchItem[] {
         description: show.metadata?.description || '',
         excerpt: show.metadata?.subtitle || '',
         date: show.metadata?.broadcast_date || show.created_at,
-        image: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || show.metadata?.image?.url || '',
+        image:
+          show.metadata?.external_image_url ||
+          show.metadata?.image?.imgix_url ||
+          show.metadata?.image?.url ||
+          '',
         contentType: 'episodes',
         genres: mapFilterItems(show.metadata?.genres || [], 'genres'),
         locations: mapFilterItems(show.metadata?.locations || [], 'locations'),
@@ -628,7 +632,11 @@ function mapPostsToSearchItems(posts: any[]): SearchItem[] {
     description: post.metadata?.description || '',
     excerpt: post.metadata?.excerpt || post.metadata?.content || '',
     date: post.metadata?.date || post.created_at,
-    image: post.metadata?.external_image_url || post.metadata?.image?.imgix_url || post.metadata?.image?.url || '',
+    image:
+      post.metadata?.external_image_url ||
+      post.metadata?.image?.imgix_url ||
+      post.metadata?.image?.url ||
+      '',
     contentType: 'posts',
     genres: mapFilterItems(post.metadata?.categories || [], 'genres'),
     locations: [],

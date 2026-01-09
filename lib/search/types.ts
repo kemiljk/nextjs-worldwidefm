@@ -13,7 +13,13 @@ export type ContentType = 'episodes' | 'posts' | 'events' | 'videos' | 'takeover
 /**
  * FilterCategories represents all possible filter categories
  */
-export type FilterCategory = 'genres' | 'locations' | 'hosts' | 'takeovers' | 'types' | 'categories';
+export type FilterCategory =
+  | 'genres'
+  | 'locations'
+  | 'hosts'
+  | 'takeovers'
+  | 'types'
+  | 'categories';
 
 /**
  * FilterItem represents a single filter option within a category

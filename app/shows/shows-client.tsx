@@ -84,118 +84,130 @@ export default function ShowsClient({
     setIsLoadingMore(true);
 
     // Add a small delay to prevent rapid API calls
-    const timeoutId = setTimeout(async () => {
-      try {
-        let response;
+    const timeoutId = setTimeout(
+      async () => {
+        try {
+          let response;
 
-        // Use different data sources based on the active type
-        if (activeType === 'hosts-series') {
-          // Fetch regular hosts objects with filters
-          const hostParams: any = {
-            limit: PAGE_SIZE,
-            offset: 0,
-          };
-
-          // Only add filters if they're selected
-          if (selectedGenres.length > 0) {
-            hostParams.genre = selectedGenres;
-          }
-
-          if (selectedLocations.length > 0) {
-            hostParams.location = selectedLocations;
-          }
-
-          if (letterParam) {
-            hostParams.letter = letterParam;
-          }
-
-          response = await getRegularHosts(hostParams);
-        } else if (activeType === 'takeovers') {
-          // Fetch takeovers objects with filters
-          const takeoverParams: any = {
-            limit: PAGE_SIZE,
-            offset: 0,
-          };
-
-          // Only add filters if they're selected
-          if (selectedGenres.length > 0) {
-            takeoverParams.genre = selectedGenres;
-          }
-
-          if (selectedLocations.length > 0) {
-            takeoverParams.location = selectedLocations;
-          }
-
-          response = await getTakeovers(takeoverParams);
-        } else {
-          // Fetch episodes with filters
-          const episodeParams: any = {
-            searchTerm,
-            limit: PAGE_SIZE,
-            offset: 0,
-          };
-
-          // Only add filters if they're selected
-          if (selectedGenres.length > 0) {
-            episodeParams.genre = selectedGenres;
-          }
-
-          if (selectedLocations.length > 0) {
-            episodeParams.location = selectedLocations;
-          }
-
-          response = await getEpisodesForShows(episodeParams);
-        }
-
-        if (!isMounted) return;
-
-        // Transform episodes data using the same function as other components
-        if (activeType === 'all' || activeType === 'episodes') {
-          const shows = (response as any).shows || [];
-          const transformedShows = shows.map((show: any) => {
-            const transformed = transformShowToViewData(show);
-            return {
-              ...transformed,
-              key: transformed.slug, // Add key for media player identification
+          // Use different data sources based on the active type
+          if (activeType === 'hosts-series') {
+            // Fetch regular hosts objects with filters
+            const hostParams: any = {
+              limit: PAGE_SIZE,
+              offset: 0,
             };
-          });
-          setShows(transformedShows);
-        } else if (activeType === 'hosts-series') {
-          // For hosts, add key property
-          const shows = (response as any).shows || [];
-          const transformedHosts = shows.map((host: any) => ({
-            ...host,
-            key: host.slug, // Add key for media player identification
-          }));
-          setShows(transformedHosts);
-        } else if (activeType === 'takeovers') {
-          // For takeovers, add key property
-          const shows = (response as any).shows || [];
-          const transformedTakeovers = shows.map((takeover: any) => ({
-            ...takeover,
-            key: takeover.slug, // Add key for media player identification
-          }));
-          setShows(transformedTakeovers);
-        }
 
-        const hasNext = Array.isArray(response) ? false : response.hasNext;
-        setHasNext(hasNext);
-        setIsLoadingMore(false);
-        setIsInitialLoading(false);
-        setPage(1);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setIsLoadingMore(false);
-        setIsInitialLoading(false);
-        // Don't clear existing shows on error, just show loading state
-      }
-    }, needsFetch ? 300 : 0); // Shorter delay when we have filters, instant for initial load
+            // Only add filters if they're selected
+            if (selectedGenres.length > 0) {
+              hostParams.genre = selectedGenres;
+            }
+
+            if (selectedLocations.length > 0) {
+              hostParams.location = selectedLocations;
+            }
+
+            if (letterParam) {
+              hostParams.letter = letterParam;
+            }
+
+            response = await getRegularHosts(hostParams);
+          } else if (activeType === 'takeovers') {
+            // Fetch takeovers objects with filters
+            const takeoverParams: any = {
+              limit: PAGE_SIZE,
+              offset: 0,
+            };
+
+            // Only add filters if they're selected
+            if (selectedGenres.length > 0) {
+              takeoverParams.genre = selectedGenres;
+            }
+
+            if (selectedLocations.length > 0) {
+              takeoverParams.location = selectedLocations;
+            }
+
+            response = await getTakeovers(takeoverParams);
+          } else {
+            // Fetch episodes with filters
+            const episodeParams: any = {
+              searchTerm,
+              limit: PAGE_SIZE,
+              offset: 0,
+            };
+
+            // Only add filters if they're selected
+            if (selectedGenres.length > 0) {
+              episodeParams.genre = selectedGenres;
+            }
+
+            if (selectedLocations.length > 0) {
+              episodeParams.location = selectedLocations;
+            }
+
+            response = await getEpisodesForShows(episodeParams);
+          }
+
+          if (!isMounted) return;
+
+          // Transform episodes data using the same function as other components
+          if (activeType === 'all' || activeType === 'episodes') {
+            const shows = (response as any).shows || [];
+            const transformedShows = shows.map((show: any) => {
+              const transformed = transformShowToViewData(show);
+              return {
+                ...transformed,
+                key: transformed.slug, // Add key for media player identification
+              };
+            });
+            setShows(transformedShows);
+          } else if (activeType === 'hosts-series') {
+            // For hosts, add key property
+            const shows = (response as any).shows || [];
+            const transformedHosts = shows.map((host: any) => ({
+              ...host,
+              key: host.slug, // Add key for media player identification
+            }));
+            setShows(transformedHosts);
+          } else if (activeType === 'takeovers') {
+            // For takeovers, add key property
+            const shows = (response as any).shows || [];
+            const transformedTakeovers = shows.map((takeover: any) => ({
+              ...takeover,
+              key: takeover.slug, // Add key for media player identification
+            }));
+            setShows(transformedTakeovers);
+          }
+
+          const hasNext = Array.isArray(response) ? false : response.hasNext;
+          setHasNext(hasNext);
+          setIsLoadingMore(false);
+          setIsInitialLoading(false);
+          setPage(1);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          setIsLoadingMore(false);
+          setIsInitialLoading(false);
+          // Don't clear existing shows on error, just show loading state
+        }
+      },
+      needsFetch ? 300 : 0
+    ); // Shorter delay when we have filters, instant for initial load
 
     return () => {
       isMounted = false;
       clearTimeout(timeoutId);
     };
-  }, [selectedGenres, selectedLocations, typeParam, searchTerm, letterParam, needsFetch, activeType, initialShows.length]);
+  }, [
+    selectedGenres,
+    selectedLocations,
+    typeParam,
+    searchTerm,
+    letterParam,
+    needsFetch,
+    activeType,
+    initialShows.length,
+  ]);
 
   // Load more data function
   const loadMore = useCallback(async () => {
@@ -311,7 +323,16 @@ export default function ShowsClient({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [activeType, hasNext, isLoadingMore, page, selectedGenres, selectedLocations, searchTerm, letterParam]);
+  }, [
+    activeType,
+    hasNext,
+    isLoadingMore,
+    page,
+    selectedGenres,
+    selectedLocations,
+    searchTerm,
+    letterParam,
+  ]);
 
   // Map episode genres to canonical genres (by slug or title, case-insensitive)
   function mapShowToCanonicalGenres(show: any): string[] {

@@ -1,6 +1,5 @@
 import React, { Suspense } from 'react';
 import { Metadata } from 'next';
-import { connection } from 'next/server';
 import {
   getCosmicHomepageData,
   fetchCosmicObjectById,
@@ -125,8 +124,8 @@ function renderPageOrderItem(
 }
 
 export default async function Home() {
-  // Opt into dynamic rendering - ensures Cosmic changes show instantly
-  await connection();
+  // Data fetching now uses time-based caching (hero: 15min, latest: 5min)
+  // Content updates via revalidation or manual trigger at /api/revalidate
 
   // Parallel fetch all initial data in a single Promise.all
   const [homepageData, videosData, postsData, user, canonicalGenres, recentEpisodesResponse] =

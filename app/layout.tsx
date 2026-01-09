@@ -5,6 +5,8 @@ import Script from 'next/script';
 import Nimbus from 'next/font/local';
 import AirCompressed from 'next/font/local';
 import FoundersGrotesk from 'next/font/local';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Providers } from '@/components/providers';
 import NavWrapper from '@/components/nav-wrapper';
 import Footer from '@/components/footer';
@@ -80,6 +82,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           <Footer />
         </Suspense>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

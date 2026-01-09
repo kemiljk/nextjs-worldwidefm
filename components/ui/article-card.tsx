@@ -68,8 +68,8 @@ export function ArticleCard({
   };
 
   return (
-    <Link 
-      href={linkHref} 
+    <Link
+      href={linkHref}
       className={`block group ${isFeatured ? 'w-full' : ''}`}
       {...(isExternalLink ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
     >

@@ -223,7 +223,9 @@ export async function POST(request: NextRequest) {
 
         if (takeoverObj && takeoverObj.object) {
           takeoverObjects = [takeoverObj.object.id];
-          console.log(`✅ Takeover found: "${takeoverObj.object.title}" (ID: ${takeoverObj.object.id})`);
+          console.log(
+            `✅ Takeover found: "${takeoverObj.object.title}" (ID: ${takeoverObj.object.id})`
+          );
         } else {
           console.log(`❌ Takeover not found for ID: "${validatedData.takeover}"`);
         }

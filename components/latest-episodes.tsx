@@ -8,7 +8,10 @@ interface LatestEpisodesProps {
   hasHeroItems?: boolean;
 }
 
-export default async function LatestEpisodes({ config, hasHeroItems = false }: LatestEpisodesProps) {
+export default async function LatestEpisodes({
+  config,
+  hasHeroItems = false,
+}: LatestEpisodesProps) {
   const baseLimit = config?.number_of_latest_shows || 5;
   const limit = hasHeroItems ? 20 : baseLimit;
   const offset = hasHeroItems ? 0 : 2;

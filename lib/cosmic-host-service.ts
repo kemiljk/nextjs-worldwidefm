@@ -14,7 +14,7 @@ export interface CosmicHost {
 export async function getCosmicHosts(): Promise<CosmicHost[]> {
   try {
     const response = await cosmic.objects
-      .find({ 
+      .find({
         type: 'regular-hosts',
         status: 'published',
       })
@@ -38,4 +38,3 @@ export async function getCosmicHosts(): Promise<CosmicHost[]> {
     return [];
   }
 }
-

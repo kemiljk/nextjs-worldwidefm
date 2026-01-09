@@ -193,7 +193,10 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
   }
 
   const displayName = host.title || 'Untitled Host';
-  const displayImage = host.metadata?.external_image_url || host.metadata?.image?.imgix_url || '/image-placeholder.png';
+  const displayImage =
+    host.metadata?.external_image_url ||
+    host.metadata?.image?.imgix_url ||
+    '/image-placeholder.png';
 
   const canonicalGenres = await getCanonicalGenres();
   const getGenreLink = (genreId: string): string | undefined => {

@@ -67,17 +67,14 @@ export function VideoPlayer({ video, className }: VideoPlayerProps) {
 
   // Handle direct video URLs (Cosmic or other sources)
   const posterUrl = video.metadata?.external_image_url || video.metadata?.image?.imgix_url;
-  const optimizedPoster = posterUrl && isImgixUrl(convertToImgixUrl(posterUrl))
-    ? buildImgixUrl(posterUrl, { width: 1280, height: 720, quality: QUALITY_PRESETS.video })
-    : posterUrl;
+  const optimizedPoster =
+    posterUrl && isImgixUrl(convertToImgixUrl(posterUrl))
+      ? buildImgixUrl(posterUrl, { width: 1280, height: 720, quality: QUALITY_PRESETS.video })
+      : posterUrl;
 
   return (
     <div className={cn('relative aspect-video w-full', className)}>
-      <video
-        className='w-full h-full object-cover'
-        controls
-        poster={optimizedPoster}
-      >
+      <video className='w-full h-full object-cover' controls poster={optimizedPoster}>
         <source src={videoUrl} type='video/mp4' />
         Your browser does not support the video tag.
       </video>

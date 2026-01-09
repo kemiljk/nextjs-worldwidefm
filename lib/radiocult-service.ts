@@ -580,10 +580,10 @@ export async function getScheduleData(): Promise<{
         if (!event.startTime) {
           return false;
         }
-        
+
         const startTime = new Date(event.startTime);
         const endTime = event.endTime ? new Date(event.endTime) : null;
-        
+
         // If event has started and hasn't ended, it's current
         if (now >= startTime) {
           if (endTime && !isNaN(endTime.getTime())) {
@@ -593,16 +593,16 @@ export async function getScheduleData(): Promise<{
           const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
           return startTime >= twelveHoursAgo;
         }
-        
+
         // Event hasn't started yet, but if it's starting within the next hour, consider it current
         // (RadioCult might be playing pre-show content)
         const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
         if (startTime <= oneHourFromNow) {
           return true;
         }
-        
+
         return false;
-      }) || 
+      }) ||
       // Fallback: if no event matches, just use the first upcoming event
       // (since there's always a show online, this is better than nothing)
       (sortedEvents.length > 0 ? sortedEvents[0] : null);
@@ -618,7 +618,10 @@ export async function getScheduleData(): Promise<{
           endTime: sortedEvents[0].endTime,
         });
       }
-      console.log('[getScheduleData] Current event found:', currentEvent ? currentEvent.showName : 'none');
+      console.log(
+        '[getScheduleData] Current event found:',
+        currentEvent ? currentEvent.showName : 'none'
+      );
     }
 
     // Find upcoming events (excluding the current one)
@@ -764,7 +767,8 @@ export async function getTags(forceRefresh = false, useSecretKey = false): Promi
 export async function findMatchingShow(
   event: RadioCultEvent | { slug?: string; showName?: string; title?: string }
 ): Promise<RadioShowObject | null> {
-  const eventTitle = 'showName' in event ? event.showName : (event as { title?: string }).title || '';
+  const eventTitle =
+    'showName' in event ? event.showName : (event as { title?: string }).title || '';
 
   if (!eventTitle) {
     return null;
@@ -779,7 +783,7 @@ export async function findMatchingShow(
 
   try {
     const normalizedEventTitle = normalizeTitle(eventTitle);
-    
+
     if (!normalizedEventTitle) {
       dataCache.set(cacheKey, { data: null, timestamp: Date.now() });
       return null;
@@ -804,9 +808,7 @@ export async function findMatchingShow(
     const shows = response.objects as RadioShowObject[];
 
     // 1. Exact title match (case-insensitive)
-    const exactMatch = shows.find(
-      show => normalizeTitle(show.title) === normalizedEventTitle
-    );
+    const exactMatch = shows.find(show => normalizeTitle(show.title) === normalizedEventTitle);
     if (exactMatch) {
       dataCache.set(cacheKey, { data: exactMatch, timestamp: Date.now() });
       return exactMatch;

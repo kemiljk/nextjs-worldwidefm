@@ -59,7 +59,11 @@ export default function FeaturedVideoContent({
     ? getVimeoThumbnail(featuredVideo.metadata.video_url)
     : '';
   const thumbnailUrl =
-    featuredVideo.metadata?.external_image_url || featuredVideo.metadata?.image?.imgix_url || youtubeId || vimeoId || '/image-placeholder.png';
+    featuredVideo.metadata?.external_image_url ||
+    featuredVideo.metadata?.image?.imgix_url ||
+    youtubeId ||
+    vimeoId ||
+    '/image-placeholder.png';
 
   const categoryObjects = Array.isArray(featuredVideo.metadata.categories)
     ? featuredVideo.metadata.categories
@@ -123,4 +127,3 @@ export default function FeaturedVideoContent({
     </div>
   );
 }
-

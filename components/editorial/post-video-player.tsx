@@ -41,7 +41,7 @@ export function PostVideoPlayer({ post, className }: PostVideoPlayerProps) {
   const vimeoId = getVimeoId(videoUrl);
 
   const potentialThumbnails = [
-    metadata?.youtube_video_thumbnail?.imgix_url 
+    metadata?.youtube_video_thumbnail?.imgix_url
       ? `${metadata.youtube_video_thumbnail.imgix_url}?w=1200&h=675&fit=crop&auto=format,compress`
       : null,
     metadata?.youtube_video_thumbnail?.url,
@@ -82,11 +82,7 @@ export function PostVideoPlayer({ post, className }: PostVideoPlayerProps) {
         />
         <div className='absolute inset-0 group-hover:bg-black/20 transition-all flex items-center justify-center'>
           <div className='w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 shadow-lg'>
-            <svg
-              className='w-8 h-8 text-white ml-0.5'
-              fill='currentColor'
-              viewBox='0 0 24 24'
-            >
+            <svg className='w-8 h-8 text-white ml-0.5' fill='currentColor' viewBox='0 0 24 24'>
               <path d='M8 5v14l11-7z' />
             </svg>
           </div>
@@ -126,15 +122,10 @@ export function PostVideoPlayer({ post, className }: PostVideoPlayerProps) {
 
   return (
     <div className={cn('relative aspect-video w-full', className)}>
-      <video
-        className='w-full h-full object-cover'
-        controls
-        poster={thumbnail || undefined}
-      >
+      <video className='w-full h-full object-cover' controls poster={thumbnail || undefined}>
         <source src={videoUrl} type='video/mp4' />
         Your browser does not support the video tag.
       </video>
     </div>
   );
 }
-

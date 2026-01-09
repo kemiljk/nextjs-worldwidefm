@@ -56,10 +56,20 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
           <ChevronRight className='h-4 w-4 ml-1 transition-transform' />
         </Link>
       </div>
-      <div className={isTwoVideos ? 'flex flex-col sm:flex-row gap-3 h-auto w-full' : 'flex flex-col sm:flex-row gap-3 h-auto w-full'}>
+      <div
+        className={
+          isTwoVideos
+            ? 'flex flex-col sm:flex-row gap-3 h-auto w-full'
+            : 'flex flex-col sm:flex-row gap-3 h-auto w-full'
+        }
+      >
         {/* First video card - 65% width */}
         {firstVideo && (
-          <div className={cn(isTwoVideos ? 'w-full sm:w-1/2 aspect-video' : 'w-full sm:w-[65%] h-full')}>
+          <div
+            className={cn(
+              isTwoVideos ? 'w-full sm:w-1/2 aspect-video' : 'w-full sm:w-[65%] h-full'
+            )}
+          >
             <Link href={`/videos/${firstVideo.slug}`} className='w-full h-full'>
               <Card className='overflow-hidden transition-shadow border border-white group hover:bg-white hover:text-almostblack'>
                 <CardContent className='p-0 flex flex-col aspect-video w-full'>
@@ -98,7 +108,14 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
             </Link>
           </div>
         )}
-        <div className={cn('flex gap-3 justify-between', isTwoVideos ? 'flex-row w-full sm:w-1/2 aspect-video' : 'w-full sm:w-[35%] flex-col h-full')}>
+        <div
+          className={cn(
+            'flex gap-3 justify-between',
+            isTwoVideos
+              ? 'flex-row w-full sm:w-1/2 aspect-video'
+              : 'w-full sm:w-[35%] flex-col h-full'
+          )}
+        >
           {otherVideos.map(video => {
             const youtubeId = video.metadata?.video_url
               ? getYouTubeThumbnail(video.metadata.video_url)
@@ -107,14 +124,22 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
               ? getVimeoThumbnail(video.metadata.video_url)
               : '';
             const thumbnailUrl =
-              video.metadata?.external_image_url || video.metadata?.image?.imgix_url || youtubeId || vimeoId || '/image-placeholder.png';
+              video.metadata?.external_image_url ||
+              video.metadata?.image?.imgix_url ||
+              youtubeId ||
+              vimeoId ||
+              '/image-placeholder.png';
 
             return (
               <Link key={video.id} href={`/videos/${video.slug}`} className='w-full flex-1'>
                 <Card className='overflow-hidden transition-shadow border border-white group hover:bg-white hover:text-almostblack'>
                   <CardContent className='p-0 flex flex-col aspect-video h-auto w-full'>
                     <div className='relative flex-1'>
-                      <VideoThumbnailImage src={thumbnailUrl} alt={video.title} className='object-cover' />
+                      <VideoThumbnailImage
+                        src={thumbnailUrl}
+                        alt={video.title}
+                        className='object-cover'
+                      />
                     </div>
                     <div className='relative border-t border-white flex-row flex justify-between pl-2 h-auto w-auto bg-almostblack text-white items-center group-hover:bg-white group-hover:text-almostblack group-hover:border-black'>
                       <h3 className='text-[25px] font-bold line-clamp-1 group-hover:text-almostblack'>

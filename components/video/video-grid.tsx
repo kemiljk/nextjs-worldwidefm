@@ -83,7 +83,11 @@ export default function VideoGrid({ videos, availableCategories }: VideoGridProp
           ? getVimeoThumbnail(video.metadata.video_url)
           : '';
         const thumbnailUrl =
-          video.metadata?.external_image_url || video.metadata?.image?.imgix_url || youtubeId || vimeoId || '/image-placeholder.png';
+          video.metadata?.external_image_url ||
+          video.metadata?.image?.imgix_url ||
+          youtubeId ||
+          vimeoId ||
+          '/image-placeholder.png';
 
         const categoryObjects = Array.isArray(video.metadata.categories)
           ? video.metadata.categories

@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { getEpisodeBySlug, getRelatedEpisodes } from '@/lib/episode-service';
+import { getRecentEpisodeSlugs } from '@/lib/episode-service.server';
 import { addMinutes } from 'date-fns';
 import { displayNameToSlug } from '@/lib/host-matcher';
 import { ShowCard } from '@/components/ui/show-card';
@@ -15,12 +16,22 @@ import { PreviewBanner } from '@/components/ui/preview-banner';
 import { ListenBackButton } from '@/components/listen-back-button';
 import { getEpisodeImageUrl } from '@/lib/cosmic-types';
 
-function HostLink({ host, className }: { host: any; className: string }) {
-  let href = '#';
-  const displayName = host.title || host.name;
+/**
+ * Generate static params for recent episodes
+ * Pre-renders the most recent 200 episodes at build time
+ */
+export async function generateStaticParams() {
+  const { slugs } = await getRecentEpisodeSlugs(200);
+  return slugs.map(slug => ({ slug }));
+}
 
-  if (host.slug) {
-    href = `/hosts/${host.slug}`;
+function HostLink({ host, className }: { host: unknown; className: string }) {
+  const typedHost = host as { title?: string; name?: string; slug?: string };
+  let href = '#';
+  const displayName = typedHost.title || typedHost.name || 'Unknown';
+
+  if (typedHost.slug) {
+    href = `/hosts/${typedHost.slug}`;
   } else {
     const fallbackSlug = displayNameToSlug(displayName);
     href = `/hosts/${fallbackSlug}`;

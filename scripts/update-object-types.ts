@@ -38,7 +38,8 @@ const externalImageUrlField: Metafield = {
   key: 'external_image_url',
   type: 'text',
   required: false,
-  helptext: 'URL for images stored externally (Vercel Blob). Used for cold storage to reduce Cosmic storage costs.',
+  helptext:
+    'URL for images stored externally (Vercel Blob). Used for cold storage to reduce Cosmic storage costs.',
 };
 
 // Existing object type updates - add external_image_url to ALL object types with images
@@ -127,7 +128,8 @@ const newObjectTypes: NewObjectTypeConfig[] = [
         object_type: 'post-categories',
         many: true,
         required: false,
-        helptext: 'Order categories by dragging them. Posts will be grouped under these category headers in this order.',
+        helptext:
+          'Order categories by dragging them. Posts will be grouped under these category headers in this order.',
       },
     ],
   },
@@ -145,7 +147,8 @@ const newObjectTypes: NewObjectTypeConfig[] = [
         object_type: 'video-categories',
         many: true,
         required: false,
-        helptext: 'Order categories by dragging them. Videos will be grouped under these category headers in this order.',
+        helptext:
+          'Order categories by dragging them. Videos will be grouped under these category headers in this order.',
       },
     ],
   },
@@ -160,7 +163,7 @@ async function updateObjectType(config: ObjectTypeUpdateConfig) {
     // Step 1: Get existing object type to retrieve current metafields
     console.log(`  ├─ Fetching existing object type...`);
     const response = await cosmic.objectTypes.findOne(slug);
-    
+
     if (!response?.object_type) {
       console.error(`  └─ ❌ Object type "${slug}" not found`);
       return false;
@@ -178,7 +181,9 @@ async function updateObjectType(config: ObjectTypeUpdateConfig) {
       return true;
     }
 
-    console.log(`  ├─ Adding ${metafieldsToAdd.length} new metafield(s): ${metafieldsToAdd.map(m => m.key).join(', ')}`);
+    console.log(
+      `  ├─ Adding ${metafieldsToAdd.length} new metafield(s): ${metafieldsToAdd.map(m => m.key).join(', ')}`
+    );
 
     // Step 3: Merge existing metafields with new ones
     const updatedMetafields = [...existingMetafields, ...metafieldsToAdd];
@@ -247,7 +252,7 @@ async function main() {
   }
 
   console.log(`Bucket: ${process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG}`);
-  
+
   let successCount = 0;
   let failCount = 0;
 
@@ -288,11 +293,10 @@ async function main() {
   console.log('\n================================');
   console.log(`✅ Successful: ${successCount}`);
   console.log(`❌ Failed: ${failCount}`);
-  
+
   if (failCount > 0) {
     process.exit(1);
   }
 }
 
 main();
-

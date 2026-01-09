@@ -9,6 +9,20 @@ try {
 const nextConfig = {
   reactStrictMode: true,
   cacheComponents: true,
+  cacheLife: {
+    // Hero changes weekly - 15min revalidate ensures updates show within reasonable time
+    hero: { stale: 60, revalidate: 900, expire: 3600 },
+    // Latest episodes update daily - 5min revalidate for fresh content
+    latest: { stale: 30, revalidate: 300, expire: 1800 },
+    // Schedule updates throughout the week
+    schedule: { stale: 60, revalidate: 300, expire: 3600 },
+    // Archive content rarely changes - aggressive caching (1 week expire)
+    archive: { stale: 300, revalidate: 86400, expire: 604800 },
+    // Editorial updates occasionally
+    editorial: { stale: 300, revalidate: 3600, expire: 86400 },
+    // General homepage sections
+    homepage: { stale: 60, revalidate: 600, expire: 3600 },
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

@@ -21,7 +21,14 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getAllPosts, getVideos, getTakeovers, getRegularHosts, searchEpisodes, getShowsFilters } from '@/lib/actions';
+import {
+  getAllPosts,
+  getVideos,
+  getTakeovers,
+  getRegularHosts,
+  searchEpisodes,
+  getShowsFilters,
+} from '@/lib/actions';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import type { ContentType } from '@/lib/search/types';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -51,13 +58,23 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const [page, setPage] = useState(1);
   const [hasNext, setHasNext] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [availableTypes, setAvailableTypes] = useState<string[]>(['episodes', 'posts', 'videos', 'takeovers', 'hosts-series']); // Default all types available
+  const [availableTypes, setAvailableTypes] = useState<string[]>([
+    'episodes',
+    'posts',
+    'videos',
+    'takeovers',
+    'hosts-series',
+  ]); // Default all types available
   const [canonicalGenres, setCanonicalGenres] = useState<any[]>([]);
-  const [availableFilters, setAvailableFilters] = useState<any>({ genres: [], hosts: [], locations: [] });
+  const [availableFilters, setAvailableFilters] = useState<any>({
+    genres: [],
+    hosts: [],
+    locations: [],
+  });
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [selectedHosts, setSelectedHosts] = useState<string[]>([]);
-  
+
   // Clear all state when dialog closes
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
@@ -118,7 +135,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     let isMounted = true;
     requestIdRef.current += 1;
     const currentRequestId = requestIdRef.current;
-    
+
     // Show loading and clear old results
     setIsLoading(true);
     setResults([]);
@@ -128,17 +145,23 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     async function fetchResults() {
       // If search term is cleared (empty) and no filters, fetch default content immediately
       const hasSearchTerm = debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2;
-      const hasFilters = selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0;
-      
+      const hasFilters =
+        selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0;
+
       // If search term is too short (1 char) and no filters, wait for more input
-      if (debouncedSearchTerm && debouncedSearchTerm.trim().length > 0 && debouncedSearchTerm.trim().length < 2 && !hasFilters) {
+      if (
+        debouncedSearchTerm &&
+        debouncedSearchTerm.trim().length > 0 &&
+        debouncedSearchTerm.trim().length < 2 &&
+        !hasFilters
+      ) {
         if (isMounted && currentRequestId === requestIdRef.current) {
           setResults([]);
           setIsLoading(false);
         }
         return;
       }
-      
+
       try {
         let res: any;
         let allResults: any[] = [];
@@ -235,11 +258,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           // Check if it's a timeout error
           const errorMessage = error instanceof Error ? error.message : String(error);
           const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('503');
-          
+
           if (process.env.NODE_ENV === 'development') {
             console.warn('Error fetching search results:', error);
           }
-          
+
           // If search was cleared and there's an error, still reset to empty results
           // This prevents getting stuck in loading state
           setResults([]);
@@ -263,7 +286,14 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       isMounted = false;
       requestIdRef.current += 1;
     };
-    }, [open, selectedType, selectedGenres.join('|'), selectedLocations.join('|'), selectedHosts.join('|'), debouncedSearchTerm]);
+  }, [
+    open,
+    selectedType,
+    selectedGenres.join('|'),
+    selectedLocations.join('|'),
+    selectedHosts.join('|'),
+    debouncedSearchTerm,
+  ]);
 
   // Debug: Log when debouncedSearchTerm changes
   useEffect(() => {
@@ -490,11 +520,14 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             >
               {/* On mobile, add top margin for search bar and toggle */}
               <div className={cn('flex flex-col h-full', 'sm:mt-0', 'mt-0')}>
-                    <div className='px-4 py-3 sm:border-b'>
+                <div className='px-4 py-3 sm:border-b'>
                   <div className='flex h-4 items-center justify-between'>
                     <h3 className='font-mono uppercase text-m8'>Filters</h3>
                     <div className='flex items-center gap-2'>
-                      {(activeFilters.length > 0 || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0) && (
+                      {(activeFilters.length > 0 ||
+                        selectedGenres.length > 0 ||
+                        selectedLocations.length > 0 ||
+                        selectedHosts.length > 0) && (
                         <Button
                           variant='outline'
                           size='sm'
@@ -504,7 +537,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                           Clear all
                         </Button>
                       )}
-                      {(activeFilters.length > 0 || selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0) && (
+                      {(activeFilters.length > 0 ||
+                        selectedGenres.length > 0 ||
+                        selectedLocations.length > 0 ||
+                        selectedHosts.length > 0) && (
                         <Button
                           variant='none'
                           size='icon'
@@ -543,11 +579,15 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                       </div>
                     </div>
                     {/* Filter Dropdowns */}
-                    {(selectedType === 'episodes' || selectedType === 'takeovers' || selectedType === 'hosts-series') && (
+                    {(selectedType === 'episodes' ||
+                      selectedType === 'takeovers' ||
+                      selectedType === 'hosts-series') && (
                       <div className='space-y-3'>
                         {canonicalGenres.length > 0 && (
                           <div>
-                            <label className='block text-sm font-mono uppercase text-m8 mb-2'>Genre</label>
+                            <label className='block text-sm font-mono uppercase text-m8 mb-2'>
+                              Genre
+                            </label>
                             <Combobox
                               options={canonicalGenres.map(genre => ({
                                 value: genre.id,
@@ -564,7 +604,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         )}
                         {availableFilters.locations && availableFilters.locations.length > 0 && (
                           <div>
-                            <label className='block text-sm font-mono uppercase text-m8 mb-2'>Location</label>
+                            <label className='block text-sm font-mono uppercase text-m8 mb-2'>
+                              Location
+                            </label>
                             <Combobox
                               options={availableFilters.locations.map((location: any) => ({
                                 value: location.id,
@@ -579,29 +621,37 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                             />
                           </div>
                         )}
-                        {(selectedType === 'episodes' || selectedType === 'takeovers') && availableFilters.hosts && availableFilters.hosts.length > 0 && (
-                          <div>
-                            <label className='block text-sm font-mono uppercase text-m8 mb-2'>Hosts</label>
-                            <Combobox
-                              options={availableFilters.hosts.map((host: any) => ({
-                                value: host.id,
-                                label: host.title.toUpperCase(),
-                              }))}
-                              value={selectedHosts}
-                              onValueChange={setSelectedHosts}
-                              placeholder='Hosts'
-                              searchPlaceholder='Search hosts...'
-                              emptyMessage='No hosts found.'
-                              className='w-full'
-                            />
-                          </div>
-                        )}
+                        {(selectedType === 'episodes' || selectedType === 'takeovers') &&
+                          availableFilters.hosts &&
+                          availableFilters.hosts.length > 0 && (
+                            <div>
+                              <label className='block text-sm font-mono uppercase text-m8 mb-2'>
+                                Hosts
+                              </label>
+                              <Combobox
+                                options={availableFilters.hosts.map((host: any) => ({
+                                  value: host.id,
+                                  label: host.title.toUpperCase(),
+                                }))}
+                                value={selectedHosts}
+                                onValueChange={setSelectedHosts}
+                                placeholder='Hosts'
+                                searchPlaceholder='Search hosts...'
+                                emptyMessage='No hosts found.'
+                                className='w-full'
+                              />
+                            </div>
+                          )}
                       </div>
                     )}
                     {/* Selected Filters as Removable Badges */}
-                    {(selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0) && (
+                    {(selectedGenres.length > 0 ||
+                      selectedLocations.length > 0 ||
+                      selectedHosts.length > 0) && (
                       <div className='pt-4 border-t border-almostblack/20 dark:border-white/20'>
-                        <label className='block text-sm font-mono uppercase text-m8 mb-2'>Active Filters</label>
+                        <label className='block text-sm font-mono uppercase text-m8 mb-2'>
+                          Active Filters
+                        </label>
                         <div className='flex flex-wrap gap-2'>
                           {selectedGenres.map(genreId => {
                             const genre = canonicalGenres.find(g => g.id === genreId);
@@ -610,7 +660,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                                 key={`genre-${genreId}`}
                                 variant='secondary'
                                 className='group flex items-center gap-1 pr-1 bg-almostblack text-white dark:bg-white dark:text-almostblack cursor-pointer hover:bg-almostblack/80 dark:hover:bg-white/80'
-                                onClick={() => setSelectedGenres(prev => prev.filter(id => id !== genreId))}
+                                onClick={() =>
+                                  setSelectedGenres(prev => prev.filter(id => id !== genreId))
+                                }
                               >
                                 <span className='text-m8 uppercase'>{genre.title}</span>
                                 <X className='h-3 w-3 opacity-60 group-hover:opacity-100' />
@@ -618,13 +670,17 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                             ) : null;
                           })}
                           {selectedLocations.map(locationId => {
-                            const location = availableFilters.locations?.find((l: any) => l.id === locationId);
+                            const location = availableFilters.locations?.find(
+                              (l: any) => l.id === locationId
+                            );
                             return location ? (
                               <Badge
                                 key={`location-${locationId}`}
                                 variant='secondary'
                                 className='group flex items-center gap-1 pr-1 bg-almostblack text-white dark:bg-white dark:text-almostblack cursor-pointer hover:bg-almostblack/80 dark:hover:bg-white/80'
-                                onClick={() => setSelectedLocations(prev => prev.filter(id => id !== locationId))}
+                                onClick={() =>
+                                  setSelectedLocations(prev => prev.filter(id => id !== locationId))
+                                }
                               >
                                 <span className='text-m8 uppercase'>{location.title}</span>
                                 <X className='h-3 w-3 opacity-60 group-hover:opacity-100' />
@@ -638,7 +694,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                                 key={`host-${hostId}`}
                                 variant='secondary'
                                 className='group flex items-center gap-1 pr-1 bg-almostblack text-white dark:bg-white dark:text-almostblack cursor-pointer hover:bg-almostblack/80 dark:hover:bg-white/80'
-                                onClick={() => setSelectedHosts(prev => prev.filter(id => id !== hostId))}
+                                onClick={() =>
+                                  setSelectedHosts(prev => prev.filter(id => id !== hostId))
+                                }
                               >
                                 <span className='text-m8 uppercase'>{host.title}</span>
                                 <X className='h-3 w-3 opacity-60 group-hover:opacity-100' />
@@ -778,7 +836,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                                   <span>{typeLabel}</span>
                                 </div>
                                 {formattedDate && (
-                                  <span className='text-m8 text-muted-foreground'>{formattedDate}</span>
+                                  <span className='text-m8 text-muted-foreground'>
+                                    {formattedDate}
+                                  </span>
                                 )}
                               </div>
                               {/* Line 2: Title + Genres/Categories/Hosts */}
@@ -852,9 +912,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   ) : (
                     <div className='flex flex-col items-center justify-center uppercase py-12 text-center'>
                       <AlertCircle className='h-6 w-6 mb-4 text-muted-foreground' />
-                      <p className='text-muted-foreground font-mono text-m8'>
-                        No results found
-                      </p>
+                      <p className='text-muted-foreground font-mono text-m8'>No results found</p>
                     </div>
                   )}
                 </div>

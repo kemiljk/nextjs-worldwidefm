@@ -11,7 +11,7 @@ function ShowCardSkeleton() {
       <div className='group relative aspect-square'>
         <Skeleton className='absolute inset-0 w-full h-full border border-almostblack dark:border-0 rounded-none' />
       </div>
-      
+
       {/* Details - exact match to ShowCard */}
       <div className='flex flex-col justify-between pt-3 pb-1 h-30'>
         {/* Title section */}
@@ -21,7 +21,7 @@ function ShowCardSkeleton() {
           {/* Date/time/location line */}
           <Skeleton className='h-3 w-3/4 rounded-none pt-1' />
         </div>
-        
+
         {/* Tags - exact match to GenreTag styling */}
         <div className='flex flex-row w-full pr-1'>
           <div className='flex flex-row flex-wrap gap-1'>
@@ -43,4 +43,3 @@ export function ShowsGridSkeleton({ count = 20 }: ShowsGridSkeletonProps) {
     </div>
   );
 }
-

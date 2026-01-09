@@ -11,7 +11,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
 
 export default async function SchedulePage() {
   await connection();
-  
+
   const { scheduleItems, dayDates, isActive, error } = await getWeeklySchedule();
 
   return (

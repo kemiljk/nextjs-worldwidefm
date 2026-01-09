@@ -390,14 +390,14 @@ export interface EpisodeObject {
  */
 export function getEpisodeImageUrl(episode: EpisodeObject | null | undefined): string {
   if (!episode) return '/image-placeholder.png';
-  
+
   // Check external image URL first (cold storage)
   if (episode.metadata?.external_image_url) {
     return episode.metadata.external_image_url;
   }
-  
+
   // Fall back to Cosmic image
-  return episode.metadata?.image?.imgix_url || 
-         episode.metadata?.image?.url || 
-         '/image-placeholder.png';
+  return (
+    episode.metadata?.image?.imgix_url || episode.metadata?.image?.url || '/image-placeholder.png'
+  );
 }

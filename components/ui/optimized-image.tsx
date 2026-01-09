@@ -59,7 +59,8 @@ export function OptimizedImage({
   // Determine quality based on variant or explicit quality prop
   const qualityValue = useMemo(() => {
     if (typeof quality === 'number') return quality;
-    if (quality && quality in QUALITY_PRESETS) return QUALITY_PRESETS[quality as keyof typeof QUALITY_PRESETS];
+    if (quality && quality in QUALITY_PRESETS)
+      return QUALITY_PRESETS[quality as keyof typeof QUALITY_PRESETS];
     if (variant in QUALITY_PRESETS) return QUALITY_PRESETS[variant as keyof typeof QUALITY_PRESETS];
     return QUALITY_PRESETS.card;
   }, [quality, variant]);

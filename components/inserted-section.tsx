@@ -8,8 +8,8 @@ const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
   // Check external_image_url first (cold storage for old episodes)
   const imageUrl =
     item.metadata?.external_image_url ||
-    item.metadata?.image?.imgix_url || 
-    item.metadata?.image?.url || 
+    item.metadata?.image?.imgix_url ||
+    item.metadata?.image?.url ||
     '/image-placeholder.png';
   const title = item.title || 'Untitled';
   const subtitle = item.metadata?.subtitle || '';

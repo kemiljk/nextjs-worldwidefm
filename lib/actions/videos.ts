@@ -3,6 +3,25 @@
 import { VideoObject } from '../cosmic-config';
 import { cosmic } from '../cosmic-config';
 
+/**
+ * Fetch for videos
+ */
+async function fetchVideosFromCosmic(
+  query: Record<string, unknown>,
+  limit: number,
+  offset: number
+): Promise<VideoObject[]> {
+  const response = await cosmic.objects
+    .find(query)
+    .props('id,slug,title,metadata,created_at')
+    .limit(limit)
+    .skip(offset)
+    .sort('-metadata.date')
+    .depth(2);
+
+  return response.objects || [];
+}
+
 export async function getVideos({
   limit = 20,
   offset = 0,
@@ -13,23 +32,19 @@ export async function getVideos({
   hasNext: boolean;
 }> {
   try {
-    const filters: any = {
+    const query: Record<string, unknown> = {
       type: 'videos',
-      limit,
-      skip: offset,
-      sort: '-metadata.date',
       status: 'published',
-      props: 'id,slug,title,metadata,created_at',
-      depth: 3,
     };
+
     if (tag) {
-      filters['metadata.categories'] = tag;
+      query['metadata.categories'] = tag;
     }
     if (searchTerm) {
-      filters['title'] = searchTerm;
+      query['title'] = searchTerm;
     }
-    const response = await cosmic.objects.find(filters);
-    const videos = response.objects || [];
+
+    const videos = await fetchVideosFromCosmic(query, limit, offset);
     const hasNext = videos.length === limit;
     return { videos, hasNext };
   } catch (error) {
@@ -38,14 +53,15 @@ export async function getVideos({
   }
 }
 
-export async function getVideoCategories(): Promise<any[]> {
+export async function getVideoCategories(): Promise<unknown[]> {
   try {
-    const response = await cosmic.objects.find({
-      type: 'video-categories',
-      props:
-        'id,slug,title,content,bucket,created_at,modified_at,status,published_at,modified_by,created_by,type,metadata',
-      depth: 1,
-    });
+    const response = await cosmic.objects
+      .find({
+        type: 'video-categories',
+      })
+      .props('id,slug,title,metadata')
+      .depth(1);
+
     return response.objects || [];
   } catch (error) {
     console.error('Error in getVideoCategories:', error);
@@ -62,7 +78,7 @@ export async function getVideoBySlug(slug: string): Promise<VideoObject | null> 
         status: 'published',
       })
       .props('id,slug,title,metadata,created_at')
-      .depth(3);
+      .depth(2);
 
     return response?.object || null;
   } catch (error) {

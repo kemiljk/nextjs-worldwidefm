@@ -18,10 +18,7 @@ interface EditorialCategorySectionProps {
   posts: PostObject[];
 }
 
-export default function EditorialCategorySection({
-  title,
-  posts,
-}: EditorialCategorySectionProps) {
+export default function EditorialCategorySection({ title, posts }: EditorialCategorySectionProps) {
   if (!posts.length) return null;
 
   return (
@@ -102,4 +99,3 @@ export default function EditorialCategorySection({
     </section>
   );
 }
-

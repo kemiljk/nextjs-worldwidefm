@@ -118,8 +118,18 @@ export default async function Footer() {
         </div>
 
         {/* Copyright */}
-        <div className='pt-20 pb-10 border-white/10 text-center font-sans text-b4 text-almostblack'>
+        <div className='pt-20 pb-10 border-white/10 text-center font-sans text-b4 text-almostblack dark:text-white'>
           <p>&copy; {new Date().getFullYear()} Worldwide FM. All rights reserved.</p>
+          <p className='mt-2'>
+            <Link
+              href='https://cosmicjs.com'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='hover:underline'
+            >
+              Website powered by Cosmic
+            </Link>
+          </p>
         </div>
       </div>
     </footer>

@@ -1,6 +1,6 @@
 /**
  * Image optimization utilities for Cosmic imgix URLs
- * 
+ *
  * Aggressive optimization strategy to minimize bandwidth costs:
  * - Uses imgix auto=format for WebP/AVIF delivery
  * - Aggressive quality settings (60-75 range)
@@ -100,18 +100,15 @@ export function convertToImgixUrl(url: string): string {
 /**
  * Build an optimized imgix URL with aggressive compression settings
  */
-export function buildImgixUrl(
-  baseUrl: string,
-  options: ImageOptimizationOptions
-): string {
+export function buildImgixUrl(baseUrl: string, options: ImageOptimizationOptions): string {
   if (!baseUrl) return '/image-placeholder.png';
-  
+
   // Convert to imgix if it's a cosmic CDN URL
   const url = convertToImgixUrl(baseUrl);
-  
+
   // If not an imgix URL, return as-is
   if (!isImgixUrl(url)) return baseUrl;
-  
+
   const {
     width,
     height,
@@ -123,39 +120,39 @@ export function buildImgixUrl(
   } = options;
 
   const params = new URLSearchParams();
-  
+
   // Dimensions
   params.set('w', String(width));
   if (height) params.set('h', String(height));
-  
+
   // Fit mode
   params.set('fit', fit);
-  
+
   // Auto format detection (WebP/AVIF for supported browsers)
   // auto=format,compress enables best format + compression
   params.set('auto', 'format,compress');
-  
+
   // Quality (aggressive for bandwidth savings)
   params.set('q', String(quality));
-  
+
   // Device pixel ratio - cap at 1.5 to avoid 2x/3x bloat
   // Most users won't notice difference but file size is much larger
   if (dpr > 1) {
     params.set('dpr', String(Math.min(dpr, 1.5)));
   }
-  
+
   // Strip metadata to reduce file size
   params.set('cs', 'strip');
-  
+
   // Blur for placeholder images
   if (blur) {
     params.set('blur', String(blur));
   }
-  
+
   // Ensure progressive loading for JPEGs
   params.set('fm', format === 'auto' ? 'jpg' : format);
   params.set('auto', 'format,compress');
-  
+
   // Build URL
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}${params.toString()}`;
@@ -175,9 +172,9 @@ export function generateSrcSet(
   }
 ): string {
   if (!baseUrl || !isImgixUrl(convertToImgixUrl(baseUrl))) return '';
-  
+
   const { widths, quality = QUALITY_PRESETS.card, fit = 'crop', aspectRatio } = options;
-  
+
   return widths
     .map(w => {
       const height = aspectRatio ? Math.round(w * aspectRatio) : undefined;
@@ -211,19 +208,19 @@ export function getThumbnailUrl(
   size: 'small' | 'medium' | 'large' = 'medium'
 ): string {
   if (!src) return '/image-placeholder.png';
-  
+
   const sizes = {
     small: SIZE_PRESETS.thumbnailSmall,
     medium: SIZE_PRESETS.thumbnailMedium,
     large: SIZE_PRESETS.cardMobile,
   };
-  
+
   const { width, height } = sizes[size];
-  return buildImgixUrl(src, { 
-    width, 
-    height, 
+  return buildImgixUrl(src, {
+    width,
+    height,
     quality: QUALITY_PRESETS.thumbnail,
-    fit: 'crop'
+    fit: 'crop',
   });
 }
 
@@ -235,17 +232,17 @@ export function getCardImageUrl(
   variant: 'mobile' | 'tablet' | 'desktop' | 'featured' = 'desktop'
 ): string {
   if (!src) return '/image-placeholder.png';
-  
+
   const sizes = {
     mobile: SIZE_PRESETS.cardMobile,
     tablet: SIZE_PRESETS.cardTablet,
     desktop: SIZE_PRESETS.cardDesktop,
     featured: SIZE_PRESETS.featuredCard,
   };
-  
+
   const { width, height } = sizes[variant];
   const quality = variant === 'featured' ? QUALITY_PRESETS.featured : QUALITY_PRESETS.card;
-  
+
   return buildImgixUrl(src, { width, height, quality, fit: 'crop' });
 }
 
@@ -257,37 +254,34 @@ export function getHeroImageUrl(
   variant: 'mobile' | 'tablet' | 'desktop' | 'fullWidth' = 'desktop'
 ): string {
   if (!src) return '/image-placeholder.png';
-  
+
   const sizes = {
     mobile: SIZE_PRESETS.heroMobile,
     tablet: SIZE_PRESETS.heroTablet,
     desktop: SIZE_PRESETS.heroDesktop,
     fullWidth: SIZE_PRESETS.heroFullWidth,
   };
-  
+
   const { width, height } = sizes[variant];
-  return buildImgixUrl(src, { 
-    width, 
-    height, 
+  return buildImgixUrl(src, {
+    width,
+    height,
     quality: QUALITY_PRESETS.hero,
-    fit: 'crop'
+    fit: 'crop',
   });
 }
 
 /**
  * Get optimized image URL for video thumbnails
  */
-export function getVideoThumbnailUrl(
-  src: string | undefined,
-  large: boolean = false
-): string {
+export function getVideoThumbnailUrl(src: string | undefined, large: boolean = false): string {
   if (!src) return '/image-placeholder.png';
-  
+
   const size = large ? SIZE_PRESETS.videoThumbnailLarge : SIZE_PRESETS.videoThumbnail;
-  return buildImgixUrl(src, { 
-    ...size, 
+  return buildImgixUrl(src, {
+    ...size,
     quality: QUALITY_PRESETS.card,
-    fit: 'crop'
+    fit: 'crop',
   });
 }
 
@@ -296,12 +290,12 @@ export function getVideoThumbnailUrl(
  */
 export function getPlaceholderUrl(src: string | undefined): string {
   if (!src) return '/image-placeholder.png';
-  
+
   return buildImgixUrl(src, {
     width: 20,
     quality: QUALITY_PRESETS.placeholder,
     blur: 50,
-    fit: 'crop'
+    fit: 'crop',
   });
 }
 
@@ -320,17 +314,21 @@ export function extractImageUrl(
 /**
  * Get the best image source from various possible metadata fields
  */
-export function getBestImageSource(metadata: {
-  external_image_url?: string;
-  image?: { url?: string; imgix_url?: string };
-} | undefined): string {
+export function getBestImageSource(
+  metadata:
+    | {
+        external_image_url?: string;
+        image?: { url?: string; imgix_url?: string };
+      }
+    | undefined
+): string {
   if (!metadata) return '/image-placeholder.png';
-  
+
   // Check external_image_url first (cold storage for old episodes)
   if (metadata.external_image_url) {
     return metadata.external_image_url;
   }
-  
+
   // Then check image object
   return extractImageUrl(metadata.image);
 }

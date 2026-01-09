@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { connection } from 'next/server';
 import ShowsClient from './shows-client';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { getShowsFilters } from '@/lib/actions';
@@ -14,8 +13,8 @@ export const generateMetadata = async (): Promise<Metadata> => {
 };
 
 export default async function ShowsPage() {
-  // Opt into dynamic rendering - ensures Cosmic changes show instantly
-  await connection();
+  // Data fetching uses time-based caching (latest: 5min revalidation)
+  // Content updates via revalidation or manual trigger at /api/revalidate
 
   const [canonicalGenres, availableFilters, initialShowsData] = await Promise.all([
     getCanonicalGenres(),

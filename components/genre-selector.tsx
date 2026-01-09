@@ -59,9 +59,10 @@ export default function GenreSelector({
 
   // Get all unique genres for the dropdown
   // Use all canonical genres if provided, otherwise fall back to genres found in recent shows
-  const allGenres = allCanonicalGenres.length > 0
-    ? allCanonicalGenres.map(g => g.title).sort()
-    : Object.keys(genreCounts).sort();
+  const allGenres =
+    allCanonicalGenres.length > 0
+      ? allCanonicalGenres.map(g => g.title).sort()
+      : Object.keys(genreCounts).sort();
 
   // Create a stable map of genre title to ID for lookups
   const genreMap = useMemo(
@@ -101,7 +102,7 @@ export default function GenreSelector({
         setIsEmpty(false);
         setIsLoadingGenre(false);
       }, 100); // Brief delay to show loading state
-      
+
       return () => clearTimeout(timer);
     }
 

@@ -143,7 +143,10 @@ const ArchivePlayer: React.FC = () => {
   const embedUrl = `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(selectedMixcloudUrl)}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`;
 
   return (
-    <div className='fixed bottom-0 left-0 right-0 z-50 bg-[#f7f7f7] border-t border-almostblack/50 overflow-hidden' style={{ height: '60px' }}>
+    <div
+      className='fixed bottom-0 left-0 right-0 z-50 bg-[#f7f7f7] border-t border-almostblack/50 overflow-hidden'
+      style={{ height: '60px' }}
+    >
       <div className='relative h-full'>
         <Button
           onClick={handleClose}
@@ -164,7 +167,7 @@ const ArchivePlayer: React.FC = () => {
           ref={iframeRef}
           key={selectedMixcloudUrl}
           src={embedUrl}
-          className="w-[calc(100vw-60px)] h-[60px]"
+          className='w-[calc(100vw-60px)] h-[60px]'
           allow='autoplay'
           title='Mixcloud Player'
           referrerPolicy='no-referrer'

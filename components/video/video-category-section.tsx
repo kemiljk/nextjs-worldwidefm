@@ -82,7 +82,11 @@ export default function VideoCategorySection({
                 ? getVimeoThumbnail(video.metadata.video_url)
                 : '';
               const thumbnailUrl =
-                video.metadata?.external_image_url || video.metadata?.image?.imgix_url || youtubeId || vimeoId || '/image-placeholder.png';
+                video.metadata?.external_image_url ||
+                video.metadata?.image?.imgix_url ||
+                youtubeId ||
+                vimeoId ||
+                '/image-placeholder.png';
 
               const categoryObjects = Array.isArray(video.metadata.categories)
                 ? video.metadata.categories
@@ -103,7 +107,11 @@ export default function VideoCategorySection({
                     <Card className='flex flex-col h-full'>
                       <CardContent className='flex flex-col flex-1 p-0 border border-white group-hover:border-almostblack'>
                         <div className='relative aspect-video'>
-                          <VideoThumbnailImage src={thumbnailUrl} alt={video.title} className='object-cover' />
+                          <VideoThumbnailImage
+                            src={thumbnailUrl}
+                            alt={video.title}
+                            className='object-cover'
+                          />
                           {categoryObjects.length > 0 && (
                             <div className='absolute top-3 left-3 flex flex-wrap gap-1'>
                               {categoryObjects.map(cat =>

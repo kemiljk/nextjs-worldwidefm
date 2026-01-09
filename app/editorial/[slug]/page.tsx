@@ -98,7 +98,12 @@ export default async function EditorialArticlePage({
     }
 
     // Minimal layout for text-focused posts or posts with no image/gallery
-    if (textFocus || (!post.metadata?.external_image_url && !post.metadata?.image?.imgix_url && !imageGallery.length)) {
+    if (
+      textFocus ||
+      (!post.metadata?.external_image_url &&
+        !post.metadata?.image?.imgix_url &&
+        !imageGallery.length)
+    ) {
       return <MinimalLayout post={post} formattedDate={formattedDate} />;
     }
 

@@ -14,7 +14,7 @@ export interface CosmicTakeover {
 export async function getCosmicTakeovers(): Promise<CosmicTakeover[]> {
   try {
     const response = await cosmic.objects
-      .find({ 
+      .find({
         type: 'takeovers',
         status: 'published',
       })
@@ -38,4 +38,3 @@ export async function getCosmicTakeovers(): Promise<CosmicTakeover[]> {
     return [];
   }
 }
-

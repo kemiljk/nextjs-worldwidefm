@@ -87,9 +87,11 @@ export default function Navbar({ navItems }: NavbarProps) {
                       <div className='flex items-center gap-2'>
                         <Avatar className='h-6 w-6 border border-almostblack dark:border-white'>
                           <AvatarImage
-                            src={userData?.metadata?.avatar?.imgix_url 
-                              ? `${userData.metadata.avatar.imgix_url}?w=48&h=48&fit=crop&auto=format,compress`
-                              : user.image}
+                            src={
+                              userData?.metadata?.avatar?.imgix_url
+                                ? `${userData.metadata.avatar.imgix_url}?w=48&h=48&fit=crop&auto=format,compress`
+                                : user.image
+                            }
                             alt='Profile'
                           />
                           <AvatarFallback>
@@ -183,9 +185,11 @@ export default function Navbar({ navItems }: NavbarProps) {
                           <div className='flex items-center gap-3'>
                             <Avatar className='h-6 w-6 border border-almostblack dark:border-white'>
                               <AvatarImage
-                                src={userData?.metadata?.avatar?.imgix_url 
-                                  ? `${userData.metadata.avatar.imgix_url}?w=48&h=48&fit=crop&auto=format,compress`
-                                  : user.image}
+                                src={
+                                  userData?.metadata?.avatar?.imgix_url
+                                    ? `${userData.metadata.avatar.imgix_url}?w=48&h=48&fit=crop&auto=format,compress`
+                                    : user.image
+                                }
                                 alt='Profile'
                               />
                               <AvatarFallback>

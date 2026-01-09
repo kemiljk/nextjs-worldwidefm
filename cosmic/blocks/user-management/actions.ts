@@ -615,10 +615,19 @@ export async function getDashboardData(userId: string) {
           name: show.title || 'Untitled Show',
           url: `/episode/${show.slug || show.id}`,
           pictures: {
-            large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
-            extra_large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            large:
+              show.metadata?.external_image_url ||
+              show.metadata?.image?.imgix_url ||
+              '/image-placeholder.png',
+            extra_large:
+              show.metadata?.external_image_url ||
+              show.metadata?.image?.imgix_url ||
+              '/image-placeholder.png',
           },
-          enhanced_image: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+          enhanced_image:
+            show.metadata?.external_image_url ||
+            show.metadata?.image?.imgix_url ||
+            '/image-placeholder.png',
           created_time: show.metadata?.broadcast_date || show.created_at,
           broadcast_date: show.metadata?.broadcast_date || show.created_at,
           tags: (show.metadata?.genres || []).map((genre: any) => ({
@@ -660,10 +669,19 @@ export async function getDashboardData(userId: string) {
           name: show.title,
           url: `/episode/${show.slug}`,
           pictures: {
-            large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
-            extra_large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            large:
+              show.metadata?.external_image_url ||
+              show.metadata?.image?.imgix_url ||
+              '/image-placeholder.png',
+            extra_large:
+              show.metadata?.external_image_url ||
+              show.metadata?.image?.imgix_url ||
+              '/image-placeholder.png',
           },
-          enhanced_image: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+          enhanced_image:
+            show.metadata?.external_image_url ||
+            show.metadata?.image?.imgix_url ||
+            '/image-placeholder.png',
           created_time: show.metadata?.broadcast_date || show.created_at,
           broadcast_date: show.metadata?.broadcast_date || show.created_at,
           tags: (show.metadata?.genres || []).map((genre: any) => ({
