@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { connection } from 'next/server';
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { cosmic } from '@/lib/cosmic-config';
@@ -105,6 +106,9 @@ async function getRelatedEpisodes(takeoverId: string, limit: number = 12) {
 }
 
 export default async function TakeoverPage({ params }: { params: Promise<{ slug: string }> }) {
+  // Opt into dynamic rendering - ensures time-based calculations use current time
+  await connection();
+
   const { slug } = await params;
 
   const takeover = await getTakeoverBySlug(slug);

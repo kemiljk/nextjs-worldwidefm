@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react';
 import { Metadata } from 'next';
+import { connection } from 'next/server';
 import {
   getCosmicHomepageData,
   fetchCosmicObjectById,
@@ -124,6 +125,9 @@ function renderPageOrderItem(
 }
 
 export default async function Home() {
+  // Opt into dynamic rendering - ensures time-based calculations are correct during prerender
+  await connection();
+
   // Data fetching now uses time-based caching (hero: 15min, latest: 5min)
   // Content updates via revalidation or manual trigger at /api/revalidate
 

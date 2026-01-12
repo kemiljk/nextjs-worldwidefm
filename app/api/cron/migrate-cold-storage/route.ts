@@ -133,7 +133,22 @@ export async function GET(request: NextRequest) {
 
   try {
     // Verify cron secret
-    const authHeader = request.headers.get('authorization');
+    let authHeader: string | null = null;
+    try {
+      authHeader = request.headers.get('authorization');
+    } catch (err: any) {
+      // Bail out gracefully during prerendering where headers may be inaccessible
+      if (
+        err &&
+        typeof err.message === 'string' &&
+        err.message.toLowerCase().includes('prerender')
+      ) {
+        console.warn('[COLD-STORAGE] Prerender bailout while accessing headers');
+        return NextResponse.json({ error: 'Prerender aborted' }, { status: 200 });
+      }
+      throw err;
+    }
+
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       console.warn('[COLD-STORAGE] Unauthorized request');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

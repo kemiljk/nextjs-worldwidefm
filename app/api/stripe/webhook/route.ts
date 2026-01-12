@@ -17,7 +17,20 @@ export async function POST(request: NextRequest) {
 
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     const body = await request.text();
-    const signature = request.headers.get('stripe-signature');
+    let signature: string | null = null;
+    try {
+      signature = request.headers.get('stripe-signature');
+    } catch (err: any) {
+      if (
+        err &&
+        typeof err.message === 'string' &&
+        err.message.toLowerCase().includes('prerender')
+      ) {
+        console.warn('[STRIPE] Prerender bailout while accessing headers');
+        return NextResponse.json({ error: 'Prerender aborted' }, { status: 200 });
+      }
+      throw err;
+    }
 
     if (!signature) {
       console.error('Missing stripe-signature header');

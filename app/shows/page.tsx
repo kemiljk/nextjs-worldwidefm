@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { connection } from 'next/server';
 import { Suspense } from 'react';
 import ShowsClient from './shows-client';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
@@ -13,6 +14,9 @@ export const generateMetadata = async (): Promise<Metadata> => {
 };
 
 export default async function ShowsPage() {
+  // Opt into dynamic rendering - ensures time-based calculations use current time
+  await connection();
+
   // Data fetching uses time-based caching (latest: 5min revalidation)
   // Content updates via revalidation or manual trigger at /api/revalidate
 
