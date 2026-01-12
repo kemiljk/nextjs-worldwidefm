@@ -16,11 +16,25 @@ export interface WeeklyScheduleResult {
 
 const episodeCache = new Map<string, EpisodeObject>();
 
-function parseDurationToSeconds(duration: string | null | undefined): number {
+export function parseDurationToSeconds(duration: string | null | undefined): number {
   if (!duration) return 0;
-  const parts = duration.split(':').map(Number);
+  const trimmed = String(duration).trim();
+
+  // If there is no colon, treat numeric-only values as hours (e.g. "4" => 4 hours)
+  const isNumeric = !trimmed.includes(':') && !Number.isNaN(Number(trimmed));
+  if (isNumeric) {
+    const n = Number(trimmed);
+    // Interpret reasonable hour values (<= 24) as hours, otherwise treat as minutes
+    if (n <= 24) {
+      return Math.round(n * 3600);
+    }
+    return Math.round(n * 60);
+  }
+
+  const parts = trimmed.split(':').map(Number);
+  // Treat two-part values as hours:minutes (e.g. "04:00" => 4 hours)
   if (parts.length === 2) {
-    return parts[0] * 60 + parts[1];
+    return parts[0] * 3600 + parts[1] * 60;
   }
   if (parts.length === 3) {
     return parts[0] * 3600 + parts[1] * 60 + parts[2];
@@ -213,9 +227,9 @@ async function fetchManualOverrides(dayDates: Partial<ScheduleDayMap>): Promise<
     for (const day of TARGET_DAYS) {
       const dayKey = day.toLowerCase();
       const scheduleBlock = metadata[dayKey];
-      const showEntries: unknown[] | undefined = Array.isArray(scheduleBlock)
+      const showEntries: any[] | undefined = Array.isArray(scheduleBlock)
         ? scheduleBlock
-        : (scheduleBlock as { show?: unknown[] })?.show;
+        : (scheduleBlock as { show?: any[] })?.show;
 
       if (!Array.isArray(showEntries) || !dayDates[day]) {
         continue;
@@ -295,10 +309,14 @@ async function fetchAutomaticEpisodes(dayDates: Partial<ScheduleDayMap>): Promis
   }
 
   try {
+    console.log('[Schedule] Fetching automatic episodes for dates:', targetDates);
+
     // Fetch episodes for all dates in parallel (each call is cached)
     const episodeArrays = await Promise.all(targetDates.map(date => fetchEpisodesByDate(date)));
 
     const allEpisodes = episodeArrays.flat();
+
+    console.log(`[Schedule] Found ${allEpisodes.length} automatic episodes total`);
 
     if (allEpisodes.length === 0) {
       return [];

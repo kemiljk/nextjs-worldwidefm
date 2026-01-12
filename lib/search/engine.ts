@@ -37,6 +37,7 @@ export class WWFMSearchEngine implements SearchEngine {
     hosts: [],
     takeovers: [],
     types: [],
+    categories: [],
   };
 
   private contentLoaded = false;
@@ -390,6 +391,7 @@ export class WWFMSearchEngine implements SearchEngine {
       hosts: Array.from(hostsMap.values()).sort(sortByCountAndTitle),
       takeovers: Array.from(takeoversMap.values()).sort(sortByCountAndTitle),
       types: Array.from(typesMap.values()).sort(sortByCountAndTitle),
+      categories: [],
     };
   }
 

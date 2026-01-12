@@ -235,7 +235,7 @@ export default function EditorialSection({
                     title={event.title}
                     slug={event.slug}
                     image={
-                      event.metadata?.external_image_url ||
+                      (event.metadata as any)?.external_image_url ||
                       event.metadata?.image?.imgix_url ||
                       '/image-placeholder.png'
                     }

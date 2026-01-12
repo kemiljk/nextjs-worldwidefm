@@ -39,13 +39,13 @@ function optimizeImageUrl(url: string | undefined, width: number = 600): string 
   return url;
 }
 
-export function getPostThumbnail(post: PostObject, width: number = 600): string {
+export function getPostThumbnail(post: PostObject, imageSize?: number): string {
+  const width = imageSize ?? 600;
   const metadata = post.metadata;
 
   if (!metadata) {
     return optimizeImageUrl(post.thumbnail?.imgix_url, width);
   }
-
   // Check for video_url first (new field), then fall back to youtube_video
   const videoUrl = (metadata as any).video_url || metadata.youtube_video;
   const directVideo = metadata.video;
@@ -76,11 +76,12 @@ export function getPostThumbnail(post: PostObject, width: number = 600): string 
     }
   }
 
-  // External image URLs are already optimized or external
+  // Prefer an external image URL (cold storage) if present
   if ((metadata as any).external_image_url) {
     return (metadata as any).external_image_url;
   }
 
+  // Fall back to optimized post thumbnail or image
   return optimizeImageUrl(post.thumbnail?.imgix_url || metadata.image?.imgix_url, width);
 }
 

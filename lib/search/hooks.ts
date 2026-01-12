@@ -35,6 +35,7 @@ export function useSearch(
       hosts: [],
       takeovers: [],
       types: [],
+      categories: [],
     },
     loading: false,
     hasMore: false,
@@ -256,16 +257,23 @@ export function useSearch(
 
         if (index === -1) {
           // Value not in array, add it
-          newFilters[filterKey] = [...currentValues, value];
+          if (filterKey === 'contentType') {
+            newFilters[filterKey] = [...(currentValues as ContentType[]), value as ContentType];
+          } else {
+            newFilters[filterKey] = [...currentValues, value];
+          }
         } else {
           // Value in array, remove it
-          newFilters[filterKey] = [
-            ...currentValues.slice(0, index),
-            ...currentValues.slice(index + 1),
-          ];
+          const updated = [...currentValues.slice(0, index), ...currentValues.slice(index + 1)];
+
+          if (filterKey === 'contentType') {
+            newFilters[filterKey] = updated as ContentType[];
+          } else {
+            newFilters[filterKey] = updated;
+          }
 
           // Remove empty arrays
-          if (newFilters[filterKey].length === 0) {
+          if ((newFilters[filterKey] as any).length === 0) {
             delete newFilters[filterKey];
           }
         }
@@ -357,7 +365,7 @@ export function useSearch(
       if (category === 'search') continue;
 
       // Map category name to filter category
-      const filterCategory: FilterCategory =
+      const filterCategory: FilterCategory | null =
         category === 'contentType'
           ? 'types'
           : category === 'genres'

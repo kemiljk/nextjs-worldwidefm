@@ -174,6 +174,7 @@ export type EventType = {
       url: string;
       imgix_url: string;
     } | null;
+    external_image_url?: string | null;
     event_date: string;
     location: string;
     description: string;
@@ -330,6 +331,8 @@ export interface AboutObject {
 export interface EpisodeObject {
   id: string;
   slug: string;
+  key?: string;
+  url?: string;
   title: string;
   type: 'episode';
   metadata: {

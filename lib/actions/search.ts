@@ -75,8 +75,8 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
           locations: normalizeFilterItems(show.metadata?.locations || []),
           hosts: normalizeFilterItems(show.metadata?.regular_hosts || []),
           takeovers: normalizeFilterItems(show.metadata?.takeovers || []),
-          duration: show.metadata?.duration,
-          broadcastTime: show.metadata?.broadcast_time,
+          duration: show.metadata?.duration ?? undefined,
+          broadcastTime: show.metadata?.broadcast_time ?? undefined,
           featured: show.metadata?.featured_on_homepage,
           metadata: show.metadata,
         })

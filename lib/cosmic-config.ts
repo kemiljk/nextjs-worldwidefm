@@ -27,6 +27,7 @@ export interface RadioShowObject {
   metadata: {
     subtitle: string | null;
     image: CosmicImage | null;
+    external_image_url?: string | null;
     description: string | null;
     featured_on_homepage: boolean;
     player: string | null;
@@ -64,6 +65,7 @@ export interface GenreObject {
   metadata: {
     description: string | null;
     image: CosmicImage | null;
+    external_image_url?: string | null;
   } | null;
 }
 
@@ -81,6 +83,7 @@ export interface LocationObject {
   metadata: {
     description: string | null;
     image: CosmicImage | null;
+    external_image_url?: string | null;
   } | null;
 }
 
@@ -98,6 +101,7 @@ export interface HostObject {
   metadata: {
     description: string | null;
     image: CosmicImage | null;
+    external_image_url?: string | null;
   } | null;
 }
 
@@ -115,6 +119,7 @@ export interface TakeoverObject {
   metadata: {
     description: string | null;
     image: CosmicImage | null;
+    external_image_url?: string | null;
   } | null;
 }
 
@@ -132,6 +137,7 @@ export interface ShowTypeObject {
   metadata: {
     description: string | null;
     image: CosmicImage | null;
+    external_image_url?: string | null;
   } | null;
 }
 
@@ -265,6 +271,7 @@ export interface PostObject {
       url: string;
       imgix_url: string;
     };
+    external_image_url?: string | null;
     featured_link?: string;
     display_order?: number;
   };
@@ -293,6 +300,7 @@ export interface VideoObject {
   created_at: string;
   metadata: {
     image?: CosmicImage;
+    external_image_url?: string | null;
     description?: string;
     video_url?: string;
     direct_video?: CosmicImage;
