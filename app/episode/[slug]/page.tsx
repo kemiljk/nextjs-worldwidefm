@@ -144,7 +144,7 @@ export default async function EpisodePage({
             <div className='max-w-none'>
               <SafeHtml
                 content={episode.metadata.body_text || episode.metadata.description || ''}
-                type='editorial'
+                type='editorial-with-embeds'
                 className='text-m6 leading-5 text-almostblack dark:text-white'
               />
             </div>

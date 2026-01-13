@@ -1,9 +1,13 @@
 import React from 'react';
-import { sanitizeTracklist, sanitizeEditorialContent } from '../../lib/sanitize-html';
+import {
+  sanitizeTracklist,
+  sanitizeEditorialContent,
+  sanitizeEditorialWithEmbeds,
+} from '../../lib/sanitize-html';
 
 interface SafeHtmlProps {
   content: string;
-  type?: 'tracklist' | 'editorial' | 'default';
+  type?: 'tracklist' | 'editorial' | 'editorial-with-embeds' | 'default';
   className?: string;
   allowedTags?: string[];
   allowedAttributes?: string[];
@@ -28,6 +32,9 @@ export function SafeHtml({
       break;
     case 'editorial':
       sanitizedContent = sanitizeEditorialContent(content);
+      break;
+    case 'editorial-with-embeds':
+      sanitizedContent = sanitizeEditorialWithEmbeds(content);
       break;
     default:
       sanitizedContent = content; // Assume already sanitized
@@ -58,6 +65,9 @@ export function SafeHtmlClient({
           break;
         case 'editorial':
           sanitized = sanitizeEditorialContent(content);
+          break;
+        case 'editorial-with-embeds':
+          sanitized = sanitizeEditorialWithEmbeds(content);
           break;
         default:
           sanitized = content;

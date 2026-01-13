@@ -4,10 +4,8 @@ import { useState, useMemo } from 'react';
 import { Tracklist } from './tracklist';
 
 function countTracks(htmlContent: string): number {
-  if (!htmlContent) return 0;
+  if (!htmlContent || typeof window === 'undefined') return 0;
 
-  // Normalize HTML: replace <br> tags with newlines, handle <p> tags
-  // This handles both simple <br /> formats and Rich Text editor formats with <p> tags
   const normalizedContent = htmlContent
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/p>/gi, '\n')
