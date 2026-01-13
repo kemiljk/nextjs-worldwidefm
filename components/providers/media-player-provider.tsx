@@ -38,8 +38,8 @@ interface MediaPlayerContextType {
   setLiveVolume: (volume: number) => void;
 
   // Archive player state
-  selectedMixcloudUrl: string | null;
-  setSelectedMixcloudUrl: (url: string | null) => void;
+  selectedArchiveUrl: string | null;
+  setSelectedArchiveUrl: (url: string | null) => void;
   selectedShow: Show | null;
   setSelectedShow: (show: Show | null) => void;
 
@@ -64,7 +64,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   const [isLivePlaying, setIsLivePlaying] = useState(false);
   const [currentLiveEvent, setCurrentLiveEvent] = useState<LiveEvent | null>(null);
   const [liveVolume, setLiveVolume] = useState<number>(1);
-  const [selectedMixcloudUrl, setSelectedMixcloudUrl] = useState<string | null>(null);
+  const [selectedArchiveUrl, setSelectedArchiveUrl] = useState<string | null>(null);
   const [selectedShow, setSelectedShow] = useState<Show | null>(null);
   const [isArchivePlaying, setIsArchivePlaying] = useState(false);
   const [widgetRef, setWidgetRef] = useState<any>(null);
@@ -72,23 +72,23 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   const stopAllPlayers = () => {
     setIsLivePlaying(false);
     setCurrentLiveEvent(null);
-    setSelectedMixcloudUrl(null);
+    setSelectedArchiveUrl(null);
     setSelectedShow(null);
     setIsArchivePlaying(false);
     setWidgetRef(null);
   };
 
-  const handleSetSelectedMixcloudUrl = (url: string | null) => {
+  const handleSetSelectedArchiveUrl = (url: string | null) => {
     if (url) {
       setIsLivePlaying(false); // Stop live player when archive starts
       setCurrentLiveEvent(null);
     }
-    setSelectedMixcloudUrl(url);
+    setSelectedArchiveUrl(url);
   };
 
   const handleSetIsLivePlaying = (playing: boolean) => {
     if (playing) {
-      setSelectedMixcloudUrl(null); // Stop archive player when live starts
+      setSelectedArchiveUrl(null); // Stop archive player when live starts
       setSelectedShow(null);
       setIsArchivePlaying(false);
       setWidgetRef(null);
@@ -98,7 +98,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
 
   // New: Play and pause controls for archive
   const playShow = (show: Show) => {
-    setSelectedMixcloudUrl(show.url);
+    setSelectedArchiveUrl(show.url);
     setSelectedShow(show);
     setIsArchivePlaying(true);
     if (widgetRef) {
@@ -117,7 +117,7 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   const playLive = (event: LiveEvent) => {
     setCurrentLiveEvent(event);
     setIsLivePlaying(true);
-    setSelectedMixcloudUrl(null);
+    setSelectedArchiveUrl(null);
     setSelectedShow(null);
     setIsArchivePlaying(false);
   };
@@ -136,8 +136,8 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
         pauseLive,
         liveVolume,
         setLiveVolume,
-        selectedMixcloudUrl,
-        setSelectedMixcloudUrl: handleSetSelectedMixcloudUrl,
+        selectedArchiveUrl,
+        setSelectedArchiveUrl: handleSetSelectedArchiveUrl,
         selectedShow,
         setSelectedShow,
         stopAllPlayers,
