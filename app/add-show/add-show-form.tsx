@@ -43,6 +43,7 @@ import {
 import { Dropzone } from '@/components/ui/dropzone';
 import { FormTexts, getDefaultFormTexts } from '@/lib/form-text-service';
 import { compressImage } from '@/lib/image-compression';
+import { AddNewHost } from './add-new-host';
 
 // Form schema using zod
 const formSchema = z.object({
@@ -246,15 +247,12 @@ export function AddShowForm() {
     }
   }, [form.watch('hostId'), hosts]);
 
-  // Handle newly created host (if we add this functionality later)
   const handleHostCreated = (newHost: CosmicHost) => {
-    // Add the new host to the hosts list
     setHosts(prevHosts => [newHost, ...prevHosts]);
-
-    // Select the newly created host
     form.setValue('hostId', newHost.id);
-
-    toast.success(`Host "${newHost.title || 'Unknown'}" added to the list`);
+    setHostInput(newHost.title);
+    setIsHostListOpen(false);
+    toast.success(`Host "${newHost.title || 'Unknown'}" added and selected`);
   };
 
   // Handle genre selection
@@ -776,46 +774,58 @@ export function AddShowForm() {
           <FormField
             control={form.control}
             name='hostId'
-            render={({ field }) => (
-              <FormItem>
-                <div className='flex justify-between items-center'>
-                  <FormLabel>Host or Series</FormLabel>
-                </div>
-                <Command
-                  className='w-full border border-input rounded-none relative'
-                  shouldFilter={false}
-                >
-                  <div className='relative'>
-                    <CommandInput
-                      placeholder='Type to search for a host or series'
-                      value={hostInput}
-                      onValueChange={handleHostInputChange}
-                      disabled={isLoading || hosts.length === 0}
-                      style={{ width: '100%' }}
-                    />
-                    {field.value && (
-                      <button
-                        type='button'
-                        aria-label='Clear host selection'
-                        onClick={() => {
-                          field.onChange('');
-                          setHostInput('');
-                        }}
-                        className='absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-hidden'
-                        tabIndex={0}
-                      >
-                        <X className='w-4 h-4' />
-                      </button>
+            render={({ field }) => {
+              const matchingHosts = hosts.filter(
+                host =>
+                  host.title && host.title.toLowerCase().includes(hostInput.toLowerCase())
+              );
+              const showAddButton =
+                hostInput &&
+                hostInput.trim().length >= 2 &&
+                matchingHosts.length === 0 &&
+                !field.value;
+
+              return (
+                <FormItem>
+                  <div className='flex justify-between items-center'>
+                    <FormLabel>Host or Series</FormLabel>
+                    {showAddButton && (
+                      <AddNewHost
+                        onHostCreated={handleHostCreated}
+                        initialName={hostInput}
+                      />
                     )}
                   </div>
-                  {hostInput && isHostListOpen && (
-                    <CommandList onClickOutside={() => setIsHostListOpen(false)}>
-                      {hosts
-                        .filter(
-                          host =>
-                            host.title && host.title.toLowerCase().includes(hostInput.toLowerCase())
-                        )
-                        .map(host => (
+                  <Command
+                    className='w-full border border-input rounded-none relative'
+                    shouldFilter={false}
+                  >
+                    <div className='relative'>
+                      <CommandInput
+                        placeholder='Type to search for a host or series'
+                        value={hostInput}
+                        onValueChange={handleHostInputChange}
+                        disabled={isLoading || hosts.length === 0}
+                        style={{ width: '100%' }}
+                      />
+                      {field.value && (
+                        <button
+                          type='button'
+                          aria-label='Clear host selection'
+                          onClick={() => {
+                            field.onChange('');
+                            setHostInput('');
+                          }}
+                          className='absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-hidden'
+                          tabIndex={0}
+                        >
+                          <X className='w-4 h-4' />
+                        </button>
+                      )}
+                    </div>
+                    {hostInput && isHostListOpen && (
+                      <CommandList onClickOutside={() => setIsHostListOpen(false)}>
+                        {matchingHosts.map(host => (
                           <CommandItem
                             key={host.id}
                             value={host.id}
@@ -825,22 +835,20 @@ export function AddShowForm() {
                             {host.title}
                           </CommandItem>
                         ))}
-                      {hosts.filter(
-                        host =>
-                          host.title && host.title.toLowerCase().includes(hostInput.toLowerCase())
-                      ).length === 0 && (
-                        <CommandEmpty>No hosts or series found matching "{hostInput}"</CommandEmpty>
-                      )}
-                    </CommandList>
-                  )}
-                </Command>
-                <FormDescription>
-                  {formTexts.artist?.descriptions['artist-select'] ||
-                    'Select the main host or series for this show'}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
+                        {matchingHosts.length === 0 && (
+                          <CommandEmpty>No hosts or series found matching "{hostInput}"</CommandEmpty>
+                        )}
+                      </CommandList>
+                    )}
+                  </Command>
+                  <FormDescription>
+                    {formTexts.artist?.descriptions['artist-select'] ||
+                      'Select the main host or series for this show'}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
 
           <FormField
