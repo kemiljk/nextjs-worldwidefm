@@ -84,12 +84,14 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
   }
 
   const handleJoinClick = async () => {
-    if (!user && !showForm) {
+    const isFormIncomplete = !formData.email || !formData.firstName || !formData.lastName;
+
+    if (!showForm && (!user || isFormIncomplete)) {
       setShowForm(true);
       return;
     }
 
-    if (!formData.email || !formData.firstName || !formData.lastName) {
+    if (isFormIncomplete) {
       setError('Please fill in all required fields');
       return;
     }
@@ -214,7 +216,7 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
           </div>
         )}
 
-        {showForm && !user ? (
+        {showForm ? (
           <div className='max-w-md mx-auto mb-8'>
             <div className='space-y-4 text-left bg-white/10 backdrop-blur-sm p-6 rounded-lg'>
               <div>
