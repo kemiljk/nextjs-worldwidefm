@@ -30,8 +30,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { X, CheckCircle, ArrowLeft } from 'lucide-react';
+import { X, CheckCircle, ArrowLeft, Check, ChevronsUpDown } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { fetchGenres } from '@/lib/actions';
 import {
   Command,
@@ -39,6 +45,7 @@ import {
   CommandList,
   CommandItem,
   CommandEmpty,
+  CommandGroup,
 } from '@/components/ui/command';
 import { Dropzone } from '@/components/ui/dropzone';
 import { FormTexts, getDefaultFormTexts } from '@/lib/form-text-service';
@@ -118,6 +125,8 @@ export function AddShowForm() {
   const [isGenreListOpen, setIsGenreListOpen] = useState<boolean>(false);
   const [isLocationListOpen, setIsLocationListOpen] = useState<boolean>(false);
   const [isTakeoverListOpen, setIsTakeoverListOpen] = useState<boolean>(false);
+  const [openStartTime, setOpenStartTime] = useState<boolean>(false);
+  const [openDuration, setOpenDuration] = useState<boolean>(false);
   const [formTexts, setFormTexts] = useState<FormTexts>(getDefaultFormTexts());
   const plausible = usePlausible();
 
@@ -428,12 +437,19 @@ export function AddShowForm() {
             message: uploadResult.message,
           });
 
-          // Show info message if RadioCult upload was skipped
-          if (!uploadResult.radiocultMediaId && uploadResult.message) {
-            toast.info('Media Upload Info', {
-              description: uploadResult.message,
-            });
-          } else if (uploadResult.radiocultMediaId) {
+          // Show info message if RadioCult upload was skipped or failed
+          if (!uploadResult.radiocultMediaId) {
+            if (uploadResult.radiocultError) {
+              toast.warning('RadioCult Upload Failed', {
+                description: `Media uploaded to Cosmic but failed for RadioCult: ${uploadResult.radiocultError}`,
+                duration: 6000,
+              });
+            } else if (uploadResult.message) {
+              toast.info('Media Upload Info', {
+                description: uploadResult.message,
+              });
+            }
+          } else {
             toast.success('Media Upload Success', {
               description: `Successfully uploaded to both RadioCult (ID: ${uploadResult.radiocultMediaId}) and Cosmic`,
             });
@@ -570,7 +586,7 @@ export function AddShowForm() {
           <h2 className='text-2xl font-semibold text-almostblack dark:text-white'>
             Show Submitted Successfully!
           </h2>
-          <p className='text-gray-600 max-w-md'>
+          <p className='text-neutral-600 max-w-md'>
             "<strong>{submittedShowTitle}</strong>" has been submitted for approval. Once approved,
             it will be published to RadioCult and appear on your station.
           </p>
@@ -673,33 +689,64 @@ export function AddShowForm() {
               control={form.control}
               name='startTime'
               render={({ field }) => (
-                <FormItem>
+                <FormItem className='flex flex-col'>
                   <FormLabel>Start Time</FormLabel>
-                  <Select disabled={isLoading} onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder='Select start time' />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <ScrollArea className='h-[200px]'>
-                        {Array.from({ length: 96 }, (_, i) => {
-                          const hour = Math.floor(i / 4);
-                          const minute = (i % 4) * 15;
-                          const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                          return (
-                            <SelectItem
-                              key={timeString}
-                              value={timeString}
-                              className='text-almostblack hover:bg-white hover:text-almostblack dark:hover:bg-almostblack dark:hover:text-white'
-                            >
-                              {timeString}
-                            </SelectItem>
-                          );
-                        })}
-                      </ScrollArea>
-                    </SelectContent>
-                  </Select>
+                  <Popover open={openStartTime} onOpenChange={setOpenStartTime}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant='outline'
+                          role='combobox'
+                          aria-expanded={openStartTime}
+                          className={cn(
+                            'z-60 flex h-auto w-full items-center justify-between gap-2 rounded-xl border-almostblack bg-almostblack px-3 py-1.5 font-mono uppercase text-[12px] text-white hover:bg-almostblack/90 hover:text-white dark:bg-white dark:text-almostblack dark:hover:bg-white/90',
+                            !field.value && 'text-muted-foreground'
+                          )}
+                        >
+                          {field.value
+                            ? field.value
+                            : 'Select start time'}
+                          <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className='w-[200px] p-0' align="start">
+                      <Command>
+                        <CommandInput placeholder='Search time...' className="h-9" />
+                        <CommandList>
+                          <CommandEmpty>No time found.</CommandEmpty>
+                          <CommandGroup>
+                            {Array.from({ length: 96 }, (_, i) => {
+                              const hour = Math.floor(i / 4);
+                              const minute = (i % 4) * 15;
+                              const timeString = `${hour.toString().padStart(2, '0')}:${minute
+                                .toString()
+                                .padStart(2, '0')}`;
+                              return (
+                                <CommandItem
+                                  key={timeString}
+                                  value={timeString}
+                                  onSelect={(currentValue) => {
+                                    form.setValue('startTime', currentValue);
+                                    setOpenStartTime(false);
+                                  }}
+                                  className='cursor-pointer data-[selected=true]:bg-gray-100 dark:data-[selected=true]:bg-gray-800 data-[selected=true]:text-almostblack dark:data-[selected=true]:text-white'
+                                >
+                                  {timeString}
+                                  <Check
+                                    className={cn(
+                                      'ml-auto h-4 w-4',
+                                      field.value === timeString ? 'opacity-100' : 'opacity-0'
+                                    )}
+                                  />
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -709,35 +756,75 @@ export function AddShowForm() {
               control={form.control}
               name='duration'
               render={({ field }) => (
-                <FormItem>
+                <FormItem className='flex flex-col'>
                   <FormLabel>Duration</FormLabel>
-                  <Select disabled={isLoading} onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder='Select duration' />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <ScrollArea className='h-[200px]'>
-                        {Array.from({ length: 48 }, (_, i) => {
-                          const minutes = (i + 1) * 15;
-                          const hours = Math.floor(minutes / 60);
-                          const remainingMinutes = minutes % 60;
-                          const displayText =
-                            hours > 0 ? `${hours}h ${remainingMinutes}m` : `${minutes}m`;
-                          return (
-                            <SelectItem
-                              key={minutes.toString()}
-                              value={minutes.toString()}
-                              className='text-almostblack hover:bg-white hover:text-almostblack dark:hover:bg-almostblack dark:hover:text-white'
-                            >
-                              {displayText}
-                            </SelectItem>
-                          );
-                        })}
-                      </ScrollArea>
-                    </SelectContent>
-                  </Select>
+                  <Popover open={openDuration} onOpenChange={setOpenDuration}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant='outline'
+                          role='combobox'
+                          aria-expanded={openDuration}
+                          className={cn(
+                            'z-60 flex h-auto w-full items-center justify-between gap-2 rounded-xl border-almostblack bg-almostblack px-3 py-1.5 font-mono uppercase text-[12px] text-white hover:bg-almostblack/90 hover:text-white dark:bg-white dark:text-almostblack dark:hover:bg-white/90',
+                            !field.value && 'text-muted-foreground'
+                          )}
+                        >
+                          {field.value
+                            ? (() => {
+                                const minutes = parseInt(field.value);
+                                const hours = Math.floor(minutes / 60);
+                                const remainingMinutes = minutes % 60;
+                                return hours > 0
+                                  ? `${hours}h ${remainingMinutes}m`
+                                  : `${minutes}m`;
+                              })()
+                            : 'Select duration'}
+                          <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className='w-[200px] p-0' align="start">
+                      <Command>
+                        <CommandInput placeholder='Search duration...' className="h-9" />
+                        <CommandList>
+                          <CommandEmpty>No duration found.</CommandEmpty>
+                          <CommandGroup>
+                            {Array.from({ length: 48 }, (_, i) => {
+                              const minutes = (i + 1) * 15;
+                              const hours = Math.floor(minutes / 60);
+                              const remainingMinutes = minutes % 60;
+                              const displayText =
+                                hours > 0
+                                  ? `${hours}h ${remainingMinutes}m`
+                                  : `${minutes}m`;
+                              return (
+                                <CommandItem
+                                  key={minutes.toString()}
+                                  value={`${minutes} ${displayText}`} // Include display text in value for better searching
+                                  onSelect={() => {
+                                    form.setValue('duration', minutes.toString());
+                                    setOpenDuration(false);
+                                  }}
+                                  className='cursor-pointer data-[selected=true]:bg-gray-100 dark:data-[selected=true]:bg-gray-800 data-[selected=true]:text-almostblack dark:data-[selected=true]:text-white'
+                                >
+                                  {displayText}
+                                  <Check
+                                    className={cn(
+                                      'ml-auto h-4 w-4',
+                                      field.value === minutes.toString()
+                                        ? 'opacity-100'
+                                        : 'opacity-0'
+                                    )}
+                                  />
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -830,7 +917,7 @@ export function AddShowForm() {
                             key={host.id}
                             value={host.id}
                             onSelect={() => handleHostSelect(host)}
-                            className='cursor-pointer'
+                            className='cursor-pointer data-[selected=true]:bg-gray-100 dark:data-[selected=true]:bg-gray-800 data-[selected=true]:text-almostblack dark:data-[selected=true]:text-white'
                           >
                             {host.title}
                           </CommandItem>
@@ -898,7 +985,7 @@ export function AddShowForm() {
                             key={takeover.id}
                             value={takeover.id}
                             onSelect={() => handleTakeoverSelect(takeover)}
-                            className='cursor-pointer'
+                            className='cursor-pointer data-[selected=true]:bg-gray-100 dark:data-[selected=true]:bg-gray-800 data-[selected=true]:text-almostblack dark:data-[selected=true]:text-white'
                           >
                             {takeover.title}
                           </CommandItem>
@@ -962,7 +1049,7 @@ export function AddShowForm() {
                               key={genre.id}
                               value={genre.id}
                               onSelect={() => handleGenreSelect(genre.id)}
-                              className='cursor-pointer'
+                              className='cursor-pointer data-[selected=true]:bg-gray-100 dark:data-[selected=true]:bg-gray-800 data-[selected=true]:text-almostblack dark:data-[selected=true]:text-white'
                             >
                               {genre.title}
                             </CommandItem>
@@ -1104,7 +1191,7 @@ export function AddShowForm() {
                             key={location.slug}
                             value={location.slug}
                             onSelect={() => handleLocationSelect(location)}
-                            className='cursor-pointer'
+                            className='cursor-pointer data-[selected=true]:bg-gray-100 dark:data-[selected=true]:bg-gray-800 data-[selected=true]:text-almostblack dark:data-[selected=true]:text-white'
                           >
                             {location.title}
                           </CommandItem>

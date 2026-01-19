@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
 
     // Try to upload to RadioCult (optional - may not be permitted for all stations)
     let radiocultMediaId: string | undefined = undefined;
+    let radiocultError: string | undefined = undefined;
     const stationId = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
     const secretKey = process.env.RADIOCULT_SECRET_KEY;
 
@@ -40,9 +41,17 @@ export async function POST(request: NextRequest) {
       try {
         console.log('📡 Attempting RadioCult upload...');
 
+        // Convert file to buffer first to ensure we have actual binary data
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        // Create a Blob-like object for FormData that includes filename and content type
+        // This is more robust than passing the File object directly in some environments
+        const fileBlob = new Blob([buffer], { type: file.type });
+
         // Prepare form data for RadioCult
         const rcForm = new FormData();
-        rcForm.append('stationMedia', file);
+        rcForm.append('stationMedia', fileBlob, file.name);
         rcForm.append('metadata', JSON.stringify(parsedMetadata));
 
         const rcRes = await fetch(`https://api.radiocult.fm/api/station/${stationId}/media/track`, {
@@ -59,11 +68,12 @@ export async function POST(request: NextRequest) {
           console.log('✅ RadioCult upload SUCCESS - Media ID:', radiocultMediaId);
           console.log('📝 RadioCult response:', JSON.stringify(rcJson, null, 2));
         } else {
-          const errorText = await rcRes.text();
-          console.warn('❌ RadioCult upload FAILED (status:', rcRes.status, '):', errorText);
+          radiocultError = await rcRes.text();
+          console.warn('❌ RadioCult upload FAILED (status:', rcRes.status, '):', radiocultError);
         }
       } catch (error) {
         console.warn('⚠️ RadioCult upload error:', error);
+        radiocultError = error instanceof Error ? error.message : 'Unknown upload error';
       }
     } else {
       console.log('ℹ️ RadioCult credentials not configured, skipping RadioCult upload');
@@ -98,10 +108,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       radiocultMediaId: radiocultMediaId || null,
+      radiocultError: radiocultError || null,
       cosmicMedia: cosmicMedia.media,
       message: radiocultMediaId
         ? 'Successfully uploaded to both RadioCult and Cosmic'
-        : 'Successfully uploaded to Cosmic (RadioCult upload skipped due to permissions)',
+        : radiocultError
+        ? `Successfully uploaded to Cosmic, but RadioCult failed: ${radiocultError}`
+        : 'Successfully uploaded to Cosmic (RadioCult upload skipped)',
     });
   } catch (error) {
     console.error('❌ Error uploading media:', error);

@@ -201,7 +201,7 @@
     /* Black text in light mode */
 
     --muted: 210 40% 96.1%;
-    --muted-foreground: 0 0% 0%;
+    --muted-foreground: 0 0% 50%;
     /* Black text in light mode */
 
     --accent: 345 6% 13%;
@@ -213,7 +213,7 @@
     /* Black text in light mode */
 
     --border: 0 0% 0%;
-    --input: 214.3 31.8% 91.4%;
+    --input: 0 0% 80%;
     --ring: 0 0% 0%;
     /* Black ring in light mode */
 
@@ -244,7 +244,7 @@
       /* White text in dark mode */
 
       --muted: 217.2 32.6% 17.5%;
-      --muted-foreground: 0 0% 100%;
+      --muted-foreground: 0 0% 50%;
       /* White text in dark mode */
 
       --accent: 217.2 32.6% 17.5%;
@@ -256,7 +256,7 @@
       /* White text in dark mode */
 
       --border: 217.2 32.6% 17.5%;
-      --input: 217.2 32.6% 17.5%;
+      --input: 0 0% 20%;
       --ring: 0 0% 100%;
       /* White ring in dark mode */
     }
