@@ -57,7 +57,11 @@ export default function ScheduleDisplay({
     if (!dayIso) return null;
 
     try {
-      return new Date(`${dayIso}T${time}:00Z`);
+      const date = new Date(`${dayIso}T${time}:00Z`);
+      if (isNaN(date.getTime())) {
+        return null;
+      }
+      return date;
     } catch (error) {
       console.error('Error creating schedule date', error);
       return null;
