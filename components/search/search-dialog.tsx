@@ -457,7 +457,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 <Input
                   ref={searchInputRef}
                   placeholder='Search'
-                  className='border-none pl-4 font-mono text-m8 uppercase bg-background'
+                  className='border-none pl-4 font-mono text-m8 uppercase bg-background focus-visible:ring-0 focus-visible:ring-offset-0'
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                 />
