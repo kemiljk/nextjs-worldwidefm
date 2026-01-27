@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/cosmic/blocks/user-management/AuthContext';
 import { Button } from '@/cosmic/elements/Button';
 import { Input } from '@/cosmic/elements/Input';
 import { Label } from '@/cosmic/elements/Label';
@@ -18,9 +16,6 @@ export default function AuthForm({ type, onSubmit }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
-  const router = useRouter();
-  const { login: authLogin } = useAuth();
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -32,17 +27,15 @@ export default function AuthForm({ type, onSubmit }: AuthFormProps) {
       if (onSubmit) {
         // Just pass data up to parent. Parent handles redirect/state update.
         const result = await onSubmit(formData);
-        
-        // Only stop loading if there's an error or no result.
-        // If success, keep loading until redirect happens (parent/useEffect handles it)
-        if (!result || result.error) {
-          setIsLoading(false);
+        if (!result) {
+          setError('An error occurred. Please try again.');
         }
       } else {
-        setIsLoading(false);
+        setError('Submission handler not available.');
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred');
+    } finally {
       setIsLoading(false);
     }
   };
