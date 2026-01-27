@@ -29,6 +29,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Set a timeout to prevent infinite loading state
+    const timeoutId = setTimeout(() => {
+      setIsLoading(false);
+    }, 5000);
+
     getAuthUser()
       .then(userData => {
         if (userData) {
@@ -39,8 +44,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Error fetching user data:', error);
       })
       .finally(() => {
+        clearTimeout(timeoutId);
         setIsLoading(false);
       });
+      
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const login = (userData: User) => {
