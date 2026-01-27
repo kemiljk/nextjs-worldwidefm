@@ -41,12 +41,12 @@ export default function LoginClient({ onSubmit, redirect }: { onSubmit: any; red
           const result = await onSubmit(formData);
           if (result && result.error) {
             router.push(`/login?error=${encodeURIComponent(result.error)}`);
-            return result; // Return to form to handle loading state
+            return result;
           } else if (result && result.user) {
-            authLogin(result.user);
-            router.refresh();
-            router.push(finalRedirect);
-            return result; // Return to form
+            // Use hard navigation to ensure cookies are fully set and propagated
+            // before loading the dashboard. This prevents the "login loop" issue.
+            window.location.href = finalRedirect; 
+            return result;
           }
         }}
       />
