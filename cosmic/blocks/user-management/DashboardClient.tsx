@@ -351,9 +351,9 @@ export default function DashboardClient({
         {/* Membership Section */}
         <section className='mb-8'>
           <div className='p-6  border border-primary/20'>
-            <div className='flex items-center justify-between'>
-              <div className='flex items-center space-x-3'>
-                <Crown className='size-8 text-primary' />
+            <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
+              <div className='flex items-start md:items-center space-x-3'>
+                <Crown className='size-8 text-primary shrink-0' />
                 <div>
                   <h2 className='text-2xl font-bold'>Membership</h2>
                   <p className='text-muted-foreground'>
@@ -363,14 +363,14 @@ export default function DashboardClient({
                   </p>
                 </div>
               </div>
-              <div className='text-right'>
+              <div className='text-left md:text-right'>
                 {userData.metadata.subscription_status === 'active' ? (
                   <div className='flex items-center space-x-2 text-green-600'>
                     <CheckCircle className='size-5' />
                     <span className='font-medium'>Active</span>
                   </div>
                 ) : (
-                  <Button asChild className='px-2'>
+                  <Button asChild className='px-6'>
                     <Link href='/membership'>
                       <CreditCard className='size-4 mr-2' />
                       Subscribe
