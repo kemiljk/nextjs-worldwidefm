@@ -168,7 +168,7 @@ export async function getRadioShows(
 
     const response = await cosmic.objects
       .find(query)
-      .props('slug,title,metadata,type')
+      .props('id,slug,title,metadata,type')
       .limit(params.limit || 10)
       .skip(params.skip || 0)
       .sort(params.sort || '-metadata.broadcast_date')
@@ -220,7 +220,7 @@ export async function getCategories(): Promise<CosmicResponse<CategoryObject>> {
   try {
     const response = await cosmic.objects
       .find({ type: 'categories' })
-      .props('slug,title,metadata,type')
+      .props('id,slug,title,metadata,type')
       .depth(1);
     return response;
   } catch (error) {
@@ -242,7 +242,7 @@ export async function getCategoryBySlug(slug: string): Promise<CosmicResponse<Ca
   try {
     const response = await cosmic.objects
       .find({ type: 'categories', slug })
-      .props('slug,title,metadata,type')
+      .props('id,slug,title,metadata,type')
       .depth(1);
     return response;
   } catch (error) {
@@ -415,7 +415,7 @@ export async function getNavigation(slug: string = 'navigation'): Promise<unknow
         type: 'navigation',
         slug,
       })
-      .props('slug,title,metadata')
+      .props('id,slug,title,metadata')
       .depth(1);
 
     return response;
@@ -441,7 +441,7 @@ export async function getEditorialHomepage(): Promise<unknown> {
         type: 'editorial-homepage',
         slug: 'editorial',
       })
-      .props('slug,title,metadata')
+      .props('id,slug,title,metadata')
       .depth(2);
 
     return response;

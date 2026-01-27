@@ -173,7 +173,35 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
     notFound();
   }
 
-  const relatedShows = await getRelatedShows(host.id, 12);
+  let relatedShows: any[] = [];
+  
+  // Try to use curated shows from metadata first
+  if (host.metadata?.shows?.length > 0) {
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    
+    relatedShows = host.metadata.shows
+      .filter((s: any) => {
+        // Handle expanded objects from depth 2
+        if (typeof s !== 'object' || !s) return false;
+        
+        const broadcastDate = s.metadata?.broadcast_date || s.broadcast_date;
+        return broadcastDate && broadcastDate <= todayStr;
+      })
+      .map(transformShowToViewData);
+      
+    // Sort curated shows by date descending
+    relatedShows.sort((a, b) => {
+      const dateA = a.broadcast_date || '';
+      const dateB = b.broadcast_date || '';
+      return dateB.localeCompare(dateA);
+    });
+  }
+
+  // If no curated shows found, fallback to search-based related shows
+  if (relatedShows.length === 0) {
+    relatedShows = await getRelatedShows(host.id, 12);
+  }
 
   const user = await getAuthUser();
   let isFavorited = false;
