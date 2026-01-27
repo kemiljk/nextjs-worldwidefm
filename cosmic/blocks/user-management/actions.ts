@@ -183,13 +183,19 @@ export async function getUserData(userId: string) {
 }
 
 export async function getUserFromCookie() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get('user_id');
-  if (!userId) {
-    return null;
-  }
-
   try {
+    // Attempt to get cookies; this may fail during static generation/prerendering
+    const cookieStore = await cookies().catch(() => null);
+    
+    if (!cookieStore) {
+      return null;
+    }
+
+    const userId = cookieStore.get('user_id');
+    if (!userId) {
+      return null;
+    }
+
     const result = await cosmic.objects
       .findOne({
         type: 'users',
@@ -210,7 +216,8 @@ export async function getUserFromCookie() {
       image: result.object.metadata.image,
     };
   } catch (error) {
-    console.error('Error fetching user:', error);
+    // Suppress errors during prerendering or if cookies() fails
+    // console.error('Error fetching user:', error); 
     return null;
   }
 }
