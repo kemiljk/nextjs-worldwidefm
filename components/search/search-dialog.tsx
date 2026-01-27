@@ -16,6 +16,7 @@ import {
   AlertCircle,
   MicVocal,
   Users,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -461,24 +462,25 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   onChange={e => setSearchTerm(e.target.value)}
                 />
                 {/* Edit filters button always visible on mobile, to right of input */}
-                <div className='w-auto flex justify-left py-2 bg-background'>
+                <div className='w-auto flex justify-left py-2 bg-background pr-4'>
                   {!showFilters ? (
                     <Button
                       variant='none'
-                      size='sm'
-                      className='border py-1 px-2 font-mono text-center uppercase text-m8'
+                      size='icon'
+                      className='border h-8 w-8 p-0 flex items-center justify-center rounded-none'
                       onClick={() => {
                         setShowFilters(true); // Show filters overlay
                       }}
                       type='button'
+                      aria-label='Edit filters'
                     >
-                      Edit filters
+                      <SlidersHorizontal className='h-4 w-4' />
                     </Button>
                   ) : (
                     <Button
                       variant='none'
-                      size='sm'
-                      className='border py-1 px-2 font-mono text-center uppercase text-m8'
+                      size='icon'
+                      className='border h-8 w-8 p-0 flex items-center justify-center bg-almostblack text-white dark:bg-white dark:text-almostblack rounded-none'
                       onClick={() => {
                         // Apply filters: hide overlay and refresh results
                         setShowFilters(false);
@@ -489,8 +491,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         setSearchTerm('');
                       }}
                       type='button'
+                      aria-label='Apply filters'
                     >
-                      Apply filters
+                      <SlidersHorizontal className='h-4 w-4' />
                     </Button>
                   )}
                 </div>
