@@ -46,9 +46,13 @@ export default function LoginClient({ onSubmit, redirect }: { onSubmit: any; red
         onSubmit={async formData => {
           const result = await onSubmit(formData);
           if (result && result.error) {
+            // Let the form handle the error display if passed back, or redirect with error param
+            // Ideally AuthForm should accept error prop, but for now we redirect to keep it simple
             router.push(`/login?error=${encodeURIComponent(result.error)}`);
           } else if (result && result.user) {
             authLogin(result.user);
+            router.refresh(); // Refresh to update server components (navbar)
+            // Redirect is handled by the useEffect above once user is set
           }
         }}
       />

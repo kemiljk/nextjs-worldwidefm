@@ -30,18 +30,8 @@ export default function AuthForm({ type, onSubmit }: AuthFormProps) {
       const formData = new FormData(e.currentTarget);
 
       if (onSubmit) {
-        const result = await onSubmit(formData);
-
-        if (result && result.error) {
-          setError(result.error);
-          return;
-        }
-
-        if (type === 'login' && result && result.user) {
-          authLogin(result.user);
-          router.push('/dashboard');
-          router.refresh();
-        }
+        // Just pass data up to parent. Parent handles redirect/state update.
+        await onSubmit(formData);
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred');
