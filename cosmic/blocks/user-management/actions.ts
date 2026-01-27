@@ -710,28 +710,36 @@ export async function getDashboardData(userId: string) {
       }
     }
 
-    // Fetch shows for favorite genres and hosts
+    // Fetch shows for favorite genres and hosts in parallel
+    const genreShowsPromise = Promise.all(
+      (userData.metadata?.favourite_genres || []).map(async (genre: any) => {
+        const genreId = typeof genre === 'string' ? genre : genre.id;
+        const shows = await getShowsByGenre(genreId, 4);
+        return shows.length > 0 ? { id: genreId, shows } : null;
+      })
+    );
+
+    const hostShowsPromise = Promise.all(
+      (userData.metadata?.favourite_hosts || []).map(async (host: any) => {
+        const hostId = typeof host === 'string' ? host : host.id;
+        const shows = await getShowsByHost(hostId, 4);
+        return shows.length > 0 ? { id: hostId, shows } : null;
+      })
+    );
+
+    const [genreResults, hostResults] = await Promise.all([genreShowsPromise, hostShowsPromise]);
+
     const genreShows: { [key: string]: any[] } = {};
+    genreResults.forEach(result => {
+      if (result) genreShows[result.id] = result.shows;
+    });
+
     const hostShows: { [key: string]: any[] } = {};
+    hostResults.forEach(result => {
+      if (result) hostShows[result.id] = result.shows;
+    });
+
     let listenLaterShows: any[] = [];
-
-    if (userData.metadata?.favourite_genres) {
-      for (const genre of userData.metadata.favourite_genres) {
-        const shows = await getShowsByGenre(typeof genre === 'string' ? genre : genre.id, 4);
-        if (shows.length > 0) {
-          genreShows[typeof genre === 'string' ? genre : genre.id] = shows;
-        }
-      }
-    }
-
-    if (userData.metadata?.favourite_hosts) {
-      for (const host of userData.metadata.favourite_hosts) {
-        const shows = await getShowsByHost(typeof host === 'string' ? host : host.id, 4);
-        if (shows.length > 0) {
-          hostShows[typeof host === 'string' ? host : host.id] = shows;
-        }
-      }
-    }
 
     if (userData.metadata?.listen_later && userData.metadata.listen_later.length > 0) {
       try {
