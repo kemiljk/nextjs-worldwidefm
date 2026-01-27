@@ -11,6 +11,8 @@ import {
   addFavouriteHost,
   removeFavouriteHost,
 } from './actions';
+import { Music, Users, Bookmark, Sparkles } from 'lucide-react';
+import { EmptyState } from '@/components/dashboard/empty-state';
 import type { GenreObject, HostObject } from '@/lib/cosmic-config';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,6 +23,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import Link from 'next/link';
+import { ForYouSection } from '@/components/for-you-section';
+import { SaveShowButton } from '@/components/save-show-button';
+import { ShowCard } from '@/components/ui/show-card';
 
 interface DashboardClientProps {
   userData: any;
@@ -31,6 +36,7 @@ interface DashboardClientProps {
   hostShows: { [key: string]: any[] };
   favouriteGenres: GenreObject[];
   favouriteHosts: HostObject[];
+  listenLater?: any[];
 }
 
 // Function to calculate similarity score between genres
@@ -44,6 +50,7 @@ export default function DashboardClient({
   hostShows,
   favouriteGenres = [],
   favouriteHosts = [],
+  listenLater = [],
 }: DashboardClientProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -180,9 +187,13 @@ export default function DashboardClient({
   ) => {
     if (items.length === 0) {
       return (
-        <p className='text-gray-500 italic'>
-          No favorite {type}s yet. Add some to see their latest shows!
-        </p>
+        <EmptyState
+          icon={type === 'genre' ? Music : Users}
+          title={`No Favourite ${type === 'genre' ? 'Genres' : 'Hosts'} yet`}
+          description={`Add your favourite ${type}s to see their latest shows here.`}
+          actionLabel={`Add ${type === 'genre' ? 'Genre' : 'Host'}`}
+          onAction={() => handleAddClick(type)}
+        />
       );
     }
 
@@ -248,6 +259,10 @@ export default function DashboardClient({
       </div>
     );
   };
+
+  const favoriteGenreIds = favouriteGenres.map(g => (typeof g === 'string' ? g : g.id));
+  const favoriteHostIds = favouriteHosts.map(h => (typeof h === 'string' ? h : h.id));
+  const hasFavorites = favoriteGenreIds.length > 0 || favoriteHostIds.length > 0;
 
   const renderModalContent = () => {
     switch (isAdding) {
@@ -406,6 +421,52 @@ export default function DashboardClient({
             </Button>
           </div>
           {renderShowsSection(optimisticHostsRemove, hostShows, 'host')}
+        </section>
+
+        {/* Listen Later */}
+        <section className='mt-10'>
+          <h2 className='text-2xl font-bold mb-4'>Listen Later</h2>
+          {listenLater.length > 0 ? (
+            <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3'>
+              {listenLater.map((show: any) => (
+                <div key={show.id} className='relative group'>
+                  <ShowCard show={show} slug={`/episode/${show.slug}`} playable />
+                  <div className='absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity'>
+                    <SaveShowButton
+                      show={{ id: show.id, slug: show.slug, title: show.title }}
+                      isSaved={true}
+                      className='bg-white/90 dark:bg-black/90'
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={Bookmark}
+              title='No Saved Shows'
+              description="Save episodes to 'Listen Later' while browsing and they'll appear here."
+            />
+          )}
+        </section>
+
+        {/* For You Section */}
+        <section className='mt-10'>
+          <h2 className='text-2xl font-bold mb-4'>Recommended For You</h2>
+          {hasFavorites ? (
+            <ForYouSection
+              favoriteGenreIds={favoriteGenreIds}
+              favoriteHostIds={favoriteHostIds}
+              limit={15}
+              title=''
+            />
+          ) : (
+            <EmptyState
+              icon={Sparkles}
+              title='No Recommendations'
+              description='Follow your favourite genres and hosts to get personalized recommendations.'
+            />
+          )}
         </section>
 
         {/* Add Favorites Modal */}

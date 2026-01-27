@@ -499,7 +499,7 @@ import type { HostObject } from '@/lib/cosmic-config';
 async function manageFavourites<T extends { id: string }>(
   userId: string,
   item: T,
-  field: 'favourite_genres' | 'favourite_hosts',
+  field: 'favourite_genres' | 'favourite_hosts' | 'listen_later',
   action: 'add' | 'remove'
 ) {
   try {
@@ -557,6 +557,14 @@ export async function addFavouriteHost(userId: string, host: HostObject) {
 
 export async function removeFavouriteHost(userId: string, hostId: string) {
   return manageFavourites(userId, { id: hostId } as HostObject, 'favourite_hosts', 'remove');
+}
+
+export async function addListenLater(userId: string, show: { id: string }) {
+  return manageFavourites(userId, show, 'listen_later', 'add');
+}
+
+export async function removeListenLater(userId: string, showId: string) {
+  return manageFavourites(userId, { id: showId } as { id: string }, 'listen_later', 'remove');
 }
 
 export async function getDashboardData(userId: string) {
@@ -705,28 +713,70 @@ export async function getDashboardData(userId: string) {
     // Fetch shows for favorite genres and hosts
     const genreShows: { [key: string]: any[] } = {};
     const hostShows: { [key: string]: any[] } = {};
+    let listenLaterShows: any[] = [];
 
     if (userData.metadata?.favourite_genres) {
       for (const genre of userData.metadata.favourite_genres) {
-        const shows = await getShowsByGenre(genre.id, 4);
+        const shows = await getShowsByGenre(typeof genre === 'string' ? genre : genre.id, 4);
         if (shows.length > 0) {
-          genreShows[genre.id] = shows;
+          genreShows[typeof genre === 'string' ? genre : genre.id] = shows;
         }
       }
     }
 
     if (userData.metadata?.favourite_hosts) {
       for (const host of userData.metadata.favourite_hosts) {
-        const shows = await getShowsByHost(host.id, 4);
+        const shows = await getShowsByHost(typeof host === 'string' ? host : host.id, 4);
         if (shows.length > 0) {
-          hostShows[host.id] = shows;
+          hostShows[typeof host === 'string' ? host : host.id] = shows;
         }
+      }
+    }
+
+    if (userData.metadata?.listen_later && userData.metadata.listen_later.length > 0) {
+      try {
+        const listenLaterIds = userData.metadata.listen_later.map((s: any) =>
+          typeof s === 'string' ? s : s.id
+        );
+        const response = await cosmic.objects.find({
+          type: 'episodes',
+          id: { $in: listenLaterIds },
+          props: 'id,slug,title,type,metadata,created_at,modified_at',
+          depth: 1,
+        });
+        
+        // Transform Cosmic data 
+        listenLaterShows = (response.objects || []).map((show: any) => ({
+          ...show,
+          key: show.slug,
+          name: show.title,
+          url: `/episode/${show.slug}`,
+          pictures: {
+            large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            extra_large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+          },
+          enhanced_image: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+          created_time: show.metadata?.broadcast_date || show.created_at,
+          broadcast_date: show.metadata?.broadcast_date || show.created_at,
+          tags: (show.metadata?.genres || []).map((genre: any) => ({
+            name: genre.title || genre.name,
+            title: genre.title || genre.name,
+          })),
+          user: {
+            name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
+          },
+          host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
+          __source: 'episode' as const,
+        }));
+      } catch (error) {
+        console.error('Error fetching listen later shows:', error);
       }
     }
 
     // Use favourite arrays directly from userData.metadata
     const favouriteGenres = userData.metadata?.favourite_genres || [];
     const favouriteHosts = userData.metadata?.favourite_hosts || [];
+    const listenLater = listenLaterShows;
 
     return {
       data: {
@@ -738,6 +788,7 @@ export async function getDashboardData(userId: string) {
         hostShows,
         favouriteGenres,
         favouriteHosts,
+        listenLater,
       },
       error: null,
     };

@@ -1,6 +1,6 @@
 'use client';
 
-import { Play, Pause } from 'lucide-react';
+import { Play, Pause, Bookmark } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -17,6 +17,7 @@ interface ShowCardProps {
   playable?: boolean;
   variant?: 'default' | 'light';
   canonicalGenres?: CanonicalGenre[];
+  isSaved?: boolean;
 }
 
 export const ShowCard: React.FC<ShowCardProps> = ({
@@ -26,6 +27,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   playable = true,
   variant = 'default',
   canonicalGenres = [],
+  isSaved = false,
 }) => {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
@@ -233,6 +235,11 @@ export const ShowCard: React.FC<ShowCardProps> = ({
             priority={false}
             aspectRatio='square'
           />
+          {isSaved && (
+            <div className='absolute top-2 right-2 z-20 bg-almostblack/80 dark:bg-white/80 p-1.5 rounded-full'>
+              <Bookmark className='w-3 h-3 text-white dark:text-almostblack fill-current' />
+            </div>
+          )}
           {isMounted && shouldShowPlayButton && (
             <div className='absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-20'>
               <button

@@ -6,12 +6,14 @@ interface ForYouSectionProps {
   favoriteGenreIds: string[];
   favoriteHostIds: string[];
   limit?: number;
+  title?: string;
 }
 
 export async function ForYouSection({
   favoriteGenreIds,
   favoriteHostIds,
   limit = 12,
+  title = 'FOR YOU',
 }: ForYouSectionProps) {
   const episodes: any[] = [];
 
@@ -83,8 +85,8 @@ export async function ForYouSection({
     }
 
     return (
-      <section className='py-8 px-5'>
-        <h2 className='text-h8 md:text-h7 font-bold mb-4 tracking-tight'>FOR YOU</h2>
+      <section className={title ? 'py-8 px-5' : 'py-0 px-0'}>
+        {title && <h2 className='text-h8 md:text-h7 font-bold mb-4 tracking-tight'>{title}</h2>}
         <div className='grid grid-cols-2 md:grid-cols-5 gap-3 w-full h-auto'>
           {sortedEpisodes.map(episode => {
             const transformed = transformShowToViewData(episode);

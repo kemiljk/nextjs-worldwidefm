@@ -19,6 +19,7 @@ interface FavoriteButtonProps {
   type: 'genre' | 'host';
   isFavorited: boolean;
   className?: string;
+  variant?: 'default' | 'outline' | 'ghost';
 }
 
 export function FavoriteButton({
@@ -26,6 +27,7 @@ export function FavoriteButton({
   type,
   isFavorited: initialIsFavorited,
   className,
+  variant = 'outline',
 }: FavoriteButtonProps) {
   const { user } = useAuth();
   const router = useRouter();
@@ -71,19 +73,20 @@ export function FavoriteButton({
 
   return (
     <Button
-      variant='outline'
-      size='sm'
+      variant={variant === 'ghost' ? 'ghost' : 'outline'}
+      size={variant === 'ghost' ? 'icon' : 'sm'}
       onClick={handleFavoriteClick}
       disabled={isPending}
       className={cn(
-        'border-almostblack dark:border-white hover:bg-almostblack hover:text-white dark:hover:bg-white dark:hover:text-almostblack transition-colors',
-        isFavorited && 'bg-almostblack text-white dark:bg-white dark:text-almostblack',
+        variant !== 'ghost' && 'border-almostblack dark:border-white hover:bg-almostblack hover:text-white dark:hover:bg-white dark:hover:text-almostblack transition-colors',
+        variant !== 'ghost' && isFavorited && 'bg-almostblack text-white dark:bg-white dark:text-almostblack',
+        variant === 'ghost' && 'border-0 p-0 h-auto w-auto hover:bg-transparent',
         className
       )}
       aria-label={isFavorited ? `Remove ${type} from favourites` : `Add ${type} to favourites`}
     >
-      <Heart className={cn('h-4 w-4 mr-1', isFavorited && 'fill-current')} />
-      {isFavorited ? 'Favourited' : 'Favourite'}
+      <Heart className={cn('h-4 w-4', variant !== 'ghost' && 'mr-1', isFavorited && 'fill-current')} />
+      {variant !== 'ghost' && (isFavorited ? 'Favourited' : 'Favourite')}
     </Button>
   );
 }

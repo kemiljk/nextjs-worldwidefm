@@ -15,6 +15,9 @@ import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { PreviewBanner } from '@/components/ui/preview-banner';
 import { ListenBackButton } from '@/components/listen-back-button';
 import { getEpisodeImageUrl } from '@/lib/cosmic-types';
+import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
+import { SaveShowButton } from '@/components/save-show-button';
+import { FavoriteButton } from '@/components/favorite-button';
 
 /**
  * Generate static params for recent episodes
@@ -115,6 +118,32 @@ export default async function EpisodePage({
     .concat(yearSuffix)
     .toUpperCase();
 
+  // Check if show is saved/favorited
+  const user = await getAuthUser();
+  let isSaved = false;
+  let isHostFavorited = false;
+
+  if (user) {
+    try {
+      const { data: userData } = await getUserData(user.id);
+      if (userData?.metadata?.listen_later) {
+        const savedIds = userData.metadata.listen_later.map((s: any) =>
+          typeof s === 'string' ? s : s.id
+        );
+        isSaved = savedIds.includes(episode.id);
+      }
+      
+      if (userData?.metadata?.favourite_hosts && episode.metadata.regular_hosts?.[0]) {
+        const favoriteHostIds = userData.metadata.favourite_hosts.map((h: any) =>
+          typeof h === 'string' ? h : h.id
+        );
+        isHostFavorited = favoriteHostIds.includes(episode.metadata.regular_hosts[0].id);
+      }
+    } catch (error) {
+      console.error('Error checking user interaction status:', error);
+    }
+  }
+
   return (
     <div className='pb-50'>
       {/* Preview Banner - show when episode is a draft */}
@@ -127,12 +156,11 @@ export default async function EpisodePage({
         show={show}
       />
 
-      {/* Listen Back Button - positioned underneath the show title */}
-      {show?.metadata?.player && (
-        <div className='px-5 pt-4'>
-          <ListenBackButton show={show} />
-        </div>
-      )}
+      {/* Action Buttons */}
+      <div className='px-5 mt-4 flex items-center gap-3'>
+        {show?.metadata?.player && <ListenBackButton show={show} />}
+        <SaveShowButton show={{ id: episode.id, slug: episode.slug, title: episode.title }} isSaved={isSaved} />
+      </div>
 
       {/* Main Content Container */}
 
@@ -194,12 +222,23 @@ export default async function EpisodePage({
                   <div className='flex flex-row flex-wrap items-center gap-1'>
                     {episode.metadata.regular_hosts.map((host: any, index: number) => (
                       <React.Fragment key={host.id || host.slug}>
-                        <HostLink
-                          host={host}
-                          className='text-m8 font-mono uppercase text-muted-foreground hover:text-foreground hover:underline underline transition-colors'
-                        />
+                        <div className='flex items-center gap-2'>
+                          <HostLink
+                            host={host}
+                            className='text-m8 font-mono uppercase text-muted-foreground hover:text-foreground hover:underline underline transition-colors'
+                          />
+                          {index === 0 && (
+                            <FavoriteButton 
+                              item={host} 
+                              type="host" 
+                              isFavorited={isHostFavorited} 
+                              variant="ghost"
+                              className="text-muted-foreground hover:text-foreground"
+                            />
+                          )}
+                        </div>
                         {index < episode.metadata.regular_hosts.length - 1 && (
-                          <span className='text-muted-foreground text-m8'>|</span>
+                          <span className='text-muted-foreground text-m8 ml-1'>|</span>
                         )}
                       </React.Fragment>
                     ))}

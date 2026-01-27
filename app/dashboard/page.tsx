@@ -46,6 +46,7 @@ export default async function DashboardPage() {
         hostShows={data.hostShows}
         favouriteGenres={data.favouriteGenres}
         favouriteHosts={data.favouriteHosts}
+        listenLater={data.listenLater}
       />
     </div>
   );

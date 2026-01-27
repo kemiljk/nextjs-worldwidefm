@@ -52,29 +52,27 @@ export function ListenBackButton({ show }: ListenBackButtonProps) {
   if (!isEpisode && !hasAudioContent) return null;
 
   return (
-    <div className='mt-4'>
-      <Button
-        onClick={handleClick}
-        variant='default'
-        className='bg-almostblack text-white! dark:text-white! hover:bg-almostblack/80 hover:text-white! uppercase font-mono text-m6 px-4 py-2'
-        aria-label={
-          isCurrentlyPlaying
-            ? `Pause ${show.name || show.title}`
-            : `Listen Back to ${show.name || show.title}`
-        }
-      >
-        {isCurrentlyPlaying ? (
-          <>
-            <Pause fill='white' className='h-4 w-4 mr-2' />
-            <span className='text-white'>Pause</span>
-          </>
-        ) : (
-          <>
-            <Play fill='white' className='h-4 w-4 mr-2' />
-            <span className='text-white'>Listen Back</span>
-          </>
-        )}
-      </Button>
-    </div>
+    <Button
+      onClick={handleClick}
+      variant='default'
+      className='bg-almostblack text-white! dark:text-white! hover:bg-almostblack/80 hover:text-white! uppercase font-mono text-m6 px-4 py-2 h-10'
+      aria-label={
+        isCurrentlyPlaying
+          ? `Pause ${show.name || show.title}`
+          : `Listen Back to ${show.name || show.title}`
+      }
+    >
+      {isCurrentlyPlaying ? (
+        <>
+          <Pause fill='white' className='h-4 w-4 mr-2' />
+          <span className='text-white'>Pause</span>
+        </>
+      ) : (
+        <>
+          <Play fill='white' className='h-4 w-4 mr-2' />
+          <span className='text-white'>Listen Back</span>
+        </>
+      )}
+    </Button>
   );
 }

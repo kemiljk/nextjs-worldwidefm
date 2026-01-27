@@ -408,23 +408,6 @@ export default async function Home() {
           </Suspense>
         )}
 
-        {/* For You Section - Only show if user is logged in and has favorites */}
-        {hasFavorites && (
-          <Suspense
-            fallback={
-              <section className='py-8 px-5'>
-                <h2 className='text-h8 md:text-h7 font-bold mb-4 tracking-tight'>FOR YOU</h2>
-                <ShowsGridSkeleton count={15} />
-              </section>
-            }
-          >
-            <ForYouSection
-              favoriteGenreIds={favoriteGenreIds}
-              favoriteHostIds={favoriteHostIds}
-              limit={15}
-            />
-          </Suspense>
-        )}
 
         {/* Coloured Sections - use page_order if available, otherwise hardcoded */}
         {!hasColouredSectionsInOrder && (
