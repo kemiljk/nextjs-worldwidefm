@@ -31,11 +31,18 @@ export default function AuthForm({ type, onSubmit }: AuthFormProps) {
 
       if (onSubmit) {
         // Just pass data up to parent. Parent handles redirect/state update.
-        await onSubmit(formData);
+        const result = await onSubmit(formData);
+        
+        // Only stop loading if there's an error or no result.
+        // If success, keep loading until redirect happens (parent/useEffect handles it)
+        if (!result || result.error) {
+          setIsLoading(false);
+        }
+      } else {
+        setIsLoading(false);
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred');
-    } finally {
       setIsLoading(false);
     }
   };
