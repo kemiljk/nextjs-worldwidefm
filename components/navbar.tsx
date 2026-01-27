@@ -56,7 +56,7 @@ export default function Navbar({ navItems }: NavbarProps) {
   // Split nav items into visible and overflow items
   const processedNavItems = navItems.map(item => {
     if (item.name.toLowerCase() === 'log in') {
-      if (isLoading) return { ...item, name: '', showAsAvatar: false, isLoading: true };
+      // Return simple state - no loading skeletons
       return { ...item, name: user ? '' : 'Log In', showAsAvatar: !!user };
     }
     return item;
@@ -79,14 +79,12 @@ export default function Navbar({ navItems }: NavbarProps) {
           <nav className='hidden md:block ml-auto'>
             <ul className='flex items-center uppercase pr-0 border-r border-black '>
               {processedVisibleNavItems.map(item => (
-                <li key={item.name || 'profile-loading'}>
+                <li key={item.name || 'profile-link'}>
                   <Link
-                    href={(item as any).isLoading ? '#' : item.link}
+                    href={item.link}
                     className='flex font-mono text-m8 items-center h-10 hover:text-almostblack/20 text-almostblack dark:text-white transition-colors px-4 dark:hover:text-white/20'
                   >
-                    {(item as any).isLoading ? (
-                      <div className='h-4 w-12 bg-gray-200 dark:bg-gray-700 animate-pulse rounded' />
-                    ) : (item as any).showAsAvatar && user ? (
+                    {(item as any).showAsAvatar && user ? (
                       <div className='flex items-center gap-2'>
                         <Avatar className='h-6 w-6 border border-almostblack dark:border-white'>
                           <AvatarImage
@@ -178,15 +176,13 @@ export default function Navbar({ navItems }: NavbarProps) {
               <nav>
                 <ul className='flex flex-col gap-0'>
                   {processedNavItems.map(item => (
-                    <li key={item.name || 'mobile-profile-loading'}>
+                    <li key={item.name || 'mobile-profile-link'}>
                       <Link
-                        href={(item as any).isLoading ? '#' : item.link}
+                        href={item.link}
                         className='block text-m8 py-2.5 px-2 border-b border-almostblack text-almostblack dark:text-white hover:text-white hover:bg-almostblack dark:hover:text-white transition-colors font-mono uppercase'
                         onClick={() => setIsOpen(false)}
                       >
-                        {(item as any).isLoading ? (
-                          <div className='h-4 w-16 bg-gray-200 dark:bg-gray-700 animate-pulse rounded' />
-                        ) : (item as any).showAsAvatar && user ? (
+                        {(item as any).showAsAvatar && user ? (
                           <div className='flex items-center gap-3'>
                             <Avatar className='h-6 w-6 border border-almostblack dark:border-white'>
                               <AvatarImage

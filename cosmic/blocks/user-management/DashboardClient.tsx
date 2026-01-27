@@ -325,11 +325,11 @@ export default function DashboardClient({
     <div className='py-8'>
       <div className='mx-auto px-4 flex flex-col gap-8'>
         {/* Header */}
-        <div className='flex items-center justify-between'>
+        <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
           <h1 className='font-display uppercase text-4xl font-normal tracking-tight'>
             Welcome, {userData.metadata.first_name}!
           </h1>
-          <div className='flex gap-2'>
+          <div className='flex gap-2 self-start md:self-auto'>
             <Button variant='outline' onClick={() => setShowEditProfile(!showEditProfile)}>
               <Settings className='size-4 mr-2' />
               {showEditProfile ? 'Hide' : 'Edit'} Profile
