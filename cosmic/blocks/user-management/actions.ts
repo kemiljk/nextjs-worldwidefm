@@ -799,11 +799,13 @@ export async function getDashboardData(userId: string) {
     const genreShows: { [key: string]: any[] } = {};
     favoriteGenreIds.forEach((genreId: string) => {
       // Find shows that have this genre in their metadata
-      // Note: metadata.genres is an array of objects (depth 1) or ids (depth 0)
-      // Since we requested depth 1, we check nested ids
+      // Robust check for both object (g.id) and string (g) formats
       const showsForThisGenre = allGenreShows
-        .filter(show => show.enhanced_genres.some((g: any) => g.id === genreId))
-        .slice(0, 4); // Limit to 4 per genre for display
+        .filter(show => show.enhanced_genres.some((g: any) => {
+          const gId = typeof g === 'string' ? g : g?.id;
+          return gId === genreId;
+        }))
+        .slice(0, 4); 
       
       if (showsForThisGenre.length > 0) {
         genreShows[genreId] = showsForThisGenre;
@@ -814,7 +816,10 @@ export async function getDashboardData(userId: string) {
     const hostShows: { [key: string]: any[] } = {};
     favoriteHostIds.forEach((hostId: string) => {
       const showsForThisHost = allHostShows
-        .filter(show => show.regular_hosts.some((h: any) => h.id === hostId))
+        .filter(show => show.regular_hosts.some((h: any) => {
+          const hId = typeof h === 'string' ? h : h?.id;
+          return hId === hostId;
+        }))
         .slice(0, 4);
       
       if (showsForThisHost.length > 0) {
