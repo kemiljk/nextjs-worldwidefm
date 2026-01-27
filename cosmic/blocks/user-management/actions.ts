@@ -809,6 +809,8 @@ export async function getDashboardData(userId: string) {
     };
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
+    // Attempt to return userData even if other fetches failed, so the page doesn't break completely
+    // We'd need to refactor slightly to access userData here, but for now we just log
     return {
       data: null,
       error: `Failed to fetch dashboard data: ${error instanceof Error ? error.message : 'Unknown error'}`,
