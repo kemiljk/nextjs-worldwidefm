@@ -19,16 +19,24 @@ type NavItem = {
 
 interface NavbarProps {
   navItems: NavItem[];
+  initialUser?: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string;
+  } | null;
 }
 
-export default function Navbar({ navItems }: NavbarProps) {
+export default function Navbar({ navItems, initialUser = null }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [userData, setUserData] = useState<any>(null);
-  const { user, isLoading } = useAuth();
+  const { user: contextUser } = useAuth();
+  const user = contextUser ?? initialUser;
+  const userId = user?.id;
 
   useEffect(() => {
-    if (user) {
-      getUserData(user.id)
+    if (userId) {
+      getUserData(userId)
         .then(response => {
           if (response.data) {
             setUserData(response.data);
@@ -38,7 +46,7 @@ export default function Navbar({ navItems }: NavbarProps) {
     } else {
       setUserData(null);
     }
-  }, [user]);
+  }, [userId]);
 
   // Close mobile Sheet if resizing to desktop
   useEffect(() => {
@@ -56,8 +64,13 @@ export default function Navbar({ navItems }: NavbarProps) {
   // Split nav items into visible and overflow items
   const processedNavItems = navItems.map(item => {
     if (item.name.toLowerCase() === 'log in') {
-      // Return simple state - no loading skeletons
-      return { ...item, name: user ? '' : 'Log In', showAsAvatar: !!user };
+      // Swap login link for profile when authenticated.
+      return {
+        ...item,
+        name: user ? '' : 'Log In',
+        link: user ? '/dashboard' : item.link,
+        showAsAvatar: !!user,
+      };
     }
     return item;
   });
