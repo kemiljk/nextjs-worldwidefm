@@ -4,8 +4,6 @@ import DashboardClient from '@/cosmic/blocks/user-management/DashboardClient';
 import { getAuthUser, getDashboardData } from '@/cosmic/blocks/user-management/actions';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
 
-export const dynamic = 'force-dynamic';
-
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateBaseMetadata({
     title: 'Dashboard - Worldwide FM',
