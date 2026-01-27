@@ -2,6 +2,7 @@
 
 import crypto from 'crypto';
 import { cookies } from 'next/headers';
+import { unstable_noStore as noStore } from 'next/cache';
 import { cosmic } from '@/cosmic/client';
 import bcrypt from 'bcryptjs';
 import { Resend } from 'resend';
@@ -184,10 +185,11 @@ export async function getUserData(userId: string) {
 
 export async function getUserFromCookie() {
   try {
-    // Attempt to get cookies; this may fail during static generation/prerendering
-    const cookieStore = await cookies().catch(() => null);
-    
-    if (!cookieStore) {
+    noStore();
+    let cookieStore: ReturnType<typeof cookies> | null = null;
+    try {
+      cookieStore = cookies();
+    } catch {
       return null;
     }
 
@@ -202,18 +204,30 @@ export async function getUserFromCookie() {
         id: userId.value,
         'metadata.active_status': true,
       })
-      .props(['id', 'metadata.name', 'metadata.email', 'metadata.image'])
-      .depth(0);
+      .props(['id', 'title', 'metadata'])
+      .depth(1);
 
     if (!result?.object) {
       return null;
     }
 
+    const metadata = result.object.metadata || {};
+    const name =
+      result.object.title ||
+      [metadata.first_name, metadata.last_name].filter(Boolean).join(' ') ||
+      metadata.name ||
+      metadata.email;
+    const image =
+      metadata.avatar?.imgix_url ||
+      metadata.image?.imgix_url ||
+      metadata.avatar ||
+      metadata.image;
+
     return {
       id: result.object.id,
-      name: result.object.metadata.name,
-      email: result.object.metadata.email,
-      image: result.object.metadata.image,
+      name,
+      email: metadata.email,
+      image,
     };
   } catch (error) {
     // Suppress errors during prerendering or if cookies() fails
@@ -576,6 +590,7 @@ export async function removeListenLater(userId: string, showId: string) {
 
 export async function getDashboardData(userId: string) {
   try {
+    noStore();
     // Fetch user data first
     const { data: userData, error: userError } = await getUserData(userId);
     if (userError || !userData) {
