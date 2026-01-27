@@ -717,10 +717,6 @@ export async function getDashboardData(userId: string) {
       }
     }
 
-    // --- OPTIMIZED BATCH FETCHING ---
-    // Instead of fetching shows for each genre/host individually (N+1 problem),
-    // we fetch ALL shows for ALL favorite genres in a single query using $in operator.
-    
     const favoriteGenreIds = (userData.metadata?.favourite_genres || [])
       .map((g: any) => typeof g === 'string' ? g : g.id)
       .filter(Boolean);
@@ -729,125 +725,36 @@ export async function getDashboardData(userId: string) {
       .map((h: any) => typeof h === 'string' ? h : h.id)
       .filter(Boolean);
 
-    const genreShowsPromise = favoriteGenreIds.length > 0
-      ? cosmic.objects.find({
-          type: 'episodes',
-          'metadata.genres': { $in: favoriteGenreIds },
-          props: 'id,slug,title,type,metadata,created_at,modified_at',
-          depth: 1,
-          limit: 100,
-          sort: '-metadata.broadcast_date',
-          status: 'published',
-        })
-      : Promise.resolve({ objects: [] });
+    // --- REVERTED TO PARALLEL FETCHING (STABLE) ---
+    // The batch fetching optimization introduced a regression. 
+    // Reverting to the parallel Promise.all approach which is slower but reliable.
 
-    const hostShowsPromise = favoriteHostIds.length > 0
-      ? cosmic.objects.find({
-          type: 'episodes',
-          'metadata.regular_hosts': { $in: favoriteHostIds },
-          props: 'id,slug,title,type,metadata,created_at,modified_at',
-          depth: 1,
-          limit: 100,
-          sort: '-metadata.broadcast_date',
-          status: 'published',
-        })
-      : Promise.resolve({ objects: [] });
-
-    const [genreResults, hostResults] = await Promise.all([
-      // Wrap specific fetches in try/catch so one failure doesn't kill the whole dashboard
-      genreShowsPromise.catch(err => {
-        console.error('Failed to fetch genre shows:', err);
-        return { objects: [] };
-      }),
-      hostShowsPromise.catch(err => {
-        console.error('Failed to fetch host shows:', err);
-        return { objects: [] };
+    const genreShowsPromise = Promise.all(
+      (userData.metadata?.favourite_genres || []).map(async (genre: any) => {
+        const genreId = typeof genre === 'string' ? genre : genre.id;
+        const shows = await getShowsByGenre(genreId, 4);
+        return shows.length > 0 ? { id: genreId, shows } : null;
       })
-    ]);
+    );
 
-    // Transform raw cosmic objects into our standardized show format
-    const transformShow = (show: any) => {
-      try {
-        if (!show) return null;
-        return {
-          ...show,
-          key: show.slug || show.id,
-          name: show.title || 'Untitled Show',
-          url: `/episode/${show.slug || show.id}`,
-          pictures: {
-            large:
-              show.metadata?.external_image_url ||
-              show.metadata?.image?.imgix_url ||
-              '/image-placeholder.png',
-            extra_large:
-              show.metadata?.external_image_url ||
-              show.metadata?.image?.imgix_url ||
-              '/image-placeholder.png',
-          },
-          enhanced_image:
-            show.metadata?.external_image_url ||
-            show.metadata?.image?.imgix_url ||
-            '/image-placeholder.png',
-          created_time: show.metadata?.broadcast_date || show.created_at,
-          broadcast_date: show.metadata?.broadcast_date || show.created_at,
-          tags: (Array.isArray(show.metadata?.genres) ? show.metadata.genres : []).map((genre: any) => ({
-            name: genre.title || genre.name || 'Unknown Genre',
-            title: genre.title || genre.name || 'Unknown Genre',
-            id: genre.id 
-          })),
-          enhanced_genres: Array.isArray(show.metadata?.genres) ? show.metadata.genres : [],
-          user: {
-            name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
-          },
-          host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
-          regular_hosts: Array.isArray(show.metadata?.regular_hosts) ? show.metadata.regular_hosts : [],
-          location: show.metadata?.locations?.[0] || null,
-          __source: 'episode' as const,
-        };
-      } catch (err) {
-        console.error('Error transforming show:', show?.id, err);
-        return null;
-      }
-    };
+    const hostShowsPromise = Promise.all(
+      (userData.metadata?.favourite_hosts || []).map(async (host: any) => {
+        const hostId = typeof host === 'string' ? host : host.id;
+        const shows = await getShowsByHost(hostId, 4);
+        return shows.length > 0 ? { id: hostId, shows } : null;
+      })
+    );
 
-    const allGenreShows = (genreResults.objects || [])
-      .map(transformShow)
-      .filter((s: any) => s !== null);
-      
-    const allHostShows = (hostResults.objects || [])
-      .map(transformShow)
-      .filter((s: any) => s !== null);
+    const [genreResults, hostResults] = await Promise.all([genreShowsPromise, hostShowsPromise]);
 
-    // Group shows by Genre ID
     const genreShows: { [key: string]: any[] } = {};
-    favoriteGenreIds.forEach((genreId: string) => {
-      // Find shows that have this genre in their metadata
-      // Robust check for both object (g.id) and string (g) formats
-      const showsForThisGenre = allGenreShows
-        .filter(show => show.enhanced_genres.some((g: any) => {
-          const gId = typeof g === 'string' ? g : g?.id;
-          return gId === genreId;
-        }))
-        .slice(0, 4); 
-      
-      if (showsForThisGenre.length > 0) {
-        genreShows[genreId] = showsForThisGenre;
-      }
+    genreResults.forEach(result => {
+      if (result) genreShows[result.id] = result.shows;
     });
 
-    // Group shows by Host ID
     const hostShows: { [key: string]: any[] } = {};
-    favoriteHostIds.forEach((hostId: string) => {
-      const showsForThisHost = allHostShows
-        .filter(show => show.regular_hosts.some((h: any) => {
-          const hId = typeof h === 'string' ? h : h?.id;
-          return hId === hostId;
-        }))
-        .slice(0, 4);
-      
-      if (showsForThisHost.length > 0) {
-        hostShows[hostId] = showsForThisHost;
-      }
+    hostResults.forEach(result => {
+      if (result) hostShows[result.id] = result.shows;
     });
 
     let listenLaterShows: any[] = [];
