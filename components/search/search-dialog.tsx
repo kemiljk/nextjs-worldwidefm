@@ -828,7 +828,57 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                             onClick={() => onOpenChange(false)}
                             className='group block w-full'
                           >
-                            <div className='flex flex-col w-full pb-6 gap-2'>
+                            {/* Mobile Layout: Stacked */}
+                            <div className='flex sm:hidden flex-col w-full pb-4 gap-1'>
+                              <div className='flex items-center justify-between'>
+                                <div className='flex items-center gap-2 text-[10px] text-muted-foreground'>
+                                  <TypeIcon className='w-3 h-3 text-foreground' />
+                                  <span>{typeLabel}</span>
+                                </div>
+                                {formattedDate && (
+                                  <span className='text-[10px] text-muted-foreground'>
+                                    {formattedDate}
+                                  </span>
+                                )}
+                              </div>
+                              <h3 className='text-[16px] font-mono uppercase leading-tight'>
+                                {result.title}
+                              </h3>
+                              {(genres || categories || hosts) && (
+                                <div className='flex flex-row flex-wrap gap-1 mt-1'>
+                                  {genres?.map((genre: any) => (
+                                    <Badge
+                                      key={genre.id}
+                                      variant='outline'
+                                      className='text-[10px] py-0 h-5 uppercase'
+                                    >
+                                      {genre.title}
+                                    </Badge>
+                                  ))}
+                                  {categories?.map((category: any) => (
+                                    <Badge
+                                      key={category.id}
+                                      variant='outline'
+                                      className='text-[10px] py-0 h-5 uppercase'
+                                    >
+                                      {category.title}
+                                    </Badge>
+                                  ))}
+                                  {hosts?.map((host: any) => (
+                                    <Badge
+                                      key={host.id}
+                                      variant='outline'
+                                      className='text-[10px] py-0 h-5 uppercase'
+                                    >
+                                      {host.title}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Desktop Layout: Original */}
+                            <div className='hidden sm:flex flex-col w-full pb-6 gap-2'>
                               {/* Line 1: Type + Date */}
                               <div className='flex items-center justify-between'>
                                 <div className='flex items-center gap-2 text-m8 text-muted-foreground'>
