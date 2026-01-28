@@ -820,9 +820,14 @@ export async function getDashboardData(userId: string) {
       }
     }
 
-    // Use favourite arrays directly from userData.metadata
-    const favouriteGenres = userData.metadata?.favourite_genres || [];
-    const favouriteHosts = userData.metadata?.favourite_hosts || [];
+    // Resolve favourite IDs to full objects so the client can render them with titles
+    const favouriteGenres = favoriteGenreIds
+      .map((id: string) => allGenres.find((g: any) => g.id === id))
+      .filter(Boolean);
+
+    const favouriteHosts = favoriteHostIds
+      .map((id: string) => allHosts.find((h: any) => h.id === id))
+      .filter(Boolean);
     const listenLater = listenLaterShows;
 
     return {

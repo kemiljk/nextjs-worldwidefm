@@ -13,8 +13,10 @@ import { getUserData } from '@/cosmic/blocks/user-management/actions';
 import clsx from 'clsx';
 
 type NavItem = {
-  name: string;
-  link: string;
+  name?: string;
+  title?: string;
+  link?: string;
+  url?: string;
 };
 
 interface NavbarProps {
@@ -61,18 +63,30 @@ export default function Navbar({ navItems, initialUser = null }: NavbarProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Helper to get item name (handles both 'name' and 'title' properties from CMS)
+  const getItemName = (item: NavItem): string => item.name || item.title || '';
+  // Helper to get item link (handles both 'link' and 'url' properties from CMS)
+  const getItemLink = (item: NavItem): string => item.link || item.url || '/';
+
   // Split nav items into visible and overflow items
   const processedNavItems = navItems.map(item => {
-    if (item.name.toLowerCase() === 'log in') {
+    const itemName = getItemName(item);
+    const itemLink = getItemLink(item);
+
+    if (itemName.toLowerCase() === 'log in' || itemName.toLowerCase() === 'login') {
       // Swap login link for profile when authenticated.
       return {
         ...item,
-        name: user ? '' : 'Log In',
-        link: user ? '/dashboard' : item.link,
+        name: user ? '' : itemName,
+        link: user ? '/dashboard' : itemLink,
         showAsAvatar: !!user,
       };
     }
-    return item;
+    return {
+      ...item,
+      name: itemName,
+      link: itemLink,
+    };
   });
   const processedVisibleNavItems = processedNavItems.slice(0, 7);
   const processedOverflowNavItems = processedNavItems.slice(7);
@@ -92,9 +106,9 @@ export default function Navbar({ navItems, initialUser = null }: NavbarProps) {
           <nav className='hidden md:block ml-auto'>
             <ul className='flex items-center uppercase pr-0 border-r border-black '>
               {processedVisibleNavItems.map(item => (
-                <li key={item.name || 'profile-link'}>
+                <li key={item.name || item.link || 'profile-link'}>
                   <Link
-                    href={item.link}
+                    href={item.link || '/'}
                     className='flex font-mono text-m8 items-center h-10 hover:text-almostblack/20 text-almostblack dark:text-white transition-colors px-4 dark:hover:text-white/20'
                   >
                     {(item as any).showAsAvatar && user ? (
@@ -139,9 +153,9 @@ export default function Navbar({ navItems, initialUser = null }: NavbarProps) {
                       <nav className='mt-2'>
                         <ul className='space-y-4'>
                           {processedOverflowNavItems.map(item => (
-                            <li key={item.name}>
+                            <li key={item.name || item.link || 'overflow-profile-link'}>
                               <Link
-                                href={item.link}
+                                href={item.link || '/'}
                                 className='block py-1 text-lg hover:bg-almostblack dark:hover:bg-white text-almostblack dark:text-white hover:text-white transition-colors px-4 font-mono uppercase'
                               >
                                 {item.name}
@@ -189,9 +203,9 @@ export default function Navbar({ navItems, initialUser = null }: NavbarProps) {
               <nav>
                 <ul className='flex flex-col gap-0'>
                   {processedNavItems.map(item => (
-                    <li key={item.name || 'mobile-profile-link'}>
+                    <li key={item.name || item.link || 'mobile-profile-link'}>
                       <Link
-                        href={item.link}
+                        href={item.link || '/'}
                         className='block text-m8 py-2.5 px-2 border-b border-almostblack text-almostblack dark:text-white hover:text-white hover:bg-almostblack dark:hover:text-white transition-colors font-mono uppercase'
                         onClick={() => setIsOpen(false)}
                       >
