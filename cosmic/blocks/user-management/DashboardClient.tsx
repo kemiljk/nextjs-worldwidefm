@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useOptimistic } from 'react';
+import { useState, useTransition, useOptimistic, Suspense, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/cosmic/blocks/user-management/AuthContext';
 import { UserProfileForm } from '@/cosmic/blocks/user-management/UserProfileForm';
@@ -29,30 +29,298 @@ import { ShowCard } from '@/components/ui/show-card';
 
 interface DashboardClientProps {
   userData: any;
-  allGenres: GenreObject[];
-  allHosts: HostObject[];
-  canonicalGenres: { slug: string; title: string }[];
-  genreShows: { [key: string]: any[] };
-  hostShows: { [key: string]: any[] };
   favouriteGenres: GenreObject[];
   favouriteHosts: HostObject[];
-  listenLater?: any[];
+  showsPromise: Promise<{ 
+    genreShows: { [key: string]: any[] }; 
+    hostShows: { [key: string]: any[] };
+    listenLater: any[];
+  }>;
+  optionsPromise: Promise<{
+    allGenres: GenreObject[];
+    allHosts: HostObject[];
+    canonicalGenres: { slug: string; title: string }[];
+  }>;
 }
 
 // Function to calculate similarity score between genres
 
+// Shows Content Component using React use() api
+function DashboardShowsContent({
+  promise,
+  optimisticGenresRemove,
+  optimisticHostsRemove,
+  onRemoveGenre,
+  onRemoveHost,
+  renderFavouriteBadge,
+  handleAddClick,
+}: {
+  promise: Promise<{
+    genreShows: { [key: string]: any[] };
+    hostShows: { [key: string]: any[] };
+    listenLater: any[];
+  }>;
+  optimisticGenresRemove: GenreObject[];
+  optimisticHostsRemove: HostObject[];
+  onRemoveGenre: (id: string) => void;
+  onRemoveHost: (id: string) => void;
+  renderFavouriteBadge: (item: any, onRemove: () => void, type: 'genre' | 'host') => JSX.Element;
+  handleAddClick: (type: 'genre' | 'host') => void;
+}) {
+  const { genreShows, hostShows, listenLater } = use(promise);
+
+  const renderShowsSection = (
+    items: (GenreObject | HostObject)[],
+    showsMap: { [key: string]: any[] },
+    type: 'genre' | 'host',
+    handleRemove: (id: string) => void
+  ) => {
+    if (items.length === 0) {
+      return (
+        <EmptyState
+          icon={type === 'genre' ? Music : Users}
+          title={`No Favourite ${type === 'genre' ? 'Genres' : 'Hosts'} yet`}
+          description={`Add your favourite ${type}s to see their latest shows here.`}
+          actionLabel={`Add ${type === 'genre' ? 'Genre' : 'Host'}`}
+          onAction={() => handleAddClick(type)}
+        />
+      );
+    }
+
+    return (
+      <div className='space-y-8'>
+        {/* Badges */}
+        <div className='flex flex-wrap gap-2'>
+          {items.map(item => (
+            <div key={item.id}>
+              {renderFavouriteBadge(
+                item,
+                () => handleRemove(item.id),
+                type
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Latest shows */}
+        {items.map(item => {
+          const shows = showsMap[item.id] || [];
+          if (shows.length === 0) return null;
+
+          return (
+            <div key={item.id} className='space-y-4'>
+              <h3 className='text-xl font-semibold'>
+                Latest {type === 'genre' ? 'in' : 'from'} {item.title}
+              </h3>
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+                {shows.map((show: any) => (
+                  <div key={show.key || show.id || show.slug} className='relative'>
+                    <div className='bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden'>
+                      <div className='aspect-video bg-gray-200 dark:bg-gray-700'>
+                        <img
+                          src={
+                            show.enhanced_image || show.pictures?.large || '/image-placeholder.png'
+                          }
+                          alt={show.name || show.title}
+                          className='w-full h-full object-cover'
+                        />
+                      </div>
+                      <div className='p-4'>
+                        <h4 className='font-semibold text-sm mb-2 line-clamp-2'>
+                          {show.name || show.title}
+                        </h4>
+                        <p className='text-xs text-gray-500 dark:text-gray-400 mb-2'>
+                          {show.host || show.user?.name || 'Worldwide FM'}
+                        </p>
+                        <a
+                          href={show.url || `/episode/${show.slug}`}
+                          className='text-xs text-blue-600 dark:text-blue-400 hover:underline'
+                        >
+                          Listen Now
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <>
+      {/* Favourite Genres */}
+      <section className='mt-10'>
+        <div className='flex items-center justify-between mb-4'>
+          <h2 className='text-2xl font-bold'>Favourite Genres</h2>
+          <Button variant='outline' onClick={() => handleAddClick('genre')}>
+            Add Genre
+          </Button>
+        </div>
+        {renderShowsSection(optimisticGenresRemove, genreShows, 'genre', onRemoveGenre)}
+      </section>
+
+      {/* Favourite Hosts */}
+      <section className='mt-10'>
+        <div className='flex items-center justify-between mb-4'>
+          <h2 className='text-2xl font-bold'>Favourite Hosts</h2>
+          <Button variant='outline' onClick={() => handleAddClick('host')}>
+            Add Host
+          </Button>
+        </div>
+        {renderShowsSection(optimisticHostsRemove, hostShows, 'host', onRemoveHost)}
+      </section>
+
+      {/* Listen Later */}
+      <section className='mt-10'>
+        <h2 className='text-2xl font-bold mb-4'>Listen Later</h2>
+        {listenLater.length > 0 ? (
+          <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3'>
+            {listenLater.map((show: any) => (
+              <div key={show.id} className='relative group'>
+                <ShowCard show={show} slug={`/episode/${show.slug}`} playable />
+                <div className='absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity'>
+                  <SaveShowButton
+                    show={{ id: show.id, slug: show.slug, title: show.title }}
+                    isSaved={true}
+                    className='bg-white/90 dark:bg-black/90'
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={Bookmark}
+            title='No Saved Shows'
+            description="Save episodes to 'Listen Later' while browsing and they'll appear here."
+          />
+        )}
+      </section>
+    </>
+  );
+}
+
+// Modal Content Component using use()
+function DashboardModalContent({
+  promise,
+  isAdding,
+  optimisticGenresRemove,
+  optimisticHostsRemove,
+  selectedGenre,
+  setSelectedGenre,
+  selectedHost,
+  setSelectedHost,
+  onSave,
+}: {
+  promise: Promise<{ allGenres: GenreObject[]; allHosts: HostObject[] }>;
+  isAdding: 'genre' | 'host';
+  optimisticGenresRemove: GenreObject[];
+  optimisticHostsRemove: HostObject[];
+  selectedGenre: string;
+  setSelectedGenre: (id: string) => void;
+  selectedHost: string;
+  setSelectedHost: (id: string) => void;
+  onSave: (allGenres: GenreObject[], allHosts: HostObject[]) => void;
+}) {
+  const { allGenres, allHosts } = use(promise);
+  
+  // Wrap onSave to pass the data back up when invoked
+  // Actually, simpler: Pass set data to parent OR let parent handle save.
+  // Parent needs the DATA to save optimistically.
+  // We can pass the found object back to parent via a ref or just call onSave with the data?
+  // Let's modify the parent's handleSave to accept the object.
+
+  // Problem: Parent's handleSave doesn't have the object.
+  // Solution: Pass the object finding LOGIC to the child.
+  
+  // Actually, we can just expose a "Save" button HERE inside the child?
+  // But the modal buttons are in the parent.
+  
+  // Alternative: Lift state up? No, data is here.
+  // We can use an effect to notify parent of potential save target? No, too complex.
+  
+  // Best approach: Render the select here. The state (selectedGenre) is lifted to parent.
+  // When parent clicks save, it needs the Object.
+  // It can't get it because it doesn't have the array.
+  
+  // CHANGE: Move the Save button INSIDE this component?
+  // Yes, move the footer into the suspended component.
+  
+  return (
+    <>
+      <div className='mb-6'>
+        {isAdding === 'genre' ? (
+          <div className='space-y-4'>
+            <p className='text-sm text-gray-600 dark:text-gray-400 mb-4'>
+              Select a genre to add to your favorites:
+            </p>
+            <Select onValueChange={setSelectedGenre} value={selectedGenre}>
+              <SelectTrigger>
+                <SelectValue placeholder='Choose a genre...' />
+              </SelectTrigger>
+              <SelectContent>
+                {allGenres
+                  .filter(
+                    genre => !optimisticGenresRemove.some(favGenre => favGenre.id === genre.id)
+                  )
+                  .sort((a, b) => a.title.localeCompare(b.title))
+                  .map(genre => (
+                    <SelectItem key={genre.id} value={genre.id}>
+                      {genre.title}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <div className='space-y-4'>
+            <p className='text-sm text-gray-600 dark:text-gray-400 mb-4'>
+              Select a host to add to your favorites:
+            </p>
+            <Select onValueChange={setSelectedHost} value={selectedHost}>
+              <SelectTrigger>
+                <SelectValue placeholder='Choose a host...' />
+              </SelectTrigger>
+              <SelectContent>
+                {allHosts
+                  .filter(host => !optimisticHostsRemove.some(favHost => favHost.id === host.id))
+                  .sort((a, b) => a.title.localeCompare(b.title))
+                  .map(host => (
+                    <SelectItem key={host.id} value={host.id}>
+                      {host.title}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+      
+      <div className='flex gap-2 mt-6'>
+        <Button
+          onClick={() => onSave(allGenres, allHosts)}
+          disabled={(!selectedGenre && !selectedHost)}
+          className='flex-1'
+        >
+         Save
+        </Button>
+      </div>
+     </>
+   );
+}
+
 export default function DashboardClient({
   userData,
-  allGenres,
-  allHosts,
-  canonicalGenres = [],
-  genreShows,
-  hostShows,
   favouriteGenres = [],
   favouriteHosts = [],
-  listenLater = [],
+  showsPromise,
+  optionsPromise,
 }: DashboardClientProps) {
-  console.log('[DashboardClient] Mounted with userData:', !!userData, userData?.metadata ? 'has metadata' : 'no metadata');
+  console.log('[DashboardClient] Mounted user:', userData?.metadata?.first_name || 'Member');
   const { user, logout } = useAuth();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -127,7 +395,7 @@ export default function DashboardClient({
     setSelectedHost('');
   };
 
-  const handleSave = async () => {
+  const handleSave = async (allGenres: GenreObject[], allHosts: HostObject[]) => {
     if (!user) return;
 
     startTransition(async () => {
@@ -192,147 +460,6 @@ export default function DashboardClient({
       </button>
     </span>
   );
-
-  const renderShowsSection = (
-    items: (GenreObject | HostObject)[],
-    showsMap: { [key: string]: any[] },
-    type: 'genre' | 'host'
-  ) => {
-    if (items.length === 0) {
-      return (
-        <EmptyState
-          icon={type === 'genre' ? Music : Users}
-          title={`No Favourite ${type === 'genre' ? 'Genres' : 'Hosts'} yet`}
-          description={`Add your favourite ${type}s to see their latest shows here.`}
-          actionLabel={`Add ${type === 'genre' ? 'Genre' : 'Host'}`}
-          onAction={() => handleAddClick(type)}
-        />
-      );
-    }
-
-    return (
-      <div className='space-y-8'>
-        {/* Badges */}
-        <div className='flex flex-wrap gap-2'>
-          {items.map(item => (
-            <div key={item.id}>
-              {renderFavouriteBadge(
-                item,
-                () => (type === 'genre' ? handleRemoveGenre(item.id) : handleRemoveHost(item.id)),
-                type
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Latest shows */}
-        {items.map(item => {
-          const shows = showsMap[item.id] || [];
-          if (shows.length === 0) return null;
-
-          return (
-            <div key={item.id} className='space-y-4'>
-              <h3 className='text-xl font-semibold'>
-                Latest {type === 'genre' ? 'in' : 'from'} {item.title}
-              </h3>
-              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-                {shows.map((show: any) => (
-                  <div key={show.key || show.id || show.slug} className='relative'>
-                    <div className='bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden'>
-                      <div className='aspect-video bg-gray-200 dark:bg-gray-700'>
-                        <img
-                          src={
-                            show.enhanced_image || show.pictures?.large || '/image-placeholder.png'
-                          }
-                          alt={show.name || show.title}
-                          className='w-full h-full object-cover'
-                        />
-                      </div>
-                      <div className='p-4'>
-                        <h4 className='font-semibold text-sm mb-2 line-clamp-2'>
-                          {show.name || show.title}
-                        </h4>
-                        <p className='text-xs text-gray-500 dark:text-gray-400 mb-2'>
-                          {show.host || show.user?.name || 'Worldwide FM'}
-                        </p>
-                        <a
-                          href={show.url || `/episode/${show.slug}`}
-                          className='text-xs text-blue-600 dark:text-blue-400 hover:underline'
-                        >
-                          Listen Now
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  const favoriteGenreIds = favouriteGenres.map(g => (typeof g === 'string' ? g : g.id));
-  const favoriteHostIds = favouriteHosts.map(h => (typeof h === 'string' ? h : h.id));
-  const hasFavorites = favoriteGenreIds.length > 0 || favoriteHostIds.length > 0;
-
-  const renderModalContent = () => {
-    switch (isAdding) {
-      case 'genre':
-        return (
-          <div className='space-y-4'>
-            <p className='text-sm text-gray-600 dark:text-gray-400 mb-4'>
-              Select a genre to add to your favorites:
-            </p>
-            <Select onValueChange={setSelectedGenre} value={selectedGenre}>
-              <SelectTrigger>
-                <SelectValue placeholder='Choose a genre...' />
-              </SelectTrigger>
-              <SelectContent>
-                {allGenres
-                  .filter(
-                    genre => !optimisticGenresRemove.some(favGenre => favGenre.id === genre.id)
-                  )
-                  .sort((a, b) => a.title.localeCompare(b.title))
-                  .map(genre => (
-                    <SelectItem key={genre.id} value={genre.id}>
-                      {genre.title}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-        );
-
-      case 'host':
-        return (
-          <div className='space-y-4'>
-            <p className='text-sm text-gray-600 dark:text-gray-400 mb-4'>
-              Select a host to add to your favorites:
-            </p>
-            <Select onValueChange={setSelectedHost} value={selectedHost}>
-              <SelectTrigger>
-                <SelectValue placeholder='Choose a host...' />
-              </SelectTrigger>
-              <SelectContent>
-                {allHosts
-                  .filter(host => !optimisticHostsRemove.some(favHost => favHost.id === host.id))
-                  .sort((a, b) => a.title.localeCompare(b.title))
-                  .map(host => (
-                    <SelectItem key={host.id} value={host.id}>
-                      {host.title}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
 
   return (
     <div className='py-8'>
@@ -414,59 +541,29 @@ export default function DashboardClient({
           </div>
         </section>
 
-        {/* Favourite Genres */}
-        <section className='mt-10'>
-          <div className='flex items-center justify-between mb-4'>
-            <h2 className='text-2xl font-bold'>Favourite Genres</h2>
-            <Button variant='outline' onClick={() => handleAddClick('genre')} disabled={isPending}>
-              Add Genre
-            </Button>
-          </div>
-          {renderShowsSection(optimisticGenresRemove, genreShows, 'genre')}
-        </section>
-
-        {/* Favourite Hosts */}
-        <section className='mt-10'>
-          <div className='flex items-center justify-between mb-4'>
-            <h2 className='text-2xl font-bold'>Favourite Hosts</h2>
-            <Button variant='outline' onClick={() => handleAddClick('host')} disabled={isPending}>
-              Add Host
-            </Button>
-          </div>
-          {renderShowsSection(optimisticHostsRemove, hostShows, 'host')}
-        </section>
-
-        {/* Listen Later */}
-        <section className='mt-10'>
-          <h2 className='text-2xl font-bold mb-4'>Listen Later</h2>
-          {listenLater.length > 0 ? (
-            <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3'>
-              {listenLater.map((show: any) => (
-                <div key={show.id} className='relative group'>
-                  <ShowCard show={show} slug={`/episode/${show.slug}`} playable />
-                  <div className='absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity'>
-                    <SaveShowButton
-                      show={{ id: show.id, slug: show.slug, title: show.title }}
-                      isSaved={true}
-                      className='bg-white/90 dark:bg-black/90'
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon={Bookmark}
-              title='No Saved Shows'
-              description="Save episodes to 'Listen Later' while browsing and they'll appear here."
-            />
-          )}
-        </section>
+        {/* Main Shows Content - Suspended */}
+        <Suspense fallback={<div className="py-20 text-center">Loading dashboard...</div>}>
+          <DashboardShowsContent 
+             promise={showsPromise}
+             optimisticGenresRemove={optimisticGenresRemove}
+             optimisticHostsRemove={optimisticHostsRemove}
+             onRemoveGenre={handleRemoveGenre}
+             onRemoveHost={handleRemoveHost}
+             renderFavouriteBadge={renderFavouriteBadge}
+             handleAddClick={handleAddClick}
+          />
+        </Suspense>
 
         {/* For You Section */}
         <section className='mt-10'>
           <h2 className='text-2xl font-bold mb-4'>Recommended For You</h2>
-          {hasFavorites ? (
+          {/* We need IDs for ForYouSection, calculate them here */}
+          {(() => {
+             const favoriteGenreIds = favouriteGenres.map(g => (typeof g === 'string' ? g : g.id));
+             const favoriteHostIds = favouriteHosts.map(h => (typeof h === 'string' ? h : h.id));
+             const hasFavorites = favoriteGenreIds.length > 0 || favoriteHostIds.length > 0;
+             
+             return hasFavorites ? (
             <ForYouSection
               favoriteGenreIds={favoriteGenreIds}
               favoriteHostIds={favoriteHostIds}
@@ -479,7 +576,8 @@ export default function DashboardClient({
               title='No Recommendations'
               description='Follow your favourite genres and hosts to get personalized recommendations.'
             />
-          )}
+          );
+          })()}
         </section>
 
         {/* Add Favorites Modal */}
@@ -498,7 +596,19 @@ export default function DashboardClient({
                 Add Favourite {isAdding.charAt(0).toUpperCase() + isAdding.slice(1)}
               </h3>
 
-              {renderModalContent()}
+              <Suspense fallback={<div className="py-10 text-center">Loading options...</div>}>
+                <DashboardModalContent 
+                  promise={optionsPromise}
+                  isAdding={isAdding}
+                  optimisticGenresRemove={optimisticGenresRemove}
+                  optimisticHostsRemove={optimisticHostsRemove}
+                  selectedGenre={selectedGenre}
+                  setSelectedGenre={setSelectedGenre}
+                  selectedHost={selectedHost}
+                  setSelectedHost={setSelectedHost}
+                  onSave={handleSave}
+                />
+              </Suspense>
 
               <div className='flex gap-2 mt-6'>
                 <Button
@@ -509,13 +619,7 @@ export default function DashboardClient({
                 >
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={(!selectedGenre && !selectedHost) || isPending}
-                  className='flex-1'
-                >
-                  {isPending ? 'Saving...' : 'Save'}
-                </Button>
+                {/* Save button is now inside ModalContent to access data */}
               </div>
             </div>
           </div>

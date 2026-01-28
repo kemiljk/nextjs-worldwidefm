@@ -39,14 +39,10 @@ export default async function DashboardPage() {
     <div className='container mx-auto py-8 px-4'>
       <DashboardClient
         userData={data.userData}
-        allGenres={data.allGenres}
-        allHosts={data.allHosts}
-        canonicalGenres={data.canonicalGenres}
-        genreShows={data.genreShows}
-        hostShows={data.hostShows}
         favouriteGenres={data.favouriteGenres}
         favouriteHosts={data.favouriteHosts}
-        listenLater={data.listenLater}
+        showsPromise={data.showsPromise}
+        optionsPromise={data.optionsPromise}
       />
     </div>
   );

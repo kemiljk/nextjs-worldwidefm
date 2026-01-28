@@ -599,274 +599,220 @@ export async function removeListenLater(userId: string, showId: string) {
   return manageFavourites(userId, { id: showId } as { id: string }, 'listen_later', 'remove');
 }
 
+// Helper function to get latest shows by genre
+async function getShowsByGenre(genreId: string, limit = 4): Promise<any[]> {
+  try {
+    const cosmicResponse = await cosmic.objects.find({
+      type: 'episodes',
+      'metadata.genres': genreId,
+      props: 'id,slug,title,type,metadata,created_at,modified_at',
+      depth: 1,
+      limit,
+      sort: '-metadata.broadcast_date',
+      status: 'published',
+    });
+
+    return (cosmicResponse.objects || []).map((show: any) => ({
+      ...show,
+      key: show.slug || show.id,
+      name: show.title || 'Untitled Show',
+      url: `/episode/${show.slug || show.id}`,
+      pictures: {
+        large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+        extra_large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+      },
+      enhanced_image: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+      created_time: show.metadata?.broadcast_date || show.created_at,
+      broadcast_date: show.metadata?.broadcast_date || show.created_at,
+      tags: (show.metadata?.genres || []).map((genre: any) => ({
+        name: genre.title || genre.name || 'Unknown Genre',
+        title: genre.title || genre.name || 'Unknown Genre',
+      })),
+      enhanced_genres: show.metadata?.genres || [],
+      user: { name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM' },
+      host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
+      location: show.metadata?.locations?.[0] || null,
+      __source: 'episode' as const,
+    }));
+  } catch (error: any) {
+    console.error('Error fetching shows by genre:', error);
+    return [];
+  }
+}
+
+// Helper function to get latest shows by host
+async function getShowsByHost(hostId: string, limit = 4): Promise<any[]> {
+  try {
+    const cosmicResponse = await cosmic.objects.find({
+      type: 'episodes',
+      'metadata.regular_hosts': hostId,
+      props: 'id,slug,title,type,metadata,created_at,modified_at',
+      depth: 1,
+      limit,
+      sort: '-metadata.broadcast_date',
+      status: 'published',
+    });
+
+    return (cosmicResponse.objects || []).map((show: any) => ({
+      ...show,
+      key: show.slug,
+      name: show.title,
+      url: `/episode/${show.slug}`,
+      pictures: {
+        large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+        extra_large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+      },
+      enhanced_image: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+      created_time: show.metadata?.broadcast_date || show.created_at,
+      broadcast_date: show.metadata?.broadcast_date || show.created_at,
+      tags: (show.metadata?.genres || []).map((genre: any) => ({
+        name: genre.title || genre.name,
+        title: genre.title || genre.name,
+      })),
+      enhanced_genres: show.metadata?.genres || [],
+      user: { name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM' },
+      host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
+      location: show.metadata?.locations?.[0] || null,
+      __source: 'episode' as const,
+    }));
+  } catch (error: any) {
+    console.error('Error fetching shows by host:', error);
+    return [];
+  }
+}
+
+export async function getDashboardShows(userData: any) {
+  const genreShowsPromise = Promise.all(
+    (userData.metadata?.favourite_genres || []).map(async (genre: any) => {
+      const genreId = typeof genre === 'string' ? genre : genre.id;
+      const shows = await getShowsByGenre(genreId, 4);
+      return shows.length > 0 ? { id: genreId, shows } : null;
+    })
+  );
+
+  const hostShowsPromise = Promise.all(
+    (userData.metadata?.favourite_hosts || []).map(async (host: any) => {
+      const hostId = typeof host === 'string' ? host : host.id;
+      const shows = await getShowsByHost(hostId, 4);
+      return shows.length > 0 ? { id: hostId, shows } : null;
+    })
+  );
+
+  let listenLaterShowsPromise: Promise<any[]> = Promise.resolve([]);
+  if (userData.metadata?.listen_later && userData.metadata.listen_later.length > 0) {
+     const listenLaterIds = userData.metadata.listen_later.map((s: any) =>
+       typeof s === 'string' ? s : s.id
+     );
+     listenLaterShowsPromise = cosmic.objects.find({
+       type: 'episodes',
+       id: { $in: listenLaterIds },
+       props: 'id,slug,title,type,metadata,created_at,modified_at',
+       depth: 1,
+     }).then((response: any) => (response.objects || []).map((show: any) => ({
+       ...show,
+       key: show.slug,
+       name: show.title,
+       url: `/episode/${show.slug}`,
+       pictures: {
+         large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+         extra_large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+       },
+       enhanced_image: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+       created_time: show.metadata?.broadcast_date || show.created_at,
+       broadcast_date: show.metadata?.broadcast_date || show.created_at,
+       tags: (show.metadata?.genres || []).map((genre: any) => ({
+         name: genre.title || genre.name,
+         title: genre.title || genre.name,
+       })),
+       user: { name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM' },
+       host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
+       __source: 'episode' as const,
+     }))).catch((err: any) => {
+       console.error('Error fetching listen later:', err);
+       return [];
+     });
+  }
+
+  const [genreResults, hostResults, listenLater] = await Promise.all([
+    genreShowsPromise,
+    hostShowsPromise,
+    listenLaterShowsPromise
+  ]);
+
+   const genreShows: { [key: string]: any[] } = {};
+   genreResults.forEach(result => {
+     if (result) genreShows[result.id] = result.shows;
+   });
+
+   const hostShows: { [key: string]: any[] } = {};
+   hostResults.forEach(result => {
+     if (result) hostShows[result.id] = result.shows;
+   });
+
+   return { genreShows, hostShows, listenLater };
+}
+
+export async function getDashboardOptions() {
+  const [genresRes, hostsRes] = await Promise.all([
+    cosmic.objects.find({
+      type: 'genres',
+      props: 'id,slug,title,type,metadata',
+      depth: 1,
+      limit: 1000,
+    }),
+    cosmic.objects.find({
+      type: 'regular-hosts',
+      props: 'id,slug,title,type,metadata',
+      depth: 1,
+      limit: 1000,
+    }),
+  ]);
+
+  const allGenres = genresRes.objects || [];
+  const allHosts = hostsRes.objects || [];
+  
+  let canonicalGenres: { slug: string; title: string }[] = [];
+  try {
+    canonicalGenres = await getCanonicalGenres();
+  } catch (error) {
+    console.error('Error fetching canonical genres:', error);
+  }
+
+  return { allGenres, allHosts, canonicalGenres };
+}
+
+
 export async function getDashboardData(userId: string) {
   try {
     noStore();
 
-    // Fetch user data first
+    // Fetch user data first - AWAIT THIS so we have the user
     const { data: userData, error: userError } = await getUserData(userId);
     if (userError || !userData) {
       return { data: null, error: userError || 'User not found' };
     }
 
-    // Fetch all required collections in parallel
-    const [genresRes, hostsRes] = await Promise.all([
-      cosmic.objects.find({
+    // Prepare favourites from user data directly (assuming depth(1) works)
+    const favouriteGenres = (userData.metadata?.favourite_genres || []).filter((g: any) => typeof g !== 'string');
+    const favouriteHosts = (userData.metadata?.favourite_hosts || []).filter((h: any) => typeof h !== 'string');
 
-        type: 'genres',
-        props: 'id,slug,title,type,metadata',
-        depth: 1,
-        limit: 1000,
-      }),
-      cosmic.objects.find({
-        type: 'regular-hosts',
-        props: 'id,slug,title,type,metadata',
-        depth: 1,
-        limit: 1000,
-      }),
-    ]);
-
-    const allGenres = genresRes.objects || [];
-
-    const allHosts = hostsRes.objects || [];
-
-    // Fetch canonical genres for genre matching
-    let canonicalGenres: { slug: string; title: string }[] = [];
-    try {
-      canonicalGenres = await getCanonicalGenres();
-    } catch (error) {
-      console.error('Error fetching canonical genres:', error);
-    }
-
-    // Helper function to get latest shows by genre
-    async function getShowsByGenre(genreId: string, limit = 4): Promise<any[]> {
-      try {
-        // Filter by genre ID in the metadata.genres array
-        const cosmicResponse = await cosmic.objects.find({
-          type: 'episodes',
-          'metadata.genres': genreId,
-          props: 'id,slug,title,type,metadata,created_at,modified_at',
-          depth: 1,
-          limit,
-          sort: '-metadata.broadcast_date',
-          status: 'published',
-        });
-
-        // Transform Cosmic data to match ShowCard expectations
-        return (cosmicResponse.objects || []).map((show: any) => ({
-          ...show,
-          key: show.slug || show.id,
-          name: show.title || 'Untitled Show',
-          url: `/episode/${show.slug || show.id}`,
-          pictures: {
-            large:
-              show.metadata?.external_image_url ||
-              show.metadata?.image?.imgix_url ||
-              '/image-placeholder.png',
-            extra_large:
-              show.metadata?.external_image_url ||
-              show.metadata?.image?.imgix_url ||
-              '/image-placeholder.png',
-          },
-          enhanced_image:
-            show.metadata?.external_image_url ||
-            show.metadata?.image?.imgix_url ||
-            '/image-placeholder.png',
-          created_time: show.metadata?.broadcast_date || show.created_at,
-          broadcast_date: show.metadata?.broadcast_date || show.created_at,
-          tags: (show.metadata?.genres || []).map((genre: any) => ({
-            name: genre.title || genre.name || 'Unknown Genre',
-            title: genre.title || genre.name || 'Unknown Genre',
-          })),
-          enhanced_genres: show.metadata?.genres || [],
-          user: {
-            name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
-          },
-          host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
-          location: show.metadata?.locations?.[0] || null,
-          __source: 'episode' as const,
-        }));
-      } catch (error: any) {
-        console.error('Error fetching shows by genre:', error);
-        return [];
-      }
-    }
-
-    // Helper function to get latest shows by host
-    async function getShowsByHost(hostId: string, limit = 4): Promise<any[]> {
-      try {
-        // Filter by host ID in the metadata.regular_hosts array
-        const cosmicResponse = await cosmic.objects.find({
-          type: 'episodes',
-          'metadata.regular_hosts': hostId,
-          props: 'id,slug,title,type,metadata,created_at,modified_at',
-          depth: 1,
-          limit,
-          sort: '-metadata.broadcast_date',
-          status: 'published',
-        });
-
-        // Transform Cosmic data to match ShowCard expectations
-        return (cosmicResponse.objects || []).map((show: any) => ({
-          ...show,
-          key: show.slug,
-          name: show.title,
-          url: `/episode/${show.slug}`,
-          pictures: {
-            large:
-              show.metadata?.external_image_url ||
-              show.metadata?.image?.imgix_url ||
-              '/image-placeholder.png',
-            extra_large:
-              show.metadata?.external_image_url ||
-              show.metadata?.image?.imgix_url ||
-              '/image-placeholder.png',
-          },
-          enhanced_image:
-            show.metadata?.external_image_url ||
-            show.metadata?.image?.imgix_url ||
-            '/image-placeholder.png',
-          created_time: show.metadata?.broadcast_date || show.created_at,
-          broadcast_date: show.metadata?.broadcast_date || show.created_at,
-          tags: (show.metadata?.genres || []).map((genre: any) => ({
-            name: genre.title || genre.name,
-            title: genre.title || genre.name,
-          })),
-          enhanced_genres: show.metadata?.genres || [],
-          user: {
-            name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
-          },
-          host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
-          location: show.metadata?.locations?.[0] || null,
-          __source: 'episode' as const,
-        }));
-      } catch (error: any) {
-        console.error('Error fetching shows by host:', error);
-        return [];
-      }
-    }
-
-    const favoriteGenreIds = (userData.metadata?.favourite_genres || [])
-      .map((g: any) => (typeof g === 'string' ? g : g.id))
-      .filter(Boolean);
-
-    const favoriteHostIds = (userData.metadata?.favourite_hosts || [])
-      .map((h: any) => (typeof h === 'string' ? h : h.id))
-      .filter(Boolean);
-
-    // --- REVERTED TO PARALLEL FETCHING (STABLE) ---
-    // The batch fetching optimization introduced a regression.
-    // Reverting to the parallel Promise.all approach which is slower but reliable.
-
-    const genreShowsPromise = Promise.all(
-
-      (userData.metadata?.favourite_genres || []).map(async (genre: any) => {
-        const genreId = typeof genre === 'string' ? genre : genre.id;
-        const shows = await getShowsByGenre(genreId, 4);
-        return shows.length > 0 ? { id: genreId, shows } : null;
-      })
-    );
-
-    const hostShowsPromise = Promise.all(
-      (userData.metadata?.favourite_hosts || []).map(async (host: any) => {
-        const hostId = typeof host === 'string' ? host : host.id;
-        const shows = await getShowsByHost(hostId, 4);
-        return shows.length > 0 ? { id: hostId, shows } : null;
-      })
-    );
-
-    const [genreResults, hostResults] = await Promise.all([genreShowsPromise, hostShowsPromise]);
-
-    const genreShows: { [key: string]: any[] } = {};
-
-    genreResults.forEach(result => {
-      if (result) genreShows[result.id] = result.shows;
-    });
-
-    const hostShows: { [key: string]: any[] } = {};
-    hostResults.forEach(result => {
-      if (result) hostShows[result.id] = result.shows;
-    });
-
-    let listenLaterShows: any[] = [];
-
-    if (userData.metadata?.listen_later && userData.metadata.listen_later.length > 0) {
-      try {
-        const listenLaterIds = userData.metadata.listen_later.map((s: any) =>
-          typeof s === 'string' ? s : s.id
-        );
-        const response = await cosmic.objects.find({
-          type: 'episodes',
-          id: { $in: listenLaterIds },
-          props: 'id,slug,title,type,metadata,created_at,modified_at',
-          depth: 1,
-        });
-
-        // Transform Cosmic data
-        listenLaterShows = (response.objects || []).map((show: any) => ({
-          ...show,
-          key: show.slug,
-          name: show.title,
-          url: `/episode/${show.slug}`,
-          pictures: {
-            large:
-              show.metadata?.external_image_url ||
-              show.metadata?.image?.imgix_url ||
-              '/image-placeholder.png',
-            extra_large:
-              show.metadata?.external_image_url ||
-              show.metadata?.image?.imgix_url ||
-              '/image-placeholder.png',
-          },
-          enhanced_image:
-            show.metadata?.external_image_url ||
-            show.metadata?.image?.imgix_url ||
-            '/image-placeholder.png',
-          created_time: show.metadata?.broadcast_date || show.created_at,
-          broadcast_date: show.metadata?.broadcast_date || show.created_at,
-          tags: (show.metadata?.genres || []).map((genre: any) => ({
-            name: genre.title || genre.name,
-            title: genre.title || genre.name,
-          })),
-          user: {
-            name: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
-          },
-          host: show.metadata?.regular_hosts?.[0]?.title || 'Worldwide FM',
-          __source: 'episode' as const,
-        }));
-      } catch (error) {
-        console.error('Error fetching listen later shows:', error);
-      }
-    }
-
-    // Resolve favourite IDs to full objects so the client can render them with titles
-    const favouriteGenres = favoriteGenreIds
-      .map((id: string) => allGenres.find((g: any) => g.id === id))
-      .filter(Boolean);
-
-    const favouriteHosts = favoriteHostIds
-      .map((id: string) => allHosts.find((h: any) => h.id === id))
-      .filter(Boolean);
-    const listenLater = listenLaterShows;
+    // Start fetching heavy data - DO NOT AWAIT
+    // These promises will be streamed to the client
+    const showsPromise = getDashboardShows(userData);
+    const optionsPromise = getDashboardOptions();
 
     return {
       data: {
         userData,
-        allGenres,
-        allHosts,
-        canonicalGenres,
-        genreShows,
-        hostShows,
         favouriteGenres,
         favouriteHosts,
-        listenLater,
+        showsPromise,
+        optionsPromise,
       },
       error: null,
     };
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
-    // Attempt to return userData even if other fetches failed, so the page doesn't break completely
-    // We'd need to refactor slightly to access userData here, but for now we just log
     return {
       data: null,
       error: `Failed to fetch dashboard data: ${error instanceof Error ? error.message : 'Unknown error'}`,
