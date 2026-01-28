@@ -15,6 +15,13 @@ export default function LoginClient({ onSubmit, redirect }: { onSubmit: any; red
   const redirectParam = searchParams.get('redirect');
   const finalRedirect = redirectParam || redirect;
 
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.push(finalRedirect);
+      router.refresh();
+    }
+  }, [user, isLoading, router, finalRedirect]);
+
   if (isLoading) {
     return (
       <div className='flex min-h-[50vh] items-center justify-center p-4'>
@@ -43,9 +50,7 @@ export default function LoginClient({ onSubmit, redirect }: { onSubmit: any; red
             router.push(`/login?error=${encodeURIComponent(result.error)}`);
             return result;
           } else if (result && result.user) {
-            // Use hard navigation to ensure cookies are fully set and propagated
-            // before loading the dashboard. This prevents the "login loop" issue.
-            window.location.href = finalRedirect; 
+            authLogin(result.user);
             return result;
           }
         }}
