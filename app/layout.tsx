@@ -60,14 +60,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         className={`${sans.variable} ${display.variable} ${mono.variable} min-h-screen w-full bg-background font-sans`}
       >
         <Script src='https://cdn.socket.io/4.7.2/socket.io.min.js' strategy='lazyOnload' />
-        <Suspense
-          fallback={
-            <nav className='fixed top-11 z-40 w-full border-b border-almostblack bg-almostwhite dark:bg-almostblack h-14' />
-          }
-        >
-          <NavWrapper />
-        </Suspense>
         <Providers>
+          <Suspense
+            fallback={
+              <nav className='fixed top-11 z-40 w-full border-b border-almostblack bg-almostwhite dark:bg-almostblack h-14' />
+            }
+          >
+            <NavWrapper />
+          </Suspense>
           <LivePlayer />
           <main className='w-full pt-14 overflow-x-hidden'>
             <Suspense>{children}</Suspense>
