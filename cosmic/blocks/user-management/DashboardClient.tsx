@@ -52,6 +52,7 @@ export default function DashboardClient({
   favouriteHosts = [],
   listenLater = [],
 }: DashboardClientProps) {
+  console.log('[DashboardClient] Mounted with userData:', !!userData, userData?.metadata ? 'has metadata' : 'no metadata');
   const { user, logout } = useAuth();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -155,9 +156,21 @@ export default function DashboardClient({
     });
   };
 
-  if (!userData) {
-    return null;
-  }
+  // Ensure we have safe defaults for metadata if it's missing (data consistency issue)
+  const metadata = userData?.metadata || {};
+  const firstName = metadata.first_name || 'Member';
+  const subscriptionStatus = metadata.subscription_status || 'inactive';
+  
+  const safeUser = {
+    ...userData,
+    metadata: {
+      ...metadata,
+      first_name: firstName,
+      last_name: metadata.last_name || '',
+      email: metadata.email || '',
+      avatar: metadata.avatar,
+    }
+  };
 
   const renderFavouriteBadge = (
     item: GenreObject | HostObject,
@@ -327,7 +340,7 @@ export default function DashboardClient({
         {/* Header */}
         <div className='flex flex-col md:flex-row md:items-center justify-between gap-4'>
           <h1 className='font-display uppercase text-4xl font-normal tracking-tight'>
-            Welcome, {userData.metadata.first_name}!
+            Welcome, {firstName}!
           </h1>
           <div className='flex gap-2 self-start md:self-auto'>
             <Button variant='outline' onClick={() => setShowEditProfile(!showEditProfile)}>
@@ -344,7 +357,7 @@ export default function DashboardClient({
         {/* Edit Profile Form */}
         {showEditProfile && (
           <div className='mb-8'>
-            <UserProfileForm user={userData} />
+            <UserProfileForm user={safeUser} />
           </div>
         )}
 
@@ -357,14 +370,14 @@ export default function DashboardClient({
                 <div>
                   <h2 className='text-2xl font-bold'>Membership</h2>
                   <p className='text-muted-foreground'>
-                    {userData.metadata.subscription_status === 'active'
+                    {subscriptionStatus === 'active'
                       ? 'You have an active membership'
                       : 'Support Worldwide FM, an independent radio station'}
                   </p>
                 </div>
               </div>
               <div className='text-left md:text-right'>
-                {userData.metadata.subscription_status === 'active' ? (
+                {subscriptionStatus === 'active' ? (
                   <div className='flex items-center space-x-2 text-green-600'>
                     <CheckCircle className='size-5' />
                     <span className='font-medium'>Active</span>
@@ -380,7 +393,7 @@ export default function DashboardClient({
               </div>
             </div>
 
-            {userData.metadata.subscription_status === 'active' && (
+            {subscriptionStatus === 'active' && (
               <div className='mt-4 pt-4 border-t border-primary/20'>
                 <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm'>
                   <div className='flex items-center space-x-2'>

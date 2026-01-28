@@ -73,14 +73,19 @@ export default function Navbar({ navItems, initialUser = null }: NavbarProps) {
     const itemName = getItemName(item);
     const itemLink = getItemLink(item);
 
-    if (itemName.toLowerCase() === 'log in' || itemName.toLowerCase() === 'login') {
+    const normalizedName = itemName.toLowerCase().trim();
+    if (normalizedName === 'log in' || normalizedName === 'login') {
       // Swap login link for profile when authenticated.
-      return {
+      const newItem = {
         ...item,
         name: user ? '' : itemName,
         link: user ? '/dashboard' : itemLink,
         showAsAvatar: !!user,
       };
+      if (user) {
+        console.log('[Navbar] Profile link generated:', newItem.link);
+      }
+      return newItem;
     }
     return {
       ...item,
@@ -109,7 +114,7 @@ export default function Navbar({ navItems, initialUser = null }: NavbarProps) {
                 <li key={item.name || item.link || 'profile-link'}>
                   <Link
                     href={item.link || '/'}
-                    className='flex font-mono text-m8 items-center h-10 hover:text-almostblack/20 text-almostblack dark:text-white transition-colors px-4 dark:hover:text-white/20'
+                    className='relative z-50 flex font-mono text-m8 items-center h-10 hover:text-almostblack/20 text-almostblack dark:text-white transition-colors px-4 dark:hover:text-white/20'
                   >
                     {(item as any).showAsAvatar && user ? (
                       <div className='flex items-center gap-2'>
