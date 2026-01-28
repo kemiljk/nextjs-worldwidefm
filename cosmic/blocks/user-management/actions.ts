@@ -786,28 +786,34 @@ export async function getDashboardData(userId: string) {
   try {
     noStore();
 
-    // Fetch user data first - AWAIT THIS so we have the user
+    // Fetch user data first
     const { data: userData, error: userError } = await getUserData(userId);
     if (userError || !userData) {
       return { data: null, error: userError || 'User not found' };
     }
 
-    // Prepare favourites from user data directly (assuming depth(1) works)
+    // Prepare favourites from user data directly
     const favouriteGenres = (userData.metadata?.favourite_genres || []).filter((g: any) => typeof g !== 'string');
     const favouriteHosts = (userData.metadata?.favourite_hosts || []).filter((h: any) => typeof h !== 'string');
 
-    // Start fetching heavy data - DO NOT AWAIT
-    // These promises will be streamed to the client
-    const showsPromise = getDashboardShows(userData);
-    const optionsPromise = getDashboardOptions();
+    // Fetch all data in parallel and AWAIT - Promises cannot be serialized to client
+    const [showsData, optionsData] = await Promise.all([
+      getDashboardShows(userData),
+      getDashboardOptions(),
+    ]);
 
     return {
       data: {
         userData,
         favouriteGenres,
         favouriteHosts,
-        showsPromise,
-        optionsPromise,
+        // Spread resolved data
+        genreShows: showsData.genreShows,
+        hostShows: showsData.hostShows,
+        listenLater: showsData.listenLater,
+        allGenres: optionsData.allGenres,
+        allHosts: optionsData.allHosts,
+        canonicalGenres: optionsData.canonicalGenres,
       },
       error: null,
     };
