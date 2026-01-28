@@ -18,7 +18,6 @@ export default function LoginClient({ onSubmit, redirect }: { onSubmit: any; red
   useEffect(() => {
     if (!isLoading && user) {
       router.push(finalRedirect);
-      router.refresh();
     }
   }, [user, isLoading, router, finalRedirect]);
 

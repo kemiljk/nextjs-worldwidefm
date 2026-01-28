@@ -186,9 +186,9 @@ export async function getUserData(userId: string) {
 export async function getUserFromCookie() {
   try {
     noStore();
-    let cookieStore: ReturnType<typeof cookies> | null = null;
+    let cookieStore: Awaited<ReturnType<typeof cookies>> | null = null;
     try {
-      cookieStore = cookies();
+      cookieStore = await cookies();
     } catch {
       return null;
     }
@@ -218,10 +218,7 @@ export async function getUserFromCookie() {
       metadata.name ||
       metadata.email;
     const image =
-      metadata.avatar?.imgix_url ||
-      metadata.image?.imgix_url ||
-      metadata.avatar ||
-      metadata.image;
+      metadata.avatar?.imgix_url || metadata.image?.imgix_url || metadata.avatar || metadata.image;
 
     return {
       id: result.object.id,
@@ -231,7 +228,7 @@ export async function getUserFromCookie() {
     };
   } catch (error) {
     // Suppress errors during prerendering or if cookies() fails
-    // console.error('Error fetching user:', error); 
+    // console.error('Error fetching user:', error);
     return null;
   }
 }
@@ -733,15 +730,15 @@ export async function getDashboardData(userId: string) {
     }
 
     const favoriteGenreIds = (userData.metadata?.favourite_genres || [])
-      .map((g: any) => typeof g === 'string' ? g : g.id)
+      .map((g: any) => (typeof g === 'string' ? g : g.id))
       .filter(Boolean);
 
     const favoriteHostIds = (userData.metadata?.favourite_hosts || [])
-      .map((h: any) => typeof h === 'string' ? h : h.id)
+      .map((h: any) => (typeof h === 'string' ? h : h.id))
       .filter(Boolean);
 
     // --- REVERTED TO PARALLEL FETCHING (STABLE) ---
-    // The batch fetching optimization introduced a regression. 
+    // The batch fetching optimization introduced a regression.
     // Reverting to the parallel Promise.all approach which is slower but reliable.
 
     const genreShowsPromise = Promise.all(
@@ -785,18 +782,27 @@ export async function getDashboardData(userId: string) {
           props: 'id,slug,title,type,metadata,created_at,modified_at',
           depth: 1,
         });
-        
-        // Transform Cosmic data 
+
+        // Transform Cosmic data
         listenLaterShows = (response.objects || []).map((show: any) => ({
           ...show,
           key: show.slug,
           name: show.title,
           url: `/episode/${show.slug}`,
           pictures: {
-            large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
-            extra_large: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+            large:
+              show.metadata?.external_image_url ||
+              show.metadata?.image?.imgix_url ||
+              '/image-placeholder.png',
+            extra_large:
+              show.metadata?.external_image_url ||
+              show.metadata?.image?.imgix_url ||
+              '/image-placeholder.png',
           },
-          enhanced_image: show.metadata?.external_image_url || show.metadata?.image?.imgix_url || '/image-placeholder.png',
+          enhanced_image:
+            show.metadata?.external_image_url ||
+            show.metadata?.image?.imgix_url ||
+            '/image-placeholder.png',
           created_time: show.metadata?.broadcast_date || show.created_at,
           broadcast_date: show.metadata?.broadcast_date || show.created_at,
           tags: (show.metadata?.genres || []).map((genre: any) => ({
