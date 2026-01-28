@@ -1,7 +1,7 @@
 'use server';
 
 import crypto from 'crypto';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { unstable_noStore as noStore } from 'next/cache';
 import { cosmic } from '@/cosmic/client';
 import bcrypt from 'bcryptjs';
@@ -114,7 +114,12 @@ export async function login(formData: FormData) {
   const email = (formData.get('email') as string).toLowerCase();
   const password = formData.get('password') as string;
 
+  console.log(`[LOGIN] Attempting login for ${email} at ${new Date().toISOString()}`);
+  console.log(`[LOGIN] Environment: ${process.env.NODE_ENV}`);
+
+
   try {
+    console.log('[LOGIN] Finding user in Cosmic...');
     const result = await cosmic.objects
       .findOne({
         type: 'users',
@@ -124,12 +129,15 @@ export async function login(formData: FormData) {
       })
       .props(['id', 'title', 'metadata'])
       .depth(0);
+    console.log(`[LOGIN] Cosmic search result: ${result.object ? 'Found' : 'Not Found'}`);
 
     if (!result.object) {
       return { error: 'Invalid email or password' };
     }
 
+    console.log('[LOGIN] Verifying password...');
     const isValid = await bcrypt.compare(password, result.object.metadata.password);
+    console.log(`[LOGIN] Password valid: ${isValid}`);
 
     if (!isValid) {
       return { error: 'Invalid email or password' };
@@ -143,12 +151,22 @@ export async function login(formData: FormData) {
     };
 
     // Set the user_id cookie
-    (await cookies()).set('user_id', result.object.id, {
+    console.log('[LOGIN] Setting cookie...');
+    const cookieStore = await cookies();
+    const headersList = await headers();
+    const host = headersList.get('host') || '';
+    const isLocalhost = host.includes('localhost');
+    
+    // Only use secure cookies in production if NOT on localhost
+    const isSecure = process.env.NODE_ENV === 'production' && !isLocalhost;
+
+    cookieStore.set('user_id', result.object.id, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecure,
       sameSite: 'lax',
       path: '/',
     });
+    console.log(`[LOGIN] Cookie set successfully (secure: ${isSecure}, host: ${host})`);
 
     return { user };
   } catch (error) {
@@ -184,6 +202,8 @@ export async function getUserData(userId: string) {
 }
 
 export async function getUserFromCookie() {
+  console.log('[AUTH] Getting user from cookie...');
+
   try {
     noStore();
     let cookieStore: Awaited<ReturnType<typeof cookies>> | null = null;
@@ -206,6 +226,8 @@ export async function getUserFromCookie() {
       })
       .props(['id', 'title', 'metadata'])
       .depth(1);
+
+    console.log(`[AUTH] User found in Cosmic: ${!!result?.object}`);
 
     if (!result?.object) {
       return null;
@@ -586,6 +608,8 @@ export async function removeListenLater(userId: string, showId: string) {
 }
 
 export async function getDashboardData(userId: string) {
+  console.log(`[DASHBOARD] Getting data for user ${userId} at ${new Date().toISOString()}`);
+
   try {
     noStore();
     // Fetch user data first
@@ -595,6 +619,8 @@ export async function getDashboardData(userId: string) {
     }
 
     // Fetch all required collections in parallel
+    console.log('[DASHBOARD] Fetching genres and hosts lists...');
+    const startFetch = Date.now();
     const [genresRes, hostsRes] = await Promise.all([
       cosmic.objects.find({
         type: 'genres',
@@ -609,6 +635,7 @@ export async function getDashboardData(userId: string) {
         limit: 1000,
       }),
     ]);
+    console.log(`[DASHBOARD] Genres and hosts fetched in ${Date.now() - startFetch}ms`);
 
     const allGenres = genresRes.objects || [];
     const allHosts = hostsRes.objects || [];
@@ -741,6 +768,9 @@ export async function getDashboardData(userId: string) {
     // The batch fetching optimization introduced a regression.
     // Reverting to the parallel Promise.all approach which is slower but reliable.
 
+    console.log(`[DASHBOARD] Fetching shows for ${favoriteGenreIds.length} genres and ${favoriteHostIds.length} hosts...`);
+    const startShows = Date.now();
+
     const genreShowsPromise = Promise.all(
       (userData.metadata?.favourite_genres || []).map(async (genre: any) => {
         const genreId = typeof genre === 'string' ? genre : genre.id;
@@ -758,6 +788,11 @@ export async function getDashboardData(userId: string) {
     );
 
     const [genreResults, hostResults] = await Promise.all([genreShowsPromise, hostShowsPromise]);
+
+    console.log(`[DASHBOARD] All shows fetched in ${Date.now() - startShows}ms`);
+    if (Date.now() - startShows > 5000) {
+        console.warn('[DASHBOARD] WARNING: Fetching shows took longer than 5s!');
+    }
 
     const genreShows: { [key: string]: any[] } = {};
     genreResults.forEach(result => {
