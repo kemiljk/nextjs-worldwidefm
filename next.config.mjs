@@ -67,7 +67,7 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
     serverActions: {
-      bodySizeLimit: '100mb',
+      bodySizeLimit: '700mb',
     },
     staleTimes: {
       dynamic: 0,

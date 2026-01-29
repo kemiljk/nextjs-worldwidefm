@@ -50,6 +50,7 @@ import {
 import { Dropzone } from '@/components/ui/dropzone';
 import { FormTexts, getDefaultFormTexts } from '@/lib/form-text-service';
 import { compressImage } from '@/lib/image-compression';
+import { uploadMediaToRadioCultAndCosmic } from '@/lib/actions/radiocult';
 import { AddNewHost } from './add-new-host';
 
 // Form schema using zod
@@ -93,7 +94,7 @@ interface CosmicGenre {
 }
 
 export function AddShowForm() {
-  const MAX_MEDIA_MB = Number(process.env.NEXT_PUBLIC_MAX_MEDIA_UPLOAD_MB || 600);
+  const MAX_MEDIA_MB = Number(process.env.NEXT_PUBLIC_MAX_MEDIA_UPLOAD_MB || 300);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   type SubmissionPhase =
     | 'idle'
@@ -138,7 +139,7 @@ export function AddShowForm() {
       description: '',
       startDate: '',
       startTime: '',
-      duration: '60',
+      duration: '1',
       tracklist: '',
       extraDetails: '',
       tags: [],
@@ -304,7 +305,7 @@ export function AddShowForm() {
     setPhase('preparing');
 
     try {
-      let radiocultMediaId: string | undefined = undefined;
+      let radiocultMediaId: string | null | undefined = undefined;
       let cosmicMedia: any = undefined;
       let cosmicImage: any = undefined;
 
@@ -379,9 +380,9 @@ export function AddShowForm() {
         }
         setPhase('uploadingMedia');
         console.log('🎵 Starting media upload...');
-        const formData = new FormData();
-        formData.append('media', mediaFile);
-        formData.append(
+        const mediaFormData = new FormData();
+        mediaFormData.append('media', mediaFile);
+        mediaFormData.append(
           'metadata',
           JSON.stringify({
             title: values.title,
@@ -390,52 +391,16 @@ export function AddShowForm() {
         );
 
         try {
-          const uploadResponse = await fetch('/api/upload-media', {
-            method: 'POST',
-            body: formData,
-          });
+          const uploadResult = await uploadMediaToRadioCultAndCosmic(mediaFormData);
 
-          console.log('🎵 Media upload response status:', uploadResponse.status);
+          console.log('🎵 Media upload result:', uploadResult);
 
-          if (!uploadResponse.ok) {
-            const status = uploadResponse.status;
-            const contentType = uploadResponse.headers.get('content-type') || '';
-            let errorMessage = 'Failed to upload media';
-
-            if (status === 413) {
-              // Payload too large – likely exceeds platform proxy/function limits
-              errorMessage =
-                'The selected file is too large for the server to accept. Please upload a smaller file.';
-            } else if (contentType.includes('application/json')) {
-              try {
-                const uploadError = await uploadResponse.json();
-                errorMessage = uploadError.error || uploadError.message || errorMessage;
-              } catch (parseError) {
-                // Fall through to text/body-less handling
-              }
-            } else {
-              try {
-                const text = await uploadResponse.text();
-                if (text && text.length < 500) {
-                  errorMessage = `${errorMessage}: ${text}`;
-                }
-              } catch (_) {
-                // ignore
-              }
-            }
-
-            throw new Error(`${errorMessage} (HTTP ${status})`);
+          if (!uploadResult.success) {
+            throw new Error(uploadResult.error || 'Failed to upload media');
           }
 
-          const uploadResult = await uploadResponse.json();
           radiocultMediaId = uploadResult.radiocultMediaId;
           cosmicMedia = uploadResult.cosmicMedia;
-
-          console.log('✅ Media upload result:', {
-            radiocultMediaId: uploadResult.radiocultMediaId,
-            hasCosmicMedia: !!uploadResult.cosmicMedia,
-            message: uploadResult.message,
-          });
 
           // Show info message if RadioCult upload was skipped or failed
           if (!uploadResult.radiocultMediaId) {
@@ -689,7 +654,7 @@ export function AddShowForm() {
               control={form.control}
               name='startTime'
               render={({ field }) => (
-                <FormItem className='flex flex-col'>
+                <FormItem className='flex flex-col mt-8 md:mt-0'>
                   <FormLabel>Start Time</FormLabel>
                   <Popover open={openStartTime} onOpenChange={setOpenStartTime}>
                     <PopoverTrigger asChild>
@@ -772,12 +737,14 @@ export function AddShowForm() {
                         >
                           {field.value
                             ? (() => {
-                                const minutes = parseInt(field.value);
-                                const hours = Math.floor(minutes / 60);
-                                const remainingMinutes = minutes % 60;
-                                return hours > 0
-                                  ? `${hours}h ${remainingMinutes}m`
-                                  : `${minutes}m`;
+                                // If the value is just a number (like "2"), append "h"
+                                if (/^\d+$/.test(field.value)) return `${field.value}h`;
+                                // If it's like "1:45", format as "1h 45m"
+                                if (field.value.includes(':')) {
+                                  const [hours, minutes] = field.value.split(':');
+                                  return `${hours}h ${minutes}m`;
+                                }
+                                return field.value;
                               })()
                             : 'Select duration'}
                           <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
@@ -794,16 +761,30 @@ export function AddShowForm() {
                               const minutes = (i + 1) * 15;
                               const hours = Math.floor(minutes / 60);
                               const remainingMinutes = minutes % 60;
-                              const displayText =
-                                hours > 0
-                                  ? `${hours}h ${remainingMinutes}m`
-                                  : `${minutes}m`;
+                              
+                              let value = '';
+                              let displayText = '';
+
+                              if (hours > 0 && remainingMinutes === 0) {
+                                // e.g. 1h, 2h
+                                value = `${hours}`;
+                                displayText = `${hours}h`;
+                              } else if (hours > 0) {
+                                // e.g. 1:15
+                                value = `${hours}:${remainingMinutes.toString().padStart(2, '0')}`;
+                                displayText = `${hours}h ${remainingMinutes}m`;
+                              } else {
+                                // e.g. 0:45
+                                value = `0:${remainingMinutes.toString().padStart(2, '0')}`;
+                                displayText = `${remainingMinutes}m`;
+                              }
+
                               return (
                                 <CommandItem
-                                  key={minutes.toString()}
-                                  value={`${minutes} ${displayText}`} // Include display text in value for better searching
+                                  key={value}
+                                  value={`${value} ${displayText}`} 
                                   onSelect={() => {
-                                    form.setValue('duration', minutes.toString());
+                                    form.setValue('duration', value);
                                     setOpenDuration(false);
                                   }}
                                   className='cursor-pointer data-[selected=true]:bg-gray-100 dark:data-[selected=true]:bg-gray-800 data-[selected=true]:text-almostblack dark:data-[selected=true]:text-white'
@@ -812,7 +793,7 @@ export function AddShowForm() {
                                   <Check
                                     className={cn(
                                       'ml-auto h-4 w-4',
-                                      field.value === minutes.toString()
+                                      field.value === value
                                         ? 'opacity-100'
                                         : 'opacity-0'
                                     )}
@@ -1225,12 +1206,12 @@ export function AddShowForm() {
               disabled={isLoading}
               onFileSelect={setMediaFile}
               selectedFile={mediaFile}
-              maxSize={600 * 1024 * 1024}
+              maxSize={MAX_MEDIA_MB * 1024 * 1024}
               placeholder='Drag and drop your audio file here'
             />
             <FormDescription>
               {formTexts['media-file']?.descriptions['upload-audio'] ||
-                'Upload your show as an audio file (MP3, WAV, M4A, AAC, FLAC). Maximum file size is 600MB.'}
+                `Upload your show as an audio file (MP3, WAV, M4A, AAC, FLAC). Maximum file size is ${MAX_MEDIA_MB}MB.`}
             </FormDescription>
           </FormItem>
         </div>
