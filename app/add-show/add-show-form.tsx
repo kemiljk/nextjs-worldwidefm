@@ -50,6 +50,7 @@ import {
 import { Dropzone } from '@/components/ui/dropzone';
 import { FormTexts, getDefaultFormTexts } from '@/lib/form-text-service';
 import { compressImage } from '@/lib/image-compression';
+import { uploadMediaToRadioCultAndCosmic } from '@/lib/actions/radiocult';
 import { AddNewHost } from './add-new-host';
 
 // Form schema using zod
@@ -93,7 +94,7 @@ interface CosmicGenre {
 }
 
 export function AddShowForm() {
-  const MAX_MEDIA_MB = Number(process.env.NEXT_PUBLIC_MAX_MEDIA_UPLOAD_MB || 600);
+  const MAX_MEDIA_MB = Number(process.env.NEXT_PUBLIC_MAX_MEDIA_UPLOAD_MB || 300);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   type SubmissionPhase =
     | 'idle'
@@ -379,9 +380,9 @@ export function AddShowForm() {
         }
         setPhase('uploadingMedia');
         console.log('🎵 Starting media upload...');
-        const formData = new FormData();
-        formData.append('media', mediaFile);
-        formData.append(
+        const mediaFormData = new FormData();
+        mediaFormData.append('media', mediaFile);
+        mediaFormData.append(
           'metadata',
           JSON.stringify({
             title: values.title,
@@ -390,52 +391,16 @@ export function AddShowForm() {
         );
 
         try {
-          const uploadResponse = await fetch('/api/upload-media', {
-            method: 'POST',
-            body: formData,
-          });
+          const uploadResult = await uploadMediaToRadioCultAndCosmic(mediaFormData);
 
-          console.log('🎵 Media upload response status:', uploadResponse.status);
+          console.log('🎵 Media upload result:', uploadResult);
 
-          if (!uploadResponse.ok) {
-            const status = uploadResponse.status;
-            const contentType = uploadResponse.headers.get('content-type') || '';
-            let errorMessage = 'Failed to upload media';
-
-            if (status === 413) {
-              // Payload too large – likely exceeds platform proxy/function limits
-              errorMessage =
-                'The selected file is too large for the server to accept. Please upload a smaller file.';
-            } else if (contentType.includes('application/json')) {
-              try {
-                const uploadError = await uploadResponse.json();
-                errorMessage = uploadError.error || uploadError.message || errorMessage;
-              } catch (parseError) {
-                // Fall through to text/body-less handling
-              }
-            } else {
-              try {
-                const text = await uploadResponse.text();
-                if (text && text.length < 500) {
-                  errorMessage = `${errorMessage}: ${text}`;
-                }
-              } catch (_) {
-                // ignore
-              }
-            }
-
-            throw new Error(`${errorMessage} (HTTP ${status})`);
+          if (!uploadResult.success) {
+            throw new Error(uploadResult.error || 'Failed to upload media');
           }
 
-          const uploadResult = await uploadResponse.json();
           radiocultMediaId = uploadResult.radiocultMediaId;
           cosmicMedia = uploadResult.cosmicMedia;
-
-          console.log('✅ Media upload result:', {
-            radiocultMediaId: uploadResult.radiocultMediaId,
-            hasCosmicMedia: !!uploadResult.cosmicMedia,
-            message: uploadResult.message,
-          });
 
           // Show info message if RadioCult upload was skipped or failed
           if (!uploadResult.radiocultMediaId) {
@@ -1225,12 +1190,12 @@ export function AddShowForm() {
               disabled={isLoading}
               onFileSelect={setMediaFile}
               selectedFile={mediaFile}
-              maxSize={600 * 1024 * 1024}
+              maxSize={MAX_MEDIA_MB * 1024 * 1024}
               placeholder='Drag and drop your audio file here'
             />
             <FormDescription>
               {formTexts['media-file']?.descriptions['upload-audio'] ||
-                'Upload your show as an audio file (MP3, WAV, M4A, AAC, FLAC). Maximum file size is 600MB.'}
+                `Upload your show as an audio file (MP3, WAV, M4A, AAC, FLAC). Maximum file size is ${MAX_MEDIA_MB}MB.`}
             </FormDescription>
           </FormItem>
         </div>

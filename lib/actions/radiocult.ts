@@ -1,58 +1,105 @@
 'use server';
 
-import FormData from 'form-data';
+import { createBucketClient } from '@cosmicjs/sdk';
 import { getHostByName, getHosts } from '../cosmic-service';
 
-export async function uploadMediaToRadioCultAndCosmic(
-  file: File,
-  metadata: Record<string, any> = {}
-) {
+export async function uploadMediaToRadioCultAndCosmic(formData: FormData) {
+  const file = formData.get('media') as File;
+  const metadataStr = formData.get('metadata') as string;
+
+  if (!file) {
+    return { success: false, error: 'No file provided' };
+  }
+
+  console.log('🎵 Media upload server action called:', {
+    name: file.name,
+    size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
+    type: file.type,
+  });
+
+  let parsedMetadata: Record<string, any> = {};
+  if (metadataStr) {
+    try {
+      parsedMetadata = JSON.parse(metadataStr);
+    } catch {
+      console.error('❌ Error parsing metadata');
+    }
+  }
+
+  // Convert file to buffer once for reuse
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  // Try to upload to RadioCult (optional — continues if it fails)
+  let radiocultMediaId: string | undefined = undefined;
+  let radiocultError: string | undefined = undefined;
   const stationId = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
   const secretKey = process.env.RADIOCULT_SECRET_KEY;
-  if (!stationId || !secretKey) {
-    throw new Error('Missing RadioCult station ID or secret key');
-  }
 
-  const rcForm = new FormData();
-  rcForm.append('stationMedia', file as any);
-  rcForm.append('metadata', JSON.stringify(metadata));
+  if (stationId && secretKey) {
+    try {
+      console.log('📡 Attempting RadioCult upload...');
+      const fileBlob = new Blob([buffer], { type: file.type });
+      const rcForm = new FormData();
+      rcForm.append('stationMedia', fileBlob, file.name);
+      rcForm.append('metadata', JSON.stringify(parsedMetadata));
 
-  const rcRes = await fetch(`https://api.radiocult.fm/api/station/${stationId}/media/track`, {
-    method: 'POST',
-    headers: {
-      ...rcForm.getHeaders?.(),
-      'x-api-key': secretKey,
-    },
-    body: rcForm as any,
-  });
-  if (!rcRes.ok) {
-    throw new Error('Failed to upload to RadioCult');
-  }
-  const rcJson = await rcRes.json();
-  const radiocultMediaId = rcJson.track?.id;
+      const rcRes = await fetch(
+        `https://api.radiocult.fm/api/station/${stationId}/media/track`,
+        {
+          method: 'POST',
+          headers: { 'x-api-key': secretKey },
+          body: rcForm,
+        }
+      );
 
-  const cosmicForm = new FormData();
-  cosmicForm.append('media', file as any);
-  const cosmicRes = await fetch(
-    `https://api.cosmicjs.com/v2/buckets/${process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG}/media`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.COSMIC_WRITE_KEY}`,
-        ...cosmicForm.getHeaders?.(),
-      },
-      body: cosmicForm as any,
+      if (rcRes.ok) {
+        const rcJson = await rcRes.json();
+        radiocultMediaId = rcJson.track?.id;
+        console.log('✅ RadioCult upload SUCCESS - Media ID:', radiocultMediaId);
+      } else {
+        radiocultError = await rcRes.text();
+        console.warn('❌ RadioCult upload FAILED (status:', rcRes.status, '):', radiocultError);
+      }
+    } catch (error) {
+      console.warn('⚠️ RadioCult upload error:', error);
+      radiocultError = error instanceof Error ? error.message : 'Unknown upload error';
     }
-  );
-  if (!cosmicRes.ok) {
-    throw new Error('Failed to upload to Cosmic');
+  } else {
+    console.log('ℹ️ RadioCult credentials not configured, skipping RadioCult upload');
   }
-  const cosmicJson = await cosmicRes.json();
-  const cosmicMedia = cosmicJson.media;
+
+  // Upload to Cosmic
+  console.log('☁️ Uploading to Cosmic...');
+  const cosmic = createBucketClient({
+    bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG as string,
+    readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY as string,
+    writeKey: process.env.COSMIC_WRITE_KEY as string,
+  });
+
+  const cosmicMedia = await cosmic.media.insertOne({
+    media: {
+      originalname: file.name,
+      buffer: buffer,
+    },
+  });
+
+  console.log('✅ Media uploaded successfully:', {
+    name: cosmicMedia.media.name,
+    url: cosmicMedia.media.url,
+    radiocultId: radiocultMediaId,
+  });
 
   return {
-    radiocultMediaId,
-    cosmicMedia,
+    success: true,
+    radiocultMediaId: radiocultMediaId || null,
+    radiocultError: radiocultError || null,
+    cosmicMedia: cosmicMedia.media,
+    message: radiocultMediaId
+      ? 'Successfully uploaded to both RadioCult and Cosmic'
+      : radiocultError
+        ? `Successfully uploaded to Cosmic, but RadioCult failed: ${radiocultError}`
+        : 'Successfully uploaded to Cosmic (RadioCult upload skipped)',
   };
 }
 
