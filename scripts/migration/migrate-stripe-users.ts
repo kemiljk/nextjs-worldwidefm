@@ -83,22 +83,89 @@ async function main() {
       }
 
       console.log(`\n👤 Processing ${email} (Customer: ${customer.id})...`);
+    
+      // 2. Find or Create Member
+      // First, check if a member already exists with this subscription ID
+      let memberId: string | null = null;
+      let memberAction = 'none'; // 'created', 'found', 'error'
+      
+      try {
+        const existingMemberRes = await cosmic.objects.findOne({
+          type: 'members',
+          'metadata.stripe_subscription_id': sub.id,
+        }).props('id').depth(0);
+        
+        if (existingMemberRes.object) {
+          memberId = existingMemberRes.object.id;
+          memberAction = 'found';
+          console.log(`  📎 Found existing Member: ${memberId}`);
+        }
+      } catch (err) {
+        // Not found, will create
+      }
 
-      // 2. Check if user exists in Cosmic
+      const memberSlug = `${customer.name || 'member'}-${Date.now()}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      const memberMetadata = {
+        first_name: (customer.name || '').split(' ')[0] || '',
+        last_name: (customer.name || '').split(' ').slice(1).join(' ') || '',
+        email: email,
+        stripe_customer_id: customer.id,
+        stripe_subscription_id: sub.id,
+        subscription_status: sub.status,
+        subscription_start_date: new Date(sub.created * 1000).toISOString(),
+      };
+
+      if (!memberId) {
+         if (DRY_RUN) {
+            console.log(`  [DRY RUN] Would create Member for ${email}`);
+            // Mock ID for dry run flow if needed, but we can't really proceed with logic that needs ID
+         } else {
+            const memberRes = await cosmic.objects.insertOne({
+              title: customer.name || email,
+              type: 'members',
+              slug: memberSlug,
+              metadata: memberMetadata,
+            });
+            memberId = memberRes.object.id;
+            memberAction = 'created';
+            console.log(`  ✅ Created Member: ${memberId}`);
+         }
+      }
+
+      // 3. Check for existing User
       let existingUser = null;
       try {
         const res = await cosmic.objects.findOne({
           type: 'users',
           'metadata.email': email.toLowerCase(),
-        }).props('id').depth(0);
+        }).props('id, metadata').depth(0);
         existingUser = res.object;
       } catch (err) {
         // Not found
       }
 
       if (existingUser) {
-        console.log(`  ↪️ User already exists in Cosmic (ID: ${existingUser.id}). Skipping creation.`);
-        skipCount++;
+        console.log(`  ↪️ User exists (ID: ${existingUser.id}). Updating with Stripe info...`);
+        
+        if (DRY_RUN) {
+            console.log(`  [DRY RUN] Would update User ${existingUser.id} with membership details`);
+            successCount++;
+            continue;
+        }
+
+        // Update existing user
+        await cosmic.objects.updateOne(existingUser.id, {
+            metadata: {
+                ...existingUser.metadata, // Keep existing metadata
+                stripe_customer_id: customer.id,
+                stripe_subscription_id: sub.id,
+                subscription_status: sub.status,
+                member_id: memberId, // Link to the member object
+            }
+        });
+        console.log(`  ✅ Updated User: ${existingUser.id}`);
+        // Do NOT send email for existing users
+        successCount++;
         continue;
       }
 
@@ -110,26 +177,7 @@ async function main() {
         continue;
       }
 
-      // 3. Create Member in Cosmic
-      const memberSlug = `${customer.name || 'member'}-${Date.now()}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const memberRes = await cosmic.objects.insertOne({
-        title: customer.name || email,
-        type: 'members',
-        slug: memberSlug,
-        metadata: {
-          first_name: (customer.name || '').split(' ')[0] || '',
-          last_name: (customer.name || '').split(' ').slice(1).join(' ') || '',
-          email: email,
-          stripe_customer_id: customer.id,
-          stripe_subscription_id: sub.id,
-          subscription_status: sub.status,
-          subscription_start_date: new Date(sub.created * 1000).toISOString(),
-        },
-      });
-      const memberId = memberRes.object.id;
-      console.log(`  ✅ Created Member: ${memberId}`);
-
-      // 4. Create User in Cosmic
+      // 4. Create User in Cosmic (New User)
       const tempPassword = crypto.randomUUID(); // Random password, they must reset
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
       const resetToken = crypto.randomBytes(32).toString('hex');

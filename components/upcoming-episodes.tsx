@@ -19,7 +19,7 @@ export default async function UpcomingEpisodes({ config }: UpcomingEpisodesProps
 
   return (
     <section className='py-8 px-5'>
-      <h2 className='text-h8 md:text-h7 font-bold mb-4 tracking-tight uppercase'>UPCOMING SHOWS</h2>
+      <h2 className='text-h8 md:text-h7 font-bold mb-4 tracking-tight uppercase'>This Week</h2>
       <div className='grid grid-cols-2 md:grid-cols-5 gap-3 w-full h-auto'>
         {episodes.map(episode => (
           <ShowCard

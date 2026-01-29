@@ -703,8 +703,9 @@ export function AddShowForm() {
                           <CommandEmpty>No time found.</CommandEmpty>
                           <CommandGroup>
                             {Array.from({ length: 48 }, (_, i) => {
-                              const hour = Math.floor(i / 2);
-                              const minute = (i % 2) * 30;
+                              const adjustedIndex = (i + 16) % 48; // Start at 8 AM (16 * 30min)
+                              const hour = Math.floor(adjustedIndex / 2);
+                              const minute = (adjustedIndex % 2) * 30;
                               const timeString = `${hour.toString().padStart(2, '0')}:${minute
                                 .toString()
                                 .padStart(2, '0')}`;
