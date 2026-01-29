@@ -260,7 +260,11 @@ export async function POST(request: NextRequest) {
       rawMetadata.broadcast_time = broadcastTime;
     }
     if (validatedData.duration) {
-      rawMetadata.duration = `${validatedData.duration}:00`;
+      if (validatedData.duration.includes(':')) {
+        rawMetadata.duration = validatedData.duration;
+      } else {
+        rawMetadata.duration = `${validatedData.duration}:00`;
+      }
     }
 
     // Optional text fields
@@ -395,7 +399,9 @@ export async function POST(request: NextRequest) {
           featured_on_homepage: false,
           broadcast_date: broadcastDate.toISOString().split('T')[0],
           broadcast_time: broadcastTime,
-          duration: `${validatedData.duration}:00`,
+          duration: validatedData.duration.includes(':') 
+            ? validatedData.duration 
+            : `${validatedData.duration}:00`,
           source: 'user-created',
           radiocult_synced: false,
           is_live: validatedData.isLive || false,

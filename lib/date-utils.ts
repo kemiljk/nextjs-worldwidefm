@@ -86,6 +86,38 @@ export function extractTimePart(dateString: string | null | undefined): string |
 }
 
 /**
+ * Parse duration string to minutes
+ * Handles formats:
+ * - "H:MM" (e.g., "1:45" -> 105)
+ * - "H:MM:SS" (e.g., "1:45:00" -> 105)
+ * - "M" (e.g., "60" -> 60)
+ * - "H" (e.g., "2" where intent is hours -> 2 hours if treated as such elsewhere, but checking context)
+ * 
+ * NOTE: Previously the system expected duration in minutes as a string "60".
+ * The new system might send "1:00" for 1 hour.
+ */
+export function parseDurationToMinutes(duration: string | number | null | undefined): number {
+  if (!duration) return 0;
+  
+  const durationStr = duration.toString();
+  
+  // Handle colon format (H:MM or H:MM:SS)
+  if (durationStr.includes(':')) {
+    const parts = durationStr.split(':').map(Number);
+    // H:MM or H:MM:SS
+    if (parts.length >= 2) {
+      const hours = parts[0] || 0;
+      const minutes = parts[1] || 0;
+      return hours * 60 + minutes;
+    }
+  }
+  
+  // Handle plain number (legacy minutes)
+  const parsed = parseInt(durationStr, 10);
+  return isNaN(parsed) ? 0 : parsed;
+}
+
+/**
  * Get the UK timezone abbreviation (BST or GMT) for a given date
  * BST is British Summer Time (UTC+1), GMT is Greenwich Mean Time (UTC+0)
  * @param date - The date to check (defaults to current date)

@@ -9,7 +9,7 @@ import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
 import { TracklistToggle } from '@/components/ui/tracklisttoggle';
-import { parseBroadcastDateTime } from '@/lib/date-utils';
+import { parseBroadcastDateTime, parseDurationToMinutes } from '@/lib/date-utils';
 import { transformShowToViewData } from '@/lib/cosmic-service';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { PreviewBanner } from '@/components/ui/preview-banner';
@@ -289,9 +289,7 @@ export default async function EpisodePage({
             )
               return null;
 
-            const durationInMinutes = episode.metadata.duration
-              ? parseInt(episode.metadata.duration.split(':')[0])
-              : 120;
+            const durationInMinutes = parseDurationToMinutes(episode.metadata.duration) || 120;
 
             const broadcastStart =
               parseBroadcastDateTime(

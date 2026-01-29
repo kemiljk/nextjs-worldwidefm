@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getUKTimezoneAbbreviation } from '@/lib/date-utils';
-import type { ScheduleShow, ScheduleDayMap } from '@/lib/types/schedule';
 import type { UkWeekday } from '@/lib/date-utils';
+import { getUKTimezoneAbbreviation, parseDurationToMinutes } from '@/lib/date-utils';
+import type { ScheduleShow, ScheduleDayMap } from '@/lib/types/schedule';
 
 interface ScheduleDisplayProps {
   scheduleItems: ScheduleShow[];
@@ -184,8 +184,7 @@ export default function ScheduleDisplay({
                 <div className='divide-y divide-gray-200 dark:divide-gray-700'>
                   {dayShows.map((show, index) => {
                     const startTime = convertTime(show.show_time, show.show_day);
-                    const durationMinutes =
-                      show.duration > 0 ? Math.round(show.duration / 60) : 120;
+                    const durationMinutes = parseDurationToMinutes(show.duration) || 120;
                     const startDate = buildDateFromDay(show.show_day, show.show_time);
                     let endTime = startTime;
 

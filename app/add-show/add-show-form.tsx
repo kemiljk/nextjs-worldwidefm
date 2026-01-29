@@ -139,7 +139,7 @@ export function AddShowForm() {
       description: '',
       startDate: '',
       startTime: '',
-      duration: '60',
+      duration: '1',
       tracklist: '',
       extraDetails: '',
       tags: [],
@@ -305,7 +305,7 @@ export function AddShowForm() {
     setPhase('preparing');
 
     try {
-      let radiocultMediaId: string | undefined = undefined;
+      let radiocultMediaId: string | null | undefined = undefined;
       let cosmicMedia: any = undefined;
       let cosmicImage: any = undefined;
 
@@ -654,7 +654,7 @@ export function AddShowForm() {
               control={form.control}
               name='startTime'
               render={({ field }) => (
-                <FormItem className='flex flex-col'>
+                <FormItem className='flex flex-col mt-8 md:mt-0'>
                   <FormLabel>Start Time</FormLabel>
                   <Popover open={openStartTime} onOpenChange={setOpenStartTime}>
                     <PopoverTrigger asChild>
@@ -737,12 +737,14 @@ export function AddShowForm() {
                         >
                           {field.value
                             ? (() => {
-                                const minutes = parseInt(field.value);
-                                const hours = Math.floor(minutes / 60);
-                                const remainingMinutes = minutes % 60;
-                                return hours > 0
-                                  ? `${hours}h ${remainingMinutes}m`
-                                  : `${minutes}m`;
+                                // If the value is just a number (like "2"), append "h"
+                                if (/^\d+$/.test(field.value)) return `${field.value}h`;
+                                // If it's like "1:45", format as "1h 45m"
+                                if (field.value.includes(':')) {
+                                  const [hours, minutes] = field.value.split(':');
+                                  return `${hours}h ${minutes}m`;
+                                }
+                                return field.value;
                               })()
                             : 'Select duration'}
                           <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
@@ -759,16 +761,30 @@ export function AddShowForm() {
                               const minutes = (i + 1) * 15;
                               const hours = Math.floor(minutes / 60);
                               const remainingMinutes = minutes % 60;
-                              const displayText =
-                                hours > 0
-                                  ? `${hours}h ${remainingMinutes}m`
-                                  : `${minutes}m`;
+                              
+                              let value = '';
+                              let displayText = '';
+
+                              if (hours > 0 && remainingMinutes === 0) {
+                                // e.g. 1h, 2h
+                                value = `${hours}`;
+                                displayText = `${hours}h`;
+                              } else if (hours > 0) {
+                                // e.g. 1:15
+                                value = `${hours}:${remainingMinutes.toString().padStart(2, '0')}`;
+                                displayText = `${hours}h ${remainingMinutes}m`;
+                              } else {
+                                // e.g. 0:45
+                                value = `0:${remainingMinutes.toString().padStart(2, '0')}`;
+                                displayText = `${remainingMinutes}m`;
+                              }
+
                               return (
                                 <CommandItem
-                                  key={minutes.toString()}
-                                  value={`${minutes} ${displayText}`} // Include display text in value for better searching
+                                  key={value}
+                                  value={`${value} ${displayText}`} 
                                   onSelect={() => {
-                                    form.setValue('duration', minutes.toString());
+                                    form.setValue('duration', value);
                                     setOpenDuration(false);
                                   }}
                                   className='cursor-pointer data-[selected=true]:bg-gray-100 dark:data-[selected=true]:bg-gray-800 data-[selected=true]:text-almostblack dark:data-[selected=true]:text-white'
@@ -777,7 +793,7 @@ export function AddShowForm() {
                                   <Check
                                     className={cn(
                                       'ml-auto h-4 w-4',
-                                      field.value === minutes.toString()
+                                      field.value === value
                                         ? 'opacity-100'
                                         : 'opacity-0'
                                     )}
