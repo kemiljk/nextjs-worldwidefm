@@ -103,8 +103,7 @@ export default async function Footer() {
                 BECOME A MEMBER
               </h3>
               <p className='font-sans text-b3 pb-4'>
-                Become a member for exclusive content, ad-free listening, and early access to new
-                shows.
+                Support independent global radio for £6 a month
               </p>
               <Button
                 variant='outline'
