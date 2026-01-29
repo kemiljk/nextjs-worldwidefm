@@ -184,7 +184,7 @@ export default function ScheduleDisplay({
                 <div className='divide-y divide-gray-200 dark:divide-gray-700'>
                   {dayShows.map((show, index) => {
                     const startTime = convertTime(show.show_time, show.show_day);
-                    const durationMinutes = parseDurationToMinutes(show.duration) || 120;
+                    const durationMinutes = parseDurationToMinutes(show.duration);
                     const startDate = buildDateFromDay(show.show_day, show.show_time);
                     let endTime = startTime;
 

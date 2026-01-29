@@ -17,7 +17,7 @@ export interface WeeklyScheduleResult {
 
 const episodeCache = new Map<string, EpisodeObject>();
 
-export function parseDurationToSeconds(duration: string | null | undefined): number {
+export function parseDurationToMinutes(duration: string | null | undefined): number {
   if (!duration) return 0;
   const trimmed = String(duration).trim();
 
@@ -27,18 +27,19 @@ export function parseDurationToSeconds(duration: string | null | undefined): num
     const n = Number(trimmed);
     // Interpret reasonable hour values (<= 24) as hours, otherwise treat as minutes
     if (n <= 24) {
-      return Math.round(n * 3600);
+      return Math.round(n * 60);
     }
-    return Math.round(n * 60);
+    return Math.round(n);
   }
 
   const parts = trimmed.split(':').map(Number);
   // Treat two-part values as hours:minutes (e.g. "04:00" => 4 hours)
   if (parts.length === 2) {
-    return parts[0] * 3600 + parts[1] * 60;
+    return parts[0] * 60 + parts[1];
   }
+  // Treat three-part values as H:MM:SS
   if (parts.length === 3) {
-    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    return Math.round(parts[0] * 60 + parts[1] + parts[2] / 60);
   }
   return 0;
 }
@@ -192,7 +193,7 @@ function buildScheduleShow(params: {
     created_time: episode?.created_at || new Date().toISOString(),
     tags: genres.map(genre => genre.title).filter(Boolean),
     hosts: hosts.map(host => host.title).filter(Boolean),
-    duration: parseDurationToSeconds(durationSource),
+    duration: parseDurationToMinutes(durationSource),
     isManual,
     isReplay,
   };
