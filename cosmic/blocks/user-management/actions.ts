@@ -565,7 +565,7 @@ async function manageFavourites<T extends { id: string }>(
     });
 
     if (updatedUser) {
-      revalidateTag('user-profile');
+      revalidateTag('user-profile', { expire: 0 });
     }
 
     return { success: true, data: updatedUser };
@@ -637,7 +637,7 @@ async function manageMultipleFavourites<T extends { id: string }>(
     });
 
     if (updatedUser) {
-      revalidateTag('user-profile');
+      revalidateTag('user-profile', { expire: 0 });
     }
 
     return { success: true, data: updatedUser };
