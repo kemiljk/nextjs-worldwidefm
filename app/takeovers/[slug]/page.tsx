@@ -9,7 +9,9 @@ import { transformShowToViewData } from '@/lib/cosmic-service';
 import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
+import { Share2, MapPin } from 'lucide-react';
 import { ShowCard } from '@/components/ui/show-card';
+import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -91,16 +93,39 @@ async function getTakeoverBySlug(slug: string) {
   }
 }
 
-async function getRelatedEpisodes(takeoverId: string, limit: number = 12) {
+async function getRelatedEpisodes(takeover: any, limit: number = 12) {
   try {
+    const result: any[] = [];
+    const excludeIds: string[] = [];
+
+    // 1. Get episodes for this takeover
     const response = await getEpisodesForShows({
-      takeover: takeoverId,
+      takeover: takeover.id,
       limit,
     });
 
-    return (response.shows || []).map(transformShowToViewData);
+    const takeoverShows = (response.shows || []).map(transformShowToViewData);
+    result.push(...takeoverShows);
+    excludeIds.push(...takeoverShows.map((s: any) => s.id));
+
+    // 2. If we need more, fetch by genre
+    if (result.length < limit) {
+      const genreIds = takeover.metadata?.genres?.map((g: any) => g.id).filter(Boolean) || [];
+      if (genreIds.length > 0) {
+        const genreResponse = await getEpisodesForShows({
+          genre: genreIds,
+          limit: limit - result.length,
+          exclude_ids: excludeIds,
+        });
+
+        const genreShows = (genreResponse.shows || []).map(transformShowToViewData);
+        result.push(...genreShows);
+      }
+    }
+
+    return result;
   } catch (error) {
-    console.error(`Error fetching episodes for takeover ${takeoverId}:`, error);
+    console.error(`Error fetching episodes for takeover ${takeover.id}:`, error);
     return [];
   }
 }
@@ -117,7 +142,7 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
     notFound();
   }
 
-  const relatedEpisodes = await getRelatedEpisodes(takeover.id, 12);
+  const relatedEpisodes = await getRelatedEpisodes(takeover, 12);
 
   const displayName = takeover.title || 'Untitled Takeover';
   const displayImage =
@@ -133,6 +158,13 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
     metadata: takeover.metadata,
   };
 
+  const canonicalGenres = await getCanonicalGenres();
+  const getGenreLink = (genreId: string): string | undefined => {
+    if (!canonicalGenres.length) return undefined;
+    const canonicalGenre = canonicalGenres.find(genre => genre.id === genreId);
+    return canonicalGenre ? `/genre/${canonicalGenre.slug}` : undefined;
+  };
+
   return (
     <div className='pb-50'>
       <EpisodeHero
@@ -144,25 +176,48 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
 
       <div className='w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-8'>
         <div className='w-full md:w-[40%] lg:w-[35%] flex flex-col gap-3'>
+          <div className='flex items-center justify-between mb-2'>
+            <div className='flex items-center flex-wrap gap-2'>
+              <h1 className='text-h7 font-bold tracking-tight'>{displayName}</h1>
+              {takeover.metadata?.genres?.length > 0 && (
+                <div className='flex flex-wrap'>
+                  {takeover.metadata.genres.map((genre: any) => (
+                    <GenreTag
+                      key={genre.id || genre.slug}
+                      href={genre.id ? getGenreLink(genre.id) : undefined}
+                    >
+                      {genre.title || genre.name}
+                    </GenreTag>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           {(takeover.metadata?.description || takeover.content) && (
             <div className='max-w-none'>
               <SafeHtml
                 content={takeover.metadata?.description || takeover.content || ''}
                 type='editorial'
-                className='!text-[16px] leading-5 text-almostblack dark:text-white'
+                className='text-[16px]! leading-5 text-almostblack dark:text-white'
               />
             </div>
           )}
 
-          {takeover.metadata?.genres?.length > 0 && (
-            <div>
-              <div className='flex flex-wrap select-none cursor-default my-3'>
-                {takeover.metadata.genres.map(
-                  (genre: { id?: string; slug?: string; title?: string; name?: string }) => (
-                    <GenreTag key={genre.id || genre.slug} variant='large'>
-                      {genre.title || genre.name}
-                    </GenreTag>
-                  )
+          {(takeover.metadata?.locations?.length > 0 || takeover.metadata?.location) && (
+            <div className='flex items-center gap-1.5 text-almostblack/60 dark:text-white/60 my-2'>
+              <MapPin className='h-4 w-4 shrink-0' />
+              <div className='flex flex-wrap gap-x-1.5 gap-y-1 items-center'>
+                {takeover.metadata?.locations?.length > 0 ? (
+                  takeover.metadata.locations.map((loc: any, i: number) => (
+                    <span key={loc.id || loc.slug} className='text-m8 font-mono uppercase tracking-wider'>
+                      {loc.title}
+                      {i < takeover.metadata.locations.length - 1 && <span className='mx-1'>•</span>}
+                    </span>
+                  ))
+                ) : (
+                  <span className='text-m8 font-mono uppercase tracking-wider'>
+                    {typeof takeover.metadata.location === 'object' ? takeover.metadata.location.title : takeover.metadata.location}
+                  </span>
                 )}
               </div>
             </div>
@@ -173,8 +228,8 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
       {relatedEpisodes.length > 0 && (
         <div className='w-full px-5 pt-8'>
           <div>
-            <h2 className='text-h8 md:text-h7 font-bold tracking-tight leading-none mb-3'>
-              RELATED EPISODES
+            <h2 className='text-h8 uppercase md:text-h7 font-bold tracking-tight leading-none mb-3'>
+              Related Episodes
             </h2>
             <div className='grid grid-cols-2 lg:grid-cols-4 md:grid-cols-3 gap-3'>
               {relatedEpisodes.map(relatedEpisode => {

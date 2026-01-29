@@ -399,8 +399,8 @@ export async function POST(request: NextRequest) {
           featured_on_homepage: false,
           broadcast_date: broadcastDate.toISOString().split('T')[0],
           broadcast_time: broadcastTime,
-          duration: validatedData.duration.includes(':') 
-            ? validatedData.duration 
+          duration: validatedData.duration.includes(':')
+            ? validatedData.duration
             : `${validatedData.duration}:00`,
           source: 'user-created',
           radiocult_synced: false,

@@ -14,6 +14,7 @@ export interface ScheduleShow {
   hosts: string[];
   duration: number;
   isManual?: boolean;
+  isReplay?: boolean;
 }
 
 export type ScheduleDayMap = Record<UkWeekday, string>;

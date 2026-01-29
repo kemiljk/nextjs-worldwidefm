@@ -24,6 +24,21 @@ function getEpisodeGenres(episode: any): string[] {
     .filter((name: string) => name.toLowerCase() !== 'worldwide fm');
 }
 
+const NOISE_TAGS = new Set([
+  'worldwide fm',
+  'show',
+  'episode',
+  'radio',
+  'wwfm',
+  'archive',
+  'recorded',
+  'live',
+  'mix',
+  'radio show',
+  'guest mix',
+  'recorded live',
+]);
+
 export default function GenreSelector({
   shows,
   title = 'LISTEN BY GENRE',
@@ -42,27 +57,36 @@ export default function GenreSelector({
   const plausible = usePlausible();
 
   // Get unique genres and their counts
-  const genreCounts = shows.reduce(
-    (acc, episode) => {
+  const genreCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    shows.forEach(episode => {
       getEpisodeGenres(episode).forEach(genreName => {
-        acc[genreName] = (acc[genreName] || 0) + 1;
+        counts[genreName] = (counts[genreName] || 0) + 1;
       });
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+    });
+    return counts;
+  }, [shows]);
 
-  // Sort genres by count and take top 4 for initial view
-  const topGenres = Object.entries(genreCounts)
-    .sort(([, a], [, b]) => (b as number) - (a as number))
-    .map(([name]) => name);
+  // Sort genres by count and take top 10
+  const topGenres = useMemo(() => {
+    return Object.entries(genreCounts)
+      .sort(([, a], [, b]) => (b as number) - (a as number))
+      .map(([name]) => name)
+      .filter(name => !NOISE_TAGS.has(name.toLowerCase()));
+  }, [genreCounts]);
 
   // Get all unique genres for the dropdown
   // Use all canonical genres if provided, otherwise fall back to genres found in recent shows
-  const allGenres =
-    allCanonicalGenres.length > 0
-      ? allCanonicalGenres.map(g => g.title).sort()
-      : Object.keys(genreCounts).sort();
+  const allGenres = useMemo(() => {
+    const titles =
+      allCanonicalGenres.length > 0
+        ? allCanonicalGenres.map(g => g.title)
+        : Object.keys(genreCounts);
+
+    return Array.from(new Set(titles))
+      .filter(title => title && !NOISE_TAGS.has(title.toLowerCase()))
+      .sort();
+  }, [allCanonicalGenres, genreCounts]);
 
   // Create a stable map of genre title to ID for lookups
   const genreMap = useMemo(
@@ -163,29 +187,52 @@ export default function GenreSelector({
   };
 
   // Get shows based on selection or default to pre-selected random shows for top genres
-  const displayedShows = selectedGenre
-    ? genreShows.slice(0, 10)
-    : topGenres
-        .map(genre => {
-          // Use pre-selected random show if available, otherwise fall back to newest
-          if (randomShowsByGenre[genre]) {
-            return randomShowsByGenre[genre];
-          }
-          // Fallback: pick newest show if no random selection available
-          const genreShowsFromRecent = shows
-            .filter(episode => getEpisodeGenres(episode).includes(genre))
-            .sort((a, b) => {
-              const dateA = a.metadata?.broadcast_date || a.created_at || '';
-              const dateB = b.metadata?.broadcast_date || b.created_at || '';
-              if (dateA && dateB) {
-                return new Date(dateB).getTime() - new Date(dateA).getTime();
-              }
-              return (a.slug || '').localeCompare(b.slug || '');
-            });
-          return genreShowsFromRecent[0];
-        })
-        .filter(Boolean)
-        .slice(0, 10);
+  const displayedShows = useMemo(() => {
+    if (selectedGenre) {
+      return genreShows.slice(0, 10);
+    }
+
+    const uniqueShowMap = new Map<string, any>();
+    const usedShowIds = new Set<string>();
+
+    // Try to get one unique show for each top genre until we have 10
+    for (const genre of topGenres) {
+      if (uniqueShowMap.size >= 10) break;
+
+      let show = randomShowsByGenre[genre];
+
+      // If no preloaded random show or it's already used, try to find another one from recent shows
+      if (!show || usedShowIds.has(show.id || show.slug)) {
+        const genreShowsFromRecent = shows
+          .filter(episode => getEpisodeGenres(episode).includes(genre))
+          .sort((a, b) => {
+            const dateA = new Date(a.metadata?.broadcast_date || a.created_at || 0).getTime();
+            const dateB = new Date(b.metadata?.broadcast_date || b.created_at || 0).getTime();
+            return dateB - dateA;
+          });
+
+        show = genreShowsFromRecent.find(s => !usedShowIds.has(s.id || s.slug));
+      }
+
+      if (show) {
+        uniqueShowMap.set(genre, show);
+        usedShowIds.add(show.id || show.slug);
+      }
+    }
+
+    // If we still don't have 10 shows, fill with remaining recent shows that haven't been shown
+    if (uniqueShowMap.size < 10) {
+      for (const show of shows) {
+        if (uniqueShowMap.size >= 10) break;
+        if (!usedShowIds.has(show.id || show.slug)) {
+          uniqueShowMap.set(`filler-${show.id || show.slug}`, show);
+          usedShowIds.add(show.id || show.slug);
+        }
+      }
+    }
+
+    return Array.from(uniqueShowMap.values());
+  }, [selectedGenre, genreShows, topGenres, randomShowsByGenre, shows]);
 
   return (
     <section className='relative w-full h-full overflow-visible px-5 mt-20'>

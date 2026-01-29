@@ -47,6 +47,21 @@ function HostLink({ host, className }: { host: unknown; className: string }) {
   );
 }
 
+function TakeoverLink({ takeover, className }: { takeover: any; className: string }) {
+  const displayName = takeover.title || takeover.name || 'Unknown';
+  let href = '#';
+
+  if (takeover.slug) {
+    href = `/takeovers/${takeover.slug}`;
+  }
+
+  return (
+    <Link href={href} className={className}>
+      {displayName}
+    </Link>
+  );
+}
+
 export default async function EpisodePage({
   params,
   searchParams,
@@ -55,10 +70,9 @@ export default async function EpisodePage({
   searchParams?: Promise<{ preview?: string }>;
 }) {
   const { slug: showSlug } = await params;
-  const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
 
   // First try to get episode from Cosmic
-  const episode = await getEpisodeBySlug(showSlug, preview);
+  const episode = await getEpisodeBySlug(showSlug);
 
   if (!episode) {
     return (
@@ -84,9 +98,11 @@ export default async function EpisodePage({
     parseBroadcastDateTime(episode.metadata.broadcast_date, episode.metadata.broadcast_time) ||
     new Date(episode.created_at);
 
-  // Get related episodes based on genres and hosts
+  // Get related episodes based on genres, hosts and takeovers
   const hostIds = episode.metadata.regular_hosts?.map((host: any) => host.id).filter(Boolean) || [];
-  const relatedEpisodesRaw = await getRelatedEpisodes(episode.id, 3, hostIds);
+  const genreIds = episode.metadata.genres?.map((genre: any) => genre.id).filter(Boolean) || [];
+  const takeoverIds = episode.metadata.takeovers?.map((takeover: any) => takeover.id).filter(Boolean) || [];
+  const relatedEpisodesRaw = await getRelatedEpisodes(episode.id, 3, hostIds, genreIds, takeoverIds);
   const relatedEpisodes = relatedEpisodesRaw.map(ep => transformShowToViewData(ep));
 
   // Get canonical genres for genre tag linking
@@ -132,7 +148,7 @@ export default async function EpisodePage({
         );
         isSaved = savedIds.includes(episode.id);
       }
-      
+
       if (userData?.metadata?.favourite_hosts && episode.metadata.regular_hosts?.[0]) {
         const favoriteHostIds = userData.metadata.favourite_hosts.map((h: any) =>
           typeof h === 'string' ? h : h.id
@@ -159,7 +175,10 @@ export default async function EpisodePage({
       {/* Action Buttons */}
       <div className='px-5 mt-4 flex items-center gap-3'>
         {show?.metadata?.player && <ListenBackButton show={show} />}
-        <SaveShowButton show={{ id: episode.id, slug: episode.slug, title: episode.title }} isSaved={isSaved} />
+        <SaveShowButton
+          show={{ id: episode.id, slug: episode.slug, title: episode.title }}
+          isSaved={isSaved}
+        />
       </div>
 
       {/* Main Content Container */}
@@ -228,16 +247,43 @@ export default async function EpisodePage({
                             className='text-m8 font-mono uppercase text-muted-foreground hover:text-foreground hover:underline underline transition-colors'
                           />
                           {index === 0 && (
-                            <FavoriteButton 
-                              item={host} 
-                              type="host" 
-                              isFavorited={isHostFavorited} 
-                              variant="ghost"
-                              className="text-muted-foreground hover:text-foreground"
+                            <FavoriteButton
+                              item={host}
+                              type='host'
+                              isFavorited={isHostFavorited}
+                              variant='ghost'
+                              className='text-muted-foreground hover:text-foreground'
                             />
                           )}
                         </div>
                         {index < episode.metadata.regular_hosts.length - 1 && (
+                          <span className='text-muted-foreground text-m8 ml-1'>|</span>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                  {(episode.metadata.takeovers?.length > 0 ||
+                    episode.metadata.duration ||
+                    episode.metadata.broadcast_date ||
+                    episode.metadata.broadcast_date_old) && (
+                    <span className='text-muted-foreground text-m8'>|</span>
+                  )}
+                </>
+              )}
+
+              {/* Takeovers */}
+              {episode.metadata.takeovers?.length > 0 && (
+                <>
+                  <div className='flex flex-row flex-wrap items-center gap-1'>
+                    {episode.metadata.takeovers.map((takeover: any, index: number) => (
+                      <React.Fragment key={takeover.id || takeover.slug}>
+                        <div className='flex items-center gap-2'>
+                          <TakeoverLink
+                            takeover={takeover}
+                            className='text-m8 font-mono uppercase text-muted-foreground hover:text-foreground hover:underline underline transition-colors'
+                          />
+                        </div>
+                        {index < episode.metadata.takeovers.length - 1 && (
                           <span className='text-muted-foreground text-m8 ml-1'>|</span>
                         )}
                       </React.Fragment>
@@ -315,8 +361,8 @@ export default async function EpisodePage({
         <div className='w-full md:w-[50%] flex flex-col gap-2 h-auto'>
           {relatedEpisodes.length > 0 && (
             <div>
-              <h2 className='text-h8 md:text-h7 font-bold tracking-tight leading-none'>
-                RELATED EPISODES
+              <h2 className='text-h8 uppercase md:text-h7 font-bold tracking-tight leading-none'>
+                Related Episodes
               </h2>
               <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 justify-between pt-3'>
                 {relatedEpisodes.map(relatedEpisode => {

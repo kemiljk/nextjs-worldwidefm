@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     };
 
     const metadata: any = {};
-    
+
     if (validatedData.description) {
       metadata.description = validatedData.description;
     }

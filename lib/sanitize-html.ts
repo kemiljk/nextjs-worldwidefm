@@ -198,9 +198,9 @@ export function sanitizeEditorialWithEmbeds(html: string): string {
   }
 
   let cleaned = html;
-  
+
   cleaned = cleaned.replace(/<a[^>]*class=["']embedly-card["'][^>]*>.*?<\/a>/gi, '');
-  
+
   cleaned = cleaned.replace(/<a[^>]*data-card-branding[^>]*>.*?<\/a>/gi, '');
 
   return DOMPurify.sanitize(cleaned, {

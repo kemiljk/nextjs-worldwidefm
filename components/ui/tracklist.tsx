@@ -19,7 +19,7 @@ export function Tracklist({ content, className = '' }: TracklistProps) {
 
     // Normalize HTML: replace <br> tags with newlines, handle <p> tags
     // This handles both simple <br /> formats and Rich Text editor formats with <p> tags
-    let normalizedContent = htmlContent
+    const normalizedContent = htmlContent
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/p>/gi, '\n')
       .replace(/<p[^>]*>/gi, '')
@@ -132,7 +132,7 @@ export function TracklistServer({ content, className = '' }: TracklistProps) {
   const parseTracklistServer = (htmlContent: string): Track[] => {
     // Normalize HTML: replace <br> tags with newlines, handle <p> tags
     // This handles both simple <br /> formats and Rich Text editor formats with <p> tags
-    let normalizedContent = htmlContent
+    const normalizedContent = htmlContent
       .replace(/<br\s*\/?>/gi, '\n')
       .replace(/<\/p>/gi, '\n')
       .replace(/<p[^>]*>/gi, '')

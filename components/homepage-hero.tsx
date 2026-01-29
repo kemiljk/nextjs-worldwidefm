@@ -91,7 +91,16 @@ const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
                 (item.metadata?.broadcast_date && formatDateShort(item.metadata.broadcast_date))}
             </div>
             <h3 className='text-h7 max-w-2xl leading-none font-display w-fit'>
-              <HighlightedText variant='white'>{item.title}</HighlightedText>
+              <HighlightedText variant='white'>
+                {(() => {
+                  const [main, ...rest] = (item.title || '').split(':');
+                  const sub = rest.length > 0 ? rest.join(':').trim() : '';
+                  if (sub && sub.toLowerCase() === main.trim().toLowerCase()) {
+                    return main.trim();
+                  }
+                  return item.title;
+                })()}
+              </HighlightedText>
             </h3>
             {item.metadata?.broadcast_time && (
               <p className='text-m5 font-mono text-white max-w-xl mt-2 line-clamp-3 text-left'>
@@ -229,7 +238,16 @@ export const EpisodeHero = ({
               </span>
             )}
             <span className='text-h7 leading-none font-display w-fit uppercase font-bold '>
-              <HighlightedText variant='white'>{displayName}</HighlightedText>
+              <HighlightedText variant='white'>
+                {(() => {
+                  const [main, ...rest] = displayName.split(':');
+                  const sub = rest.length > 0 ? rest.join(':').trim() : '';
+                  if (sub && sub.toLowerCase() === main.trim().toLowerCase()) {
+                    return main.trim();
+                  }
+                  return displayName;
+                })()}
+              </HighlightedText>
             </span>
           </div>
         </div>

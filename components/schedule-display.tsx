@@ -202,7 +202,15 @@ export default function ScheduleDisplay({
                           {timeRange}
                         </span>
                         <span className='w-[60vw] uppercase font-mono text-m7 text-almostblack dark:text-white flex-1 pl-8'>
-                          {show.name}
+                          {(() => {
+                            const [main, ...rest] = (show.name || '').split(':');
+                            const sub = rest.length > 0 ? rest.join(':').trim() : '';
+                            const displayName =
+                              sub && sub.toLowerCase() === main.trim().toLowerCase()
+                                ? main.trim()
+                                : show.name;
+                            return show.isReplay ? `${displayName} (R)` : displayName;
+                          })()}
                         </span>
                       </div>
                     );

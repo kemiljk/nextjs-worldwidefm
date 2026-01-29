@@ -8,7 +8,6 @@ import {
   convertToImgixUrl,
   QUALITY_PRESETS,
   SRCSET_CONFIGS,
-  getPlaceholderUrl,
 } from '@/lib/image-utils';
 
 interface OptimizedImageProps {

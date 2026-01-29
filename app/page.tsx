@@ -3,7 +3,6 @@ import { Metadata } from 'next';
 import { connection } from 'next/server';
 import {
   getCosmicHomepageData,
-  fetchCosmicObjectById,
   getVideos,
   getAllPosts,
   createColouredSections,
@@ -20,10 +19,10 @@ import FeaturedSections from '@/components/featured-sections';
 import { PageOrderItem } from '@/lib/cosmic-types';
 import HomepageHero from '@/components/homepage-hero';
 import LatestEpisodes from '@/components/latest-episodes';
+import UpcomingEpisodes from '@/components/upcoming-episodes';
 import ColouredSectionGallery from '@/components/coloured-section-gallery';
 import MembershipPromoSection from '@/components/membership-promo-section';
 import { ShowCard } from '@/components/ui/show-card';
-import { ForYouSection } from '@/components/for-you-section';
 import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
 import { ShowsGridSkeleton } from '@/components/shows-grid-skeleton';
 
@@ -273,12 +272,26 @@ export default async function Home() {
   }
 
   // Get top genres from recent shows for initial default view
+  const noise = new Set([
+    'worldwide fm',
+    'show',
+    'episode',
+    'radio',
+    'wwfm',
+    'archive',
+    'recorded',
+    'live',
+    'mix',
+    'radio show',
+    'guest mix',
+    'recorded live',
+  ]);
   const genreCounts = shows.reduce(
     (acc, episode) => {
-      const genres = episode.genres || episode.metadata?.genres || [];
+      const genres = episode.genres || [];
       genres.forEach((genre: any) => {
         const genreTitle = genre.title || genre.name;
-        if (genreTitle && genreTitle.toLowerCase() !== 'worldwide fm') {
+        if (genreTitle && !noise.has(genreTitle.toLowerCase())) {
           acc[genreTitle] = (acc[genreTitle] || 0) + 1;
         }
       });
@@ -408,7 +421,6 @@ export default async function Home() {
           </Suspense>
         )}
 
-
         {/* Coloured Sections - use page_order if available, otherwise hardcoded */}
         {!hasColouredSectionsInOrder && (
           <Suspense>
@@ -431,6 +443,7 @@ export default async function Home() {
                 fallback={<ShowsGridSkeleton count={10} />}
               >
                 <LatestEpisodes config={item.metadata} hasHeroItems={hasHeroItemsFlag} />
+                <UpcomingEpisodes />
               </Suspense>
             );
           }

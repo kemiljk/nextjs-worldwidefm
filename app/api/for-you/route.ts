@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch in parallel with timeout
     const fetchWithTimeout = async (promise: Promise<any>, ms: number) => {
-      const timeout = new Promise((_, reject) => 
+      const timeout = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('timeout')), ms)
       );
       return Promise.race([promise, timeout]);

@@ -12,6 +12,7 @@ import { ShowCard } from '@/components/ui/show-card';
 import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
 import { FavoriteButton } from '@/components/favorite-button';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
+import { MapPin } from 'lucide-react';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -86,13 +87,14 @@ async function getHostBySlug(slug: string) {
   }
 }
 
-async function getRelatedShows(hostId: string, limit: number = 12) {
+async function getRelatedShows(hostId: string, limit: number = 12, genreIds: string[] = []) {
   try {
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
     const result: any[] = [];
     const excludeIds: string[] = [];
 
+    // 1. Get shows by this host
     const hostResponse = await getRadioShows({
       filters: { host: hostId },
       limit,
@@ -103,52 +105,50 @@ async function getRelatedShows(hostId: string, limit: number = 12) {
     result.push(...hostShows);
     excludeIds.push(...hostShows.map((s: any) => s.id));
 
+    // 2. If we need more, fetch by genres
+    if (result.length < limit && genreIds.length > 0) {
+      const genreResponse = await getRadioShows({
+        filters: { genre: genreIds[0] }, // Cosmic current filter only supports one, but we could loop or use $in if getRadioShows supported it
+        limit: limit - result.length + 10,
+        sort: '-metadata.broadcast_date',
+        exclude_ids: excludeIds,
+      });
+
+      const genreShows = (genreResponse.objects || [])
+        .map(transformShowToViewData)
+        .filter((show: any) => {
+          const showHostIds = show.metadata?.regular_hosts?.map((h: any) => h.id) || [];
+          return !showHostIds.includes(hostId) && !excludeIds.includes(show.id);
+        })
+        .slice(0, limit - result.length);
+
+      result.push(...genreShows);
+      excludeIds.push(...genreShows.map((s: any) => s.id));
+    }
+
+    // 3. Fallback: get recent shows
     if (result.length < limit) {
-      const hostGenres =
-        hostShows.length > 0 ? hostShows[0]?.metadata?.genres?.map((g: any) => g.id) || [] : [];
+      const remainingLimit = limit - result.length;
+      const randomResponse = await cosmic.objects
+        .find({
+          type: 'episode',
+          status: 'published',
+          id: { $nin: excludeIds },
+          'metadata.broadcast_date': { $lte: todayStr },
+        })
+        .limit(remainingLimit * 2)
+        .sort('-metadata.broadcast_date')
+        .depth(2);
 
-      if (hostGenres.length > 0) {
-        const genreResponse = await getRadioShows({
-          filters: { genre: hostGenres[0] },
-          limit: limit - result.length + 10,
-          sort: '-metadata.broadcast_date',
-        });
+      const randomShows = (randomResponse.objects || [])
+        .map(transformShowToViewData)
+        .filter((show: any) => {
+          const showHostIds = show.metadata?.regular_hosts?.map((h: any) => h.id) || [];
+          return !showHostIds.includes(hostId) && !excludeIds.includes(show.id);
+        })
+        .slice(0, remainingLimit);
 
-        const genreShows = (genreResponse.objects || [])
-          .map(transformShowToViewData)
-          .filter((show: any) => {
-            const showHostIds = show.metadata?.regular_hosts?.map((h: any) => h.id) || [];
-            return !showHostIds.includes(hostId) && !excludeIds.includes(show.id);
-          })
-          .slice(0, limit - result.length);
-
-        result.push(...genreShows);
-        excludeIds.push(...genreShows.map((s: any) => s.id));
-      }
-
-      if (result.length < limit) {
-        const remainingLimit = limit - result.length;
-        const randomResponse = await cosmic.objects
-          .find({
-            type: 'episode',
-            status: 'published',
-            id: { $nin: excludeIds },
-            'metadata.broadcast_date': { $lte: todayStr },
-          })
-          .limit(remainingLimit * 2)
-          .sort('-metadata.broadcast_date')
-          .depth(2);
-
-        const randomShows = (randomResponse.objects || [])
-          .map(transformShowToViewData)
-          .filter((show: any) => {
-            const showHostIds = show.metadata?.regular_hosts?.map((h: any) => h.id) || [];
-            return !showHostIds.includes(hostId) && !excludeIds.includes(show.id);
-          })
-          .slice(0, remainingLimit);
-
-        result.push(...randomShows);
-      }
+      result.push(...randomShows);
     }
 
     result.sort((a, b) => {
@@ -174,22 +174,22 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
   }
 
   let relatedShows: any[] = [];
-  
+
   // Try to use curated shows from metadata first
   if (host.metadata?.shows?.length > 0) {
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
-    
+
     relatedShows = host.metadata.shows
       .filter((s: any) => {
         // Handle expanded objects from depth 2
         if (typeof s !== 'object' || !s) return false;
-        
+
         const broadcastDate = s.metadata?.broadcast_date || s.broadcast_date;
         return broadcastDate && broadcastDate <= todayStr;
       })
       .map(transformShowToViewData);
-      
+
     // Sort curated shows by date descending
     relatedShows.sort((a, b) => {
       const dateA = a.broadcast_date || '';
@@ -200,7 +200,8 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
 
   // If no curated shows found, fallback to search-based related shows
   if (relatedShows.length === 0) {
-    relatedShows = await getRelatedShows(host.id, 12);
+    const genreIds = host.metadata?.genres?.map((g: any) => g.id).filter(Boolean) || [];
+    relatedShows = await getRelatedShows(host.id, 12, genreIds);
   }
 
   const user = await getAuthUser();
@@ -253,9 +254,44 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
       <div className='w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-8'>
         <div className='w-full md:w-[40%] lg:w-[35%] flex flex-col gap-3'>
           <div className='flex items-center justify-between mb-2'>
-            <h1 className='text-h6 font-bold tracking-tight'>{displayName}</h1>
+            <div className='flex items-center flex-wrap gap-2'>
+              {host.metadata?.genres?.length > 0 && (
+                <div className='flex flex-wrap'>
+                  {host.metadata.genres.map((genre: any) => (
+                    <GenreTag
+                      variant='large'
+                      key={genre.id || genre.slug}
+                      href={genre.id ? getGenreLink(genre.id) : undefined}
+                    >
+                      {genre.title || genre.name}
+                    </GenreTag>
+                  ))}
+                </div>
+              )}
+            </div>
             <FavoriteButton item={host as any} type='host' isFavorited={isFavorited} />
           </div>
+
+          {(host.metadata?.locations?.length > 0 || host.metadata?.location) && (
+            <div className='flex items-center gap-1.5 text-almostblack/60 dark:text-white/60 my-2'>
+              <MapPin className='h-4 w-4 shrink-0' />
+              <div className='flex flex-wrap gap-x-1.5 gap-y-1 items-center'>
+                {host.metadata?.locations?.length > 0 ? (
+                  host.metadata.locations.map((loc: any, i: number) => (
+                    <span key={loc.id || loc.slug} className='text-m8 font-mono uppercase tracking-wider'>
+                      {loc.title}
+                      {i < host.metadata.locations.length - 1 && <span className='mx-1'>•</span>}
+                    </span>
+                  ))
+                ) : (
+                  <span className='text-m8 font-mono uppercase tracking-wider'>
+                    {typeof host.metadata.location === 'object' ? host.metadata.location.title : host.metadata.location}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {(host.metadata?.description || host.content) && (
             <div className='max-w-none'>
               <SafeHtml
@@ -265,31 +301,14 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
               />
             </div>
           )}
-
-          {host.metadata?.genres?.length > 0 && (
-            <div>
-              <div className='flex flex-wrap my-3'>
-                {host.metadata.genres.map(
-                  (genre: { id?: string; slug?: string; title?: string; name?: string }) => {
-                    const genreLink = genre.id ? getGenreLink(genre.id) : undefined;
-                    return (
-                      <GenreTag key={genre.id || genre.slug} variant='large' href={genreLink}>
-                        {genre.title || genre.name}
-                      </GenreTag>
-                    );
-                  }
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
       {relatedShows.length > 0 && (
         <div className='w-full px-5 pt-8'>
           <div>
-            <h2 className='text-h8 md:text-h7 font-bold tracking-tight leading-none mb-3'>
-              RELATED EPISODES
+            <h2 className='text-h8 uppercase md:text-h7 font-bold tracking-tight leading-none mb-3'>
+              Related Episodes
             </h2>
             <div className='grid grid-cols-2 lg:grid-cols-4 md:grid-cols-3 gap-3'>
               {relatedShows.map(relatedShow => {

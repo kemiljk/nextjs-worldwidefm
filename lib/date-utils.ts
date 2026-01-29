@@ -92,15 +92,15 @@ export function extractTimePart(dateString: string | null | undefined): string |
  * - "H:MM:SS" (e.g., "1:45:00" -> 105)
  * - "M" (e.g., "60" -> 60)
  * - "H" (e.g., "2" where intent is hours -> 2 hours if treated as such elsewhere, but checking context)
- * 
+ *
  * NOTE: Previously the system expected duration in minutes as a string "60".
  * The new system might send "1:00" for 1 hour.
  */
 export function parseDurationToMinutes(duration: string | number | null | undefined): number {
   if (!duration) return 0;
-  
+
   const durationStr = duration.toString();
-  
+
   // Handle colon format (H:MM or H:MM:SS)
   if (durationStr.includes(':')) {
     const parts = durationStr.split(':').map(Number);
@@ -111,7 +111,7 @@ export function parseDurationToMinutes(duration: string | number | null | undefi
       return hours * 60 + minutes;
     }
   }
-  
+
   // Handle plain number (legacy minutes)
   const parsed = parseInt(durationStr, 10);
   return isNaN(parsed) ? 0 : parsed;
@@ -209,9 +209,18 @@ function startOfUkWeek(date: Date): Date {
 
 /**
  * Get the current UK week (Monday -> Sunday) based on the Europe/London timezone.
+ * If it's Saturday or Sunday, it returns the dates for the following week.
  */
 export function getCurrentUkWeek(referenceDate: Date = new Date()): UkWeekInfo {
   const londonDate = getDateInTimeZone(referenceDate, 'Europe/London');
+
+  // If it's Saturday (6) or Sunday (0), move the reference to next week
+  // so we show the upcoming schedule instead of the one that just finished.
+  const dayOfWeek = londonDate.getUTCDay();
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    londonDate.setUTCDate(londonDate.getUTCDate() + 7);
+  }
+
   const weekStart = startOfUkWeek(londonDate);
 
   const dayDates = {} as Record<UkWeekday, string>;

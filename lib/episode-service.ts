@@ -12,6 +12,9 @@ export interface EpisodeParams {
   takeover?: string | string[] | '*';
   location?: string | string[];
   showType?: string | string[];
+  upcoming?: boolean;
+  sort?: string;
+  exclude_ids?: string[];
 }
 
 export interface EpisodeResponse {
@@ -54,14 +57,15 @@ function getThirtyDaysAgoDateString(): string {
 async function fetchEpisodesFromCosmic(
   query: Record<string, unknown>,
   baseLimit: number,
-  offset: number
+  offset: number,
+  sort: string = '-metadata.broadcast_date'
 ): Promise<{ objects: EpisodeObject[]; total: number }> {
   const response = await cosmic.objects
     .find(query)
     .props(EPISODE_PROPS)
     .limit(baseLimit)
     .skip(offset)
-    .sort('-metadata.broadcast_date')
+    .sort(sort)
     .depth(1);
 
   return {
@@ -161,6 +165,10 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       status: 'published',
     };
 
+    if (params.exclude_ids && params.exclude_ids.length > 0) {
+      query.id = { $nin: params.exclude_ids };
+    }
+
     // Add filters
     if (params.genre) {
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
@@ -189,7 +197,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
         query['metadata.takeovers'] = { $exists: true, $ne: [] };
       } else {
         const takeovers = Array.isArray(params.takeover) ? params.takeover : [params.takeover];
-        query['metadata.takeovers'] = { $in: takeovers };
+        query['metadata.takeovers.id'] = { $in: takeovers };
       }
     }
 
@@ -205,7 +213,10 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       }
     }
 
-    if (params.isNew) {
+    if (params.upcoming) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      query['metadata.broadcast_date'] = { $gt: todayStr };
+    } else if (params.isNew) {
       const thirtyDaysAgoStr = getThirtyDaysAgoDateString();
       query['metadata.broadcast_date'] = {
         $gte: thirtyDaysAgoStr,
@@ -215,11 +226,16 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       query['metadata.broadcast_date'] = { $lte: yesterdayStr };
     }
 
+    // Default sort for upcoming is ascending (closest first), otherwise descending
+    const sort =
+      params.sort || (params.upcoming ? 'metadata.broadcast_date' : '-metadata.broadcast_date');
+
     // Fetch episodes from Cosmic
     const { objects: episodes, total: totalCount } = await fetchEpisodesFromCosmic(
       query,
       baseLimit,
-      offset
+      offset,
+      sort
     );
 
     const total = totalCount || episodes.length;
@@ -497,17 +513,19 @@ function is404Error(error: unknown): boolean {
  * Episode fetch by slug
  */
 async function fetchEpisodeBySlugFromCosmic(
-  slugToFetch: string,
-  isPreview: boolean
+  slugToFetch: string
 ): Promise<EpisodeObject | null> {
   const query: Record<string, unknown> = {
     type: 'episode',
     slug: slugToFetch,
-    status: isPreview ? 'any' : 'published',
   };
 
   try {
-    const response = await cosmic.objects.findOne(query).props(EPISODE_DETAIL_PROPS).depth(1);
+    const response = await cosmic.objects
+      .findOne(query)
+      .props(EPISODE_DETAIL_PROPS)
+      .depth(1)
+      .status('any');
     return response.object || null;
   } catch (error) {
     if (!is404Error(error)) {
@@ -522,13 +540,10 @@ async function fetchEpisodeBySlugFromCosmic(
  * Handles URL-encoded slugs and normalizes them to match stored slugs
  */
 export async function getEpisodeBySlug(
-  slug: string,
-  preview?: string
+  slug: string
 ): Promise<EpisodeObject | null> {
-  const isPreview = !!preview;
-
   // First try the original slug as-is
-  const episode = await fetchEpisodeBySlugFromCosmic(slug, isPreview);
+  const episode = await fetchEpisodeBySlugFromCosmic(slug);
   if (episode) {
     return episode;
   }
@@ -536,7 +551,7 @@ export async function getEpisodeBySlug(
   // If not found, try the normalized version
   const normalizedSlug = normalizeSlug(slug);
   if (normalizedSlug !== slug) {
-    return fetchEpisodeBySlugFromCosmic(normalizedSlug, isPreview);
+    return fetchEpisodeBySlugFromCosmic(normalizedSlug);
   }
 
   return null;
@@ -557,6 +572,53 @@ async function fetchRelatedByHost(
       status: 'published',
       id: { $ne: episodeId },
       'metadata.regular_hosts': { $in: hostIds },
+      'metadata.broadcast_date': { $lte: todayStr },
+    })
+    .props(RELATED_EPISODE_PROPS)
+    .limit(limit)
+    .sort('-metadata.broadcast_date')
+    .depth(2);
+
+  return response.objects || [];
+}
+
+async function fetchRelatedByGenre(
+  excludeIds: string[],
+  genreIds: string[],
+  limit: number,
+  todayStr: string
+): Promise<EpisodeObject[]> {
+  const response = await cosmic.objects
+    .find({
+      type: 'episode',
+      status: 'published',
+      id: { $nin: excludeIds },
+      'metadata.genres.id': { $in: genreIds },
+      'metadata.broadcast_date': { $lte: todayStr },
+    })
+    .props(RELATED_EPISODE_PROPS)
+    .limit(limit)
+    .sort('-metadata.broadcast_date')
+    .depth(2);
+
+  return response.objects || [];
+}
+
+/**
+ * Fetch for related episodes by takeover
+ */
+async function fetchRelatedByTakeover(
+  episodeId: string,
+  takeoverIds: string[],
+  limit: number,
+  todayStr: string
+): Promise<EpisodeObject[]> {
+  const response = await cosmic.objects
+    .find({
+      type: 'episode',
+      status: 'published',
+      id: { $ne: episodeId },
+      'metadata.takeovers.id': { $in: takeoverIds },
       'metadata.broadcast_date': { $lte: todayStr },
     })
     .props(RELATED_EPISODE_PROPS)
@@ -591,40 +653,85 @@ async function fetchRecentEpisodes(
 }
 
 /**
- * Get related episodes based on shared genres and hosts
- * Prioritizes episodes with the same hosts, then falls back to recent episodes
+ * Get related episodes based on shared genres, hosts, and takeovers
+ * Prioritizes episodes with the same takeovers, then same hosts, then by genres, then falls back to recent episodes
  */
 export async function getRelatedEpisodes(
   episodeId: string,
   limit: number = 5,
-  hostIds?: string[]
+  hostIds?: string[],
+  genreIds?: string[],
+  takeoverIds?: string[]
 ): Promise<EpisodeObject[]> {
   try {
     const todayStr = new Date().toISOString().slice(0, 10);
+    const result: EpisodeObject[] = [];
+    const excludeIds: string[] = [episodeId];
 
-    // First try to get episodes by same host if host IDs are provided
-    if (hostIds && hostIds.length > 0) {
+    // 1. Prioritize episodes by same takeover
+    if (takeoverIds && takeoverIds.length > 0) {
       try {
-        const hostEpisodes = await fetchRelatedByHost(episodeId, hostIds, limit, todayStr);
-        if (hostEpisodes.length >= limit) {
-          return hostEpisodes.slice(0, limit);
-        }
+        const takeoverEpisodes = await fetchRelatedByTakeover(
+          episodeId,
+          takeoverIds,
+          limit,
+          todayStr
+        );
+        result.push(...takeoverEpisodes);
+        excludeIds.push(...takeoverEpisodes.map(e => e.id));
+      } catch (takeoverError) {
+        console.warn('Error fetching episodes by takeover:', takeoverError);
+      }
+    }
 
-        // If we have some host matches but not enough, fill with recent episodes
-        if (hostEpisodes.length > 0) {
-          const remainingLimit = limit - hostEpisodes.length;
-          const excludeIds = [episodeId, ...hostEpisodes.map(e => e.id)];
-          const recentEpisodes = await fetchRecentEpisodes(excludeIds, remainingLimit, todayStr);
-          return [...hostEpisodes, ...recentEpisodes].slice(0, limit);
-        }
+    // 2. Prioritize episodes by same host
+    if (result.length < limit && hostIds && hostIds.length > 0) {
+      try {
+        const remainingLimit = limit - result.length;
+        const hostEpisodes = await fetchRelatedByHost(
+          episodeId,
+          hostIds,
+          remainingLimit,
+          todayStr
+        );
+        result.push(...hostEpisodes);
+        excludeIds.push(...hostEpisodes.map(e => e.id));
       } catch (hostError) {
         console.warn('Error fetching episodes by host:', hostError);
       }
     }
 
-    // Fallback: get recent episodes excluding current one
-    return fetchRecentEpisodes([episodeId], limit, todayStr);
-  } catch {
+    // 3. If we need more, fetch by genre
+    if (result.length < limit && genreIds && genreIds.length > 0) {
+      try {
+        const remainingLimit = limit - result.length;
+        const genreEpisodes = await fetchRelatedByGenre(
+          excludeIds,
+          genreIds,
+          remainingLimit,
+          todayStr
+        );
+        result.push(...genreEpisodes);
+        excludeIds.push(...genreEpisodes.map(e => e.id));
+      } catch (genreError) {
+        console.warn('Error fetching episodes by genre:', genreError);
+      }
+    }
+
+    // 4. Fallback: get recent episodes if still under limit
+    if (result.length < limit) {
+      try {
+        const remainingLimit = limit - result.length;
+        const recentEpisodes = await fetchRecentEpisodes(excludeIds, remainingLimit, todayStr);
+        result.push(...recentEpisodes);
+      } catch (recentError) {
+        console.warn('Error fetching recent episodes:', recentError);
+      }
+    }
+
+    return result.slice(0, limit);
+  } catch (error) {
+    console.error('Error in getRelatedEpisodes:', error);
     return [];
   }
 }

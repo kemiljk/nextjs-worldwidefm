@@ -5,6 +5,7 @@ import type { ScheduleShow, ScheduleDayMap } from './types/schedule';
 
 const TARGET_DAYS: UkWeekday[] = ['Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PLACEHOLDER_IMAGE = '/image-placeholder.png';
+const RERUN_SCHEDULE_ID = '69217f64b183692bb397e481';
 export type { ScheduleShow };
 
 export interface WeeklyScheduleResult {
@@ -155,10 +156,11 @@ function buildScheduleShow(params: {
   date: string;
   time: string;
   isManual: boolean;
+  isReplay?: boolean;
   overrideDuration?: string;
   urlOverride?: string;
 }): ScheduleShow {
-  const { episode, fallbackTitle, showDay, date, time, isManual, overrideDuration, urlOverride } =
+  const { episode, fallbackTitle, showDay, date, time, isManual, isReplay, overrideDuration, urlOverride } =
     params;
 
   const title = fallbackTitle || episode?.title || 'Untitled';
@@ -192,79 +194,91 @@ function buildScheduleShow(params: {
     hosts: hosts.map(host => host.title).filter(Boolean),
     duration: parseDurationToSeconds(durationSource),
     isManual,
+    isReplay,
   };
 }
 
 /**
- * Fetch for manual schedule overrides
+ * Fetch for manual schedule overrides from all schedule objects
  */
-async function fetchScheduleMetadata(): Promise<Record<string, unknown> | null> {
+async function fetchAllSchedules(): Promise<{ metadata: Record<string, unknown>; id: string }[]> {
   try {
     const response = await cosmic.objects
-      .findOne({
+      .find({
         type: 'schedule',
-        slug: 'this-week',
+        // Optional: you could filter by slug: 'this-week' if you only want those,
+        // but if the user provided a specific ID, we should ensure it's included.
       })
-      .props('metadata')
+      .props('id,metadata')
       .depth(3);
 
-    return (response?.object?.metadata as Record<string, unknown>) || null;
+    return (
+      (response?.objects as { id: string; metadata: Record<string, unknown> }[]) || []
+    ).map(obj => ({
+      metadata: obj.metadata,
+      id: obj.id,
+    }));
   } catch (error) {
     console.warn('[Schedule] Failed to fetch schedule metadata', error);
-    return null;
+    return [];
   }
 }
 
 async function fetchManualOverrides(dayDates: Partial<ScheduleDayMap>): Promise<ScheduleShow[]> {
   try {
-    const metadata = await fetchScheduleMetadata();
-    if (!metadata) {
+    const schedules = await fetchAllSchedules();
+    if (schedules.length === 0) {
       return [];
     }
 
     const overrides: ScheduleShow[] = [];
 
-    for (const day of TARGET_DAYS) {
-      const dayKey = day.toLowerCase();
-      const scheduleBlock = metadata[dayKey];
-      const showEntries: any[] | undefined = Array.isArray(scheduleBlock)
-        ? scheduleBlock
-        : (scheduleBlock as { show?: any[] })?.show;
+    for (const { metadata, id } of schedules) {
+      const isReplay = id === RERUN_SCHEDULE_ID;
 
-      if (!Array.isArray(showEntries) || !dayDates[day]) {
-        continue;
-      }
+      for (const day of TARGET_DAYS) {
+        const dayKey = day.toLowerCase();
+        const scheduleBlock = metadata[dayKey];
+        const showEntries: any[] | undefined = Array.isArray(scheduleBlock)
+          ? scheduleBlock
+          : (scheduleBlock as { show?: any[] })?.show;
 
-      for (const entry of showEntries) {
-        const typedEntry = entry as Record<string, unknown>;
-        const episode = await resolveEpisodeFromEntry(typedEntry);
-        const overrideTime =
-          typedEntry?.broadcast_time_override ||
-          typedEntry?.override_broadcast_time ||
-          (typedEntry?.metadata as Record<string, unknown>)?.override_broadcast_time ||
-          episode?.metadata?.broadcast_time ||
-          '00:00';
+        if (!Array.isArray(showEntries) || !dayDates[day]) {
+          continue;
+        }
 
-        const overrideDuration =
-          typedEntry?.override_duration ||
-          (typedEntry?.metadata as Record<string, unknown>)?.override_duration ||
-          undefined;
+        for (const entry of showEntries) {
+          const typedEntry = entry as Record<string, unknown>;
+          const episode = await resolveEpisodeFromEntry(typedEntry);
+          const overrideTime =
+            typedEntry?.broadcast_time_override ||
+            typedEntry?.override_broadcast_time ||
+            (typedEntry?.metadata as Record<string, unknown>)?.override_broadcast_time ||
+            episode?.metadata?.broadcast_time ||
+            '00:00';
 
-        const scheduleShow = buildScheduleShow({
-          episode,
-          fallbackTitle: (typedEntry?.title ||
-            typedEntry?.name ||
-            episode?.title ||
-            'Untitled') as string,
-          showDay: day,
-          date: dayDates[day]!,
-          time: overrideTime as string,
-          isManual: true,
-          overrideDuration: overrideDuration as string | undefined,
-          urlOverride: typedEntry?.url as string | undefined,
-        });
+          const overrideDuration =
+            typedEntry?.override_duration ||
+            (typedEntry?.metadata as Record<string, unknown>)?.override_duration ||
+            undefined;
 
-        overrides.push(scheduleShow);
+          const scheduleShow = buildScheduleShow({
+            episode,
+            fallbackTitle: (typedEntry?.title ||
+              typedEntry?.name ||
+              episode?.title ||
+              'Untitled') as string,
+            showDay: day,
+            date: dayDates[day]!,
+            time: overrideTime as string,
+            isManual: true,
+            isReplay,
+            overrideDuration: overrideDuration as string | undefined,
+            urlOverride: typedEntry?.url as string | undefined,
+          });
+
+          overrides.push(scheduleShow);
+        }
       }
     }
 

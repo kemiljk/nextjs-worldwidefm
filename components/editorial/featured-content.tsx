@@ -1,6 +1,6 @@
 import { PostObject } from '@/lib/cosmic-config';
 import { ArticleCard } from '@/components/ui/article-card';
-import { getPostThumbnail, getPostVideoUrl } from '@/lib/post-thumbnail-utils';
+import { getPostThumbnail } from '@/lib/post-thumbnail-utils';
 
 interface FeaturedContentProps {
   posts: PostObject[];

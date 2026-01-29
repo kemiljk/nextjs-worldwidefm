@@ -31,7 +31,6 @@ import {
   getShowsFilters,
 } from '@/lib/actions';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
-import type { ContentType } from '@/lib/search/types';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useInView } from 'react-intersection-observer';
 import { Combobox } from '@/components/ui/combobox';

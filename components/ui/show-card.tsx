@@ -198,7 +198,9 @@ export const ShowCard: React.FC<ShowCardProps> = ({
     : null;
   const primaryLocationName: string | undefined =
     show.location?.name ||
+    show.location?.title ||
     show.metadata?.location?.name ||
+    show.metadata?.location?.title ||
     show.metadata?.locations?.[0]?.title ||
     show.metadata?.locations?.[0]?.name ||
     show.locations?.[0]?.title ||
@@ -206,7 +208,12 @@ export const ShowCard: React.FC<ShowCardProps> = ({
 
   // Split showName for two-line title (Figma: first line main, second line host/guest)
   const [mainTitle, ...restTitle] = showName.split(':');
-  const subtitle = restTitle.length > 0 ? restTitle.join(':').trim() : showHost;
+  let subtitle = restTitle.length > 0 ? restTitle.join(':').trim() : showHost;
+
+  // Avoid duplication if title and host/subtitle are the same
+  if (subtitle.toLowerCase() === mainTitle.trim().toLowerCase()) {
+    subtitle = '';
+  }
 
   // Helper to choose classes based on variant
   const borderClass = variant === 'light' ? 'border-black' : 'border-almostblack dark:border-white';
@@ -268,7 +275,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
               className={`font-mono text-m8 sm:text-m6 uppercase w-full line-clamp-2 wrap-break-word pr-10 ${textClass}`}
             >
               {mainTitle}
-              {subtitle ? ': ' : ''} {subtitle}
+              {subtitle ? `: ${subtitle}` : ''}
             </div>
 
             {(formattedDate || formattedTime || primaryLocationName) && (

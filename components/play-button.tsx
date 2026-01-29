@@ -62,7 +62,7 @@ export function PlayButton({
       variant={variant}
       size={size}
       onClick={handleClick}
-      className={cn(className)}
+      className={cn(className, 'px-0')}
       aria-label={isCurrentlyPlaying ? `Pause ${show.name}` : `Play ${show.name}`}
     >
       {isCurrentlyPlaying ? (

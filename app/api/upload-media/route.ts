@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
         // Convert file to buffer first to ensure we have actual binary data
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        
+
         // Create a Blob-like object for FormData that includes filename and content type
         // This is more robust than passing the File object directly in some environments
         const fileBlob = new Blob([buffer], { type: file.type });
@@ -113,8 +113,8 @@ export async function POST(request: NextRequest) {
       message: radiocultMediaId
         ? 'Successfully uploaded to both RadioCult and Cosmic'
         : radiocultError
-        ? `Successfully uploaded to Cosmic, but RadioCult failed: ${radiocultError}`
-        : 'Successfully uploaded to Cosmic (RadioCult upload skipped)',
+          ? `Successfully uploaded to Cosmic, but RadioCult failed: ${radiocultError}`
+          : 'Successfully uploaded to Cosmic (RadioCult upload skipped)',
     });
   } catch (error) {
     console.error('❌ Error uploading media:', error);

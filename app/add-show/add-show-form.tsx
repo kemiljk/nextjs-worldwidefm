@@ -18,25 +18,14 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { X, CheckCircle, ArrowLeft, Check, ChevronsUpDown } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { fetchGenres } from '@/lib/actions';
 import {
@@ -154,7 +143,7 @@ export function AddShowForm() {
   // Fetch hosts, genres, locations, and form texts when component mounts
   useEffect(() => {
     const fetchData = async () => {
-      // We don't set global isLoading to true here anymore so the form 
+      // We don't set global isLoading to true here anymore so the form
       // is instantly interactive for text fields (title, desc, etc.)
       try {
         // Fetch data in parallel
@@ -400,10 +389,10 @@ export function AddShowForm() {
             )}MB which exceeds the ${MAX_MEDIA_MB}MB limit.`
           );
         }
-        
+
         setPhase('uploadingMedia');
         console.log('🎵 Starting client-side media upload to Vercel Blob...');
-        
+
         try {
           // Upload directly from client to bypass Vercel 4.5MB/15MB server action limit
           const blob = await upload(mediaFile.name, mediaFile, {
@@ -702,22 +691,20 @@ export function AddShowForm() {
                             !field.value && 'text-muted-foreground'
                           )}
                         >
-                          {field.value
-                            ? field.value
-                            : 'Select start time'}
+                          {field.value ? field.value : 'Select start time'}
                           <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className='w-[200px] p-0' align="start">
+                    <PopoverContent className='w-[200px] p-0' align='start'>
                       <Command>
-                        <CommandInput placeholder='Search time...' className="h-9" />
+                        <CommandInput placeholder='Search time...' className='h-9' />
                         <CommandList>
                           <CommandEmpty>No time found.</CommandEmpty>
                           <CommandGroup>
-                            {Array.from({ length: 96 }, (_, i) => {
-                              const hour = Math.floor(i / 4);
-                              const minute = (i % 4) * 15;
+                            {Array.from({ length: 48 }, (_, i) => {
+                              const hour = Math.floor(i / 2);
+                              const minute = (i % 2) * 30;
                               const timeString = `${hour.toString().padStart(2, '0')}:${minute
                                 .toString()
                                 .padStart(2, '0')}`;
@@ -725,7 +712,7 @@ export function AddShowForm() {
                                 <CommandItem
                                   key={timeString}
                                   value={timeString}
-                                  onSelect={(currentValue) => {
+                                  onSelect={currentValue => {
                                     form.setValue('startTime', currentValue);
                                     setOpenStartTime(false);
                                   }}
@@ -785,17 +772,17 @@ export function AddShowForm() {
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className='w-[200px] p-0' align="start">
+                    <PopoverContent className='w-[200px] p-0' align='start'>
                       <Command>
-                        <CommandInput placeholder='Search duration...' className="h-9" />
+                        <CommandInput placeholder='Search duration...' className='h-9' />
                         <CommandList>
                           <CommandEmpty>No duration found.</CommandEmpty>
                           <CommandGroup>
-                            {Array.from({ length: 48 }, (_, i) => {
-                              const minutes = (i + 1) * 15;
+                            {Array.from({ length: 24 }, (_, i) => {
+                              const minutes = (i + 1) * 30;
                               const hours = Math.floor(minutes / 60);
                               const remainingMinutes = minutes % 60;
-                              
+
                               let value = '';
                               let displayText = '';
 
@@ -816,7 +803,7 @@ export function AddShowForm() {
                               return (
                                 <CommandItem
                                   key={value}
-                                  value={`${value} ${displayText}`} 
+                                  value={`${value} ${displayText}`}
                                   onSelect={() => {
                                     form.setValue('duration', value);
                                     setOpenDuration(false);
@@ -827,9 +814,7 @@ export function AddShowForm() {
                                   <Check
                                     className={cn(
                                       'ml-auto h-4 w-4',
-                                      field.value === value
-                                        ? 'opacity-100'
-                                        : 'opacity-0'
+                                      field.value === value ? 'opacity-100' : 'opacity-0'
                                     )}
                                   />
                                 </CommandItem>
@@ -888,10 +873,7 @@ export function AddShowForm() {
                   <div className='flex justify-between items-center'>
                     <FormLabel>Host or Series</FormLabel>
                     {showAddButton && (
-                      <AddNewHost
-                        onHostCreated={handleHostCreated}
-                        initialName={hostInput}
-                      />
+                      <AddNewHost onHostCreated={handleHostCreated} initialName={hostInput} />
                     )}
                   </div>
                   <Command
@@ -934,7 +916,9 @@ export function AddShowForm() {
                           </CommandItem>
                         ))}
                         {matchingHosts.length === 0 && (
-                          <CommandEmpty>No hosts or series found matching "{hostInput}"</CommandEmpty>
+                          <CommandEmpty>
+                            No hosts or series found matching "{hostInput}"
+                          </CommandEmpty>
                         )}
                       </CommandList>
                     )}

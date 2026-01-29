@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearTimeout(timeoutId);
         setIsLoading(false);
       });
-      
+
     return () => clearTimeout(timeoutId);
   }, []);
 

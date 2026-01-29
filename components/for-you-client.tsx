@@ -59,7 +59,7 @@ export function ForYouClient({
         params.set('limit', String(limit));
 
         const response = await fetch(`/api/for-you?${params.toString()}`);
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch recommendations');
         }
@@ -81,13 +81,13 @@ export function ForYouClient({
   if (loading) {
     return (
       <section className={title ? 'py-8 px-5' : 'py-0 px-0'}>
-        {title && <h2 className="text-h8 md:text-h7 font-bold mb-4 tracking-tight">{title}</h2>}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full">
+        {title && <h2 className='text-h8 md:text-h7 font-bold mb-4 tracking-tight'>{title}</h2>}
+        <div className='grid grid-cols-2 md:grid-cols-5 gap-3 w-full'>
           {Array.from({ length: Math.min(limit, 10) }).map((_, i) => (
-            <div key={i} className="animate-pulse">
-              <div className="aspect-square bg-gray-200 dark:bg-gray-800 rounded-lg" />
-              <div className="mt-2 h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
-              <div className="mt-1 h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2" />
+            <div key={i} className='animate-pulse'>
+              <div className='aspect-square bg-gray-200 dark:bg-gray-800 rounded-none' />
+              <div className='mt-2 h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4' />
+              <div className='mt-1 h-3 bg-gray-200 dark:bg-gray-800 rounded w-1/2' />
             </div>
           ))}
         </div>
@@ -102,9 +102,9 @@ export function ForYouClient({
 
   return (
     <section className={title ? 'py-8 px-5' : 'py-0 px-0'}>
-      {title && <h2 className="text-h8 md:text-h7 font-bold mb-4 tracking-tight">{title}</h2>}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 w-full h-auto">
-      {episodes.map(episode => {
+      {title && <h2 className='text-h8 md:text-h7 font-bold mb-4 tracking-tight'>{title}</h2>}
+      <div className='grid grid-cols-2 md:grid-cols-5 gap-3 w-full h-auto'>
+        {episodes.map(episode => {
           const transformed = transformShowToViewData(episode as any);
           return (
             <ShowCard

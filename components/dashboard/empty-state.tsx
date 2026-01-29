@@ -31,12 +31,8 @@ export function EmptyState({
       <div className='mb-4 p-3 border border-almostblack dark:border-white/20'>
         <Icon className='size-6 text-almostblack dark:text-white' />
       </div>
-      <h3 className='font-mono text-m6 uppercase mb-2 text-almostblack dark:text-white'>
-        {title}
-      </h3>
-      <p className='text-m8 text-gray-500 dark:text-gray-400 mb-6 max-w-xs'>
-        {description}
-      </p>
+      <h3 className='font-mono text-m6 uppercase mb-2 text-almostblack dark:text-white'>{title}</h3>
+      <p className='text-m8 text-gray-500 dark:text-gray-400 mb-6 max-w-xs'>{description}</p>
       {actionLabel && onAction && (
         <Button
           variant='outline'

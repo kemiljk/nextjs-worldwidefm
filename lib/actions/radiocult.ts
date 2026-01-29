@@ -38,10 +38,10 @@ export async function uploadMediaToRadioCultAndCosmic(formData: FormData) {
       console.log('🔗 Fetching media from URL:', mediaUrl);
       const res = await fetch(mediaUrl);
       if (!res.ok) throw new Error(`Failed to fetch media from URL: ${res.statusText}`);
-      
+
       const blob = await res.blob();
       finalFile = blob;
-      
+
       // Try to extract filename from URL
       try {
         const url = new URL(mediaUrl);
@@ -50,15 +50,18 @@ export async function uploadMediaToRadioCultAndCosmic(formData: FormData) {
       } catch (e) {
         // use default
       }
-      
+
       finalFileType = blob.type || 'audio/mpeg';
       console.log('✅ Media fetched from URL:', {
         size: `${(blob.size / 1024 / 1024).toFixed(2)}MB`,
-        type: blob.type
+        type: blob.type,
       });
     } catch (error) {
       console.error('❌ Error fetching media from URL:', error);
-      return { success: false, error: `Failed to process media URL: ${error instanceof Error ? error.message : 'Unknown error'}` };
+      return {
+        success: false,
+        error: `Failed to process media URL: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      };
     }
   }
 
@@ -80,14 +83,11 @@ export async function uploadMediaToRadioCultAndCosmic(formData: FormData) {
       rcForm.append('stationMedia', fileBlob, finalFileName);
       rcForm.append('metadata', JSON.stringify(parsedMetadata));
 
-      const rcRes = await fetch(
-        `https://api.radiocult.fm/api/station/${stationId}/media/track`,
-        {
-          method: 'POST',
-          headers: { 'x-api-key': secretKey },
-          body: rcForm,
-        }
-      );
+      const rcRes = await fetch(`https://api.radiocult.fm/api/station/${stationId}/media/track`, {
+        method: 'POST',
+        headers: { 'x-api-key': secretKey },
+        body: rcForm,
+      });
 
       if (rcRes.ok) {
         const rcJson = await rcRes.json();
@@ -166,7 +166,7 @@ export async function getHostProfileUrl(hostName: string): Promise<string | null
     if (host) {
       return `/hosts/${(host as any).slug}`;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error getting host profile URL:', error);
