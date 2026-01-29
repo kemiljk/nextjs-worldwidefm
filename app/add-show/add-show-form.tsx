@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -154,7 +154,8 @@ export function AddShowForm() {
   // Fetch hosts, genres, locations, and form texts when component mounts
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true);
+      // We don't set global isLoading to true here anymore so the form 
+      // is instantly interactive for text fields (title, desc, etc.)
       try {
         // Fetch data in parallel
         const [hostsList, genresResult, locationsList, takeoversList, formTextsResponse] =
@@ -181,8 +182,6 @@ export function AddShowForm() {
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Failed to load data');
-      } finally {
-        setIsLoading(false);
       }
     };
 
@@ -241,6 +240,28 @@ export function AddShowForm() {
       form.setValue('hostId', '');
     }
   };
+
+  const matchingHosts = useMemo(() => {
+    if (!hostInput) return hosts.slice(0, 50);
+    const lowerInput = hostInput.toLowerCase();
+    return hosts.filter(host => host.title && host.title.toLowerCase().includes(lowerInput));
+  }, [hosts, hostInput]);
+
+  const matchingTakeovers = useMemo(() => {
+    if (!takeoverInput) return takeovers.slice(0, 50);
+    const lowerInput = takeoverInput.toLowerCase();
+    return takeovers.filter(t => t.title && t.title.toLowerCase().includes(lowerInput));
+  }, [takeovers, takeoverInput]);
+
+  const matchingGenres = useMemo(() => {
+    const lowerInput = selectedGenreInput.toLowerCase();
+    return genres.filter(
+      genre =>
+        genre.title &&
+        !selectedGenres.includes(genre.id) &&
+        genre.title.toLowerCase().includes(lowerInput)
+    );
+  }, [genres, selectedGenreInput, selectedGenres]);
 
   // Update form value when selected genres change
   useEffect(() => {
@@ -856,10 +877,6 @@ export function AddShowForm() {
             control={form.control}
             name='hostId'
             render={({ field }) => {
-              const matchingHosts = hosts.filter(
-                host =>
-                  host.title && host.title.toLowerCase().includes(hostInput.toLowerCase())
-              );
               const showAddButton =
                 hostInput &&
                 hostInput.trim().length >= 2 &&
@@ -968,27 +985,17 @@ export function AddShowForm() {
                   </div>
                   {takeoverInput && isTakeoverListOpen && (
                     <CommandList onClickOutside={() => setIsTakeoverListOpen(false)}>
-                      {takeovers
-                        .filter(
-                          takeover =>
-                            takeover.title &&
-                            takeover.title.toLowerCase().includes(takeoverInput.toLowerCase())
-                        )
-                        .map(takeover => (
-                          <CommandItem
-                            key={takeover.id}
-                            value={takeover.id}
-                            onSelect={() => handleTakeoverSelect(takeover)}
-                            className='cursor-pointer data-[selected=true]:bg-gray-100 dark:data-[selected=true]:bg-gray-800 data-[selected=true]:text-almostblack dark:data-[selected=true]:text-white'
-                          >
-                            {takeover.title}
-                          </CommandItem>
-                        ))}
-                      {takeovers.filter(
-                        takeover =>
-                          takeover.title &&
-                          takeover.title.toLowerCase().includes(takeoverInput.toLowerCase())
-                      ).length === 0 && (
+                      {matchingTakeovers.map(takeover => (
+                        <CommandItem
+                          key={takeover.id}
+                          value={takeover.id}
+                          onSelect={() => handleTakeoverSelect(takeover)}
+                          className='cursor-pointer data-[selected=true]:bg-gray-100 dark:data-[selected=true]:bg-gray-800 data-[selected=true]:text-almostblack dark:data-[selected=true]:text-white'
+                        >
+                          {takeover.title}
+                        </CommandItem>
+                      ))}
+                      {matchingTakeovers.length === 0 && (
                         <CommandEmpty>No takeovers found matching "{takeoverInput}"</CommandEmpty>
                       )}
                     </CommandList>
@@ -1031,29 +1038,17 @@ export function AddShowForm() {
                     </div>
                     {selectedGenreInput && isGenreListOpen && (
                       <CommandList onClickOutside={() => setIsGenreListOpen(false)}>
-                        {genres
-                          .filter(
-                            genre =>
-                              genre.title &&
-                              !selectedGenres.includes(genre.id) &&
-                              genre.title.toLowerCase().includes(selectedGenreInput.toLowerCase())
-                          )
-                          .map(genre => (
-                            <CommandItem
-                              key={genre.id}
-                              value={genre.id}
-                              onSelect={() => handleGenreSelect(genre.id)}
-                              className='cursor-pointer data-[selected=true]:bg-gray-100 dark:data-[selected=true]:bg-gray-800 data-[selected=true]:text-almostblack dark:data-[selected=true]:text-white'
-                            >
-                              {genre.title}
-                            </CommandItem>
-                          ))}
-                        {genres.filter(
-                          genre =>
-                            genre.title &&
-                            !selectedGenres.includes(genre.id) &&
-                            genre.title.toLowerCase().includes(selectedGenreInput.toLowerCase())
-                        ).length === 0 && (
+                        {matchingGenres.map(genre => (
+                          <CommandItem
+                            key={genre.id}
+                            value={genre.id}
+                            onSelect={() => handleGenreSelect(genre.id)}
+                            className='cursor-pointer data-[selected=true]:bg-gray-100 dark:data-[selected=true]:bg-gray-800 data-[selected=true]:text-almostblack dark:data-[selected=true]:text-white'
+                          >
+                            {genre.title}
+                          </CommandItem>
+                        ))}
+                        {matchingGenres.length === 0 && (
                           <CommandEmpty>
                             No genres found matching "{selectedGenreInput}"
                           </CommandEmpty>
