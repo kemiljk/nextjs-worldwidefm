@@ -51,6 +51,7 @@ import { Dropzone } from '@/components/ui/dropzone';
 import { FormTexts, getDefaultFormTexts } from '@/lib/form-text-service';
 import { compressImage } from '@/lib/image-compression';
 import { uploadMediaToRadioCultAndCosmic } from '@/lib/actions/radiocult';
+import { upload } from '@vercel/blob/client';
 import { AddNewHost } from './add-new-host';
 
 // Form schema using zod
@@ -378,25 +379,37 @@ export function AddShowForm() {
             )}MB which exceeds the ${MAX_MEDIA_MB}MB limit.`
           );
         }
+        
         setPhase('uploadingMedia');
-        console.log('🎵 Starting media upload...');
-        const mediaFormData = new FormData();
-        mediaFormData.append('media', mediaFile);
-        mediaFormData.append(
-          'metadata',
-          JSON.stringify({
-            title: values.title,
-            artist: hosts.find(h => h.id === values.hostId)?.title || undefined,
-          })
-        );
-
+        console.log('🎵 Starting client-side media upload to Vercel Blob...');
+        
         try {
+          // Upload directly from client to bypass Vercel 4.5MB/15MB server action limit
+          const blob = await upload(mediaFile.name, mediaFile, {
+            access: 'public',
+            handleUploadUrl: '/api/upload-media/token',
+          });
+
+          console.log('✅ Media uploaded to Vercel Blob:', blob.url);
+
+          const mediaFormData = new FormData();
+          // We pass the URL instead of the file to the server action
+          mediaFormData.append('mediaUrl', blob.url);
+          mediaFormData.append(
+            'metadata',
+            JSON.stringify({
+              title: values.title,
+              artist: hosts.find(h => h.id === values.hostId)?.title || undefined,
+            })
+          );
+
+          console.log('📝 Calling server action to process media via URL...');
           const uploadResult = await uploadMediaToRadioCultAndCosmic(mediaFormData);
 
-          console.log('🎵 Media upload result:', uploadResult);
+          console.log('🎵 Media processing result:', uploadResult);
 
           if (!uploadResult.success) {
-            throw new Error(uploadResult.error || 'Failed to upload media');
+            throw new Error(uploadResult.error || 'Failed to process media');
           }
 
           radiocultMediaId = uploadResult.radiocultMediaId;
@@ -421,7 +434,7 @@ export function AddShowForm() {
           }
           setPhase('uploadedMedia');
         } catch (mediaError) {
-          console.error('❌ Media upload failed:', mediaError);
+          console.error('❌ Media upload/processing failed:', mediaError);
           // Do not abort submission; continue without media
           toast.warning('Audio upload failed — continuing without attaching media', {
             description:
@@ -558,7 +571,7 @@ export function AddShowForm() {
         </div>
 
         <div className='flex flex-col sm:flex-row gap-3'>
-          <Button onClick={handleCreateAnother} className='flex items-center gap-2'>
+          <Button onClick={handleCreateAnother} className='flex items-center gap-2 px-4'>
             <ArrowLeft className='w-4 h-4' />
             Upload Another Show
           </Button>
