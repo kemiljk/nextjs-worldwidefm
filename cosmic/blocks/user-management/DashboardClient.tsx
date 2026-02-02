@@ -164,7 +164,8 @@ export default function DashboardClient({
   // Ensure we have safe defaults for metadata
   const metadata = userData?.metadata || {};
   const firstName = metadata.first_name || 'Member';
-  const subscriptionStatus = metadata.subscription_status || 'inactive';
+  const rawStatus = metadata.subscription_status || 'inactive';
+  const isActive = ['active', 'trialing', 'past_due'].includes(rawStatus);
 
   const safeUser = {
     ...userData,
@@ -329,14 +330,14 @@ export default function DashboardClient({
                 <div>
                   <h2 className='text-2xl font-bold uppercase font-mono tracking-tight'>Membership</h2>
                   <p className='text-muted-foreground'>
-                    {subscriptionStatus === 'active'
+                    {isActive
                       ? 'You have an active membership'
                       : 'Support Worldwide FM, an independent radio station'}
                   </p>
                 </div>
               </div>
               <div className='text-left md:text-right'>
-                {subscriptionStatus === 'active' ? (
+                {isActive ? (
                   <div className='flex items-center space-x-2 text-green-600'>
                     <CheckCircle className='size-5' />
                     <span className='font-medium uppercase font-mono'>Active</span>
@@ -352,7 +353,7 @@ export default function DashboardClient({
               </div>
             </div>
 
-            {subscriptionStatus === 'active' && (
+            {isActive && (
               <div className='mt-4 pt-4 border-t border-primary/20'>
                 <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm'>
                   <div className='flex items-center space-x-2'>
