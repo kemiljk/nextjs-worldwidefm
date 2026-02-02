@@ -14,6 +14,7 @@ import {
   addFavouriteHosts,
 } from './actions';
 import { Music, Users, Bookmark, Sparkles } from 'lucide-react';
+import { createStripePortalSession } from './stripe-actions';
 import { cn } from '@/lib/utils';
 import { DashboardSectionShows } from '@/components/dashboard/dashboard-section-shows';
 import { ListenLaterClient } from '@/components/dashboard/listen-later-client';
@@ -142,6 +143,20 @@ export default function DashboardClient({
       if (res?.success) {
         handleAddClose();
         router.refresh();
+      }
+    });
+  };
+
+  const handleManageSubscription = async () => {
+    if (!user) return;
+    
+    startTransition(async () => {
+      const res = await createStripePortalSession(user.id);
+      if (res.url) {
+        window.location.href = res.url;
+      } else if (res.error) {
+        console.error('Error creating portal session:', res.error);
+        // You might want to show a toast error here
       }
     });
   };
@@ -352,6 +367,17 @@ export default function DashboardClient({
                     <CheckCircle className='size-4 text-green-500' />
                     <span className='uppercase font-mono'>Early access</span>
                   </div>
+                </div>
+                
+                <div className='mt-6'>
+                    <Button 
+                        variant="outline" 
+                        onClick={handleManageSubscription}
+                        disabled={isPending}
+                        className="uppercase font-mono"
+                    >
+                        Manage Subscription
+                    </Button>
                 </div>
               </div>
             )}

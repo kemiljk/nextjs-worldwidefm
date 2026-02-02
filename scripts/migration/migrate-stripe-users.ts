@@ -15,13 +15,13 @@ const DRY_RUN = process.env.DRY_RUN !== 'false'; // Default to true for safety
 const OLD_PRODUCT_ID = process.env.OLD_PRODUCT_ID; // Must be provided
 const BATCH_SIZE = 50;
 
-if (!process.env.STRIPE_SECRET_KEY) throw new Error('Missing STRIPE_SECRET_KEY');
+if (!process.env.STRIPE_MIGRATION_KEY) throw new Error('Missing STRIPE_MIGRATION_KEY');
 if (!process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG) throw new Error('Missing NEXT_PUBLIC_COSMIC_BUCKET_SLUG');
 if (!process.env.NEXT_PUBLIC_COSMIC_READ_KEY) throw new Error('Missing NEXT_PUBLIC_COSMIC_READ_KEY');
 if (!process.env.COSMIC_WRITE_KEY) throw new Error('Missing COSMIC_WRITE_KEY');
 if (!process.env.RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY');
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2020-08-27' as any });
+const stripe = new Stripe(process.env.STRIPE_MIGRATION_KEY, { apiVersion: '2020-08-27' as any });
 const cosmic = createBucketClient({
   bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG,
   readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY,
@@ -156,7 +156,6 @@ async function main() {
         // Update existing user
         await cosmic.objects.updateOne(existingUser.id, {
             metadata: {
-                ...existingUser.metadata, // Keep existing metadata
                 stripe_customer_id: customer.id,
                 stripe_subscription_id: sub.id,
                 subscription_status: sub.status,
