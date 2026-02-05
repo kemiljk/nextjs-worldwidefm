@@ -54,8 +54,8 @@ export default function LivePlayer() {
   const [liveMetadata, setLiveMetadata] = useState<LiveMetadata>({});
   const [matchingShowSlug, setMatchingShowSlug] = useState<string | null>(null);
 
-  // Simple: if we receive metadata from WebSocket, we have a show. Otherwise, nothing.
-
+  // If we receive metadata from WebSocket, we can show show info.
+  // Playback should not depend on metadata availability.
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const socketRef = useRef<ReturnType<NonNullable<typeof window.io>> | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -102,95 +102,97 @@ export default function LivePlayer() {
   }, []);
   // Schedule API is unreliable for real-time detection, WebSocket provides instant updates
 
-  // Initialize audio element when we have metadata from WebSocket
+  // Initialize audio element once on mount
   useEffect(() => {
-    // Only initialize audio if we have metadata (show is playing)
-    if (!liveMetadata.content?.title) {
-      // Clean up audio if no show
-      if (audioRef.current) {
-        audioRef.current.pause();
-        // Don't set empty src - just remove the element
-        audioRef.current.removeAttribute('src');
-        audioRef.current.load();
-        audioRef.current = null;
+    const audio = new Audio();
+    audio.preload = 'none';
+    // Note: crossOrigin removed - not needed for audio streams and causes CORS issues
+    audioRef.current = audio;
+
+    const handleLoadStart = () => {
+      setStreamState(prev => ({ ...prev, loading: true, error: null }));
+    };
+
+    const handleCanPlay = () => {
+      setStreamState(prev => ({ ...prev, connected: true }));
+    };
+
+    const handleError = () => {
+      const error = audio.error;
+
+      // Ignore empty src errors (code 4) - these happen during cleanup/pause
+      if (error && error.code === 4) {
+        return;
       }
-      return;
-    }
 
-    if (!audioRef.current) {
-      const audio = new Audio();
-      audio.preload = 'none';
-      audio.volume = liveVolume;
-      // Note: crossOrigin removed - not needed for audio streams and causes CORS issues
-      audioRef.current = audio;
+      let errorMessage = 'Stream connection failed';
 
-      // Set up audio event listeners
-      audio.addEventListener('loadstart', () => {
-        setStreamState(prev => ({ ...prev, loading: true, error: null }));
-      });
-
-      audio.addEventListener('canplay', () => {
-        setStreamState(prev => ({ ...prev, loading: false, connected: true }));
-      });
-
-      audio.addEventListener('error', () => {
-        const error = audio.error;
-
-        // Ignore empty src errors (code 4) - these happen during cleanup/pause
-        if (error && error.code === 4) {
-          return;
+      if (error) {
+        switch (error.code) {
+          case error.MEDIA_ERR_NETWORK:
+            errorMessage = 'Network error';
+            break;
+          case error.MEDIA_ERR_DECODE:
+            errorMessage = 'Stream decode error';
+            break;
+          case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = 'Stream format not supported';
+            break;
+          default:
+            errorMessage = 'Unknown stream error';
         }
+      }
 
-        let errorMessage = 'Stream connection failed';
-
-        if (error) {
-          switch (error.code) {
-            case error.MEDIA_ERR_NETWORK:
-              errorMessage = 'Network error';
-              break;
-            case error.MEDIA_ERR_DECODE:
-              errorMessage = 'Stream decode error';
-              break;
-            case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
-              errorMessage = 'Stream format not supported';
-              break;
-            default:
-              errorMessage = 'Unknown stream error';
-          }
-        }
-
-        console.error('Audio error:', error);
-        setStreamState(prev => ({
-          ...prev,
-          loading: false,
-          error: errorMessage,
-          connected: false,
-        }));
+      console.error('Audio error:', {
+        code: error?.code,
+        message: (error as { message?: string } | null)?.message,
+        readyState: audio.readyState,
+        networkState: audio.networkState,
       });
 
-      audio.addEventListener('ended', () => {
-        setStreamState(prev => ({ ...prev, connected: false }));
-        pauseLive();
-      });
+      setStreamState(prev => ({
+        ...prev,
+        loading: false,
+        error: errorMessage,
+        connected: false,
+      }));
 
-      audio.addEventListener('pause', () => {
-        setStreamState(prev => ({ ...prev, loading: false }));
-      });
+      pauseLive();
+    };
 
-      audio.addEventListener('playing', () => {
-        setStreamState(prev => ({ ...prev, loading: false, connected: true, error: null }));
-      });
-    }
+    const handleEnded = () => {
+      setStreamState(prev => ({ ...prev, connected: false }));
+      pauseLive();
+    };
+
+    const handlePause = () => {
+      setStreamState(prev => ({ ...prev, loading: false }));
+    };
+
+    const handlePlaying = () => {
+      setStreamState(prev => ({ ...prev, loading: false, connected: true, error: null }));
+    };
+
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('playing', handlePlaying);
 
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        // Don't set empty src - just remove the attribute to avoid errors
-        audioRef.current.removeAttribute('src');
-        audioRef.current.load();
-      }
+      audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('playing', handlePlaying);
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      audioRef.current = null;
     };
-  }, [liveMetadata.content?.title, liveVolume, pauseLive]);
+  }, [pauseLive]);
 
   // WebSocket connection for real-time metadata
   const connectWebSocket = useCallback(() => {
@@ -317,61 +319,43 @@ export default function LivePlayer() {
     }
   }, [liveVolume]);
 
-  // Handle play/pause state changes
+  // Handle pause when state changes elsewhere
   useEffect(() => {
     if (!audioRef.current) return;
 
-    if (isLivePlaying && liveMetadata.content?.title) {
-      if (!streamUrl) {
-        setStreamState(prev => ({
-          ...prev,
-          error: 'Stream URL not configured',
-        }));
-        pauseLive();
-        return;
-      }
-
-      if (audioRef.current.src !== streamUrl) {
-        audioRef.current.src = streamUrl;
-      }
-
-      setStreamState(prev => ({ ...prev, loading: true, error: null }));
-
-      audioRef.current.play().catch(error => {
-        console.error('Error playing live stream:', error);
-        setStreamState(prev => ({
-          ...prev,
-          loading: false,
-          error: 'Failed to start playback',
-          connected: false,
-        }));
-        pauseLive();
-      });
-    } else {
+    if (!isLivePlaying) {
       // Pause without clearing src to avoid errors
       if (audioRef.current && !audioRef.current.paused) {
         audioRef.current.pause();
       }
       setStreamState(prev => ({ ...prev, loading: false, connected: false }));
     }
-  }, [isLivePlaying, liveMetadata.content?.title, streamUrl, pauseLive]);
+  }, [isLivePlaying]);
 
-  const handlePlayPause = () => {
-    // If we have metadata, we can play
-    if (!hasShow) return;
+  const handlePlayPause = async () => {
+    if (!streamUrl) {
+      setStreamState(prev => ({
+        ...prev,
+        error: 'Stream URL not configured',
+      }));
+      return;
+    }
+
+    if (!audioRef.current) {
+      return;
+    }
 
     // Create event from WebSocket metadata
     const eventToPlay = {
-      showName: liveMetadata.content?.title || 'Live Show',
+      showName: liveMetadata.content?.title || 'Live Stream',
       ...liveMetadata.content,
     };
+
+    const hadError = Boolean(streamState.error);
 
     if (streamState.error) {
       // Retry on error
       setStreamState(prev => ({ ...prev, error: null }));
-      if (audioRef.current && streamUrl) {
-        audioRef.current.src = streamUrl;
-      }
     }
 
     if (isLivePlaying) {
@@ -388,40 +372,81 @@ export default function LivePlayer() {
         },
       });
       playLive(eventToPlay);
+
+      const audio = audioRef.current;
+      const shouldReload = audio.src !== streamUrl || hadError;
+
+      if (audio.src !== streamUrl) {
+        audio.src = streamUrl;
+      }
+
+      if (shouldReload) {
+        audio.load();
+      }
+
+      setStreamState(prev => ({ ...prev, loading: true, error: null }));
+
+      try {
+        await audio.play();
+      } catch (error) {
+        const err = error as { name?: string; message?: string };
+        console.error('Error playing live stream:', {
+          name: err?.name,
+          message: err?.message,
+          code: audio.error?.code,
+          readyState: audio.readyState,
+          networkState: audio.networkState,
+        });
+        setStreamState(prev => ({
+          ...prev,
+          loading: false,
+          error: 'Failed to start playback',
+          connected: false,
+        }));
+        pauseLive();
+      }
     }
   };
 
-  // Simple: if we have metadata content, we have a show
-  const hasShow = Boolean(liveMetadata.content?.title);
+  const hasMetadata = Boolean(liveMetadata.content?.title);
+  const canPlay = Boolean(streamUrl);
 
   // Check if this is a playlist (not a scheduled show)
   const currentTitle = liveMetadata.content?.title || '';
   const isPlaylist =
-    currentTitle.toLowerCase().includes('playlist') ||
-    (currentTitle.toLowerCase().includes('wwfm') && !currentTitle.toLowerCase().includes('show'));
+    hasMetadata &&
+    (currentTitle.toLowerCase().includes('playlist') ||
+      (currentTitle.toLowerCase().includes('wwfm') &&
+        !currentTitle.toLowerCase().includes('show')));
 
   // Display "Check out our schedule" for playlists, otherwise show the show name
-  const displayName = !hasShow
-    ? 'Nothing currently live'
-    : isPlaylist
+  const displayName = hasMetadata
+    ? isPlaylist
       ? 'Check out our schedule'
-      : currentTitle;
+      : currentTitle
+    : canPlay
+      ? 'Live Stream'
+      : 'Stream unavailable';
 
   // Link destination - schedule for playlists, episode page for matched shows, otherwise schedule
-  const linkHref = isPlaylist
-    ? '/schedule'
-    : matchingShowSlug
-      ? `/episode/${matchingShowSlug}`
-      : hasShow
-        ? '/schedule'
-        : undefined;
+  const linkHref = hasMetadata
+    ? isPlaylist
+      ? '/schedule'
+      : matchingShowSlug
+        ? `/episode/${matchingShowSlug}`
+        : '/schedule'
+    : undefined;
 
   return (
     <div className='fixed top-0 bg-almostblack text-white dark:bg-black dark:text-white z-50 flex items-center transition-all duration-300 h-11 left-0 right-0 max-w-full'>
       <div className='ml-4 flex items-center shrink-0 transition-opacity duration-200'>
         <button
           className='rounded-full transition-colors disabled:opacity-100 text-white'
-          disabled={!hasShow}
+          aria-label={isLivePlaying ? 'Pause live stream' : 'Play live stream'}
+          data-testid='live-player-toggle'
+          data-state={isLivePlaying ? 'playing' : 'paused'}
+          data-loading={streamState.loading ? 'true' : 'false'}
+          disabled={!canPlay}
           onClick={handlePlayPause}
         >
           {isLivePlaying && streamState.loading ? (
@@ -438,12 +463,29 @@ export default function LivePlayer() {
           <Link
             href={linkHref}
             className='text-m7 font-mono uppercase whitespace-nowrap hover:underline transition-all'
+            data-testid='live-player-label'
           >
             {displayName}
           </Link>
         ) : (
-          <div className='text-m7 font-mono uppercase whitespace-nowrap'>{displayName}</div>
+          <div
+            className='text-m7 font-mono uppercase whitespace-nowrap'
+            data-testid='live-player-label'
+          >
+            {displayName}
+          </div>
         )}
+        {streamState.error && streamUrl ? (
+          <a
+            href={streamUrl}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='text-m7 font-mono uppercase whitespace-nowrap underline'
+            data-testid='live-player-fallback-link'
+          >
+            Open stream
+          </a>
+        ) : null}
       </div>
     </div>
   );
