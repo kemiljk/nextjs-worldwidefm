@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 
 interface Show {
   key: string;
@@ -69,24 +69,24 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   const [isArchivePlaying, setIsArchivePlaying] = useState(false);
   const [widgetRef, setWidgetRef] = useState<any>(null);
 
-  const stopAllPlayers = () => {
+  const stopAllPlayers = useCallback(() => {
     setIsLivePlaying(false);
     setCurrentLiveEvent(null);
     setSelectedArchiveUrl(null);
     setSelectedShow(null);
     setIsArchivePlaying(false);
     setWidgetRef(null);
-  };
+  }, []);
 
-  const handleSetSelectedArchiveUrl = (url: string | null) => {
+  const handleSetSelectedArchiveUrl = useCallback((url: string | null) => {
     if (url) {
       setIsLivePlaying(false); // Stop live player when archive starts
       setCurrentLiveEvent(null);
     }
     setSelectedArchiveUrl(url);
-  };
+  }, []);
 
-  const handleSetIsLivePlaying = (playing: boolean) => {
+  const handleSetIsLivePlaying = useCallback((playing: boolean) => {
     if (playing) {
       setSelectedArchiveUrl(null); // Stop archive player when live starts
       setSelectedShow(null);
@@ -94,63 +94,80 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
       setWidgetRef(null);
     }
     setIsLivePlaying(playing);
-  };
+  }, []);
 
   // New: Play and pause controls for archive
-  const playShow = (show: Show) => {
-    setSelectedArchiveUrl(show.url);
-    setSelectedShow(show);
-    setIsArchivePlaying(true);
-    if (widgetRef) {
-      widgetRef.play?.();
-    }
-  };
+  const playShow = useCallback(
+    (show: Show) => {
+      setSelectedArchiveUrl(show.url);
+      setSelectedShow(show);
+      setIsArchivePlaying(true);
+      if (widgetRef) {
+        widgetRef.play?.();
+      }
+    },
+    [widgetRef]
+  );
 
-  const pauseShow = () => {
+  const pauseShow = useCallback(() => {
     setIsArchivePlaying(false);
     if (widgetRef) {
       widgetRef.pause?.();
     }
-  };
+  }, [widgetRef]);
 
   // Live playback controls for RadioCult
-  const playLive = (event: LiveEvent) => {
+  const playLive = useCallback((event: LiveEvent) => {
     setCurrentLiveEvent(event);
     setIsLivePlaying(true);
     setSelectedArchiveUrl(null);
     setSelectedShow(null);
     setIsArchivePlaying(false);
-  };
+  }, []);
 
-  const pauseLive = () => {
+  const pauseLive = useCallback(() => {
     setIsLivePlaying(false);
-  };
+  }, []);
 
-  return (
-    <MediaPlayerContext.Provider
-      value={{
-        isLivePlaying,
-        setIsLivePlaying: handleSetIsLivePlaying,
-        currentLiveEvent,
-        playLive,
-        pauseLive,
-        liveVolume,
-        setLiveVolume,
-        selectedArchiveUrl,
-        setSelectedArchiveUrl: handleSetSelectedArchiveUrl,
-        selectedShow,
-        setSelectedShow,
-        stopAllPlayers,
-        playShow,
-        pauseShow,
-        isArchivePlaying,
-        setWidgetRef,
-        widgetRef,
-      }}
-    >
-      {children}
-    </MediaPlayerContext.Provider>
+  const value = useMemo(
+    () => ({
+      isLivePlaying,
+      setIsLivePlaying: handleSetIsLivePlaying,
+      currentLiveEvent,
+      playLive,
+      pauseLive,
+      liveVolume,
+      setLiveVolume,
+      selectedArchiveUrl,
+      setSelectedArchiveUrl: handleSetSelectedArchiveUrl,
+      selectedShow,
+      setSelectedShow,
+      stopAllPlayers,
+      playShow,
+      pauseShow,
+      isArchivePlaying,
+      setWidgetRef,
+      widgetRef,
+    }),
+    [
+      isLivePlaying,
+      handleSetIsLivePlaying,
+      currentLiveEvent,
+      playLive,
+      pauseLive,
+      liveVolume,
+      selectedArchiveUrl,
+      handleSetSelectedArchiveUrl,
+      selectedShow,
+      stopAllPlayers,
+      playShow,
+      pauseShow,
+      isArchivePlaying,
+      widgetRef,
+    ]
   );
+
+  return <MediaPlayerContext.Provider value={value}>{children}</MediaPlayerContext.Provider>;
 }
 
 export function useMediaPlayer() {

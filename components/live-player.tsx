@@ -102,6 +102,12 @@ export default function LivePlayer() {
   }, []);
   // Schedule API is unreliable for real-time detection, WebSocket provides instant updates
 
+  // Keep a ref to pauseLive for cleanup without triggering re-runs
+  const pauseLiveRef = useRef(pauseLive);
+  useEffect(() => {
+    pauseLiveRef.current = pauseLive;
+  }, [pauseLive]);
+
   // Initialize audio element once on mount
   useEffect(() => {
     const audio = new Audio();
@@ -157,12 +163,16 @@ export default function LivePlayer() {
         connected: false,
       }));
 
-      pauseLive();
+      if (pauseLiveRef.current) {
+        pauseLiveRef.current();
+      }
     };
 
     const handleEnded = () => {
       setStreamState(prev => ({ ...prev, connected: false }));
-      pauseLive();
+      if (pauseLiveRef.current) {
+        pauseLiveRef.current();
+      }
     };
 
     const handlePause = () => {
@@ -192,7 +202,7 @@ export default function LivePlayer() {
       audio.load();
       audioRef.current = null;
     };
-  }, [pauseLive]);
+  }, []);
 
   // WebSocket connection for real-time metadata
   const connectWebSocket = useCallback(() => {
@@ -390,6 +400,11 @@ export default function LivePlayer() {
         await audio.play();
       } catch (error) {
         const err = error as { name?: string; message?: string };
+        // Ignore AbortError - this happens if the user pauses/stops before playback starts
+        if (err?.name === 'AbortError') {
+          return;
+        }
+
         console.error('Error playing live stream:', {
           name: err?.name,
           message: err?.message,
