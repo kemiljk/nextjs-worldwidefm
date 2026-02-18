@@ -2,6 +2,9 @@ import { Metadata } from 'next';
 import { AddShowForm } from './add-show-form';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
 
+// Allow up to 5 minutes for large file uploads (600MB+)
+export const maxDuration = 300;
+
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateBaseMetadata({
     title: 'Add Show - Worldwide FM',

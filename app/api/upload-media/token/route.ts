@@ -15,6 +15,7 @@ export async function POST(request: Request): Promise<NextResponse> {
          */
         return {
           allowedContentTypes: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac', 'audio/mp4'],
+          maximumSizeInBytes: 700 * 1024 * 1024, // 700MB
           tokenPayload: JSON.stringify({
             // optional, sent to your server on upload completion
           }),

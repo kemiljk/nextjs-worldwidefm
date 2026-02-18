@@ -123,7 +123,7 @@ Search logs for these emojis to quickly identify where failures occur.
    - Check rate limits
 
 4. **File Size Issues**
-   - Verify files are within limits (10MB for images, 600MB for media)
+   - Verify files are within limits (10MB for images, 700MB for media)
    - Check if buffer conversion is failing for large files
 
 5. **Network Issues**
