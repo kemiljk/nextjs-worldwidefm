@@ -126,8 +126,8 @@ export default function LivePlayer() {
     const handleError = () => {
       const error = audio.error;
 
-      // Ignore empty src errors (code 4) - these happen during cleanup/pause
-      if (error && error.code === 4) {
+      // Only ignore code 4 when src is empty (cleanup/pause), not when a real stream is set
+      if (error && error.code === 4 && !audio.src) {
         return;
       }
 
@@ -376,13 +376,6 @@ export default function LivePlayer() {
       });
       pauseLive();
     } else {
-      plausible('Live Stream Played', {
-        props: {
-          show: eventToPlay.showName || 'Unknown',
-        },
-      });
-      playLive(eventToPlay);
-
       const audio = audioRef.current;
       const shouldReload = audio.src !== streamUrl || hadError;
 
@@ -397,7 +390,19 @@ export default function LivePlayer() {
       setStreamState(prev => ({ ...prev, loading: true, error: null }));
 
       try {
+        // Call audio.play() FIRST to preserve the user gesture chain.
+        // Browsers require play() to be called synchronously within the
+        // user-initiated event handler; calling React state updates before
+        // play() can break this trust chain and cause NotAllowedError.
         await audio.play();
+
+        // Only update React state AFTER play() succeeds
+        plausible('Live Stream Played', {
+          props: {
+            show: eventToPlay.showName || 'Unknown',
+          },
+        });
+        playLive(eventToPlay);
       } catch (error) {
         const err = error as { name?: string; message?: string };
         // Ignore AbortError - this happens if the user pauses/stops before playback starts
@@ -405,20 +410,52 @@ export default function LivePlayer() {
           return;
         }
 
-        console.error('Error playing live stream:', {
+        // Auto-retry once after a short delay — Icecast streams can take
+        // a moment to start delivering data, especially on slower connections
+        console.warn('[LivePlayer] First play attempt failed, retrying...', {
           name: err?.name,
           message: err?.message,
           code: audio.error?.code,
           readyState: audio.readyState,
           networkState: audio.networkState,
+          userAgent: navigator.userAgent,
         });
-        setStreamState(prev => ({
-          ...prev,
-          loading: false,
-          error: 'Failed to start playback',
-          connected: false,
-        }));
-        pauseLive();
+
+        try {
+          audio.load();
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          await audio.play();
+
+          // Retry succeeded
+          plausible('Live Stream Played', {
+            props: {
+              show: eventToPlay.showName || 'Unknown',
+            },
+          });
+          playLive(eventToPlay);
+        } catch (retryError) {
+          const retryErr = retryError as { name?: string; message?: string };
+          if (retryErr?.name === 'AbortError') {
+            return;
+          }
+
+          console.error('[LivePlayer] Stream playback failed after retry:', {
+            name: retryErr?.name,
+            message: retryErr?.message,
+            code: audio.error?.code,
+            readyState: audio.readyState,
+            networkState: audio.networkState,
+            userAgent: navigator.userAgent,
+            streamUrl,
+          });
+          setStreamState(prev => ({
+            ...prev,
+            loading: false,
+            error: 'Failed to start playback',
+            connected: false,
+          }));
+          pauseLive();
+        }
       }
     }
   };
