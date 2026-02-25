@@ -50,7 +50,7 @@ import {
 } from './actions/homepage';
 
 // Import from radiocult
-import { uploadMediaToRadioCultAndCosmic, getHostProfileUrl } from './actions/radiocult';
+import { getHostProfileUrl } from './actions/radiocult';
 
 // Import from page-config
 import { getEditorialPageConfig, getVideosPageConfig } from './actions/page-config';
@@ -85,7 +85,6 @@ export {
   getCosmicHomepageData,
   fetchCosmicObjectById,
   createColouredSections,
-  uploadMediaToRadioCultAndCosmic,
   getHostProfileUrl,
   getEditorialPageConfig,
   getVideosPageConfig,

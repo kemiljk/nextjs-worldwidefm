@@ -30,4 +30,4 @@ export { getAllFilters, getShowsFilters, fetchTags, fetchGenres } from './filter
 
 export { getCosmicHomepageData, fetchCosmicObjectById, createColouredSections } from './homepage';
 
-export { uploadMediaToRadioCultAndCosmic, getHostProfileUrl } from './radiocult';
+export { getHostProfileUrl } from './radiocult';

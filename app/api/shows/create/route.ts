@@ -412,16 +412,8 @@ export async function POST(request: NextRequest) {
           rawMinimalMetadata.description = validatedData.description;
         }
 
-        // Only add media fields if they have values
-        // Do NOT include keys that may not exist in Cosmic object type
-        // e.g. radiocult_media_id may not be configured yet
-
-        if (validatedData.media_file) {
-          if (validatedData.media_file.name) {
-            rawMinimalMetadata.media_file = validatedData.media_file.name; // single filename string
-          } else if (typeof validatedData.media_file === 'string') {
-            rawMinimalMetadata.media_file = validatedData.media_file;
-          }
+        if (validatedData.radiocult_media_id) {
+          rawMinimalMetadata.radiocult_media_id = validatedData.radiocult_media_id;
         }
 
         const minimalMetadata = cleanMetadata(rawMinimalMetadata);

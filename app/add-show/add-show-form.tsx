@@ -39,7 +39,6 @@ import {
 import { Dropzone } from '@/components/ui/dropzone';
 import { FormTexts, getDefaultFormTexts } from '@/lib/form-text-service';
 import { compressImage } from '@/lib/image-compression';
-import { uploadMediaToRadioCultAndCosmic } from '@/lib/actions/radiocult';
 import { upload } from '@vercel/blob/client';
 import { AddNewHost } from './add-new-host';
 
@@ -317,7 +316,6 @@ export function AddShowForm() {
 
     try {
       let radiocultMediaId: string | null | undefined = undefined;
-      let cosmicMedia: any = undefined;
       let cosmicImage: any = undefined;
 
       console.log('🚀 Starting form submission:', {
@@ -394,7 +392,6 @@ export function AddShowForm() {
         console.log('🎵 Starting client-side media upload to Vercel Blob...');
 
         try {
-          // Upload directly from client to bypass Vercel 4.5MB/15MB server action limit
           const blob = await upload(mediaFile.name, mediaFile, {
             access: 'public',
             handleUploadUrl: '/api/upload-media/token',
@@ -403,7 +400,6 @@ export function AddShowForm() {
           console.log('✅ Media uploaded to Vercel Blob:', blob.url);
 
           const mediaFormData = new FormData();
-          // We pass the URL instead of the file to the server action
           mediaFormData.append('mediaUrl', blob.url);
           mediaFormData.append(
             'metadata',
@@ -413,46 +409,45 @@ export function AddShowForm() {
             })
           );
 
-          console.log('📝 Calling server action to process media via URL...');
-          const uploadResult = await uploadMediaToRadioCultAndCosmic(mediaFormData);
+          console.log('📝 Calling API route to upload media to RadioCult...');
 
-          console.log('🎵 Media processing result:', uploadResult);
+          const UPLOAD_TIMEOUT_MS = 4.5 * 60 * 1000;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
 
-          if (!uploadResult.success) {
-            throw new Error(uploadResult.error || 'Failed to process media');
+          const uploadResponse = await fetch('/api/upload-media', {
+            method: 'POST',
+            body: mediaFormData,
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          const uploadResult = await uploadResponse.json();
+          console.log('🎵 Media upload result:', uploadResult);
+
+          if (!uploadResponse.ok || !uploadResult.success) {
+            throw new Error(
+              uploadResult.error || `Upload failed (HTTP ${uploadResponse.status})`
+            );
           }
 
-          radiocultMediaId = uploadResult.radiocultMediaId;
-          cosmicMedia = uploadResult.cosmicMedia;
+          radiocultMediaId = uploadResult.radiocultMediaId ?? undefined;
 
-          // Show info message if RadioCult upload was skipped or failed
-          if (!uploadResult.radiocultMediaId) {
-            if (uploadResult.radiocultError) {
-              toast.warning('RadioCult Upload Failed', {
-                description: `Media uploaded to Cosmic but failed for RadioCult: ${uploadResult.radiocultError}`,
-                duration: 6000,
-              });
-            } else if (uploadResult.message) {
-              toast.info('Media Upload Info', {
-                description: uploadResult.message,
-              });
-            }
-          } else {
+          if (radiocultMediaId) {
             toast.success('Media Upload Success', {
-              description: `Successfully uploaded to both RadioCult (ID: ${uploadResult.radiocultMediaId}) and Cosmic`,
+              description: `Successfully uploaded to RadioCult (ID: ${radiocultMediaId})`,
             });
           }
+
           setPhase('uploadedMedia');
         } catch (mediaError) {
           console.error('❌ Media upload/processing failed:', mediaError);
-          // Do not abort submission; continue without media
           toast.warning('Audio upload failed — continuing without attaching media', {
             description:
               mediaError instanceof Error ? mediaError.message : 'Unknown error during upload',
           });
-          // Reset media-related variables to ensure clean payload
           radiocultMediaId = undefined;
-          cosmicMedia = undefined;
           setPhase('uploadedMedia');
         }
       }
@@ -476,7 +471,6 @@ export function AddShowForm() {
             tracklist: processedTracklist,
             status: 'draft',
             radiocult_media_id: radiocultMediaId,
-            media_file: cosmicMedia,
             image: cosmicImage,
           }),
         });
