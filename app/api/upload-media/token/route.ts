@@ -16,7 +16,19 @@ export async function POST(request: Request): Promise<NextResponse> {
          * You can add authorization logic here.
          */
         return {
-          allowedContentTypes: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac', 'audio/mp4'],
+          allowedContentTypes: [
+            'audio/mpeg',
+            'audio/mp3',
+            'audio/wav',
+            'audio/x-wav',
+            'audio/ogg',
+            'audio/aac',
+            'audio/mp4',
+            'audio/m4a',
+            'audio/x-m4a',
+            'audio/flac',
+            'application/octet-stream', // Fallback for files with missing ID3 tags
+          ],
           maximumSizeInBytes: 700 * 1024 * 1024, // 700MB
           tokenPayload: JSON.stringify({
             // optional, sent to your server on upload completion

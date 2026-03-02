@@ -83,6 +83,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Vercel Blob and browsers often return application/octet-stream for audio files missing ID3 tags.
+    // RadioCult API rejects these. Ensure the correct MIME type based on the file extension.
+    const ext = finalFileName.split('.').pop()?.toLowerCase();
+    if (ext === 'mp3') finalFileType = 'audio/mpeg';
+    else if (ext === 'wav') finalFileType = 'audio/wav';
+    else if (ext === 'ogg') finalFileType = 'audio/ogg';
+    else if (ext === 'aac') finalFileType = 'audio/aac';
+    else if (ext === 'm4a' || ext === 'mp4') finalFileType = 'audio/mp4';
+    else if (ext === 'flac') finalFileType = 'audio/flac';
+    else if (!finalFileType || finalFileType === 'application/octet-stream' || finalFileType === 'audio/mp3') finalFileType = 'audio/mpeg';
+
     let parsedMetadata: Record<string, string> = {};
     if (metadata) {
       try {
