@@ -681,7 +681,7 @@ export function AddShowForm() {
                           role='combobox'
                           aria-expanded={openStartTime}
                           className={cn(
-                            'z-60 flex h-auto w-full items-center justify-between gap-2 rounded-xl border-almostblack bg-almostblack px-3 py-1.5 font-mono uppercase text-[12px] text-white hover:bg-almostblack/90 hover:text-white dark:bg-white dark:text-almostblack dark:hover:bg-white/90',
+                            'relative flex h-auto w-full items-center justify-between gap-2 rounded-xl border-almostblack bg-almostblack px-3 py-1.5 font-mono uppercase text-[12px] text-white hover:bg-almostblack/90 hover:text-white dark:bg-white dark:text-almostblack dark:hover:bg-white/90',
                             !field.value && 'text-muted-foreground'
                           )}
                         >
@@ -747,7 +747,7 @@ export function AddShowForm() {
                           role='combobox'
                           aria-expanded={openDuration}
                           className={cn(
-                            'z-60 flex h-auto w-full items-center justify-between gap-2 rounded-xl border-almostblack bg-almostblack px-3 py-1.5 font-mono uppercase text-[12px] text-white hover:bg-almostblack/90 hover:text-white dark:bg-white dark:text-almostblack dark:hover:bg-white/90',
+                            'relative flex h-auto w-full items-center justify-between gap-2 rounded-xl border-almostblack bg-almostblack px-3 py-1.5 font-mono uppercase text-[12px] text-white hover:bg-almostblack/90 hover:text-white dark:bg-white dark:text-almostblack dark:hover:bg-white/90',
                             !field.value && 'text-muted-foreground'
                           )}
                         >
@@ -857,20 +857,15 @@ export function AddShowForm() {
             control={form.control}
             name='hostId'
             render={({ field }) => {
-              const showAddButton =
-                hostInput &&
-                hostInput.trim().length >= 2 &&
-                matchingHosts.length === 0 &&
-                !field.value;
+              const hasExactMatch = matchingHosts.some(
+                h => h.title?.toLowerCase() === hostInput.trim().toLowerCase()
+              );
+              const showAddOption =
+                hostInput && hostInput.trim().length >= 2 && !hasExactMatch && !field.value;
 
               return (
                 <FormItem>
-                  <div className='flex justify-between items-center'>
-                    <FormLabel>Host or Series</FormLabel>
-                    {showAddButton && (
-                      <AddNewHost onHostCreated={handleHostCreated} initialName={hostInput} />
-                    )}
-                  </div>
+                  <FormLabel>Host or Series</FormLabel>
                   <Command
                     className='w-full border border-input rounded-none relative'
                     shouldFilter={false}
@@ -880,7 +875,7 @@ export function AddShowForm() {
                         placeholder='Type to search for a host or series'
                         value={hostInput}
                         onValueChange={handleHostInputChange}
-                        disabled={isLoading || hosts.length === 0}
+                        disabled={isLoading}
                         style={{ width: '100%' }}
                       />
                       {field.value && (
@@ -910,17 +905,25 @@ export function AddShowForm() {
                             {host.title}
                           </CommandItem>
                         ))}
-                        {matchingHosts.length === 0 && (
+                        {matchingHosts.length === 0 && !showAddOption && (
                           <CommandEmpty>
-                            No hosts or series found matching "{hostInput}"
+                            No hosts or series found matching &ldquo;{hostInput}&rdquo;
                           </CommandEmpty>
+                        )}
+                        {showAddOption && (
+                          <div className='border-t border-input p-1'>
+                            <AddNewHost
+                              onHostCreated={handleHostCreated}
+                              initialName={hostInput.trim()}
+                            />
+                          </div>
                         )}
                       </CommandList>
                     )}
                   </Command>
                   <FormDescription>
                     {formTexts.artist?.descriptions['artist-select'] ||
-                      'Select the main host or series for this show'}
+                      'Select the main Host for this show or add a new one'}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -943,7 +946,7 @@ export function AddShowForm() {
                       placeholder='Type to search for a takeover'
                       value={selectedTakeover ? selectedTakeover.title : takeoverInput}
                       onValueChange={handleTakeoverInputChange}
-                      disabled={isLoading || takeovers.length === 0}
+                      disabled={isLoading}
                       style={{ width: '100%' }}
                     />
                     {selectedTakeover && (
@@ -1011,7 +1014,7 @@ export function AddShowForm() {
                           setSelectedGenreInput(value);
                           setIsGenreListOpen(true);
                         }}
-                        disabled={isLoading || genres.length === 0}
+                        disabled={isLoading}
                         style={{ width: '100%' }}
                       />
                     </div>
@@ -1129,7 +1132,7 @@ export function AddShowForm() {
                       placeholder='Type to search for a location'
                       value={selectedLocation ? selectedLocation.title : locationInput}
                       onValueChange={handleLocationInputChange}
-                      disabled={isLoading || locations.length === 0}
+                      disabled={isLoading}
                       style={{ width: '100%' }}
                     />
                     {selectedLocation && (

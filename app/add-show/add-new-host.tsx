@@ -26,6 +26,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dropzone } from '@/components/ui/dropzone';
 import { toast } from 'sonner';
+import { Plus } from 'lucide-react';
 import { CosmicHost } from '@/lib/cosmic-host-service';
 
 const hostFormSchema = z.object({
@@ -140,9 +141,13 @@ export function AddNewHost({ onHostCreated, initialName = '' }: AddNewHostProps)
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant='outline' size='sm' type='button'>
-          Add Host
-        </Button>
+        <button
+          type='button'
+          className='flex w-full items-center gap-2 rounded-none px-2 py-1.5 text-sm uppercase cursor-pointer hover:bg-accent hover:text-accent-foreground'
+        >
+          <Plus className='h-4 w-4' />
+          Add &ldquo;{initialName}&rdquo; as new host
+        </button>
       </DialogTrigger>
       <DialogContent className='sm:max-w-[600px]'>
         <DialogHeader>
