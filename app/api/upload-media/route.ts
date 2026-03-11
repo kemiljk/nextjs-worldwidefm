@@ -12,14 +12,12 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('media') as File | null;
     const mediaUrl = formData.get('mediaUrl') as string | null;
+    const requestedFileName = formData.get('fileName') as string | null;
     const metadata = formData.get('metadata') as string;
 
     if (!file && !mediaUrl) {
       console.error('❌ No file or mediaUrl provided in request');
-      return NextResponse.json(
-        { error: 'No file or mediaUrl provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No file or mediaUrl provided' }, { status: 400 });
     }
 
     let finalFile: File | Blob;
@@ -29,10 +27,7 @@ export async function POST(request: NextRequest) {
     if (mediaUrl) {
       console.log('🔗 Fetching media from URL:', mediaUrl);
       const controller = new AbortController();
-      const timeoutId = setTimeout(
-        () => controller.abort(),
-        RADIOCULT_FETCH_TIMEOUT_MS
-      );
+      const timeoutId = setTimeout(() => controller.abort(), RADIOCULT_FETCH_TIMEOUT_MS);
 
       try {
         const res = await fetch(mediaUrl, { signal: controller.signal });
@@ -44,11 +39,15 @@ export async function POST(request: NextRequest) {
         const blob = await res.blob();
         finalFile = blob;
         finalFileType = blob.type || 'audio/mpeg';
-        try {
-          const url = new URL(mediaUrl);
-          finalFileName = url.pathname.split('/').pop() || 'media-file';
-        } catch {
-          finalFileName = 'media-file';
+        if (requestedFileName?.trim()) {
+          finalFileName = requestedFileName.trim();
+        } else {
+          try {
+            const url = new URL(mediaUrl);
+            finalFileName = url.pathname.split('/').pop() || 'media-file';
+          } catch {
+            finalFileName = 'media-file';
+          }
         }
 
         console.log('✅ Media fetched from URL:', {
@@ -69,18 +68,15 @@ export async function POST(request: NextRequest) {
       }
     } else if (file) {
       finalFile = file;
-      finalFileName = file.name;
+      finalFileName = requestedFileName?.trim() || file.name;
       finalFileType = file.type || 'audio/mpeg';
       console.log('🎵 Media file received:', {
-        name: file.name,
+        name: finalFileName,
         size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
         type: file.type,
       });
     } else {
-      return NextResponse.json(
-        { error: 'No file or mediaUrl provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No file or mediaUrl provided' }, { status: 400 });
     }
 
     // Vercel Blob and browsers often return application/octet-stream for audio files missing ID3 tags.
@@ -92,7 +88,12 @@ export async function POST(request: NextRequest) {
     else if (ext === 'aac') finalFileType = 'audio/aac';
     else if (ext === 'm4a' || ext === 'mp4') finalFileType = 'audio/mp4';
     else if (ext === 'flac') finalFileType = 'audio/flac';
-    else if (!finalFileType || finalFileType === 'application/octet-stream' || finalFileType === 'audio/mp3') finalFileType = 'audio/mpeg';
+    else if (
+      !finalFileType ||
+      finalFileType === 'application/octet-stream' ||
+      finalFileType === 'audio/mp3'
+    )
+      finalFileType = 'audio/mpeg';
 
     let parsedMetadata: Record<string, string> = {};
     if (metadata) {
@@ -129,21 +130,15 @@ export async function POST(request: NextRequest) {
     console.log('📡 Attempting RadioCult upload...');
 
     const rcAbortController = new AbortController();
-    const rcTimeoutId = setTimeout(
-      () => rcAbortController.abort(),
-      RADIOCULT_FETCH_TIMEOUT_MS
-    );
+    const rcTimeoutId = setTimeout(() => rcAbortController.abort(), RADIOCULT_FETCH_TIMEOUT_MS);
 
     try {
-      const rcRes = await fetch(
-        `https://api.radiocult.fm/api/station/${stationId}/media/track`,
-        {
-          method: 'POST',
-          headers: { 'x-api-key': secretKey },
-          body: rcForm,
-          signal: rcAbortController.signal,
-        }
-      );
+      const rcRes = await fetch(`https://api.radiocult.fm/api/station/${stationId}/media/track`, {
+        method: 'POST',
+        headers: { 'x-api-key': secretKey },
+        body: rcForm,
+        signal: rcAbortController.signal,
+      });
       clearTimeout(rcTimeoutId);
 
       if (!rcRes.ok) {
@@ -194,8 +189,7 @@ export async function POST(request: NextRequest) {
     } catch (rcError) {
       clearTimeout(rcTimeoutId);
       console.error('❌ RadioCult upload error:', rcError);
-      const errorMessage =
-        rcError instanceof Error ? rcError.message : 'Unknown upload error';
+      const errorMessage = rcError instanceof Error ? rcError.message : 'Unknown upload error';
       return NextResponse.json(
         {
           success: false,

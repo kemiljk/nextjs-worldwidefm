@@ -42,6 +42,28 @@ import { compressImage } from '@/lib/image-compression';
 import { upload } from '@vercel/blob/client';
 import { AddNewHost } from './add-new-host';
 
+const sanitizeFilenameSegment = (value: string) =>
+  value
+    .normalize('NFKD')
+    .replace(/[^\x00-\x7F]/g, '')
+    .replace(/[\[\]]/g, '')
+    .replace(/[\\/:"*?<>|]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const getFileExtension = (filename: string) => {
+  const extensionStart = filename.lastIndexOf('.');
+  return extensionStart > 0 ? filename.slice(extensionStart).toLowerCase() : '';
+};
+
+const buildRawMediaFilename = (broadcastDate: string, title: string, originalFilename: string) => {
+  const datePart = broadcastDate.replace(/-/g, '').slice(0, 8);
+  const safeTitle = sanitizeFilenameSegment(title) || 'Untitled Show';
+  const extension = getFileExtension(originalFilename) || '.mp3';
+
+  return `raw${datePart} [${safeTitle}]${extension}`;
+};
+
 // Form schema using zod
 const formSchema = z.object({
   title: z.string().min(3, {
@@ -392,7 +414,13 @@ export function AddShowForm() {
         console.log('🎵 Starting client-side media upload to Vercel Blob...');
 
         try {
-          const blob = await upload(mediaFile.name, mediaFile, {
+          const mediaFileName = buildRawMediaFilename(
+            values.startDate,
+            values.title,
+            mediaFile.name
+          );
+
+          const blob = await upload(mediaFileName, mediaFile, {
             access: 'public',
             handleUploadUrl: '/api/upload-media/token',
           });
@@ -401,6 +429,7 @@ export function AddShowForm() {
 
           const mediaFormData = new FormData();
           mediaFormData.append('mediaUrl', blob.url);
+          mediaFormData.append('fileName', mediaFileName);
           mediaFormData.append(
             'metadata',
             JSON.stringify({
@@ -427,9 +456,7 @@ export function AddShowForm() {
           console.log('🎵 Media upload result:', uploadResult);
 
           if (!uploadResponse.ok || !uploadResult.success) {
-            throw new Error(
-              uploadResult.error || `Upload failed (HTTP ${uploadResponse.status})`
-            );
+            throw new Error(uploadResult.error || `Upload failed (HTTP ${uploadResponse.status})`);
           }
 
           radiocultMediaId = uploadResult.radiocultMediaId ?? undefined;
@@ -471,6 +498,9 @@ export function AddShowForm() {
             tracklist: processedTracklist,
             status: 'draft',
             radiocult_media_id: radiocultMediaId,
+            media_file: mediaFile
+              ? buildRawMediaFilename(values.startDate, values.title, mediaFile.name)
+              : undefined,
             image: cosmicImage,
           }),
         });
