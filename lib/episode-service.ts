@@ -7,6 +7,7 @@ export interface EpisodeParams {
   random?: boolean;
   searchTerm?: string;
   isNew?: boolean;
+  broadcastDate?: string;
   genre?: string | string[];
   host?: string | string[] | '*';
   takeover?: string | string[] | '*';
@@ -213,7 +214,9 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       }
     }
 
-    if (params.upcoming) {
+    if (params.broadcastDate) {
+      query['metadata.broadcast_date'] = params.broadcastDate;
+    } else if (params.upcoming) {
       const todayStr = new Date().toISOString().slice(0, 10);
       query['metadata.broadcast_date'] = { $gt: todayStr };
     } else if (params.isNew) {
@@ -226,9 +229,13 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       query['metadata.broadcast_date'] = { $lte: yesterdayStr };
     }
 
-    // Default sort for upcoming is ascending (closest first), otherwise descending
     const sort =
-      params.sort || (params.upcoming ? 'metadata.broadcast_date' : '-metadata.broadcast_date');
+      params.sort ||
+      (params.broadcastDate
+        ? 'metadata.broadcast_time'
+        : params.upcoming
+          ? 'metadata.broadcast_date'
+          : '-metadata.broadcast_date');
 
     // Fetch episodes from Cosmic
     const { objects: episodes, total: totalCount } = await fetchEpisodesFromCosmic(

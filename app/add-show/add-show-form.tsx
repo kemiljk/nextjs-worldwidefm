@@ -40,29 +40,8 @@ import { Dropzone } from '@/components/ui/dropzone';
 import { FormTexts, getDefaultFormTexts } from '@/lib/form-text-service';
 import { compressImage } from '@/lib/image-compression';
 import { upload } from '@vercel/blob/client';
+import { buildRawMediaFilename } from '@/lib/upload-filename-utils';
 import { AddNewHost } from './add-new-host';
-
-const sanitizeFilenameSegment = (value: string) =>
-  value
-    .normalize('NFKD')
-    .replace(/[^\x00-\x7F]/g, '')
-    .replace(/[\[\]]/g, '')
-    .replace(/[\\/:"*?<>|]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-const getFileExtension = (filename: string) => {
-  const extensionStart = filename.lastIndexOf('.');
-  return extensionStart > 0 ? filename.slice(extensionStart).toLowerCase() : '';
-};
-
-const buildRawMediaFilename = (broadcastDate: string, title: string, originalFilename: string) => {
-  const datePart = broadcastDate.replace(/-/g, '').slice(0, 8);
-  const safeTitle = sanitizeFilenameSegment(title) || 'Untitled Show';
-  const extension = getFileExtension(originalFilename) || '.mp3';
-
-  return `raw${datePart} [${safeTitle}]${extension}`;
-};
 
 // Form schema using zod
 const formSchema = z.object({
