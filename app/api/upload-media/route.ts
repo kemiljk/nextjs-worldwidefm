@@ -194,28 +194,33 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await finalFile.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Inspect MP3 structure for problematic files
+    // For MP3 files, inspect the structure for diagnostics (read-only, non-blocking)
+    let mp3Structure: ReturnType<typeof inspectMp3Structure> | undefined;
     if (ext === 'mp3' || finalFileName.toLowerCase().endsWith('.mp3')) {
-      const structure = inspectMp3Structure(buffer);
-      console.log('🔍 MP3 structure inspection:', {
-        ...structure,
-        fileName: finalFileName,
-        originalType: originalFileType,
-        normalizedType: finalFileType,
-      });
+      try {
+        mp3Structure = inspectMp3Structure(buffer);
+        console.log('🔍 MP3 structure inspection:', {
+          ...mp3Structure,
+          fileName: finalFileName,
+          originalType: originalFileType,
+          normalizedType: finalFileType,
+        });
 
-      // Warn about potentially problematic files
-      if (!structure.hasId3Header) {
-        console.warn('⚠️ MP3 lacks ID3 header - may cause upload issues');
-      }
-      if (!structure.hasMpegFrameSync) {
-        console.warn('⚠️ MP3 lacks MPEG frame sync marker - may be corrupted or non-standard');
-      }
-      if (structure.paddingPattern === 'FF-dominant') {
-        console.warn('⚠️ MP3 has FF-dominant padding - RadioCult may reject this');
+        if (!mp3Structure.hasId3Header) {
+          console.warn('⚠️ MP3 lacks ID3 header - may cause upload issues');
+        }
+        if (!mp3Structure.hasMpegFrameSync) {
+          console.warn('⚠️ MP3 lacks MPEG frame sync marker - may be corrupted or non-standard');
+        }
+        if (mp3Structure.paddingPattern === 'FF-dominant') {
+          console.warn('⚠️ MP3 has FF-dominant padding - RadioCult may reject this');
+        }
+      } catch (inspectError) {
+        console.warn('⚠️ Could not inspect MP3 structure:', inspectError);
       }
     }
 
+    // Re-create Blob with the normalized MIME type so RadioCult receives the correct Content-Type
     const fileBlob = new Blob([buffer], { type: finalFileType });
     const rcForm = new FormData();
     rcForm.append('stationMedia', fileBlob, finalFileName);
@@ -225,12 +230,6 @@ export async function POST(request: NextRequest) {
 
     const rcAbortController = new AbortController();
     const rcTimeoutId = setTimeout(() => rcAbortController.abort(), RADIOCULT_FETCH_TIMEOUT_MS);
-
-    // Capture MP3 structure for error diagnostics
-    let mp3Structure: ReturnType<typeof inspectMp3Structure> | undefined;
-    if (ext === 'mp3' || finalFileName.toLowerCase().endsWith('.mp3')) {
-      mp3Structure = inspectMp3Structure(buffer);
-    }
 
     try {
       const rcRes = await fetch(`https://api.radiocult.fm/api/station/${stationId}/media/track`, {

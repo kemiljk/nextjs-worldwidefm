@@ -86,45 +86,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing audio file or title' }, { status: 400 });
     }
 
-    // Read and inspect audio file for diagnostics
-    const audioArrayBuffer = await audioFile.arrayBuffer();
-    const audioBuffer = Buffer.from(audioArrayBuffer);
-
     // Determine MIME type based on file extension
     const originalType = audioFile.type || 'audio/mpeg';
     const fileName = audioFile.name || 'audio.mp3';
     const ext = fileName.split('.').pop()?.toLowerCase();
-    let finalType = originalType;
-    if (ext === 'mp3') finalType = 'audio/mpeg';
-    else if (!originalType || originalType === 'application/octet-stream') finalType = 'audio/mpeg';
 
-    // Inspect MP3 structure
+    // For MP3 files, inspect the structure for diagnostics
     let mp3Diagnostics: ReturnType<typeof inspectMp3Structure> | undefined;
     if (ext === 'mp3' || fileName.toLowerCase().endsWith('.mp3')) {
-      mp3Diagnostics = inspectMp3Structure(audioBuffer);
-      console.log('🔍 Mixcloud MP3 inspection:', {
-        fileName,
-        originalType,
-        normalizedType: finalType,
-        ...mp3Diagnostics,
-      });
+      try {
+        const audioArrayBuffer = await audioFile.arrayBuffer();
+        const audioBuffer = Buffer.from(audioArrayBuffer);
+        mp3Diagnostics = inspectMp3Structure(audioBuffer);
+        console.log('🔍 Mixcloud MP3 inspection:', {
+          fileName,
+          originalType,
+          ...mp3Diagnostics,
+        });
 
-      if (!mp3Diagnostics.hasId3Header) {
-        console.warn('⚠️ Mixcloud upload: MP3 lacks ID3 header');
-      }
-      if (!mp3Diagnostics.hasMpegFrameSync) {
-        console.warn('⚠️ Mixcloud upload: MP3 lacks MPEG frame sync');
-      }
-      if (mp3Diagnostics.paddingPattern === 'FF-dominant') {
-        console.warn('⚠️ Mixcloud upload: MP3 has FF-dominant padding');
+        if (!mp3Diagnostics.hasId3Header) {
+          console.warn('⚠️ Mixcloud upload: MP3 lacks ID3 header');
+        }
+        if (!mp3Diagnostics.hasMpegFrameSync) {
+          console.warn('⚠️ Mixcloud upload: MP3 lacks MPEG frame sync');
+        }
+        if (mp3Diagnostics.paddingPattern === 'FF-dominant') {
+          console.warn('⚠️ Mixcloud upload: MP3 has FF-dominant padding');
+        }
+      } catch (inspectError) {
+        console.warn('⚠️ Could not inspect MP3 structure:', inspectError);
       }
     }
 
-    // Create normalized Blob with proper MIME type
-    const normalizedBlob = new Blob([audioBuffer], { type: finalType });
-
+    // Use the original file directly - don't re-create Blob from buffer
+    // Re-creating Blob from buffer can corrupt the file
     const mcForm = new FormData();
-    mcForm.append('mp3', normalizedBlob, fileName);
+    mcForm.append('mp3', audioFile, fileName);
     mcForm.append('name', title);
     if (description?.trim()) {
       mcForm.append('description', description.trim());
