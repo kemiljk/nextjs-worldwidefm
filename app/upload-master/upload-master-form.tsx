@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { EpisodeObject, getEpisodeImageUrl } from '@/lib/cosmic-types';
-import { buildRawMediaFilename } from '@/lib/upload-filename-utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -101,16 +100,14 @@ export function UploadMasterForm() {
     let mixcloudUrl: string | undefined;
 
     try {
-      const mediaFileName = buildRawMediaFilename(dateStr, selectedEpisode.title, mediaFile.name);
-
-      const blob = await upload(mediaFileName, mediaFile, {
+      const blob = await upload(mediaFile.name, mediaFile, {
         access: 'public',
         handleUploadUrl: '/api/upload-media/token',
       });
 
       const mediaFormData = new FormData();
       mediaFormData.append('mediaUrl', blob.url);
-      mediaFormData.append('fileName', mediaFileName);
+      mediaFormData.append('fileName', mediaFile.name);
       mediaFormData.append(
         'metadata',
         JSON.stringify({

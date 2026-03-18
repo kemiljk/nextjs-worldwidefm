@@ -21,5 +21,5 @@ export function buildRawMediaFilename(
   const safeTitle = sanitizeFilenameSegment(title) || 'Untitled Show';
   const extension = getFileExtension(originalFilename) || '.mp3';
 
-  return `raw${datePart} [${safeTitle}]${extension}`;
+  return `raw${datePart} ${safeTitle}${extension}`;
 }
