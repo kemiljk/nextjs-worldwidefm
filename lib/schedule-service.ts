@@ -44,6 +44,10 @@ export function parseDurationToMinutes(duration: string | null | undefined): num
   return 0;
 }
 
+export function parseDurationToSeconds(duration: string | null | undefined): number {
+  return parseDurationToMinutes(duration) * 60;
+}
+
 function isEpisodeObject(value: unknown): value is EpisodeObject {
   return Boolean(
     value &&

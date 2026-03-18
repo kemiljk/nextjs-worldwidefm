@@ -13,6 +13,8 @@
     "type-check": "tsc --noEmit",
     "fetch-archive": "bun run scripts/fetch-archive.ts",
     "populate-takeovers": "bun run scripts/populate-takeovers.ts",
+    "test": "bun test test/*.test.ts",
+    "test:unit": "bun test test/*.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
