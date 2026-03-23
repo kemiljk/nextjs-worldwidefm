@@ -8,11 +8,11 @@ import { transformShowToViewData } from '@/lib/cosmic-service';
 import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
-import { ShowCard } from '@/components/ui/show-card';
 import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
 import { FavoriteButton } from '@/components/favorite-button';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { MapPin } from 'lucide-react';
+import HostClient from './host-client';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -87,83 +87,6 @@ async function getHostBySlug(slug: string) {
   }
 }
 
-async function getRelatedShows(hostId: string, limit: number = 12, genreIds: string[] = []) {
-  try {
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
-    const result: any[] = [];
-    const excludeIds: string[] = [];
-
-    // 1. Get shows by this host
-    const hostResponse = await getRadioShows({
-      filters: { host: hostId },
-      limit,
-      sort: '-metadata.broadcast_date',
-    });
-
-    const hostShows = (hostResponse.objects || []).map(transformShowToViewData);
-    result.push(...hostShows);
-    excludeIds.push(...hostShows.map((s: any) => s.id));
-
-    // 2. If we need more, fetch by genres
-    if (result.length < limit && genreIds.length > 0) {
-      const genreResponse = await getRadioShows({
-        filters: { genre: genreIds[0] }, // Cosmic current filter only supports one, but we could loop or use $in if getRadioShows supported it
-        limit: limit - result.length + 10,
-        sort: '-metadata.broadcast_date',
-        exclude_ids: excludeIds,
-      });
-
-      const genreShows = (genreResponse.objects || [])
-        .map(transformShowToViewData)
-        .filter((show: any) => {
-          const showHostIds = show.metadata?.regular_hosts?.map((h: any) => h.id) || [];
-          return !showHostIds.includes(hostId) && !excludeIds.includes(show.id);
-        })
-        .slice(0, limit - result.length);
-
-      result.push(...genreShows);
-      excludeIds.push(...genreShows.map((s: any) => s.id));
-    }
-
-    // 3. Fallback: get recent shows
-    if (result.length < limit) {
-      const remainingLimit = limit - result.length;
-      const randomResponse = await cosmic.objects
-        .find({
-          type: 'episode',
-          status: 'published',
-          id: { $nin: excludeIds },
-          'metadata.broadcast_date': { $lte: todayStr },
-        })
-        .limit(remainingLimit * 2)
-        .sort('-metadata.broadcast_date')
-        .depth(2);
-
-      const randomShows = (randomResponse.objects || [])
-        .map(transformShowToViewData)
-        .filter((show: any) => {
-          const showHostIds = show.metadata?.regular_hosts?.map((h: any) => h.id) || [];
-          return !showHostIds.includes(hostId) && !excludeIds.includes(show.id);
-        })
-        .slice(0, remainingLimit);
-
-      result.push(...randomShows);
-    }
-
-    result.sort((a, b) => {
-      const dateA = a.broadcast_date || a.metadata?.broadcast_date || '';
-      const dateB = b.broadcast_date || b.metadata?.broadcast_date || '';
-      return dateB.localeCompare(dateA);
-    });
-
-    return result.slice(0, limit);
-  } catch (error) {
-    console.error(`Error fetching related shows for host ${hostId}:`, error);
-    return [];
-  }
-}
-
 export default async function HostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
@@ -173,36 +96,15 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
     notFound();
   }
 
-  let relatedShows: any[] = [];
-
-  // Try to use curated shows from metadata first
-  if (host.metadata?.shows?.length > 0) {
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
-
-    relatedShows = host.metadata.shows
-      .filter((s: any) => {
-        // Handle expanded objects from depth 2
-        if (typeof s !== 'object' || !s) return false;
-
-        const broadcastDate = s.metadata?.broadcast_date || s.broadcast_date;
-        return broadcastDate && broadcastDate <= todayStr;
-      })
-      .map(transformShowToViewData);
-
-    // Sort curated shows by date descending
-    relatedShows.sort((a, b) => {
-      const dateA = a.broadcast_date || '';
-      const dateB = b.broadcast_date || '';
-      return dateB.localeCompare(dateA);
-    });
-  }
-
-  // If no curated shows found, fallback to search-based related shows
-  if (relatedShows.length === 0) {
-    const genreIds = host.metadata?.genres?.map((g: any) => g.id).filter(Boolean) || [];
-    relatedShows = await getRelatedShows(host.id, 12, genreIds);
-  }
+  // Fetch initial episodes for this host (single source of truth: episode's regular_hosts field)
+  const PAGE_SIZE = 20;
+  const initialHostShows = await getRadioShows({
+    filters: { host: host.id },
+    limit: PAGE_SIZE,
+    sort: '-metadata.broadcast_date',
+  });
+  const initialShows = (initialHostShows.objects || []).map(transformShowToViewData);
+  const initialHasNext = initialShows.length === PAGE_SIZE && initialShows.length < (initialHostShows.total || 0);
 
   const user = await getAuthUser();
   let isFavorited = false;
@@ -304,28 +206,14 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
         </div>
       </div>
 
-      {relatedShows.length > 0 && (
-        <div className='w-full px-5 pt-8'>
-          <div>
-            <h2 className='text-h8 uppercase md:text-h7 font-bold tracking-tight leading-none mb-3'>
-              Related Episodes
-            </h2>
-            <div className='grid grid-cols-2 lg:grid-cols-4 md:grid-cols-3 gap-3'>
-              {relatedShows.map(relatedShow => {
-                const slug = `/episode/${relatedShow.slug}`;
-                return (
-                  <ShowCard
-                    key={relatedShow.id || relatedShow.slug}
-                    show={relatedShow}
-                    slug={slug}
-                    playable
-                  />
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      <div className='w-full px-5 pt-8'>
+        <HostClient
+          hostId={host.id}
+          hostTitle={host.title}
+          initialShows={initialShows}
+          initialHasNext={initialHasNext}
+        />
+      </div>
     </div>
   );
 }

@@ -102,8 +102,17 @@ export default async function EpisodePage({
   const hostIds = episode.metadata.regular_hosts?.map((host: any) => host.id).filter(Boolean) || [];
   const genreIds = episode.metadata.genres?.map((genre: any) => genre.id).filter(Boolean) || [];
   const takeoverIds = episode.metadata.takeovers?.map((takeover: any) => takeover.id).filter(Boolean) || [];
-  const relatedEpisodesRaw = await getRelatedEpisodes(episode.id, 3, hostIds, genreIds, takeoverIds);
+  const { episodes: relatedEpisodesRaw, matchType } = await getRelatedEpisodes(episode.id, 3, hostIds, genreIds, takeoverIds);
   const relatedEpisodes = relatedEpisodesRaw.map(ep => transformShowToViewData(ep));
+
+  // Pick a heading that honestly reflects how episodes were matched
+  let relatedHeading = 'Related Episodes';
+  if (matchType === 'genre' && episode.metadata.genres?.length > 0) {
+    const genreName = episode.metadata.genres[0].title || episode.metadata.genres[0].name;
+    relatedHeading = `More in ${genreName}`;
+  } else if (matchType === 'recent') {
+    relatedHeading = 'Recent Episodes';
+  }
 
   // Get canonical genres for genre tag linking
   const canonicalGenres = await getCanonicalGenres();
@@ -362,7 +371,7 @@ export default async function EpisodePage({
           {relatedEpisodes.length > 0 && (
             <div>
               <h2 className='text-h8 uppercase md:text-h7 font-bold tracking-tight leading-none'>
-                Related Episodes
+                {relatedHeading}
               </h2>
               <div className='grid grid-cols-2 lg:grid-cols-3 gap-3 justify-between pt-3'>
                 {relatedEpisodes.map(relatedEpisode => {

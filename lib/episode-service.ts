@@ -663,17 +663,25 @@ async function fetchRecentEpisodes(
  * Get related episodes based on shared genres, hosts, and takeovers
  * Prioritizes episodes with the same takeovers, then same hosts, then by genres, then falls back to recent episodes
  */
+export type RelatedMatchType = 'takeover' | 'host' | 'genre' | 'recent';
+
+export interface RelatedEpisodesResult {
+  episodes: EpisodeObject[];
+  matchType: RelatedMatchType;
+}
+
 export async function getRelatedEpisodes(
   episodeId: string,
   limit: number = 5,
   hostIds?: string[],
   genreIds?: string[],
   takeoverIds?: string[]
-): Promise<EpisodeObject[]> {
+): Promise<RelatedEpisodesResult> {
   try {
     const todayStr = new Date().toISOString().slice(0, 10);
     const result: EpisodeObject[] = [];
     const excludeIds: string[] = [episodeId];
+    let primaryMatchType: RelatedMatchType = 'recent';
 
     // 1. Prioritize episodes by same takeover
     if (takeoverIds && takeoverIds.length > 0) {
@@ -684,6 +692,9 @@ export async function getRelatedEpisodes(
           limit,
           todayStr
         );
+        if (takeoverEpisodes.length > 0) {
+          primaryMatchType = 'takeover';
+        }
         result.push(...takeoverEpisodes);
         excludeIds.push(...takeoverEpisodes.map(e => e.id));
       } catch (takeoverError) {
@@ -701,6 +712,9 @@ export async function getRelatedEpisodes(
           remainingLimit,
           todayStr
         );
+        if (hostEpisodes.length > 0 && primaryMatchType === 'recent') {
+          primaryMatchType = 'host';
+        }
         result.push(...hostEpisodes);
         excludeIds.push(...hostEpisodes.map(e => e.id));
       } catch (hostError) {
@@ -718,6 +732,9 @@ export async function getRelatedEpisodes(
           remainingLimit,
           todayStr
         );
+        if (genreEpisodes.length > 0 && primaryMatchType === 'recent') {
+          primaryMatchType = 'genre';
+        }
         result.push(...genreEpisodes);
         excludeIds.push(...genreEpisodes.map(e => e.id));
       } catch (genreError) {
@@ -736,9 +753,12 @@ export async function getRelatedEpisodes(
       }
     }
 
-    return result.slice(0, limit);
+    return {
+      episodes: result.slice(0, limit),
+      matchType: primaryMatchType,
+    };
   } catch (error) {
     console.error('Error in getRelatedEpisodes:', error);
-    return [];
+    return { episodes: [], matchType: 'recent' };
   }
 }

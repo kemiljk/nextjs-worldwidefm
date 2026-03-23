@@ -45,8 +45,8 @@ const typeLabels: Record<string, { label: string; icon: React.ElementType; color
   episodes: { label: 'Latest Shows', icon: Music2, color: 'text-foreground' },
   posts: { label: 'Editorial', icon: Newspaper, color: 'text-foreground' },
   videos: { label: 'Video', icon: Video, color: 'text-foreground' },
-  takeovers: { label: 'Takeover', icon: MicVocal, color: 'text-foreground' },
-  'hosts-series': { label: 'Hosts', icon: Users, color: 'text-foreground' },
+  takeovers: { label: 'Takeovers', icon: MicVocal, color: 'text-foreground' },
+  'hosts-series': { label: 'Hosts & Series', icon: Users, color: 'text-foreground' },
 };
 
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {

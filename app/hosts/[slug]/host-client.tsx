@@ -9,11 +9,12 @@ interface HostClientProps {
   hostId: string;
   hostTitle: string;
   initialShows: any[];
+  initialHasNext?: boolean;
 }
 
-export default function HostClient({ hostId, hostTitle, initialShows }: HostClientProps) {
+export default function HostClient({ hostId, hostTitle, initialShows, initialHasNext = true }: HostClientProps) {
   const [shows, setShows] = useState(initialShows);
-  const [hasNext, setHasNext] = useState(true);
+  const [hasNext, setHasNext] = useState(initialHasNext);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
