@@ -4,8 +4,6 @@ import { getScheduleData } from '@/lib/radiocult-service';
 import { extractDatePart } from '@/lib/date-utils';
 import type { EpisodeObject } from '@/lib/cosmic-types';
 
-export const dynamic = 'force-dynamic';
-
 interface RequestBody {
   title?: string;
   startTime?: string;

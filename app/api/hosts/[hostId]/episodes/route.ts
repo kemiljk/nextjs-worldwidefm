@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRadioShows } from '@/lib/cosmic-service';
 import { transformShowToViewData } from '@/lib/cosmic-service';
 
-export const dynamic = 'force-dynamic';
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ hostId: string }> }
