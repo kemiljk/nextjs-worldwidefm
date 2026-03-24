@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
+import { formatLondonBroadcastTime, parseBroadcastDateTime } from '@/lib/date-utils';
 import { formatDateShort } from '@/lib/utils';
 import { GenreObject } from '@/lib/cosmic-config';
 import { PlayButton } from '@/components/play-button';
@@ -33,6 +34,18 @@ const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
 
   // Check if this specific episode is currently playing
   const isCurrentlyPlaying = isArchivePlaying && selectedShow?.slug === item.slug;
+
+  const broadcastWallTime =
+    item.metadata?.broadcast_date && item.metadata?.broadcast_time
+      ? (() => {
+          const d = parseBroadcastDateTime(
+            item.metadata.broadcast_date,
+            item.metadata.broadcast_time,
+            item.metadata.broadcast_date_old
+          );
+          return d ? formatLondonBroadcastTime(d) : item.metadata.broadcast_time;
+        })()
+      : item.metadata?.broadcast_time ?? null;
 
   const handlePlayPause = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -102,9 +115,9 @@ const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
                 })()}
               </HighlightedText>
             </h3>
-            {item.metadata?.broadcast_time && (
+            {broadcastWallTime && (
               <p className='text-m5 font-mono text-white max-w-xl mt-2 line-clamp-3 text-left'>
-                {item.metadata.broadcast_time}
+                {broadcastWallTime}
               </p>
             )}
             {item.metadata?.genres && (

@@ -3,14 +3,110 @@
  * Supports both old format (ISO strings) and new format (YYYY-MM-DD + HH:MM)
  */
 
+const LONDON_TZ = 'Europe/London';
+
+const londonWallClockFormatter = new Intl.DateTimeFormat('en-GB', {
+  timeZone: LONDON_TZ,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+});
+
+function getLondonWallClockParts(ms: number): {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+} {
+  const parts = londonWallClockFormatter.formatToParts(new Date(ms));
+  const n = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find(p => p.type === type)?.value ?? NaN);
+  return {
+    year: n('year'),
+    month: n('month'),
+    day: n('day'),
+    hour: n('hour'),
+    minute: n('minute'),
+    second: n('second'),
+  };
+}
+
+function londonWallClockKey(p: {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+}): number {
+  return (
+    p.year * 1_000_000_000 +
+    p.month * 10_000_000 +
+    p.day * 100_000 +
+    p.hour * 1_000 +
+    p.minute * 10 +
+    p.second
+  );
+}
+
+/**
+ * Interpret YYYY-MM-DD and HH:MM as Europe/London wall-clock time and return the UTC instant.
+ * Uses Intl (IANA tzdata) so GMT/BST changes are automatic.
+ */
+export function parseLondonDateTime(dateStr: string, timeStr: string): Date | null {
+  const trimmedDate = dateStr.trim();
+  const trimmedTime = timeStr.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmedDate)) return null;
+
+  const tm = trimmedTime.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!tm) return null;
+
+  const y = Number(trimmedDate.slice(0, 4));
+  const mo = Number(trimmedDate.slice(5, 7));
+  const d = Number(trimmedDate.slice(8, 10));
+  const h = Number(tm[1]);
+  const mi = Number(tm[2]);
+  const s = Number(tm[3] ?? 0);
+
+  if (![y, mo, d, h, mi, s].every(n => Number.isFinite(n))) return null;
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59 || s > 59) return null;
+
+  const targetKey = londonWallClockKey({
+    year: y,
+    month: mo,
+    day: d,
+    hour: h,
+    minute: mi,
+    second: s,
+  });
+
+  const guessUtc = Date.UTC(y, mo - 1, d, h, mi, s);
+  const windowSeconds = 18 * 3600;
+
+  for (let offsetSec = -windowSeconds; offsetSec <= windowSeconds; offsetSec++) {
+    const t = guessUtc + offsetSec * 1000;
+    if (londonWallClockKey(getLondonWallClockParts(t)) === targetKey) {
+      return new Date(t);
+    }
+  }
+
+  return null;
+}
+
 /**
  * Parse broadcast date and time into a Date object
  * Handles both old format (ISO string) and new format (date + time)
  * Also checks broadcast_date_old as fallback during migration
  * @param broadcast_date - Either "2025-09-04T07:00:00+00:00" (old) or "2025-09-04" (new)
- * @param broadcast_time - "HH:MM" format (e.g., "13:30")
+ * @param broadcast_time - "HH:MM" format (e.g., "13:30"), Europe/London wall time when used with date-only broadcast_date
  * @param broadcast_date_old - Fallback field during migration
- * @returns Date object in UTC or null
+ * @returns UTC Date for the instant, or null
  */
 export function parseBroadcastDateTime(
   broadcast_date: string | null | undefined,
@@ -27,9 +123,9 @@ export function parseBroadcastDateTime(
     return new Date(dateToUse);
   }
 
-  // Handle new format (YYYY-MM-DD + HH:MM)
+  // Handle new format (YYYY-MM-DD + HH:MM) as Europe/London wall clock
   const time = broadcast_time || '00:00';
-  return new Date(`${dateToUse}T${time}:00Z`);
+  return parseLondonDateTime(dateToUse, time);
 }
 
 /**
@@ -143,6 +239,19 @@ export function getUKTimezoneAbbreviation(date: Date = new Date()): string {
     console.error('Error formatting timezone abbreviation:', error);
     return '[GMT]';
   }
+}
+
+/**
+ * Format a London-local broadcast instant for display (24h + [GMT]/[BST]).
+ */
+export function formatLondonBroadcastTime(date: Date): string {
+  const time = date.toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: LONDON_TZ,
+    hour12: false,
+  });
+  return `${time} ${getUKTimezoneAbbreviation(date)}`;
 }
 
 export type UkWeekday =

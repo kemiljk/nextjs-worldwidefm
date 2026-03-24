@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { UkWeekday } from '@/lib/date-utils';
-import { getUKTimezoneAbbreviation, parseDurationToMinutes } from '@/lib/date-utils';
+import { getUKTimezoneAbbreviation, parseDurationToMinutes, parseLondonDateTime } from '@/lib/date-utils';
 import type { ScheduleShow, ScheduleDayMap } from '@/lib/types/schedule';
 
 interface ScheduleDisplayProps {
@@ -57,8 +57,8 @@ export default function ScheduleDisplay({
     if (!dayIso) return null;
 
     try {
-      const date = new Date(`${dayIso}T${time}:00Z`);
-      if (isNaN(date.getTime())) {
+      const date = parseLondonDateTime(dayIso, time);
+      if (!date || isNaN(date.getTime())) {
         return null;
       }
       return date;

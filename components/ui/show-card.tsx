@@ -8,7 +8,7 @@ import { useMediaPlayer } from '../providers/media-player-provider';
 import { GenreTag } from './genre-tag';
 import { ResponsiveCardImage } from './optimized-image';
 import type { CanonicalGenre } from '@/lib/get-canonical-genres';
-import { getUKTimezoneAbbreviation } from '@/lib/date-utils';
+import { formatLondonBroadcastTime, parseLondonDateTime } from '@/lib/date-utils';
 
 interface ShowCardProps {
   show: any; // Using any to work with both episode and legacy show formats
@@ -117,38 +117,21 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   ): string | null => {
     if (!broadcastDate) return null;
 
-    // Combine date and time to create a valid datetime
-    let dateString = broadcastDate;
-    if (broadcastTime) {
-      // If broadcastDate is just "YYYY-MM-DD", combine with time
-      if (/^\d{4}-\d{2}-\d{2}$/.test(broadcastDate)) {
-        dateString = `${broadcastDate}T${broadcastTime}:00Z`;
-      } else if (broadcastDate.includes('T')) {
-        // If it already has time info, use it
-        dateString = broadcastDate;
-      } else {
-        dateString = `${broadcastDate}T${broadcastTime}:00Z`;
-      }
+    let date: Date | null = null;
+    if (broadcastDate.includes('T')) {
+      date = new Date(broadcastDate);
     } else if (/^\d{4}-\d{2}-\d{2}$/.test(broadcastDate)) {
-      // If no time provided, use midnight UTC
-      dateString = `${broadcastDate}T00:00:00Z`;
+      const time = broadcastTime || '00:00';
+      date = parseLondonDateTime(broadcastDate, time);
+    } else {
+      date = new Date(broadcastDate);
     }
 
-    const date = new Date(dateString);
-
-    // Validate date
-    if (isNaN(date.getTime()) || !isFinite(date.getTime())) {
+    if (!date || isNaN(date.getTime()) || !isFinite(date.getTime())) {
       return null;
     }
 
-    const time = date.toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Europe/London',
-      hour12: false,
-    });
-    const timezone = getUKTimezoneAbbreviation(date);
-    return `${time} ${timezone}`;
+    return formatLondonBroadcastTime(date);
   };
 
   const showImage = getShowImage(show);

@@ -355,8 +355,8 @@ export interface EpisodeObject {
      */
     broadcast_date_old?: string | null;
     /**
-     * Broadcast time in HH:MM format (24-hour, UTC)
-     * Example: "13:30" for 1:30 PM
+     * Broadcast time in HH:MM format (24-hour, Europe/London local wall time)
+     * Example: "13:30" for 1:30 PM UK
      */
     broadcast_time: string | null;
     broadcast_day?: string | null;

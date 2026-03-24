@@ -9,7 +9,11 @@ import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
 import { TracklistToggle } from '@/components/ui/tracklisttoggle';
-import { parseBroadcastDateTime, parseDurationToMinutes } from '@/lib/date-utils';
+import {
+  formatLondonBroadcastTime,
+  parseBroadcastDateTime,
+  parseDurationToMinutes,
+} from '@/lib/date-utils';
 import { transformShowToViewData } from '@/lib/cosmic-service';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { PreviewBanner } from '@/components/ui/preview-banner';
@@ -94,9 +98,12 @@ export default async function EpisodePage({
   // Transform the episode data to the expected format
   const show = transformShowToViewData(episode);
 
-  const startTime =
-    parseBroadcastDateTime(episode.metadata.broadcast_date, episode.metadata.broadcast_time) ||
-    new Date(episode.created_at);
+  const broadcastInstant = parseBroadcastDateTime(
+    episode.metadata.broadcast_date,
+    episode.metadata.broadcast_time,
+    episode.metadata.broadcast_date_old
+  );
+  const startTime = broadcastInstant || new Date(episode.created_at);
 
   // Get related episodes based on genres, hosts and takeovers
   const hostIds = episode.metadata.regular_hosts?.map((host: any) => host.id).filter(Boolean) || [];
@@ -130,14 +137,16 @@ export default async function EpisodePage({
   // Check if this is a draft episode
   const isDraft = episode.status === 'draft';
 
-  // Format date for overlay (e.g., SAT 14.06.25)
-  const year = startTime.getFullYear();
-  const yearSuffix = `.${year.toString().slice(-2)}`;
+  // Format date for overlay (e.g., SAT 14.06.25), London calendar
+  const yearSuffix = `.${startTime
+    .toLocaleDateString('en-GB', { year: '2-digit', timeZone: 'Europe/London' })
+    .slice(-2)}`;
   const showDate = startTime
     .toLocaleDateString('en-GB', {
       weekday: 'short',
       day: '2-digit',
       month: '2-digit',
+      timeZone: 'Europe/London',
     })
     .replace(/\//g, '.')
     .concat(yearSuffix)
@@ -321,16 +330,15 @@ export default async function EpisodePage({
               {/* Broadcast Info */}
               {(episode.metadata.broadcast_date || episode.metadata.broadcast_date_old) && (
                 <span className='text-m8 font-mono uppercase text-muted-foreground'>
-                  {parseBroadcastDateTime(
-                    episode.metadata.broadcast_date,
-                    episode.metadata.broadcast_time,
-                    episode.metadata.broadcast_date_old
-                  )?.toLocaleDateString('en-GB', {
+                  {broadcastInstant?.toLocaleDateString('en-GB', {
                     day: '2-digit',
                     month: '2-digit',
                     year: 'numeric',
+                    timeZone: 'Europe/London',
                   })}
-                  {episode.metadata.broadcast_time && ` | ${episode.metadata.broadcast_time}`}
+                  {episode.metadata.broadcast_time &&
+                    broadcastInstant &&
+                    ` | ${formatLondonBroadcastTime(broadcastInstant)}`}
                 </span>
               )}
             </div>
