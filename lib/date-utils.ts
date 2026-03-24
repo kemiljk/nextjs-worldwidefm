@@ -37,27 +37,26 @@ function getLondonWallClockParts(ms: number): {
   };
 }
 
-function londonWallClockKey(p: {
-  year: number;
-  month: number;
-  day: number;
-  hour: number;
-  minute: number;
-  second: number;
-}): number {
+function londonWallClockMatches(
+  p: ReturnType<typeof getLondonWallClockParts>,
+  y: number,
+  mo: number,
+  d: number,
+  h: number,
+  mi: number,
+  s: number
+): boolean {
   return (
-    p.year * 1_000_000_000 +
-    p.month * 10_000_000 +
-    p.day * 100_000 +
-    p.hour * 1_000 +
-    p.minute * 10 +
-    p.second
+    p.year === y && p.month === mo && p.day === d && p.hour === h && p.minute === mi && p.second === s
   );
 }
 
 /**
  * Interpret YYYY-MM-DD and HH:MM as Europe/London wall-clock time and return the UTC instant.
  * Uses Intl (IANA tzdata) so GMT/BST changes are automatic.
+ *
+ * Implementation: a few ms-correction iterations (typically 2–4) instead of scanning every
+ * second, so static generation with hundreds of pages stays fast.
  */
 export function parseLondonDateTime(dateStr: string, timeStr: string): Date | null {
   const trimmedDate = dateStr.trim();
@@ -77,21 +76,25 @@ export function parseLondonDateTime(dateStr: string, timeStr: string): Date | nu
   if (![y, mo, d, h, mi, s].every(n => Number.isFinite(n))) return null;
   if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || mi > 59 || s > 59) return null;
 
-  const targetKey = londonWallClockKey({
-    year: y,
-    month: mo,
-    day: d,
-    hour: h,
-    minute: mi,
-    second: s,
-  });
+  let utcMs = Date.UTC(y, mo - 1, d, h, mi, s);
 
-  const guessUtc = Date.UTC(y, mo - 1, d, h, mi, s);
-  const windowSeconds = 18 * 3600;
+  for (let i = 0; i < 24; i++) {
+    const p = getLondonWallClockParts(utcMs);
+    if (londonWallClockMatches(p, y, mo, d, h, mi, s)) {
+      return new Date(utcMs);
+    }
+    const want = Date.UTC(y, mo - 1, d, h, mi, s);
+    const got = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+    const nextMs = utcMs + (want - got);
+    if (nextMs === utcMs) break;
+    utcMs = nextMs;
+  }
 
-  for (let offsetSec = -windowSeconds; offsetSec <= windowSeconds; offsetSec++) {
-    const t = guessUtc + offsetSec * 1000;
-    if (londonWallClockKey(getLondonWallClockParts(t)) === targetKey) {
+  const anchor = utcMs;
+  for (let deltaMin = -24 * 60; deltaMin <= 24 * 60; deltaMin++) {
+    const t = anchor + deltaMin * 60_000;
+    const p = getLondonWallClockParts(t);
+    if (londonWallClockMatches(p, y, mo, d, h, mi, s)) {
       return new Date(t);
     }
   }

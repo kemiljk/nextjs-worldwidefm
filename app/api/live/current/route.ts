@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getScheduleData, findMatchingShow } from '@/lib/radiocult-service';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * API endpoint to get the current live event
  * This is called by the client to check if there's a live show

@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRadioShows } from '@/lib/cosmic-service';
 import { transformShowToViewData } from '@/lib/cosmic-service';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ hostId: string }> }
 ) {
   try {
     const { hostId } = await params;
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams;
     const offset = parseInt(searchParams.get('offset') || '0');
     const limit = parseInt(searchParams.get('limit') || '20');
 
