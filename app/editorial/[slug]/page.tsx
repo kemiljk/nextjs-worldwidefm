@@ -19,10 +19,9 @@ interface Props {
 }
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  await (searchParams || Promise.resolve({ preview: undefined }));
   try {
-    const { slug } = await params;
-    const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
-
     const response = await getPostBySlug(slug);
 
     if (response?.object) {

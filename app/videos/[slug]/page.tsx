@@ -11,8 +11,8 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
   try {
-    const { slug } = await params;
     const video = await getVideoBySlug(slug);
 
     if (video) {

@@ -1,10 +1,12 @@
 import { Metadata } from 'next';
+import { connection } from 'next/server';
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { getRadioShows } from '@/lib/cosmic-service';
 import { cosmic } from '@/lib/cosmic-config';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
 import { transformShowToViewData } from '@/lib/cosmic-service';
+import { getCachedHostBySlug } from '@/lib/cached-data';
 import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
@@ -19,9 +21,9 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
   try {
-    const { slug } = await params;
-    const host = await getHostBySlug(slug);
+    const host = await getCachedHostBySlug(slug);
 
     if (host) {
       return generateBaseMetadata({
@@ -70,27 +72,11 @@ export async function generateStaticParams() {
   }
 }
 
-async function getHostBySlug(slug: string) {
-  try {
-    const response = await cosmic.objects
-      .findOne({
-        type: 'regular-hosts',
-        slug: slug,
-      })
-      .props('id,slug,title,content,metadata')
-      .depth(2);
-
-    return response?.object || null;
-  } catch (error) {
-    console.error(`Error fetching host by slug ${slug}:`, error);
-    return null;
-  }
-}
-
 export default async function HostPage({ params }: { params: Promise<{ slug: string }> }) {
+  await connection();
   const { slug } = await params;
 
-  const host = await getHostBySlug(slug);
+  const host = await getCachedHostBySlug(slug);
 
   if (!host) {
     notFound();

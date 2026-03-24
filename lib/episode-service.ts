@@ -1,5 +1,6 @@
 import { cosmic } from './cosmic-config';
 import { EpisodeObject } from './cosmic-types';
+import { withRetry } from './cosmic-retry';
 
 export interface EpisodeParams {
   limit?: number;
@@ -528,11 +529,15 @@ async function fetchEpisodeBySlugFromCosmic(
   };
 
   try {
-    const response = await cosmic.objects
-      .findOne(query)
-      .props(EPISODE_DETAIL_PROPS)
-      .depth(1)
-      .status('any');
+    const response = await withRetry(
+      async () =>
+        cosmic.objects
+          .findOne(query)
+          .props(EPISODE_DETAIL_PROPS)
+          .depth(1)
+          .status('any'),
+      `episode:${slugToFetch}`
+    );
     return response.object || null;
   } catch (error) {
     if (!is404Error(error)) {
@@ -573,18 +578,22 @@ async function fetchRelatedByHost(
   limit: number,
   todayStr: string
 ): Promise<EpisodeObject[]> {
-  const response = await cosmic.objects
-    .find({
-      type: 'episode',
-      status: 'published',
-      id: { $ne: episodeId },
-      'metadata.regular_hosts': { $in: hostIds },
-      'metadata.broadcast_date': { $lte: todayStr },
-    })
-    .props(RELATED_EPISODE_PROPS)
-    .limit(limit)
-    .sort('-metadata.broadcast_date')
-    .depth(2);
+  const response = await withRetry(
+    async () =>
+      cosmic.objects
+        .find({
+          type: 'episode',
+          status: 'published',
+          id: { $ne: episodeId },
+          'metadata.regular_hosts': { $in: hostIds },
+          'metadata.broadcast_date': { $lte: todayStr },
+        })
+        .props(RELATED_EPISODE_PROPS)
+        .limit(limit)
+        .sort('-metadata.broadcast_date')
+        .depth(2),
+    'related:host'
+  );
 
   return response.objects || [];
 }
@@ -595,18 +604,22 @@ async function fetchRelatedByGenre(
   limit: number,
   todayStr: string
 ): Promise<EpisodeObject[]> {
-  const response = await cosmic.objects
-    .find({
-      type: 'episode',
-      status: 'published',
-      id: { $nin: excludeIds },
-      'metadata.genres.id': { $in: genreIds },
-      'metadata.broadcast_date': { $lte: todayStr },
-    })
-    .props(RELATED_EPISODE_PROPS)
-    .limit(limit)
-    .sort('-metadata.broadcast_date')
-    .depth(2);
+  const response = await withRetry(
+    async () =>
+      cosmic.objects
+        .find({
+          type: 'episode',
+          status: 'published',
+          id: { $nin: excludeIds },
+          'metadata.genres.id': { $in: genreIds },
+          'metadata.broadcast_date': { $lte: todayStr },
+        })
+        .props(RELATED_EPISODE_PROPS)
+        .limit(limit)
+        .sort('-metadata.broadcast_date')
+        .depth(2),
+    'related:genre'
+  );
 
   return response.objects || [];
 }
@@ -620,18 +633,22 @@ async function fetchRelatedByTakeover(
   limit: number,
   todayStr: string
 ): Promise<EpisodeObject[]> {
-  const response = await cosmic.objects
-    .find({
-      type: 'episode',
-      status: 'published',
-      id: { $ne: episodeId },
-      'metadata.takeovers.id': { $in: takeoverIds },
-      'metadata.broadcast_date': { $lte: todayStr },
-    })
-    .props(RELATED_EPISODE_PROPS)
-    .limit(limit)
-    .sort('-metadata.broadcast_date')
-    .depth(2);
+  const response = await withRetry(
+    async () =>
+      cosmic.objects
+        .find({
+          type: 'episode',
+          status: 'published',
+          id: { $ne: episodeId },
+          'metadata.takeovers.id': { $in: takeoverIds },
+          'metadata.broadcast_date': { $lte: todayStr },
+        })
+        .props(RELATED_EPISODE_PROPS)
+        .limit(limit)
+        .sort('-metadata.broadcast_date')
+        .depth(2),
+    'related:takeover'
+  );
 
   return response.objects || [];
 }
@@ -644,17 +661,21 @@ async function fetchRecentEpisodes(
   limit: number,
   todayStr: string
 ): Promise<EpisodeObject[]> {
-  const response = await cosmic.objects
-    .find({
-      type: 'episode',
-      status: 'published',
-      id: { $nin: excludeIds },
-      'metadata.broadcast_date': { $lte: todayStr },
-    })
-    .props(RELATED_EPISODE_PROPS)
-    .limit(limit)
-    .sort('-metadata.broadcast_date')
-    .depth(2);
+  const response = await withRetry(
+    async () =>
+      cosmic.objects
+        .find({
+          type: 'episode',
+          status: 'published',
+          id: { $nin: excludeIds },
+          'metadata.broadcast_date': { $lte: todayStr },
+        })
+        .props(RELATED_EPISODE_PROPS)
+        .limit(limit)
+        .sort('-metadata.broadcast_date')
+        .depth(2),
+    'related:recent'
+  );
 
   return response.objects || [];
 }

@@ -6,6 +6,7 @@ import { cosmic } from '@/lib/cosmic-config';
 import { getEpisodesForShows } from '@/lib/episode-service';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
 import { transformShowToViewData } from '@/lib/cosmic-service';
+import { getCachedTakeoverBySlug } from '@/lib/cached-data';
 import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
@@ -18,9 +19,9 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
   try {
-    const { slug } = await params;
-    const takeover = await getTakeoverBySlug(slug);
+    const takeover = await getCachedTakeoverBySlug(slug);
 
     if (takeover) {
       return generateBaseMetadata({
@@ -76,23 +77,6 @@ export async function generateStaticParams() {
   }
 }
 
-async function getTakeoverBySlug(slug: string) {
-  try {
-    const response = await cosmic.objects
-      .findOne({
-        type: 'takeovers',
-        slug: slug,
-      })
-      .props('id,slug,title,content,metadata')
-      .depth(2);
-
-    return response?.object || null;
-  } catch (error) {
-    console.error(`Error fetching takeover by slug ${slug}:`, error);
-    return null;
-  }
-}
-
 async function getRelatedEpisodes(takeover: any, limit: number = 12) {
   try {
     const result: any[] = [];
@@ -136,7 +120,7 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
 
   const { slug } = await params;
 
-  const takeover = await getTakeoverBySlug(slug);
+  const takeover = await getCachedTakeoverBySlug(slug);
 
   if (!takeover) {
     notFound();
