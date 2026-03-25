@@ -2,7 +2,6 @@ import { Metadata } from 'next';
 import { connection } from 'next/server';
 import React from 'react';
 import { notFound } from 'next/navigation';
-import { cosmic } from '@/lib/cosmic-config';
 import { getEpisodesForShows } from '@/lib/episode-service';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
 import { transformShowToViewData } from '@/lib/cosmic-service';
@@ -52,28 +51,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: 'The requested takeover could not be found.',
       noIndex: true,
     });
-  }
-}
-
-export async function generateStaticParams() {
-  try {
-    const response = await cosmic.objects
-      .find({
-        type: 'takeovers',
-        status: 'published',
-      })
-      .props('slug')
-      .limit(1000);
-
-    const params =
-      response.objects?.map((takeover: { slug: string }) => ({
-        slug: takeover.slug,
-      })) || [];
-
-    return params;
-  } catch (error) {
-    console.error('Error generating static params for takeovers:', error);
-    return [];
   }
 }
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
+import { connection } from 'next/server';
 import { getEpisodeBySlug, getRelatedEpisodes } from '@/lib/episode-service';
-import { getRecentEpisodeSlugs } from '@/lib/episode-service.server';
 import { addMinutes } from 'date-fns';
 import { displayNameToSlug } from '@/lib/host-matcher';
 import { ShowCard } from '@/components/ui/show-card';
@@ -22,15 +22,6 @@ import { getEpisodeImageUrl } from '@/lib/cosmic-types';
 import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
 import { SaveShowButton } from '@/components/save-show-button';
 import { FavoriteButton } from '@/components/favorite-button';
-
-/**
- * Generate static params for recent episodes
- * Pre-renders the most recent 200 episodes at build time
- */
-export async function generateStaticParams() {
-  const { slugs } = await getRecentEpisodeSlugs(200);
-  return slugs.map(slug => ({ slug }));
-}
 
 function HostLink({ host, className }: { host: unknown; className: string }) {
   const typedHost = host as { title?: string; name?: string; slug?: string };
@@ -73,6 +64,7 @@ export default async function EpisodePage({
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ preview?: string }>;
 }) {
+  await connection();
   const { slug: showSlug } = await params;
 
   // First try to get episode from Cosmic
@@ -115,7 +107,7 @@ export default async function EpisodePage({
   // Pick a heading that honestly reflects how episodes were matched
   let relatedHeading = 'Related Episodes';
   if (matchType === 'genre' && episode.metadata.genres?.length > 0) {
-    const genreName = episode.metadata.genres[0].title || episode.metadata.genres[0].name;
+    const genreName = episode.metadata.genres[0].title;
     relatedHeading = `More in ${genreName}`;
   } else if (matchType === 'recent') {
     relatedHeading = 'Recent Episodes';

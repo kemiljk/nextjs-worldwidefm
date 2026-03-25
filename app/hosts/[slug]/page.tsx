@@ -3,7 +3,6 @@ import { connection } from 'next/server';
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { getRadioShows } from '@/lib/cosmic-service';
-import { cosmic } from '@/lib/cosmic-config';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
 import { transformShowToViewData } from '@/lib/cosmic-service';
 import { getCachedHostBySlug } from '@/lib/cached-data';
@@ -47,28 +46,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: 'The requested host could not be found.',
       noIndex: true,
     });
-  }
-}
-
-export async function generateStaticParams() {
-  try {
-    const response = await cosmic.objects
-      .find({
-        type: 'regular-hosts',
-        status: 'published',
-      })
-      .props('slug')
-      .limit(1000);
-
-    const params =
-      response.objects?.map((host: { slug: string }) => ({
-        slug: host.slug,
-      })) || [];
-
-    return params;
-  } catch (error) {
-    console.error('Error generating static params for hosts:', error);
-    return [];
   }
 }
 
