@@ -68,8 +68,11 @@ const CommandList = React.forwardRef<
     if (!onClickOutside) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
+      const target = event.target as HTMLElement;
       const commandElement = listRef.current?.closest('[cmdk-root]');
+
+      // Don't close if clicking inside a Radix portal (e.g. a Dialog opened from within the Command)
+      if (target.closest?.('[data-radix-portal]')) return;
 
       if (commandElement && !commandElement.contains(target)) {
         onClickOutside();
