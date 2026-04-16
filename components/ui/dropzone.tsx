@@ -131,7 +131,11 @@ export function Dropzone({
               Selected: {selectedFile.name}
             </div>
             <div className='text-xs text-muted-foreground'>
-              {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB
+              {selectedFile.size < 1024
+                ? `${selectedFile.size} B`
+                : selectedFile.size < 1024 * 1024
+                  ? `${(selectedFile.size / 1024).toFixed(0)} KB`
+                  : `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB`}
             </div>
           </div>
         ) : (

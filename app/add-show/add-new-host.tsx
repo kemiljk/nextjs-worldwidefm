@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -39,6 +38,8 @@ type HostFormValues = z.infer<typeof hostFormSchema>;
 interface AddNewHostProps {
   onHostCreated: (host: CosmicHost) => void;
   initialName?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 async function uploadToCosmicOnly(file: File): Promise<any> {
@@ -63,8 +64,46 @@ async function uploadToCosmicOnly(file: File): Promise<any> {
   }
 }
 
-export function AddNewHost({ onHostCreated, initialName = '' }: AddNewHostProps) {
-  const [open, setOpen] = useState(false);
+/**
+ * Trigger button to be placed inside CommandList or anywhere else.
+ * Clicking it calls the provided onOpen callback.
+ */
+export function AddNewHostTrigger({
+  initialName,
+  onOpen,
+}: {
+  initialName: string;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type='button'
+      onClick={onOpen}
+      className='flex w-full items-center gap-2 rounded-none px-2 py-1.5 text-sm uppercase cursor-pointer hover:bg-accent hover:text-accent-foreground'
+    >
+      <Plus className='h-4 w-4' />
+      Add &ldquo;{initialName}&rdquo; as new host
+    </button>
+  );
+}
+
+/**
+ * Dialog form for creating a new host.
+ * Supports both uncontrolled (internal state) and controlled (open/onOpenChange) modes.
+ * When used in controlled mode, render at a stable location in the tree (not inside
+ * a conditionally-rendered parent) to prevent unmounting while the dialog is open.
+ */
+export function AddNewHost({
+  onHostCreated,
+  initialName = '',
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: AddNewHostProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (controlledOnOpenChange ?? setInternalOpen) : setInternalOpen;
+
   const [isLoading, setIsLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -140,16 +179,11 @@ export function AddNewHost({ onHostCreated, initialName = '' }: AddNewHostProps)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button
-          type='button'
-          className='flex w-full items-center gap-2 rounded-none px-2 py-1.5 text-sm uppercase cursor-pointer hover:bg-accent hover:text-accent-foreground'
-        >
-          <Plus className='h-4 w-4' />
-          Add &ldquo;{initialName}&rdquo; as new host
-        </button>
-      </DialogTrigger>
-      <DialogContent className='sm:max-w-[600px]'>
+      <DialogContent
+        className='sm:max-w-[600px]'
+        onInteractOutside={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Add a New Host</DialogTitle>
         </DialogHeader>

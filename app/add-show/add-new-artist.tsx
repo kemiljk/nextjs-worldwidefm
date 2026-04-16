@@ -186,7 +186,11 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
           Add New Artist
         </Button>
       </DialogTrigger>
-      <DialogContent className='sm:max-w-[500px]'>
+      <DialogContent
+        className='sm:max-w-[500px]'
+        onInteractOutside={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Add a New Artist</DialogTitle>
         </DialogHeader>
