@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/command';
 import { toast } from 'sonner';
 import { upload } from '@vercel/blob/client';
+import { buildMediaMetadataTitle, buildTemporaryMediaBlobPath } from '@/lib/upload-filename-utils';
 
 const MAX_MEDIA_MB = Number(process.env.NEXT_PUBLIC_MAX_MEDIA_UPLOAD_MB || 700);
 
@@ -100,41 +101,19 @@ export function UploadMasterForm() {
     let mixcloudUrl: string | undefined;
 
     try {
-      const blob = await upload(mediaFile.name, mediaFile, {
+      const blob = await upload(buildTemporaryMediaBlobPath(mediaFile.name), mediaFile, {
         access: 'public',
         handleUploadUrl: '/api/upload-media/token',
       });
-
-      const mediaFormData = new FormData();
-      mediaFormData.append('mediaUrl', blob.url);
-      mediaFormData.append('fileName', mediaFile.name);
-      mediaFormData.append(
-        'metadata',
-        JSON.stringify({
-          title: selectedEpisode.title,
-          artist: selectedEpisode.metadata?.regular_hosts?.[0]?.title || undefined,
-        })
-      );
-
-      const uploadRes = await fetch('/api/upload-media', {
-        method: 'POST',
-        body: mediaFormData,
-      });
-      const uploadResult = await uploadRes.json();
-
-      if (!uploadRes.ok || !uploadResult.success) {
-        throw new Error(uploadResult.error || 'RadioCult upload failed');
-      }
-      radiocultMediaId = uploadResult.radiocultMediaId;
-
-      toast.success('RadioCult upload complete');
 
       setPhase('uploadingMixcloud');
       const mixcloudRes = await fetch('/api/upload-mixcloud', {
         method: 'POST',
         body: (() => {
           const fd = new FormData();
-          fd.append('audio', mediaFile);
+          fd.append('mediaUrl', blob.url);
+          fd.append('fileName', mediaFile.name);
+          fd.append('cleanup', 'false');
           fd.append('episodeId', selectedEpisode.id);
           fd.append('title', `${selectedEpisode.title} // ${formatDateForMixcloud(dateStr)}`);
           fd.append(
@@ -163,6 +142,31 @@ export function UploadMasterForm() {
           description: mixcloudData.error || 'Check Mixcloud API configuration',
         });
       }
+
+      setPhase('uploadingRadioCult');
+      const mediaFormData = new FormData();
+      mediaFormData.append('mediaUrl', blob.url);
+      mediaFormData.append('fileName', mediaFile.name);
+      mediaFormData.append(
+        'metadata',
+        JSON.stringify({
+          title: buildMediaMetadataTitle(mediaFile.name),
+          artist: selectedEpisode.metadata?.regular_hosts?.[0]?.title || undefined,
+        })
+      );
+
+      const uploadRes = await fetch('/api/upload-media', {
+        method: 'POST',
+        body: mediaFormData,
+      });
+      const uploadResult = await uploadRes.json();
+
+      if (!uploadRes.ok || !uploadResult.success) {
+        throw new Error(uploadResult.error || 'RadioCult upload failed');
+      }
+      radiocultMediaId = uploadResult.radiocultMediaId;
+
+      toast.success('RadioCult upload complete');
 
       setPhase('updatingEpisode');
       const updateRes = await fetch(`/api/episodes/${selectedEpisode.id}/archive`, {

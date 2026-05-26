@@ -27,7 +27,6 @@ export interface CosmicObjectMeta {
   tracklist: string | null; // Rich Text content
   body_text: null;
   radiocult_media_id: null;
-  media_file: null;
 }
 
 interface Genre {

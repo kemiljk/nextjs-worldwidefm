@@ -4,9 +4,28 @@ import { NextResponse } from 'next/server';
 export const maxDuration = 60;
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const body = (await request.json()) as HandleUploadBody;
-
   try {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error('❌ Vercel Blob token request failed: BLOB_READ_WRITE_TOKEN is not configured');
+      return NextResponse.json(
+        {
+          error: 'Vercel Blob is not configured. Set BLOB_READ_WRITE_TOKEN before uploading audio.',
+        },
+        { status: 500 }
+      );
+    }
+
+    const body = (await request.json()) as HandleUploadBody;
+    const tokenRequest = body as HandleUploadBody & {
+      pathname?: string;
+      payload?: unknown;
+    };
+    console.log('🎵 Vercel Blob client token requested:', {
+      type: body.type,
+      pathname: tokenRequest.pathname,
+      payload: tokenRequest.payload,
+    });
+
     const jsonResponse = await handleUpload({
       body,
       request,
@@ -31,20 +50,17 @@ export async function POST(request: Request): Promise<NextResponse> {
           ],
           maximumSizeInBytes: 700 * 1024 * 1024, // 700MB
           tokenPayload: JSON.stringify({
-            // optional, sent to your server on upload completion
+            pathname,
           }),
         };
-      },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        // This callback is called on your server after the upload is completed
-        console.log('✅ Vercel Blob upload completed:', blob.url);
       },
     });
 
     return NextResponse.json(jsonResponse);
   } catch (error) {
+    console.error('❌ Vercel Blob token request failed:', error);
     return NextResponse.json(
-      { error: (error as Error).message },
+      { error: error instanceof Error ? error.message : 'Failed to generate upload token' },
       { status: 400 } // The client will use this to show a nice error message
     );
   }

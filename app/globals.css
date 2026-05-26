@@ -272,6 +272,12 @@
     @apply bg-background text-foreground;
   }
 
+  input,
+  select,
+  textarea {
+    line-height: 1.25;
+  }
+
   h1,
   h2,
   h3,
@@ -332,6 +338,12 @@
 
 .animate-slide-down {
   animation: slide-down 0.2s ease-out forwards;
+}
+
+@keyframes dropzone-border-progress {
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 /* Highlighted text utilities */

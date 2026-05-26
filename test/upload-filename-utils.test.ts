@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'bun:test';
-import { buildRawMediaFilename } from '@/lib/upload-filename-utils';
+import {
+  buildMediaMetadataTitle,
+  buildRawMediaFilename,
+  buildTemporaryMediaBlobPath,
+} from '@/lib/upload-filename-utils';
 
 describe('buildRawMediaFilename', () => {
   it('produces rawYYYYMMDD Title.ext format without brackets', () => {
@@ -39,5 +43,31 @@ describe('buildRawMediaFilename', () => {
   it('uses first 8 chars of date when date includes time', () => {
     const result = buildRawMediaFilename('2025-03-12T14:30:00', 'Test', 'x.mp3');
     expect(result).toBe('raw20250312 Test.mp3');
+  });
+});
+
+describe('buildMediaMetadataTitle', () => {
+  it('uses the generated filename without the extension as the audio title', () => {
+    expect(buildMediaMetadataTitle('raw20250312 Morning Show.mp3')).toBe(
+      'raw20250312 Morning Show'
+    );
+  });
+
+  it('returns filenames without extensions unchanged', () => {
+    expect(buildMediaMetadataTitle('raw20250312 Morning Show')).toBe('raw20250312 Morning Show');
+  });
+});
+
+describe('buildTemporaryMediaBlobPath', () => {
+  it('creates a safe media blob path without spaces', () => {
+    const path = buildTemporaryMediaBlobPath('raw20250312 Morning Show.mp3');
+
+    expect(path).toStartWith('media/');
+    expect(path).toEndWith('-raw20250312-morning-show.mp3');
+    expect(path).not.toContain(' ');
+  });
+
+  it('falls back when the filename cannot be sanitized', () => {
+    expect(buildTemporaryMediaBlobPath('***')).toEndWith('-audio.mp3');
   });
 });

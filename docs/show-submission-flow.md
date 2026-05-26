@@ -22,9 +22,7 @@ User Form → Media Upload → Cosmic Draft → Approval → Cron Sync → Radio
   - Title, description, artist, broadcast date/time, duration
   - Tags (genres), location
   - Audio file upload
-- Audio file uploaded to:
-  - ✅ **RadioCult** (returns `media_id`)
-  - ✅ **Cosmic Media Library** (for backup/display)
+- Audio file uploaded to **RadioCult** via a temporary Vercel Blob handoff (returns `media_id`)
 - Episode created in **Cosmic CMS** with status = `draft`
 
 **Key metadata stored:**
@@ -42,7 +40,6 @@ User Form → Media Upload → Cosmic Draft → Approval → Cron Sync → Radio
     "duration": "60:00",
     "radiocult_media_id": "media-abc123",
     "radiocult_artist_id": "artist-xyz789",
-    "media_file": ["filename.mp3"],
     "regular_hosts": ["host-id-123"],
     "tags": ["tag-id-456"],
     "locations": ["location-id-789"],
@@ -54,7 +51,7 @@ User Form → Media Upload → Cosmic Draft → Approval → Cron Sync → Radio
 **Files involved:**
 
 - `app/add-show/add-show-form.tsx` - Form component
-- `app/api/upload-media/route.ts` - Handles audio upload to RadioCult + Cosmic
+- `app/api/upload-media/route.ts` - Handles audio upload to RadioCult
 - `app/api/shows/create/route.ts` - Creates episode in Cosmic
 
 ### 2. Admin Approves Show (in Cosmic CMS)

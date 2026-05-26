@@ -40,7 +40,11 @@ import { Dropzone } from '@/components/ui/dropzone';
 import { FormTexts, getDefaultFormTexts } from '@/lib/form-text-service';
 import { compressImage } from '@/lib/image-compression';
 import { upload } from '@vercel/blob/client';
-import { buildRawMediaFilename } from '@/lib/upload-filename-utils';
+import {
+  buildMediaMetadataTitle,
+  buildRawMediaFilename,
+  buildTemporaryMediaBlobPath,
+} from '@/lib/upload-filename-utils';
 import { AddNewHost } from './add-new-host';
 
 // Form schema using zod
@@ -399,7 +403,7 @@ export function AddShowForm() {
             mediaFile.name
           );
 
-          const blob = await upload(mediaFileName, mediaFile, {
+          const blob = await upload(buildTemporaryMediaBlobPath(mediaFileName), mediaFile, {
             access: 'public',
             handleUploadUrl: '/api/upload-media/token',
           });
@@ -412,7 +416,7 @@ export function AddShowForm() {
           mediaFormData.append(
             'metadata',
             JSON.stringify({
-              title: values.title,
+              title: buildMediaMetadataTitle(mediaFileName),
               artist: hosts.find(h => h.id === values.hostId)?.title || undefined,
             })
           );
@@ -477,9 +481,6 @@ export function AddShowForm() {
             tracklist: processedTracklist,
             status: 'draft',
             radiocult_media_id: radiocultMediaId,
-            media_file: mediaFile
-              ? buildRawMediaFilename(values.startDate, values.title, mediaFile.name)
-              : undefined,
             image: cosmicImage,
           }),
         });
@@ -849,6 +850,7 @@ export function AddShowForm() {
               selectedFile={imageFile}
               maxSize={5 * 1024 * 1024}
               placeholder='Drag and drop your show image here'
+              showImagePreview
             />
             <FormDescription>
               {formTexts['show-image']?.descriptions['upload-image'] ||

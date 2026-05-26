@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del, isVercelBlobUrl } from '@/lib/blob-client';
-import { inspectMp3Structure, prependMinimalId3Tag } from '@/lib/mp3-utils';
+import { inspectMp3Structure, writeMp3Id3v23Metadata } from '@/lib/mp3-utils';
+import { buildMediaMetadataTitle } from '@/lib/upload-filename-utils';
 
 export const maxDuration = 300;
 
@@ -15,6 +16,7 @@ export async function POST(request: NextRequest) {
     const mediaUrl = formData.get('mediaUrl') as string | null;
     const requestedFileName = formData.get('fileName') as string | null;
     const metadata = formData.get('metadata') as string;
+    const cleanup = formData.get('cleanup') !== 'false';
 
     if (!file && !mediaUrl) {
       console.error('❌ No file or mediaUrl provided in request');
@@ -116,11 +118,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const cleanupTemporaryBlob = async () => {
+      if (cleanup && mediaUrl && isVercelBlobUrl(mediaUrl)) {
+        console.log('🧹 Cleaning up temporary Vercel Blob:', mediaUrl);
+        try {
+          await del(mediaUrl);
+          console.log('✅ Temporary Vercel Blob deleted');
+        } catch (cleanupError) {
+          console.error('⚠️ Failed to delete temporary Vercel Blob:', cleanupError);
+        }
+      }
+    };
+
     const stationId = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
     const secretKey = process.env.RADIOCULT_SECRET_KEY;
 
     if (!stationId || !secretKey) {
       console.error('❌ RadioCult credentials not configured');
+      await cleanupTemporaryBlob();
       return NextResponse.json(
         {
           success: false,
@@ -160,19 +175,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let bufferForUpload = buffer;
-    if (
-      (ext === 'mp3' || finalFileName.toLowerCase().endsWith('.mp3')) &&
-      mp3Structure &&
-      !mp3Structure.hasId3Header &&
-      mp3Structure.hasMpegFrameSync
-    ) {
-      bufferForUpload = prependMinimalId3Tag(buffer);
-      console.log('🔧 Prepended minimal ID3v2.3.0 header to tagless MP3');
+    let bufferForUpload: Buffer<ArrayBufferLike> = buffer;
+    if (ext === 'mp3' || finalFileName.toLowerCase().endsWith('.mp3')) {
+      const title = parsedMetadata.title?.trim() || buildMediaMetadataTitle(finalFileName);
+      bufferForUpload = writeMp3Id3v23Metadata(buffer, {
+        title,
+        artist: parsedMetadata.artist,
+      });
+      console.log('🔧 Wrote ID3v2.3.0 metadata before RadioCult upload:', {
+        title,
+        artist: parsedMetadata.artist,
+      });
     }
 
     // Re-create Blob with the normalized MIME type so RadioCult receives the correct Content-Type
-    const fileBlob = new Blob([bufferForUpload], { type: finalFileType });
+    const uploadBytes = new Uint8Array(bufferForUpload.length);
+    uploadBytes.set(bufferForUpload);
+    const fileBlob = new Blob([uploadBytes], { type: finalFileType });
     const rcForm = new FormData();
     rcForm.append('stationMedia', fileBlob, finalFileName);
     rcForm.append('metadata', JSON.stringify(parsedMetadata));
@@ -194,6 +213,7 @@ export async function POST(request: NextRequest) {
       if (!rcRes.ok) {
         const rcErrorText = await rcRes.text();
         console.warn('❌ RadioCult upload FAILED (status:', rcRes.status, '):', rcErrorText);
+        await cleanupTemporaryBlob();
         return NextResponse.json(
           {
             success: false,
@@ -211,6 +231,7 @@ export async function POST(request: NextRequest) {
 
       if (!radiocultMediaId) {
         console.warn('❌ RadioCult response missing track id:', rcJson);
+        await cleanupTemporaryBlob();
         return NextResponse.json(
           {
             success: false,
@@ -222,16 +243,7 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('✅ RadioCult upload SUCCESS - Media ID:', radiocultMediaId);
-
-      if (mediaUrl && isVercelBlobUrl(mediaUrl)) {
-        console.log('🧹 Cleaning up temporary Vercel Blob:', mediaUrl);
-        try {
-          await del(mediaUrl);
-          console.log('✅ Temporary Vercel Blob deleted');
-        } catch (cleanupError) {
-          console.error('⚠️ Failed to delete temporary Vercel Blob:', cleanupError);
-        }
-      }
+      await cleanupTemporaryBlob();
 
       return NextResponse.json({
         success: true,
@@ -241,6 +253,7 @@ export async function POST(request: NextRequest) {
       clearTimeout(rcTimeoutId);
       console.error('❌ RadioCult upload error:', rcError);
       const errorMessage = rcError instanceof Error ? rcError.message : 'Unknown upload error';
+      await cleanupTemporaryBlob();
       return NextResponse.json(
         {
           success: false,

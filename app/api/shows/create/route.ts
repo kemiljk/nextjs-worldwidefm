@@ -18,7 +18,6 @@ const createShowSchema = z.object({
   featuredOnHomepage: z.boolean().default(false),
   status: z.string().default('draft'),
   radiocult_media_id: z.string().nullable().optional(),
-  media_file: z.any().nullable().optional(),
   image: z.any().nullable().optional(),
   location: z.string().optional(),
   isLive: z.boolean().default(false),
@@ -78,9 +77,6 @@ export async function POST(request: NextRequest) {
       hasRadiocultMediaId: !!validatedData.radiocult_media_id,
       radiocultMediaId: validatedData.radiocult_media_id,
       radiocultMediaIdType: typeof validatedData.radiocult_media_id,
-      hasMediaFile: !!validatedData.media_file,
-      mediaFileType: typeof validatedData.media_file,
-      mediaFileStructure: validatedData.media_file ? Object.keys(validatedData.media_file) : null,
       hasImage: !!validatedData.image,
       imageStructure: validatedData.image ? Object.keys(validatedData.image) : null,
     });
@@ -287,13 +283,6 @@ export async function POST(request: NextRequest) {
     // Optional media fields
     if (validatedData.radiocult_media_id) {
       rawMetadata.radiocult_media_id = validatedData.radiocult_media_id;
-    }
-    if (validatedData.media_file) {
-      if (validatedData.media_file.name) {
-        rawMetadata.media_file = validatedData.media_file.name; // Cosmic 'file' expects a single filename string
-      } else if (typeof validatedData.media_file === 'string') {
-        rawMetadata.media_file = validatedData.media_file;
-      }
     }
 
     // Handle image - store the filename for Cosmic file metafield
