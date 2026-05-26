@@ -45,7 +45,7 @@ import {
   buildRawMediaFilename,
   buildTemporaryMediaBlobPath,
 } from '@/lib/upload-filename-utils';
-import { AddNewHost } from './add-new-host';
+import { AddNewHost, AddNewHostTrigger } from './add-new-host';
 
 // Form schema using zod
 const formSchema = z.object({
@@ -117,6 +117,8 @@ export function AddShowForm() {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isHostListOpen, setIsHostListOpen] = useState<boolean>(false);
+  const [isAddHostDialogOpen, setIsAddHostDialogOpen] = useState<boolean>(false);
+  const [addHostInitialName, setAddHostInitialName] = useState<string>('');
   const [isGenreListOpen, setIsGenreListOpen] = useState<boolean>(false);
   const [isLocationListOpen, setIsLocationListOpen] = useState<boolean>(false);
   const [isTakeoverListOpen, setIsTakeoverListOpen] = useState<boolean>(false);
@@ -923,9 +925,12 @@ export function AddShowForm() {
                         )}
                         {showAddOption && (
                           <div className='border-t border-input p-1'>
-                            <AddNewHost
-                              onHostCreated={handleHostCreated}
+                            <AddNewHostTrigger
                               initialName={hostInput.trim()}
+                              onOpen={() => {
+                                setAddHostInitialName(hostInput.trim());
+                                setIsAddHostDialogOpen(true);
+                              }}
                             />
                           </div>
                         )}
@@ -1288,6 +1293,15 @@ export function AddShowForm() {
           </Button>
         </div>
       </form>
+
+      {/* Rendered outside the <form> so the host dialog's submit doesn't bubble to the parent form,
+          and outside the CommandList so unmounting it doesn't destroy the dialog */}
+      <AddNewHost
+        open={isAddHostDialogOpen}
+        onOpenChange={setIsAddHostDialogOpen}
+        onHostCreated={handleHostCreated}
+        initialName={addHostInitialName}
+      />
     </Form>
   );
 }

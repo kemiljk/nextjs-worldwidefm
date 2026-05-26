@@ -33,6 +33,8 @@ export async function POST(request: NextRequest) {
 
     if (validatedData.image && validatedData.image.name) {
       metadata.image = validatedData.image.name;
+      // Set the root-level thumbnail so Cosmic uses it as the object thumbnail
+      createData.thumbnail = validatedData.image.name;
     }
 
     if (Object.keys(metadata).length > 0) {
