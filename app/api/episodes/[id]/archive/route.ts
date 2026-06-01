@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cosmic } from '@/lib/cosmic-config';
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await request.json();
@@ -29,31 +26,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'No archive fields to update' }, { status: 400 });
     }
 
-    const existing = await cosmic.objects.findOne({
-      type: 'episode',
-      id,
-    });
-
-    if (!existing?.object) {
-      return NextResponse.json({ error: 'Episode not found' }, { status: 404 });
-    }
-
-    const currentMeta = (existing.object as { metadata?: Record<string, unknown> }).metadata || {};
-    const mergedMetadata = {
-      ...currentMeta,
-      ...updates,
-    };
-
     await cosmic.objects.updateOne(id, {
-      metadata: mergedMetadata,
+      metadata: updates,
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating episode archive:', error);
-    return NextResponse.json(
-      { error: 'Failed to update episode' },
-      { status: 500 }
-    );
+    const message =
+      error instanceof Error && error.message ? error.message : 'Failed to update episode';
+
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

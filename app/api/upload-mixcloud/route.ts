@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { inspectMp3Structure } from '@/lib/mp3-utils';
+import axios from 'axios';
+import FormData from 'form-data';
+import { Readable } from 'node:stream';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { del, isVercelBlobUrl } from '@/lib/blob-client';
 
 export const maxDuration = 300;
@@ -28,6 +31,11 @@ function getAudioMimeType(fileName: string, originalType: string): string {
 export async function POST(request: NextRequest) {
   let mediaUrlForCleanup: string | undefined;
   let shouldCleanupMediaUrl = false;
+  const requestAbortController = new AbortController();
+  const requestTimeoutId = setTimeout(
+    () => requestAbortController.abort(),
+    MIXCLOUD_UPLOAD_TIMEOUT_MS
+  );
 
   try {
     const accessToken = process.env.MIXCLOUD_ACCESS_TOKEN;
@@ -39,6 +47,7 @@ export async function POST(request: NextRequest) {
     const title = formData.get('title') as string | null;
     const description = formData.get('description') as string | null;
     const imageUrl = formData.get('imageUrl') as string | null;
+    const tagsJson = formData.get('tags') as string | null;
     shouldCleanupMediaUrl = formData.get('cleanup') === 'true';
     mediaUrlForCleanup = mediaUrl || undefined;
 
@@ -53,30 +62,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing audio file or title' }, { status: 400 });
     }
 
-    let audioBlob: File | Blob;
-    let originalType: string;
+    let audioStreamOrBuffer: Readable | Buffer;
+    let audioContentType: string;
     let fileName: string;
+    let audioSize: number | undefined;
 
     if (mediaUrl) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), MIXCLOUD_UPLOAD_TIMEOUT_MS);
-
       try {
-        const mediaRes = await fetch(mediaUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
+        const mediaRes = await fetch(mediaUrl, { signal: requestAbortController.signal });
 
         if (!mediaRes.ok) {
           throw new Error(`Failed to fetch media from URL: ${mediaRes.statusText}`);
         }
 
-        const fetchedBlob = await mediaRes.blob();
         fileName = requestedFileName?.trim() || mediaUrl.split('/').pop() || 'audio.mp3';
-        originalType = fetchedBlob.type || 'audio/mpeg';
-        audioBlob = new Blob([await fetchedBlob.arrayBuffer()], {
-          type: getAudioMimeType(fileName, originalType),
-        });
+        audioContentType = getAudioMimeType(
+          fileName,
+          mediaRes.headers.get('content-type') || 'audio/mpeg'
+        );
+        audioSize = Number(mediaRes.headers.get('content-length')) || undefined;
+
+        if (!mediaRes.body) {
+          throw new Error('Fetched media response did not include a readable body');
+        }
+
+        audioStreamOrBuffer = Readable.fromWeb(
+          mediaRes.body as unknown as NodeReadableStream<Uint8Array>
+        );
       } catch (fetchError) {
-        clearTimeout(timeoutId);
         return NextResponse.json(
           {
             error: `Failed to fetch media: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`,
@@ -85,104 +98,101 @@ export async function POST(request: NextRequest) {
         );
       }
     } else if (audioFile) {
-      audioBlob = audioFile;
-      originalType = audioFile.type || 'audio/mpeg';
       fileName = requestedFileName?.trim() || audioFile.name || 'audio.mp3';
+      audioContentType = getAudioMimeType(fileName, audioFile.type || 'audio/mpeg');
+      audioSize = audioFile.size;
+      audioStreamOrBuffer = Buffer.from(await audioFile.arrayBuffer());
     } else {
       return NextResponse.json({ error: 'Missing audio file' }, { status: 400 });
     }
 
-    const ext = fileName.split('.').pop()?.toLowerCase();
-
-    // For MP3 files, inspect the structure for diagnostics
-    let mp3Diagnostics: ReturnType<typeof inspectMp3Structure> | undefined;
-    if (ext === 'mp3' || fileName.toLowerCase().endsWith('.mp3')) {
-      try {
-        const audioArrayBuffer = await audioBlob.arrayBuffer();
-        const audioBuffer = Buffer.from(audioArrayBuffer);
-        mp3Diagnostics = inspectMp3Structure(audioBuffer);
-        console.log('🔍 Mixcloud MP3 inspection:', {
-          fileName,
-          originalType,
-          ...mp3Diagnostics,
-        });
-
-        if (!mp3Diagnostics.hasId3Header) {
-          console.warn('⚠️ Mixcloud upload: MP3 lacks ID3 header');
-        }
-        if (!mp3Diagnostics.hasMpegFrameSync) {
-          console.warn('⚠️ Mixcloud upload: MP3 lacks MPEG frame sync');
-        }
-        if (mp3Diagnostics.paddingPattern === 'FF-dominant') {
-          console.warn('⚠️ Mixcloud upload: MP3 has FF-dominant padding');
-        }
-      } catch (inspectError) {
-        console.warn('⚠️ Could not inspect MP3 structure:', inspectError);
-      }
-    }
-
     const mcForm = new FormData();
-    mcForm.append('mp3', audioBlob, fileName);
+    mcForm.append('mp3', audioStreamOrBuffer, {
+      filename: fileName,
+      contentType: audioContentType,
+      knownLength: audioSize,
+    });
     mcForm.append('name', title);
     if (description?.trim()) {
       mcForm.append('description', description.trim());
     }
-    mcForm.append('percentage_music', '100');
+    const tags = parseTags(tagsJson);
+    tags.forEach((tag, index) => {
+      mcForm.append(`tags-${index}-tag`, tag);
+    });
 
     if (imageUrl?.trim()) {
       try {
         const imgRes = await fetch(imageUrl.trim());
         if (imgRes.ok) {
-          const imgBlob = await imgRes.blob();
+          const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
           const ext = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
-          mcForm.append('picture', imgBlob, `cover.${ext}`);
+          mcForm.append('picture', imgBuffer, {
+            filename: `cover.${ext}`,
+            contentType: imgRes.headers.get('content-type') || 'image/jpeg',
+          });
         }
       } catch (imgErr) {
         console.warn('Could not attach image to Mixcloud upload:', imgErr);
       }
     }
 
-    const mcAbortController = new AbortController();
-    const mcTimeoutId = setTimeout(() => mcAbortController.abort(), MIXCLOUD_UPLOAD_TIMEOUT_MS);
-    let mcRes: Response;
+    const uploadUrl = new URL('https://api.mixcloud.com/upload/');
+    uploadUrl.searchParams.set('access_token', accessToken);
+
+    let mcStatus: number;
+    let mcStatusText: string;
+    let mcData: MixcloudUploadResponse | MixcloudErrorResponse | string;
     try {
-      mcRes = await fetch('https://api.mixcloud.com/upload/', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: mcForm,
-        signal: mcAbortController.signal,
-      });
+      const response = await axios.post<MixcloudUploadResponse | MixcloudErrorResponse | string>(
+        uploadUrl.toString(),
+        mcForm,
+        {
+          headers: {
+            ...mcForm.getHeaders(),
+          },
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+          signal: requestAbortController.signal,
+          timeout: MIXCLOUD_UPLOAD_TIMEOUT_MS,
+          validateStatus: () => true,
+        }
+      );
+
+      mcStatus = response.status;
+      mcStatusText = response.statusText;
+      mcData = response.data;
     } finally {
-      clearTimeout(mcTimeoutId);
+      clearTimeout(requestTimeoutId);
     }
 
-    if (!mcRes.ok) {
-      const errText = await mcRes.text();
-      console.error('Mixcloud upload failed:', mcRes.status, errText);
+    if (mcStatus < 200 || mcStatus >= 300) {
+      console.error('Mixcloud upload failed:', mcStatus, mcData);
+      const { message, details } = parseMixcloudError(
+        mcData as MixcloudErrorResponse | string,
+        mcStatusText
+      );
+
       return NextResponse.json(
         {
-          error: `Mixcloud upload failed: ${errText || mcRes.statusText}`,
-          mp3Diagnostics,
+          error: `Mixcloud upload failed: ${message}`,
+          details,
         },
         { status: 502 }
       );
     }
 
-    const mcData = (await mcRes.json()) as {
-      key?: string;
-      url?: string;
-      [k: string]: unknown;
-    };
-
-    const key = mcData?.key;
-    const url =
-      mcData?.url ||
-      (key ? `https://www.mixcloud.com${key.startsWith('/') ? '' : '/'}${key}` : undefined);
+    const { key, url } = extractMixcloudUploadLocation(mcData);
 
     if (!url && !key) {
-      return NextResponse.json({ error: 'Mixcloud did not return a URL or key' }, { status: 502 });
+      console.error('Mixcloud upload success response missing URL/key:', mcData);
+      return NextResponse.json(
+        {
+          error: 'Mixcloud accepted the upload but did not return a URL or key',
+          details: mcData,
+        },
+        { status: 502 }
+      );
     }
 
     console.log('✅ Mixcloud upload SUCCESS:', { url, key, fileName });
@@ -198,6 +208,7 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   } finally {
+    clearTimeout(requestTimeoutId);
     if (shouldCleanupMediaUrl && mediaUrlForCleanup && isVercelBlobUrl(mediaUrlForCleanup)) {
       try {
         await del(mediaUrlForCleanup);
@@ -206,4 +217,114 @@ export async function POST(request: NextRequest) {
       }
     }
   }
+}
+
+type MixcloudUploadResponse = {
+  key?: string;
+  url?: string;
+  result?: {
+    success?: boolean;
+    key?: string;
+    url?: string;
+    cloudcast?: {
+      key?: string;
+      url?: string;
+    };
+  };
+  [k: string]: unknown;
+};
+
+type MixcloudErrorResponse = {
+  error?: {
+    message?: string;
+    type?: string;
+  };
+  details?: Record<string, unknown>;
+};
+
+function parseMixcloudError(
+  errorData: MixcloudErrorResponse | string,
+  statusText: string
+): { message: string; details: unknown } {
+  if (typeof errorData === 'string') {
+    try {
+      return parseMixcloudError(JSON.parse(errorData) as MixcloudErrorResponse, statusText);
+    } catch {
+      return { message: errorData || statusText, details: undefined };
+    }
+  }
+
+  const detailSummary = summarizeMixcloudDetails(errorData.details);
+  const message =
+    errorData.error?.message ||
+    (errorData.error?.type
+      ? `${errorData.error.type}${detailSummary ? `: ${detailSummary}` : ''}`
+      : statusText);
+
+  return { message, details: errorData.details };
+}
+
+function extractMixcloudUploadLocation(
+  data: MixcloudUploadResponse | MixcloudErrorResponse | string
+): { key?: string; url?: string } {
+  if (typeof data !== 'object' || data === null) return {};
+
+  const response = data as MixcloudUploadResponse;
+  const key = response.key || response.result?.key || response.result?.cloudcast?.key;
+  const url =
+    response.url ||
+    response.result?.url ||
+    response.result?.cloudcast?.url ||
+    (key ? `https://www.mixcloud.com${key.startsWith('/') ? '' : '/'}${key}` : undefined);
+
+  return { key, url };
+}
+
+function parseTags(tagsJson: string | null): string[] {
+  const fallbackTags = ['Radio'];
+  if (!tagsJson) return fallbackTags;
+
+  try {
+    const tags = JSON.parse(tagsJson);
+    if (!Array.isArray(tags)) return fallbackTags;
+
+    const cleanTags = tags
+      .filter((tag): tag is string => typeof tag === 'string')
+      .map(normalizeMixcloudTag)
+      .filter(Boolean);
+
+    return Array.from(new Set(cleanTags.length > 0 ? cleanTags : fallbackTags)).slice(0, 5);
+  } catch {
+    return fallbackTags;
+  }
+}
+
+function normalizeMixcloudTag(tag: string): string {
+  return tag
+    .replace(/[^a-zA-Z0-9 '&-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 30);
+}
+
+function summarizeMixcloudDetails(details: Record<string, unknown> | undefined): string {
+  if (!details) return '';
+
+  const messages = Object.entries(details)
+    .flatMap(([field, value]) => {
+      if (Array.isArray(value)) {
+        return value.length > 0
+          ? value.map(message => `${field}: ${String(message)}`)
+          : [`${field}: no detail supplied`];
+      }
+
+      if (value && typeof value === 'object') {
+        return `${field}: ${JSON.stringify(value)}`;
+      }
+
+      return `${field}: ${String(value)}`;
+    })
+    .filter(Boolean);
+
+  return messages.join('; ');
 }
