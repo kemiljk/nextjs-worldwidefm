@@ -7,11 +7,17 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get('image') as File;
+    const customFileName = formData.get('fileName');
 
     if (!file) {
       console.error('❌ No file provided in request');
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
+
+    const originalname =
+      typeof customFileName === 'string' && customFileName.trim().length > 0
+        ? customFileName.trim()
+        : file.name;
 
     console.log('📸 Image file received:', {
       name: file.name,
@@ -35,7 +41,7 @@ export async function POST(request: NextRequest) {
     console.log('📸 Uploading to Cosmic...');
     const media = await cosmic.media.insertOne({
       media: {
-        originalname: file.name,
+        originalname: originalname,
         buffer: buffer,
       },
     });

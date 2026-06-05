@@ -27,6 +27,7 @@ import { Dropzone } from '@/components/ui/dropzone';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 import { CosmicHost } from '@/lib/cosmic-host-service';
+import { buildHostImageFilename } from '@/lib/upload-filename-utils';
 
 const hostFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -42,10 +43,13 @@ interface AddNewHostProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-async function uploadToCosmicOnly(file: File): Promise<any> {
+async function uploadToCosmicOnly(file: File, fileName?: string): Promise<any> {
   try {
     const formData = new FormData();
     formData.append('image', file);
+    if (fileName) {
+      formData.append('fileName', fileName);
+    }
 
     const response = await fetch('/api/upload-image', {
       method: 'POST',
@@ -106,6 +110,7 @@ export function AddNewHost({
 
   const [isLoading, setIsLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   const form = useForm<HostFormValues>({
     resolver: zodResolver(hostFormSchema),
@@ -122,21 +127,27 @@ export function AddNewHost({
         description: '',
       });
       setImageFile(null);
+      setImageError(null);
     }
   }, [open, initialName, form]);
 
   const onSubmit = async (values: HostFormValues) => {
+    if (!imageFile) {
+      setImageError('A host image is required.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      let imageMedia: any = undefined;
-      if (imageFile) {
-        const uploadedMedia = await uploadToCosmicOnly(imageFile);
-        if (!uploadedMedia) {
-          throw new Error('Failed to upload image');
-        }
-        imageMedia = uploadedMedia;
+      const uploadedMedia = await uploadToCosmicOnly(
+        imageFile,
+        buildHostImageFilename(values.name, imageFile.name)
+      );
+      if (!uploadedMedia) {
+        throw new Error('Failed to upload image');
       }
+      const imageMedia = uploadedMedia;
 
       const response = await fetch('/api/hosts/create', {
         method: 'POST',
@@ -165,6 +176,7 @@ export function AddNewHost({
         description: '',
       });
       setImageFile(null);
+      setImageError(null);
 
       onHostCreated(data.host);
     } catch (error) {
@@ -227,18 +239,26 @@ export function AddNewHost({
             />
 
             <FormItem>
-              <FormLabel>Host Image</FormLabel>
+              <FormLabel>Host Image *</FormLabel>
               <Dropzone
                 accept='image/jpeg,image/jpg,image/png,image/webp'
                 disabled={isLoading}
-                onFileSelect={setImageFile}
+                onFileSelect={file => {
+                  setImageFile(file);
+                  if (file) {
+                    setImageError(null);
+                  }
+                }}
                 selectedFile={imageFile}
                 maxSize={10 * 1024 * 1024}
-                placeholder='Drag and drop host image here (optional)'
+                placeholder='Drag and drop host image here'
               />
               <FormDescription>
                 Upload an image for the host. Maximum file size is 10MB. Accepts JPG, PNG, or WebP.
               </FormDescription>
+              {imageError && (
+                <p className='text-sm font-medium text-destructive'>{imageError}</p>
+              )}
             </FormItem>
 
             <DialogFooter>

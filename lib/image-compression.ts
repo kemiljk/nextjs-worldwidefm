@@ -1,4 +1,13 @@
 /**
+ * Replace a filename's extension with `.jpg`, since compression always outputs JPEG.
+ */
+function toJpegFilename(filename: string): string {
+  const extensionStart = filename.lastIndexOf('.');
+  const base = extensionStart > 0 ? filename.slice(0, extensionStart) : filename;
+  return `${base}.jpg`;
+}
+
+/**
  * Compress an image file before upload
  * @param file - The image file to compress
  * @param maxSizeMB - Maximum size in MB (default: 2MB)
@@ -49,7 +58,7 @@ export async function compressImage(
             const targetSize = maxSizeMB * 1024 * 1024;
 
             if (blob.size <= targetSize || quality <= 0.1) {
-              const compressedFile = new File([blob], file.name, {
+              const compressedFile = new File([blob], toJpegFilename(file.name), {
                 type: 'image/jpeg',
                 lastModified: Date.now(),
               });
