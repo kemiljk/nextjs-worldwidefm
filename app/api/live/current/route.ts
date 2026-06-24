@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getScheduleData, findMatchingShow } from '@/lib/radiocult-service';
+import { getCurrentScheduleShow } from '@/lib/schedule-service';
 
 /**
  * API endpoint to get the current live event
@@ -8,7 +9,10 @@ import { getScheduleData, findMatchingShow } from '@/lib/radiocult-service';
  */
 export async function GET() {
   try {
-    const { currentEvent } = await getScheduleData();
+    const [{ currentEvent }, scheduleShow] = await Promise.all([
+      getScheduleData(),
+      getCurrentScheduleShow(),
+    ]);
 
     let matchingShowSlug: string | null = null;
 
@@ -22,6 +26,7 @@ export async function GET() {
         success: true,
         currentEvent,
         matchingShowSlug,
+        scheduleShow,
         isLive: !!currentEvent,
       },
       {
@@ -41,6 +46,7 @@ export async function GET() {
         error: 'Failed to fetch current live event',
         currentEvent: null,
         matchingShowSlug: null,
+        scheduleShow: null,
         isLive: false,
       },
       {

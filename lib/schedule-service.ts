@@ -1,12 +1,23 @@
 import { cosmic, type GenreObject, type HostObject } from './cosmic-config';
 import type { EpisodeObject } from './cosmic-types';
-import { getCurrentUkWeek, type UkWeekday, UK_WEEK_DAYS } from './date-utils';
+import {
+  getCurrentUkWeek,
+  parseLondonDateTime,
+  type UkWeekday,
+  UK_WEEK_DAYS,
+} from './date-utils';
 import type { ScheduleShow, ScheduleDayMap } from './types/schedule';
 
 const TARGET_DAYS: UkWeekday[] = ['Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PLACEHOLDER_IMAGE = '/image-placeholder.png';
 const RERUN_SCHEDULE_ID = '69217f64b183692bb397e481';
 export type { ScheduleShow };
+
+export interface CurrentScheduleShow {
+  name: string;
+  url: string;
+  slug: string | null;
+}
 
 export interface WeeklyScheduleResult {
   scheduleItems: ScheduleShow[];
@@ -440,4 +451,35 @@ export async function getWeeklySchedule(): Promise<WeeklyScheduleResult> {
       error: error instanceof Error ? error.message : 'Failed to generate schedule.',
     };
   }
+}
+
+function extractEpisodeSlugFromUrl(url: string): string | null {
+  if (!url.startsWith('/episode/')) {
+    return null;
+  }
+  const slug = url.slice('/episode/'.length).split('?')[0]?.split('#')[0];
+  return slug || null;
+}
+
+export async function getCurrentScheduleShow(): Promise<CurrentScheduleShow | null> {
+  const { scheduleItems } = await getWeeklySchedule();
+  const now = Date.now();
+
+  for (const item of scheduleItems) {
+    const start = parseLondonDateTime(item.date, item.show_time);
+    if (!start) {
+      continue;
+    }
+
+    const endMs = start.getTime() + item.duration * 60 * 1000;
+    if (now >= start.getTime() && now < endMs) {
+      return {
+        name: item.name,
+        url: item.url || '/schedule',
+        slug: extractEpisodeSlugFromUrl(item.url),
+      };
+    }
+  }
+
+  return null;
 }

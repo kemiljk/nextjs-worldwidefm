@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/migrate-cold-storage",
       "schedule": "0 2 * * 0"
+    },
+    {
+      "path": "/api/cron/create-weekly-shows",
+      "schedule": "0 6 * * 1"
     }
   ]
 }

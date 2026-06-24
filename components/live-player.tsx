@@ -41,6 +41,14 @@ interface LiveMetadata {
   };
 }
 
+interface ScheduleShowInfo {
+  name: string;
+  url: string;
+  slug: string | null;
+}
+
+const LIVE_CURRENT_POLL_MS = 2 * 60 * 1000;
+
 export default function LivePlayer() {
   const { isLivePlaying, playLive, pauseLive, liveVolume } = useMediaPlayer();
   const plausible = usePlausible();
@@ -53,6 +61,8 @@ export default function LivePlayer() {
 
   const [liveMetadata, setLiveMetadata] = useState<LiveMetadata>({});
   const [matchingShowSlug, setMatchingShowSlug] = useState<string | null>(null);
+  const [scheduleShow, setScheduleShow] = useState<ScheduleShowInfo | null>(null);
+  const scheduleShowRef = useRef<ScheduleShowInfo | null>(null);
 
   // If we receive metadata from WebSocket, we can show show info.
   // Playback should not depend on metadata availability.
@@ -65,8 +75,7 @@ export default function LivePlayer() {
   const stationId = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
   const apiKey = process.env.NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY;
 
-  // Fetch current show immediately on mount for instant display
-  // WebSocket will then update it in real-time
+  // Fetch current show from schedule (preferred) and RadioCult (fallback)
   useEffect(() => {
     const fetchCurrentShow = async () => {
       try {
@@ -78,8 +87,15 @@ export default function LivePlayer() {
         });
         const data = await response.json();
 
-        if (data.success && data.currentEvent) {
-          // Set initial show immediately - WebSocket will update it later
+        if (data.scheduleShow) {
+          setScheduleShow(data.scheduleShow);
+          scheduleShowRef.current = data.scheduleShow;
+        } else {
+          setScheduleShow(null);
+          scheduleShowRef.current = null;
+        }
+
+        if (data.success && data.currentEvent && !data.scheduleShow) {
           setLiveMetadata({
             content: {
               title: data.currentEvent.showName,
@@ -88,19 +104,20 @@ export default function LivePlayer() {
             },
           });
 
-          // Set matching show slug for episode detail linking
           if (data.matchingShowSlug) {
             setMatchingShowSlug(data.matchingShowSlug);
           }
         }
       } catch (error) {
-        // Silently fail - WebSocket will provide data
+        // Silently fail - WebSocket will provide fallback data
       }
     };
 
     fetchCurrentShow();
+    const intervalId = setInterval(fetchCurrentShow, LIVE_CURRENT_POLL_MS);
+
+    return () => clearInterval(intervalId);
   }, []);
-  // Schedule API is unreliable for real-time detection, WebSocket provides instant updates
 
   // Keep a ref to pauseLive for cleanup without triggering re-runs
   const pauseLiveRef = useRef(pauseLive);
@@ -249,9 +266,10 @@ export default function LivePlayer() {
             | undefined;
 
           if (metadata) {
-            // Extract content - prioritize show/playlist name (scheduled show) over current track
-            // content.name = scheduled show name (e.g., "WWFM Playlist")
-            // metadata.title = current track playing (e.g., "Leave The Hall")
+            if (scheduleShowRef.current) {
+              return;
+            }
+
             const contentTitle =
               metadata.content?.name || metadata.content?.title || metadata.metadata?.title;
             const contentArtist = metadata.content?.artist || metadata.metadata?.artist;
@@ -357,7 +375,7 @@ export default function LivePlayer() {
 
     // Create event from WebSocket metadata
     const eventToPlay = {
-      showName: liveMetadata.content?.title || 'Live Stream',
+      showName: scheduleShow?.name || liveMetadata.content?.title || 'Live Stream',
       ...liveMetadata.content,
     };
 
@@ -460,34 +478,37 @@ export default function LivePlayer() {
     }
   };
 
+  const hasScheduleShow = Boolean(scheduleShow?.name);
   const hasMetadata = Boolean(liveMetadata.content?.title);
   const canPlay = Boolean(streamUrl);
 
-  // Check if this is a playlist (not a scheduled show)
-  const currentTitle = liveMetadata.content?.title || '';
+  const currentTitle = scheduleShow?.name || liveMetadata.content?.title || '';
   const isPlaylist =
+    !hasScheduleShow &&
     hasMetadata &&
     (currentTitle.toLowerCase().includes('playlist') ||
       (currentTitle.toLowerCase().includes('wwfm') &&
         !currentTitle.toLowerCase().includes('show')));
 
-  // Display "Check out our schedule" for playlists, otherwise show the show name
-  const displayName = hasMetadata
-    ? isPlaylist
-      ? 'Check out our schedule'
-      : currentTitle
-    : canPlay
-      ? 'Live Stream'
-      : 'Stream unavailable';
+  const displayName = hasScheduleShow
+    ? scheduleShow!.name
+    : hasMetadata
+      ? isPlaylist
+        ? 'Check out our schedule'
+        : currentTitle
+      : canPlay
+        ? 'Live Stream'
+        : 'Stream unavailable';
 
-  // Link destination - schedule for playlists, episode page for matched shows, otherwise schedule
-  const linkHref = hasMetadata
-    ? isPlaylist
-      ? '/schedule'
-      : matchingShowSlug
-        ? `/episode/${matchingShowSlug}`
-        : '/schedule'
-    : undefined;
+  const linkHref = hasScheduleShow
+    ? scheduleShow!.url
+    : hasMetadata
+      ? isPlaylist
+        ? '/schedule'
+        : matchingShowSlug
+          ? `/episode/${matchingShowSlug}`
+          : '/schedule'
+      : undefined;
 
   return (
     <div className='fixed top-0 bg-almostblack text-white dark:bg-black dark:text-white z-50 flex items-center transition-all duration-300 h-11 left-0 right-0 max-w-full'>

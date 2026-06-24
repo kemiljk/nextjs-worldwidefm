@@ -13,6 +13,8 @@
     "type-check": "tsc --noEmit",
     "fetch-archive": "bun run scripts/fetch-archive.ts",
     "populate-takeovers": "bun run scripts/populate-takeovers.ts",
+    "create-weekly-shows": "bun run scripts/create-weekly-shows.ts",
+    "verify-recurring-hosts": "bun run scripts/verify-recurring-hosts.ts",
     "test": "bun test test/*.test.ts",
     "test:unit": "bun test test/*.test.ts",
     "test:e2e": "playwright test",
