@@ -42,6 +42,15 @@ const externalImageUrlField: Metafield = {
     'URL for images stored externally (Vercel Blob). Used for cold storage to reduce Cosmic storage costs.',
 };
 
+const mixcloudUsernameField: Metafield = {
+  title: 'Mixcloud Username',
+  key: 'mixcloud_username',
+  type: 'text',
+  required: false,
+  helptext:
+    'Mixcloud account username for co-host tagging on uploads (must be an accepted Host in the WWFM Mixcloud dashboard).',
+};
+
 // Existing object type updates - add external_image_url to ALL object types with images
 const updates: ObjectTypeUpdateConfig[] = [
   {
@@ -63,7 +72,7 @@ const updates: ObjectTypeUpdateConfig[] = [
   },
   {
     slug: 'regular-hosts',
-    newMetafields: [externalImageUrlField],
+    newMetafields: [externalImageUrlField, mixcloudUsernameField],
   },
   {
     slug: 'takeovers',

@@ -102,6 +102,7 @@ export interface HostObject {
     description: string | null;
     image: CosmicImage | null;
     external_image_url?: string | null;
+    mixcloud_username?: string | null;
   } | null;
 }
 

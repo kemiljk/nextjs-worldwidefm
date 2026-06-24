@@ -8,6 +8,7 @@ export interface CosmicHost {
   metadata?: {
     description?: string | null;
     image?: { url: string; imgix_url: string } | null;
+    mixcloud_username?: string | null;
   } | null;
 }
 

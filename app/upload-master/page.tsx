@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { UploadMasterForm } from './upload-master-form';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
 
-export const maxDuration = 300;
+export const maxDuration = 800;
 
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateBaseMetadata({

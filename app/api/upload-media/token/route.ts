@@ -3,6 +3,11 @@ import { NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
+const MAX_MEDIA_UPLOAD_BYTES =
+  Number(process.env.MAX_MEDIA_UPLOAD_MB || process.env.NEXT_PUBLIC_MAX_MEDIA_UPLOAD_MB || 2048) *
+  1024 *
+  1024;
+
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
@@ -48,7 +53,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             'audio/flac',
             'application/octet-stream', // Fallback for files with missing ID3 tags
           ],
-          maximumSizeInBytes: 700 * 1024 * 1024, // 700MB
+          maximumSizeInBytes: MAX_MEDIA_UPLOAD_BYTES,
           tokenPayload: JSON.stringify({
             pathname,
           }),

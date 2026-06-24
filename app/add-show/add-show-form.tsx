@@ -88,7 +88,7 @@ interface CosmicGenre {
 }
 
 export function AddShowForm() {
-  const MAX_MEDIA_MB = Number(process.env.NEXT_PUBLIC_MAX_MEDIA_UPLOAD_MB || 700);
+  const MAX_MEDIA_MB = Number(process.env.NEXT_PUBLIC_MAX_MEDIA_UPLOAD_MB || 2048);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   type SubmissionPhase =
     | 'idle'

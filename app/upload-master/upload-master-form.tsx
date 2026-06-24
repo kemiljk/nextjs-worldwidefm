@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { EpisodeObject, getEpisodeImageUrl } from '@/lib/cosmic-types';
+import { CosmicHost, getCosmicHosts } from '@/lib/cosmic-host-service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Dropzone } from '@/components/ui/dropzone';
 import {
   Command,
@@ -13,12 +15,12 @@ import {
   CommandItem,
   CommandEmpty,
 } from '@/components/ui/command';
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { upload } from '@vercel/blob/client';
 import { buildMediaMetadataTitle, buildTemporaryMediaBlobPath } from '@/lib/upload-filename-utils';
 
-const MAX_MEDIA_MB = Number(process.env.NEXT_PUBLIC_MAX_MEDIA_UPLOAD_MB || 700);
+const MAX_MEDIA_MB = Number(process.env.NEXT_PUBLIC_MAX_MEDIA_UPLOAD_MB || 2048);
 
 type SubmissionPhase =
   | 'idle'
@@ -39,6 +41,14 @@ export function UploadMasterForm() {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<SubmissionPhase>('idle');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hosts, setHosts] = useState<CosmicHost[]>([]);
+  const [selectedCoHostIds, setSelectedCoHostIds] = useState<string[]>([]);
+  const [coHostInput, setCoHostInput] = useState('');
+  const [isCoHostListOpen, setIsCoHostListOpen] = useState(false);
+
+  useEffect(() => {
+    getCosmicHosts().then(setHosts).catch(console.error);
+  }, []);
 
   const fetchEpisodesByDate = useCallback(async (date: string) => {
     if (!date) {
@@ -55,6 +65,7 @@ export function UploadMasterForm() {
       setEpisodes(data.episodes || []);
       setSelectedEpisode(null);
       setEpisodeInput('');
+      setSelectedCoHostIds([]);
     } catch (err) {
       console.error('Failed to fetch episodes:', err);
       toast.error('Failed to load episodes for this date');
@@ -74,13 +85,51 @@ export function UploadMasterForm() {
     }
   }, [broadcastDate, fetchEpisodesByDate]);
 
+  useEffect(() => {
+    if (!selectedEpisode) {
+      setSelectedCoHostIds([]);
+      return;
+    }
+
+    const existingHostIds =
+      selectedEpisode.metadata?.regular_hosts?.map(host => host.id).filter(Boolean) ?? [];
+    setSelectedCoHostIds(existingHostIds);
+  }, [selectedEpisode]);
+
   const matchingEpisodes = episodes.filter(
     ep => !episodeInput || ep.title?.toLowerCase().includes(episodeInput.toLowerCase())
+  );
+
+  const matchingCoHosts = useMemo(() => {
+    const lowerInput = coHostInput.toLowerCase();
+    return hosts.filter(host => {
+      if (!host.title) return false;
+      if (selectedCoHostIds.includes(host.id)) return false;
+      return !lowerInput || host.title.toLowerCase().includes(lowerInput);
+    });
+  }, [hosts, coHostInput, selectedCoHostIds]);
+
+  const selectedCoHosts = useMemo(
+    () =>
+      selectedCoHostIds
+        .map(id => hosts.find(host => host.id === id))
+        .filter((host): host is CosmicHost => Boolean(host)),
+    [hosts, selectedCoHostIds]
   );
 
   const showPageUrl = selectedEpisode
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/episode/${selectedEpisode.slug}`
     : '';
+
+  const handleCoHostSelect = (host: CosmicHost) => {
+    setSelectedCoHostIds(prev => (prev.includes(host.id) ? prev : [...prev, host.id]));
+    setCoHostInput('');
+    setIsCoHostListOpen(false);
+  };
+
+  const handleCoHostRemove = (hostId: string) => {
+    setSelectedCoHostIds(prev => prev.filter(id => id !== hostId));
+  };
 
   const handleSubmit = async () => {
     if (!selectedEpisode || !mediaFile) {
@@ -96,11 +145,24 @@ export function UploadMasterForm() {
       return;
     }
 
+    if (mediaFile.size > MAX_MEDIA_MB * 1024 * 1024) {
+      toast.error(
+        `Selected audio file is ${(mediaFile.size / 1024 / 1024).toFixed(1)}MB which exceeds the ${MAX_MEDIA_MB}MB limit.`
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     setPhase('uploadingBlob');
 
     let radiocultMediaId: string | undefined;
     let mixcloudUrl: string | undefined;
+
+    const mixcloudHostUsernames = selectedCoHosts
+      .map(host => host.metadata?.mixcloud_username?.trim().replace(/^@/, '') || '')
+      .filter(Boolean);
+
+    const combinedHostIds = Array.from(new Set(selectedCoHostIds));
 
     try {
       const blob = await upload(buildTemporaryMediaBlobPath(mediaFile.name), mediaFile, {
@@ -129,6 +191,9 @@ export function UploadMasterForm() {
             selectedEpisode.metadata?.external_image_url ||
             selectedEpisode.metadata?.image?.imgix_url;
           if (img) fd.append('imageUrl', img);
+          if (mixcloudHostUsernames.length > 0) {
+            fd.append('hosts', JSON.stringify(mixcloudHostUsernames));
+          }
           fd.append('broadcastDate', dateStr);
           fd.append('broadcastTime', broadcast_time || '');
           fd.append('duration', duration || '');
@@ -162,7 +227,10 @@ export function UploadMasterForm() {
         'metadata',
         JSON.stringify({
           title: buildMediaMetadataTitle(mediaFile.name),
-          artist: selectedEpisode.metadata?.regular_hosts?.[0]?.title || undefined,
+          artist:
+            selectedCoHosts[0]?.title ||
+            selectedEpisode.metadata?.regular_hosts?.[0]?.title ||
+            undefined,
         })
       );
 
@@ -187,6 +255,7 @@ export function UploadMasterForm() {
           radiocult_media_id: radiocultMediaId,
           player: mixcloudUrl || undefined,
           page_link: mixcloudUrl || undefined,
+          regular_hosts: combinedHostIds,
         }),
       });
 
@@ -207,6 +276,8 @@ export function UploadMasterForm() {
       setSelectedEpisode(null);
       setMediaFile(null);
       setEpisodeInput('');
+      setSelectedCoHostIds([]);
+      setCoHostInput('');
     } catch (err) {
       setPhase('error');
       console.error('Upload failed:', err);
@@ -300,6 +371,69 @@ export function UploadMasterForm() {
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {selectedEpisode && (
+        <div className='space-y-2'>
+          <Label>Co-hosts</Label>
+          <Command
+            className='w-full border border-input rounded-none relative'
+            shouldFilter={false}
+          >
+            <CommandInput
+              placeholder='Search hosts to add as co-hosts'
+              value={coHostInput}
+              onValueChange={value => {
+                setCoHostInput(value);
+                setIsCoHostListOpen(true);
+              }}
+              onFocus={() => setIsCoHostListOpen(true)}
+              disabled={isSubmitting}
+            />
+            {coHostInput && isCoHostListOpen && (
+              <CommandList onClickOutside={() => setIsCoHostListOpen(false)}>
+                {matchingCoHosts.length === 0 ? (
+                  <CommandEmpty>No hosts found</CommandEmpty>
+                ) : (
+                  matchingCoHosts.slice(0, 50).map(host => (
+                    <CommandItem
+                      key={host.id}
+                      value={host.id}
+                      onSelect={() => handleCoHostSelect(host)}
+                      className='cursor-pointer'
+                    >
+                      {host.title}
+                      {host.metadata?.mixcloud_username && (
+                        <span className='ml-2 text-muted-foreground'>
+                          @{host.metadata.mixcloud_username}
+                        </span>
+                      )}
+                    </CommandItem>
+                  ))
+                )}
+              </CommandList>
+            )}
+          </Command>
+          {selectedCoHosts.length > 0 && (
+            <div className='flex flex-wrap gap-1 mt-2'>
+              {selectedCoHosts.map(host => (
+                <Badge key={host.id} variant='secondary' className='flex items-center gap-1'>
+                  {host.title}
+                  {!isSubmitting && (
+                    <X
+                      className='h-3 w-3 cursor-pointer'
+                      onClick={() => handleCoHostRemove(host.id)}
+                    />
+                  )}
+                </Badge>
+              ))}
+            </div>
+          )}
+          <p className='text-sm text-muted-foreground'>
+            Hosts with a Mixcloud username will be tagged on the Mixcloud upload (max 2). All
+            selected hosts are saved to the episode page.
+          </p>
         </div>
       )}
 

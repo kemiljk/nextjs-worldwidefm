@@ -5,8 +5,8 @@ import { Readable } from 'node:stream';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { del, isVercelBlobUrl } from '@/lib/blob-client';
 
-export const maxDuration = 300;
-const MIXCLOUD_UPLOAD_TIMEOUT_MS = 4.5 * 60 * 1000;
+export const maxDuration = 800;
+const MIXCLOUD_UPLOAD_TIMEOUT_MS = 780 * 1000;
 
 function getAudioMimeType(fileName: string, originalType: string): string {
   const ext = fileName.split('.').pop()?.toLowerCase();
@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
     const description = formData.get('description') as string | null;
     const imageUrl = formData.get('imageUrl') as string | null;
     const tagsJson = formData.get('tags') as string | null;
+    const hostsJson = formData.get('hosts') as string | null;
     shouldCleanupMediaUrl = formData.get('cleanup') === 'true';
     mediaUrlForCleanup = mediaUrl || undefined;
 
@@ -121,6 +122,11 @@ export async function POST(request: NextRequest) {
       mcForm.append(`tags-${index}-tag`, tag);
     });
 
+    const hostUsernames = parseHostUsernames(hostsJson);
+    hostUsernames.forEach((username, index) => {
+      mcForm.append(`hosts-${index}-username`, username);
+    });
+
     if (imageUrl?.trim()) {
       try {
         const imgRes = await fetch(imageUrl.trim());
@@ -182,23 +188,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { key, url } = extractMixcloudUploadLocation(mcData);
-
-    if (!url && !key) {
-      console.error('Mixcloud upload success response missing URL/key:', mcData);
+    const uploadSucceeded = isMixcloudUploadSuccessful(mcData);
+    if (!uploadSucceeded) {
+      console.error('Mixcloud upload response did not indicate success:', mcData);
       return NextResponse.json(
         {
-          error: 'Mixcloud accepted the upload but did not return a URL or key',
+          error: 'Mixcloud upload did not return a success response',
           details: mcData,
         },
         { status: 502 }
       );
     }
 
-    console.log('✅ Mixcloud upload SUCCESS:', { url, key, fileName });
+    const { key, url } = extractMixcloudUploadLocation(mcData);
+    const resolvedUrl =
+      url ||
+      (key ? buildMixcloudUrlFromKey(key) : undefined) ||
+      (await lookupMixcloudCloudcastUrl(accessToken, title, requestAbortController.signal)) ||
+      buildFallbackMixcloudUrl(title);
+
+    if (!resolvedUrl) {
+      console.error('Mixcloud upload succeeded but URL could not be resolved:', mcData);
+      return NextResponse.json(
+        {
+          error:
+            'Mixcloud accepted the upload but the cloudcast URL could not be determined. Set MIXCLOUD_USERNAME.',
+          details: mcData,
+        },
+        { status: 502 }
+      );
+    }
+
+    console.log('✅ Mixcloud upload SUCCESS:', { url: resolvedUrl, key, fileName });
 
     return NextResponse.json({
-      url: url || (key ? `https://www.mixcloud.com/${key}` : ''),
+      url: resolvedUrl,
       key: key || undefined,
     });
   } catch (error) {
@@ -242,6 +266,24 @@ type MixcloudErrorResponse = {
   details?: Record<string, unknown>;
 };
 
+type MixcloudCloudcast = {
+  name?: string;
+  key?: string;
+  url?: string;
+};
+
+function isMixcloudUploadSuccessful(
+  data: MixcloudUploadResponse | MixcloudErrorResponse | string
+): boolean {
+  if (typeof data !== 'object' || data === null) return false;
+
+  const response = data as MixcloudUploadResponse;
+  if (response.result?.success === true) return true;
+
+  const { key, url } = extractMixcloudUploadLocation(data);
+  return Boolean(key || url);
+}
+
 function parseMixcloudError(
   errorData: MixcloudErrorResponse | string,
   statusText: string
@@ -275,9 +317,92 @@ function extractMixcloudUploadLocation(
     response.url ||
     response.result?.url ||
     response.result?.cloudcast?.url ||
-    (key ? `https://www.mixcloud.com${key.startsWith('/') ? '' : '/'}${key}` : undefined);
+    (key ? buildMixcloudUrlFromKey(key) : undefined);
 
   return { key, url };
+}
+
+function buildMixcloudUrlFromKey(key: string): string {
+  return `https://www.mixcloud.com${key.startsWith('/') ? '' : '/'}${key}`;
+}
+
+function slugifyMixcloudName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 200);
+}
+
+function buildFallbackMixcloudUrl(title: string): string | undefined {
+  const username = process.env.MIXCLOUD_USERNAME?.trim();
+  if (!username) return undefined;
+
+  const slug = slugifyMixcloudName(title);
+  if (!slug) return undefined;
+
+  return `https://www.mixcloud.com/${username}/${slug}/`;
+}
+
+async function lookupMixcloudCloudcastUrl(
+  accessToken: string,
+  title: string,
+  signal?: AbortSignal
+): Promise<string | undefined> {
+  try {
+    const listUrl = new URL('https://api.mixcloud.com/me/cloudcasts/');
+    listUrl.searchParams.set('access_token', accessToken);
+    listUrl.searchParams.set('limit', '10');
+
+    const response = await fetch(listUrl.toString(), { signal });
+    if (!response.ok) {
+      console.warn('Mixcloud cloudcast lookup failed:', response.status, response.statusText);
+      return undefined;
+    }
+
+    const data = (await response.json()) as { data?: MixcloudCloudcast[] };
+    const cloudcasts = data.data ?? [];
+    const normalizedTitle = title.trim().toLowerCase();
+
+    const exactMatch = cloudcasts.find(
+      cloudcast => cloudcast.name?.trim().toLowerCase() === normalizedTitle
+    );
+    if (exactMatch) {
+      return cloudcastToUrl(exactMatch);
+    }
+
+    const newest = cloudcasts[0];
+    return newest ? cloudcastToUrl(newest) : undefined;
+  } catch (error) {
+    console.warn('Mixcloud cloudcast lookup error:', error);
+    return undefined;
+  }
+}
+
+function cloudcastToUrl(cloudcast: MixcloudCloudcast): string | undefined {
+  if (cloudcast.url) return cloudcast.url;
+  if (cloudcast.key) return buildMixcloudUrlFromKey(cloudcast.key);
+  return undefined;
+}
+
+function parseHostUsernames(hostsJson: string | null): string[] {
+  if (!hostsJson) return [];
+
+  try {
+    const hosts = JSON.parse(hostsJson);
+    if (!Array.isArray(hosts)) return [];
+
+    return Array.from(
+      new Set(
+        hosts
+          .filter((host): host is string => typeof host === 'string')
+          .map(host => host.trim().replace(/^@/, ''))
+          .filter(Boolean)
+      )
+    ).slice(0, 2);
+  } catch {
+    return [];
+  }
 }
 
 function parseTags(tagsJson: string | null): string[] {

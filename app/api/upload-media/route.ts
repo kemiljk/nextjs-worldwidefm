@@ -3,9 +3,9 @@ import { del, isVercelBlobUrl } from '@/lib/blob-client';
 import { inspectMp3Structure, writeMp3Id3v23Metadata } from '@/lib/mp3-utils';
 import { buildMediaMetadataTitle } from '@/lib/upload-filename-utils';
 
-export const maxDuration = 300;
+export const maxDuration = 800;
 
-const RADIOCULT_FETCH_TIMEOUT_MS = 4 * 60 * 1000;
+const RADIOCULT_FETCH_TIMEOUT_MS = 780 * 1000;
 
 export async function POST(request: NextRequest) {
   try {

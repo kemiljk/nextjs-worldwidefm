@@ -9,6 +9,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const radiocultMediaId = body.radiocult_media_id as string | undefined;
     const player = body.player as string | null | undefined;
     const pageLink = body.page_link as string | null | undefined;
+    const regularHosts = body.regular_hosts as string[] | undefined;
 
     const updates: Record<string, unknown> = {};
 
@@ -20,6 +21,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     if (pageLink !== undefined) {
       updates.page_link = pageLink;
+    }
+    if (regularHosts !== undefined) {
+      if (
+        !Array.isArray(regularHosts) ||
+        !regularHosts.every(hostId => typeof hostId === 'string' && hostId.trim().length > 0)
+      ) {
+        return NextResponse.json({ error: 'regular_hosts must be an array of host IDs' }, { status: 400 });
+      }
+      updates.regular_hosts = Array.from(new Set(regularHosts.map(hostId => hostId.trim())));
     }
 
     if (Object.keys(updates).length === 0) {
