@@ -126,6 +126,8 @@ export async function POST(request: NextRequest) {
       mcForm.append(`tags-${index}-tag`, tag);
     });
 
+    mcForm.append('hide_stats', '1');
+
     const hostUsernames = parseHostUsernames(hostsJson);
     hostUsernames.forEach((username, index) => {
       mcForm.append(`hosts-${index}-username`, username);
@@ -443,7 +445,7 @@ function buildMixcloudPublishDate(
 }
 
 function parseTags(tagsJson: string | null): string[] {
-  const fallbackTags = ['Radio'];
+  const fallbackTags = ['WorldWide FM'];
   if (!tagsJson) return fallbackTags;
 
   try {

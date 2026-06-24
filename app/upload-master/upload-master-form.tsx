@@ -181,12 +181,7 @@ export function UploadMasterForm() {
           fd.append('episodeId', selectedEpisode.id);
           fd.append('title', `${selectedEpisode.title} // ${formatDateForMixcloud(dateStr)}`);
           fd.append('tags', JSON.stringify(buildMixcloudTags(selectedEpisode)));
-          fd.append(
-            'description',
-            [selectedEpisode.metadata?.description || '', '', '', `Tracklist: ${showPageUrl}`].join(
-              '\n'
-            )
-          );
+          fd.append('description', buildMixcloudDescription(selectedEpisode, showPageUrl));
           const img =
             selectedEpisode.metadata?.external_image_url ||
             selectedEpisode.metadata?.image?.imgix_url;
@@ -477,9 +472,41 @@ function formatDateForMixcloud(dateStr: string): string {
 }
 
 function buildMixcloudTags(episode: EpisodeObject): string[] {
-  const tags = [...(episode.metadata?.genres?.map(genre => genre.title) ?? []), 'Radio'];
+  const tags = [...(episode.metadata?.genres?.map(genre => genre.title) ?? []), 'WorldWide FM'];
 
   return Array.from(new Set(tags.map(tag => tag.trim()).filter(Boolean))).slice(0, 5);
+}
+
+function htmlToPlainText(value: string): string {
+  return value
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&quot;/gi, '"')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function buildMixcloudDescription(episode: EpisodeObject, showPageUrl: string): string {
+  const showCopy = htmlToPlainText(
+    episode.metadata?.body_text || episode.metadata?.description || ''
+  );
+  const tracklist = htmlToPlainText(episode.metadata?.tracklist || '');
+
+  const sections = [showCopy];
+  if (tracklist) {
+    sections.push(`Tracklist:\n${tracklist}`);
+  }
+  if (showPageUrl) {
+    sections.push(`Full show: ${showPageUrl}`);
+  }
+
+  return sections.filter(Boolean).join('\n\n');
 }
 
 function UploadProgressPanel({ phase }: { phase: SubmissionPhase }) {
