@@ -42,3 +42,22 @@ export function buildRawMediaFilename(
 
   return `raw${datePart} ${safeTitle}${extension}`;
 }
+
+export function buildShowImageFilename(
+  broadcastDate: string,
+  title: string,
+  originalFilename: string
+): string {
+  const datePart = broadcastDate.replace(/-/g, '').slice(0, 8);
+  const safeTitle = sanitizeFilenameSegment(title) || 'Untitled Show';
+  const extension = getFileExtension(originalFilename) || '.jpg';
+
+  return `${datePart} ${safeTitle}${extension}`;
+}
+
+export function buildHostImageFilename(hostName: string, originalFilename: string): string {
+  const safeName = sanitizeFilenameSegment(hostName) || 'Host';
+  const extension = getFileExtension(originalFilename) || '.jpg';
+
+  return `${safeName}${extension}`;
+}

@@ -43,6 +43,7 @@ import { upload } from '@vercel/blob/client';
 import {
   buildMediaMetadataTitle,
   buildRawMediaFilename,
+  buildShowImageFilename,
   buildTemporaryMediaBlobPath,
 } from '@/lib/upload-filename-utils';
 import { AddNewHost, AddNewHostTrigger } from './add-new-host';
@@ -350,6 +351,10 @@ export function AddShowForm() {
 
           const imageFormData = new FormData();
           imageFormData.append('image', fileToUpload);
+          imageFormData.append(
+            'fileName',
+            buildShowImageFilename(values.startDate, values.title, fileToUpload.name)
+          );
 
           const imageUploadResponse = await fetch('/api/upload-image', {
             method: 'POST',

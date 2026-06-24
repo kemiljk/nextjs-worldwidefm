@@ -4,6 +4,7 @@ import FormData from 'form-data';
 import { Readable } from 'node:stream';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { del, isVercelBlobUrl } from '@/lib/blob-client';
+import { parseBroadcastDateTime, parseDurationToMinutes } from '@/lib/date-utils';
 
 export const maxDuration = 800;
 const MIXCLOUD_UPLOAD_TIMEOUT_MS = 780 * 1000;
@@ -49,6 +50,9 @@ export async function POST(request: NextRequest) {
     const imageUrl = formData.get('imageUrl') as string | null;
     const tagsJson = formData.get('tags') as string | null;
     const hostsJson = formData.get('hosts') as string | null;
+    const broadcastDate = formData.get('broadcastDate') as string | null;
+    const broadcastTime = formData.get('broadcastTime') as string | null;
+    const duration = formData.get('duration') as string | null;
     shouldCleanupMediaUrl = formData.get('cleanup') === 'true';
     mediaUrlForCleanup = mediaUrl || undefined;
 
@@ -126,6 +130,14 @@ export async function POST(request: NextRequest) {
     hostUsernames.forEach((username, index) => {
       mcForm.append(`hosts-${index}-username`, username);
     });
+
+    const publishDate = buildMixcloudPublishDate(broadcastDate, broadcastTime, duration);
+    if (publishDate) {
+      mcForm.append('publish_date', publishDate);
+      console.log('Scheduling Mixcloud upload for', publishDate);
+    } else {
+      console.log('No future broadcast time; upload will land in Mixcloud drafts');
+    }
 
     if (imageUrl?.trim()) {
       try {
@@ -403,6 +415,31 @@ function parseHostUsernames(hostsJson: string | null): string[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * Mixcloud schedules an upload (rather than dropping it in Drafts) only when a future
+ * `publish_date` is supplied in UTC as `YYYY-MM-DDTHH:MM:SSZ`. Broadcast time is stored as
+ * Europe/London wall time, so we convert via parseBroadcastDateTime and drop milliseconds.
+ * The show should go public when it finishes airing, so we publish at start + duration.
+ * Past instants are ignored by Mixcloud, so we omit the field entirely in that case.
+ */
+function buildMixcloudPublishDate(
+  broadcastDate: string | null,
+  broadcastTime: string | null,
+  duration: string | null
+): string | null {
+  if (!broadcastDate?.trim()) return null;
+
+  const start = parseBroadcastDateTime(broadcastDate, broadcastTime?.trim() || '00:00');
+  if (!start) return null;
+
+  const durationMinutes = parseDurationToMinutes(duration);
+  const publishInstant = new Date(start.getTime() + durationMinutes * 60_000);
+
+  if (publishInstant.getTime() <= Date.now()) return null;
+
+  return publishInstant.toISOString().replace(/\.\d{3}Z$/, 'Z');
 }
 
 function parseTags(tagsJson: string | null): string[] {
