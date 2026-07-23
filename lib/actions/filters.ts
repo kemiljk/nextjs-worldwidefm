@@ -7,44 +7,30 @@ import { getTags } from '../radiocult-service';
 
 export async function getAllFilters() {
   try {
+    // Cosmic returns 404 when a type has zero objects — isolate each find so one
+    // empty type (e.g. series) cannot wipe out hosts and everything else.
+    const safeFind = async (type: string) => {
+      try {
+        return await cosmic.objects.find({
+          type,
+          props: 'id,slug,title,type,metadata',
+          depth: 1,
+          limit: 1000,
+        });
+      } catch (error) {
+        console.warn(`Failed to fetch ${type}:`, error);
+        return { objects: [] };
+      }
+    };
+
     const [genresRes, hostsRes, takeoversRes, locationsRes, featuredShowsRes, seriesRes] =
       await Promise.all([
-        cosmic.objects.find({
-          type: 'genres',
-          props: 'id,slug,title,type,metadata',
-          depth: 1,
-          limit: 1000,
-        }),
-        cosmic.objects.find({
-          type: 'regular-hosts',
-          props: 'id,slug,title,type,metadata',
-          depth: 1,
-          limit: 1000,
-        }),
-        cosmic.objects.find({
-          type: 'takeovers',
-          props: 'id,slug,title,type,metadata',
-          depth: 1,
-          limit: 1000,
-        }),
-        cosmic.objects.find({
-          type: 'locations',
-          props: 'id,slug,title,type,metadata',
-          depth: 1,
-          limit: 1000,
-        }),
-        cosmic.objects.find({
-          type: 'featured-shows',
-          props: 'id,slug,title,type,metadata',
-          depth: 1,
-          limit: 1000,
-        }),
-        cosmic.objects.find({
-          type: 'series',
-          props: 'id,slug,title,type,metadata',
-          depth: 1,
-          limit: 1000,
-        }),
+        safeFind('genres'),
+        safeFind('regular-hosts'),
+        safeFind('takeovers'),
+        safeFind('locations'),
+        safeFind('featured-shows'),
+        safeFind('series'),
       ]);
 
     const toFilterItems = (objects: any[] = [], type: string): FilterItem[] =>

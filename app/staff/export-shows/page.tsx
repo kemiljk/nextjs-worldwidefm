@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { getAllFilters } from '@/lib/actions/filters';
+import { getCosmicHosts } from '@/lib/cosmic-host-service';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
 import { ExportShowsForm, HostOrSeriesOption } from './export-shows-form';
 
@@ -12,12 +12,12 @@ export const generateMetadata = async (): Promise<Metadata> => {
 };
 
 export default async function ExportShowsPage() {
-  const filters = await getAllFilters();
-  const options: HostOrSeriesOption[] = [...filters.hosts, ...filters.series]
-    .map(item => ({
-      id: item.slug,
-      slug: item.slug,
-      title: item.title,
+  const hosts = await getCosmicHosts();
+  const options: HostOrSeriesOption[] = hosts
+    .map(host => ({
+      id: host.id,
+      slug: host.slug,
+      title: host.title,
     }))
     .sort((a, b) => a.title.localeCompare(b.title));
 

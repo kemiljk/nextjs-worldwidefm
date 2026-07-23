@@ -9,7 +9,7 @@ const SITE_URL = 'https://worldwidefm.net';
 const BATCH_SIZE = 100;
 
 const EPISODE_PROPS =
-  'id,slug,title,type,status,metadata.image,metadata.external_image_url,metadata.broadcast_date,metadata.description,metadata.genres,metadata.regular_hosts,metadata.takeovers';
+  'id,slug,title,type,status,metadata.image,metadata.external_image_url,metadata.broadcast_date,metadata.description,metadata.tracklist,metadata.genres,metadata.regular_hosts,metadata.takeovers';
 
 interface CosmicObject {
   id: string;
@@ -19,6 +19,7 @@ interface CosmicObject {
   status?: string;
   metadata?: {
     description?: string | null;
+    tracklist?: string | null;
     image?: { url?: string; imgix_url?: string } | null;
     external_image_url?: string | null;
     broadcast_date?: string | null;
@@ -35,6 +36,7 @@ interface ExportRow {
   hostName: string;
   series: string;
   musicGenres: string;
+  tracklist: string;
   slug: string;
   broadcastDate: string;
   episodeUrl: string;
@@ -122,6 +124,7 @@ function toCsv(rows: ExportRow[]): string {
     'Host Name',
     'Series',
     'Music Genres',
+    'Tracklist',
     'Slug',
     'Broadcast Date',
     'Episode URL',
@@ -137,6 +140,7 @@ function toCsv(rows: ExportRow[]): string {
         row.hostName,
         row.series,
         row.musicGenres,
+        row.tracklist,
         row.slug,
         row.broadcastDate,
         row.episodeUrl,
@@ -172,6 +176,7 @@ function mapEpisodeToRow(episode: CosmicObject): ExportRow {
     hostName: hosts.join(', '),
     series: series.join(', '),
     musicGenres: genres.join(', '),
+    tracklist: stripHtmlTags(episode.metadata?.tracklist || ''),
     slug: episode.slug || '',
     broadcastDate: episode.metadata?.broadcast_date || '',
     episodeUrl: episode.slug ? `${SITE_URL}/episode/${episode.slug}` : '',

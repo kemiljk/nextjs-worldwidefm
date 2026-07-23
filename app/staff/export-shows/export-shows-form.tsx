@@ -89,6 +89,9 @@ export function ExportShowsForm({ options }: ExportShowsFormProps) {
               id='host-or-series'
               placeholder='Search for a host or series'
               value={selected ? selected.title : search}
+              onFocus={() => {
+                if (!selected) setIsOpen(true);
+              }}
               onValueChange={value => {
                 setSearch(value);
                 setIsOpen(true);
@@ -103,6 +106,7 @@ export function ExportShowsForm({ options }: ExportShowsFormProps) {
                 onClick={() => {
                   setSelected(null);
                   setSearch('');
+                  setIsOpen(true);
                 }}
                 className='absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground'
               >
@@ -115,7 +119,7 @@ export function ExportShowsForm({ options }: ExportShowsFormProps) {
               {filteredOptions.map(option => (
                 <CommandItem
                   key={option.id}
-                  value={option.id}
+                  value={option.slug}
                   onSelect={() => {
                     setSelected(option);
                     setSearch(option.title);
@@ -127,11 +131,18 @@ export function ExportShowsForm({ options }: ExportShowsFormProps) {
                 </CommandItem>
               ))}
               {filteredOptions.length === 0 && (
-                <CommandEmpty>No hosts or series found.</CommandEmpty>
+                <CommandEmpty>
+                  {options.length === 0
+                    ? 'No hosts or series available.'
+                    : `No matches for “${search.trim()}”.`}
+                </CommandEmpty>
               )}
             </CommandList>
           )}
         </Command>
+        {options.length > 0 && (
+          <p className='text-sm text-muted-foreground'>{options.length} hosts available</p>
+        )}
       </div>
 
       <div className='flex items-center gap-2'>
