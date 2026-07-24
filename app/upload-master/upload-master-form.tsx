@@ -213,44 +213,51 @@ export function UploadMasterForm() {
       mixcloudUrl = mixcloudData.url;
       toast.success('Mixcloud upload complete');
 
+      let radioCultError: string | undefined;
       setPhase('uploadingRadioCult');
-      const mediaFormData = new FormData();
-      mediaFormData.append('mediaUrl', blob.url);
-      mediaFormData.append('fileName', mediaFile.name);
-      mediaFormData.append('cleanup', 'true');
-      mediaFormData.append(
-        'metadata',
-        JSON.stringify({
-          title: buildMediaMetadataTitle(mediaFile.name),
-          artist:
-            selectedCoHosts[0]?.title ||
-            selectedEpisode.metadata?.regular_hosts?.[0]?.title ||
-            undefined,
-        })
-      );
+      try {
+        const mediaFormData = new FormData();
+        mediaFormData.append('mediaUrl', blob.url);
+        mediaFormData.append('fileName', mediaFile.name);
+        mediaFormData.append('cleanup', 'true');
+        mediaFormData.append(
+          'metadata',
+          JSON.stringify({
+            title: buildMediaMetadataTitle(mediaFile.name),
+            artist:
+              selectedCoHosts[0]?.title ||
+              selectedEpisode.metadata?.regular_hosts?.[0]?.title ||
+              undefined,
+          })
+        );
 
-      const uploadRes = await fetch('/api/upload-media', {
-        method: 'POST',
-        body: mediaFormData,
-      });
-      const uploadResult = await uploadRes.json();
+        const uploadRes = await fetch('/api/upload-media', {
+          method: 'POST',
+          body: mediaFormData,
+        });
+        const uploadResult = await uploadRes.json();
 
-      if (!uploadRes.ok || !uploadResult.success) {
-        throw new Error(uploadResult.error || 'RadioCult upload failed');
+        if (!uploadRes.ok || !uploadResult.success) {
+          throw new Error(uploadResult.error || 'RadioCult upload failed');
+        }
+        radiocultMediaId = uploadResult.radiocultMediaId;
+        toast.success('RadioCult upload complete');
+      } catch (err) {
+        radioCultError = err instanceof Error ? err.message : 'RadioCult upload failed';
+        console.error('RadioCult upload failed; continuing with website archive:', err);
+        toast.warning(`RadioCult failed — still updating the website archive. ${radioCultError}`);
       }
-      radiocultMediaId = uploadResult.radiocultMediaId;
-
-      toast.success('RadioCult upload complete');
 
       setPhase('updatingEpisode');
       const updateRes = await fetch(`/api/episodes/${selectedEpisode.id}/archive`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          radiocult_media_id: radiocultMediaId,
+          ...(radiocultMediaId ? { radiocult_media_id: radiocultMediaId } : {}),
           player: mixcloudUrl || undefined,
           page_link: mixcloudUrl || undefined,
           regular_hosts: combinedHostIds,
+          slug: selectedEpisode.slug,
         }),
       });
 
@@ -263,11 +270,17 @@ export function UploadMasterForm() {
             return { error: updateText };
           }
         })();
-        throw new Error(updateError.error || 'Failed to update episode');
+        throw new Error(
+          `Website archive update failed: ${updateError.error || 'Failed to update episode'}. Mixcloud URL: ${mixcloudUrl}`
+        );
       }
 
       setPhase('success');
-      toast.success('Mastered audio uploaded and episode updated');
+      if (radioCultError) {
+        toast.success('Website archive updated with Mixcloud player. Retry RadioCult separately.');
+      } else {
+        toast.success('Mastered audio uploaded and episode updated');
+      }
       setSelectedEpisode(null);
       setMediaFile(null);
       setEpisodeInput('');

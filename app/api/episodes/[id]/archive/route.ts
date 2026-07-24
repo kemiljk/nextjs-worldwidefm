@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { cosmic } from '@/lib/cosmic-config';
+
+function revalidateEpisodeCaches(slug?: string) {
+  revalidateTag('episodes', { expire: 0 });
+  if (slug) {
+    revalidateTag(`episode-${slug}`, { expire: 0 });
+    revalidatePath(`/episode/${slug}`);
+  }
+}
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -10,6 +19,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const player = body.player as string | null | undefined;
     const pageLink = body.page_link as string | null | undefined;
     const regularHosts = body.regular_hosts as string[] | undefined;
+    const slug = typeof body.slug === 'string' && body.slug.trim() ? body.slug.trim() : undefined;
 
     const updates: Record<string, unknown> = {};
 
@@ -39,6 +49,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     await cosmic.objects.updateOne(id, {
       metadata: updates,
     });
+
+    revalidateEpisodeCaches(slug);
 
     return NextResponse.json({ success: true });
   } catch (error) {
