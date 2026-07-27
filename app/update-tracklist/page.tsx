@@ -5,7 +5,7 @@ import { UpdateTracklistForm } from './update-tracklist-form';
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateBaseMetadata({
     title: 'Update Tracklist - Worldwide FM',
-    description: 'Add or update the tracklist for a live show on Worldwide FM.',
+    description: 'Update the tracklist, genres, and image for a live show on Worldwide FM.',
     noIndex: true,
   });
 };
@@ -17,9 +17,9 @@ export default function UpdateTracklistPage() {
         Update Tracklist
       </h1>
       <p className='text-muted-foreground mb-6'>
-        For live shows: pick today&apos;s (or your) broadcast date, select your show, then paste the
-        tracklist — one track per line (Artist - Track [Label]). It will appear on the show page
-        after the broadcast ends.
+        For live shows: pick today&apos;s (or your) broadcast date, select your show, then update
+        its tracklist, music genres, or image. Tracklists should have one track per line (Artist -
+        Track [Label]). Your changes will appear on the show page after saving.
       </p>
       <div className='bg-background border rounded-none p-6'>
         <UpdateTracklistForm />
