@@ -1,13 +1,12 @@
 import { Metadata } from 'next';
 import { connection } from 'next/server';
-import { Suspense } from 'react';
 import ShowsClient from './shows-client';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { getShowsFilters } from '@/lib/actions';
 import { generateShowsMetadata } from '@/lib/metadata-utils';
 import { getEpisodesForShows } from '@/lib/episode-service';
 import { transformShowToViewData } from '@/lib/cosmic-service';
-import { ShowsGridSkeleton } from '@/components/shows-grid-skeleton';
+import { ShowsPageHeader } from '@/components/shows/shows-page-header';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateShowsMetadata();
@@ -39,13 +38,14 @@ export default async function ShowsPage() {
   });
 
   return (
-    <Suspense fallback={<ShowsGridSkeleton count={20} />}>
+    <div className='w-full overflow-x-hidden'>
+      <ShowsPageHeader />
       <ShowsClient
         canonicalGenres={canonicalGenres}
         availableFilters={availableFilters}
         initialShows={initialShows}
         initialHasNext={initialShowsData.hasNext}
       />
-    </Suspense>
+    </div>
   );
 }

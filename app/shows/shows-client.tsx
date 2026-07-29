@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { PageHeader } from '@/components/shared/page-header';
 import { ShowsGrid } from '../../components/shows-grid';
 import { Loader, X } from 'lucide-react';
 import { getEpisodesForShows } from '@/lib/episode-service';
@@ -509,30 +508,7 @@ export default function ShowsClient({
   const hasActiveFilters = selectedGenres.length > 0 || selectedLocations.length > 0;
 
   return (
-    <div className='w-full overflow-x-hidden'>
-      <div className='relative w-full h-[25vh] sm:h-[35vh] overflow-hidden'>
-        {/* Hyperpop background */}
-        <div className='absolute inset-0 bg-hyperpop' />
-
-        {/* Linear white gradient */}
-        <div
-          className='absolute inset-0 bg-linear-to-b from-white via-white/0 to-white'
-          style={{ mixBlendMode: 'hue' }}
-        />
-
-        {/* Noise Overlay */}
-        <div
-          className='absolute inset-0'
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-            backgroundSize: '200px 200px',
-            mixBlendMode: 'screen',
-          }}
-        />
-        <div className='absolute bottom-0 left-0 w-full px-5  z-10'>
-          <PageHeader title='Shows' />
-        </div>
-      </div>
+    <>
 
       <div className='px-5 flex flex-col gap-1 w-full'>
         {/* Filter Controls */}
@@ -699,15 +675,18 @@ export default function ShowsClient({
       </div>
 
       <div className='pt-2 w-full px-5 flex-col pb-20'>
-        <main className=''>
-          {isInitialLoading ? (
-            <ShowsGridSkeleton count={20} />
-          ) : filteredShows.length > 0 ? (
+        <main
+          className={`transition-opacity duration-200 ${isInitialLoading ? 'opacity-60' : 'opacity-100'}`}
+          aria-busy={isInitialLoading}
+        >
+          {filteredShows.length > 0 ? (
             <ShowsGrid
               shows={filteredShows}
               contentType={activeType as 'episodes' | 'hosts-series' | 'takeovers'}
               canonicalGenres={canonicalGenres}
             />
+          ) : isInitialLoading ? (
+            <ShowsGridSkeleton count={20} />
           ) : (
             <div className='flex flex-col items-center justify-center py-16 text-center'>
               <div className='text-6xl mb-4'>🔍</div>
@@ -761,6 +740,6 @@ export default function ShowsClient({
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
