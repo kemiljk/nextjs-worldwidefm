@@ -18,6 +18,7 @@ const createShowSchema = z.object({
   featuredOnHomepage: z.boolean().default(false),
   status: z.string().default('draft'),
   radiocult_media_id: z.string().nullable().optional(),
+  raw_media_url: z.string().url().nullable().optional(),
   image: z.any().nullable().optional(),
   location: z.string().optional(),
   isLive: z.boolean().default(false),
@@ -284,6 +285,9 @@ export async function POST(request: NextRequest) {
     if (validatedData.radiocult_media_id) {
       rawMetadata.radiocult_media_id = validatedData.radiocult_media_id;
     }
+    if (validatedData.raw_media_url) {
+      rawMetadata.raw_media_url = validatedData.raw_media_url;
+    }
 
     // Handle image - store the filename for Cosmic file metafield
     let thumbnailName: string | undefined = undefined;
@@ -403,6 +407,9 @@ export async function POST(request: NextRequest) {
 
         if (validatedData.radiocult_media_id) {
           rawMinimalMetadata.radiocult_media_id = validatedData.radiocult_media_id;
+        }
+        if (validatedData.raw_media_url) {
+          rawMinimalMetadata.raw_media_url = validatedData.raw_media_url;
         }
 
         const minimalMetadata = cleanMetadata(rawMinimalMetadata);

@@ -1,141 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del, isVercelBlobUrl } from '@/lib/blob-client';
-import { inspectMp3Structure, writeMp3Id3v23Metadata } from '@/lib/mp3-utils';
-import { buildMediaMetadataTitle } from '@/lib/upload-filename-utils';
+import { uploadMediaToRadioCult } from '@/lib/radiocult-upload';
+import { UPLOAD_ROUTE_MAX_DURATION_SEC } from '@/lib/upload-config';
 
-export const maxDuration = 800;
-
-const RADIOCULT_FETCH_TIMEOUT_MS = 780 * 1000;
+export const maxDuration = UPLOAD_ROUTE_MAX_DURATION_SEC;
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🎵 Media upload API called');
-
     const formData = await request.formData();
-    const file = formData.get('media') as File | null;
+    const cleanupOnly = formData.get('cleanupOnly') === 'true';
     const mediaUrl = formData.get('mediaUrl') as string | null;
-    const requestedFileName = formData.get('fileName') as string | null;
-    const metadata = formData.get('metadata') as string;
-    const cleanup = formData.get('cleanup') !== 'false';
 
-    if (!file && !mediaUrl) {
-      console.error('❌ No file or mediaUrl provided in request');
-      return NextResponse.json({ error: 'No file or mediaUrl provided' }, { status: 400 });
-    }
-
-    let finalFile: File | Blob;
-    let finalFileName: string;
-    let finalFileType: string;
-
-    if (mediaUrl) {
-      console.log('🔗 Fetching media from URL:', mediaUrl);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), RADIOCULT_FETCH_TIMEOUT_MS);
+    if (cleanupOnly) {
+      if (!mediaUrl || !isVercelBlobUrl(mediaUrl)) {
+        return NextResponse.json({ error: 'No temporary blob URL provided for cleanup' }, { status: 400 });
+      }
 
       try {
-        const res = await fetch(mediaUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        if (!res.ok) {
-          throw new Error(`Failed to fetch media from URL: ${res.statusText}`);
-        }
-
-        const blob = await res.blob();
-        finalFile = blob;
-        finalFileType = blob.type || 'audio/mpeg';
-        if (requestedFileName?.trim()) {
-          finalFileName = requestedFileName.trim();
-        } else {
-          try {
-            const url = new URL(mediaUrl);
-            finalFileName = url.pathname.split('/').pop() || 'media-file';
-          } catch {
-            finalFileName = 'media-file';
-          }
-        }
-
-        console.log('✅ Media fetched from URL:', {
-          size: `${(blob.size / 1024 / 1024).toFixed(2)}MB`,
-          type: finalFileType,
-        });
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        console.error('❌ Error fetching media from URL:', fetchError);
+        await del(mediaUrl);
+        return NextResponse.json({ success: true, cleaned: true });
+      } catch (cleanupError) {
+        console.error('Failed to delete temporary blob:', cleanupError);
         return NextResponse.json(
           {
             success: false,
-            error: `Failed to fetch media: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`,
-            mediaUrl: mediaUrl || undefined,
+            error: cleanupError instanceof Error ? cleanupError.message : 'Cleanup failed',
           },
-          { status: 400 }
+          { status: 500 }
         );
       }
-    } else if (file) {
-      finalFile = file;
-      finalFileName = requestedFileName?.trim() || file.name;
-      finalFileType = file.type || 'audio/mpeg';
-      console.log('🎵 Media file received:', {
-        name: finalFileName,
-        size: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-        type: file.type,
-      });
-    } else {
+    }
+
+    const file = formData.get('media') as File | null;
+    const requestedFileName = formData.get('fileName') as string | null;
+    const metadataRaw = formData.get('metadata') as string | null;
+    const cleanup = formData.get('cleanup') !== 'false';
+
+    if (!file && !mediaUrl) {
       return NextResponse.json({ error: 'No file or mediaUrl provided' }, { status: 400 });
     }
 
-    // Vercel Blob and browsers often return application/octet-stream for audio files missing ID3 tags.
-    // RadioCult API rejects these. Ensure the correct MIME type based on the file extension.
-    const originalFileType = finalFileType;
-    const ext = finalFileName.split('.').pop()?.toLowerCase();
-    if (ext === 'mp3') finalFileType = 'audio/mpeg';
-    else if (ext === 'wav') finalFileType = 'audio/wav';
-    else if (ext === 'ogg') finalFileType = 'audio/ogg';
-    else if (ext === 'aac') finalFileType = 'audio/aac';
-    else if (ext === 'm4a' || ext === 'mp4') finalFileType = 'audio/mp4';
-    else if (ext === 'flac') finalFileType = 'audio/flac';
-    else if (
-      !finalFileType ||
-      finalFileType === 'application/octet-stream' ||
-      finalFileType === 'audio/mp3'
-    )
-      finalFileType = 'audio/mpeg';
-
-    // Log type normalization for debugging
-    if (originalFileType !== finalFileType) {
-      console.log('🔄 MIME type normalized:', {
-        from: originalFileType,
-        to: finalFileType,
-        extension: ext,
-      });
-    }
-
     let parsedMetadata: Record<string, string> = {};
-    if (metadata) {
+    if (metadataRaw) {
       try {
-        parsedMetadata = JSON.parse(metadata) as Record<string, string>;
-        console.log('📝 Metadata parsed:', parsedMetadata);
+        parsedMetadata = JSON.parse(metadataRaw) as Record<string, string>;
       } catch (error) {
-        console.error('❌ Error parsing metadata:', error);
+        console.error('Error parsing metadata:', error);
       }
     }
-
-    const cleanupTemporaryBlob = async () => {
-      if (cleanup && mediaUrl && isVercelBlobUrl(mediaUrl)) {
-        console.log('🧹 Cleaning up temporary Vercel Blob:', mediaUrl);
-        try {
-          await del(mediaUrl);
-          console.log('✅ Temporary Vercel Blob deleted');
-        } catch (cleanupError) {
-          console.error('⚠️ Failed to delete temporary Vercel Blob:', cleanupError);
-        }
-      }
-    };
 
     const stationId = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
     const secretKey = process.env.RADIOCULT_SECRET_KEY;
 
     if (!stationId || !secretKey) {
-      console.error('❌ RadioCult credentials not configured');
-      await cleanupTemporaryBlob();
+      if (cleanup && mediaUrl && isVercelBlobUrl(mediaUrl)) {
+        await del(mediaUrl).catch(() => undefined);
+      }
+
       return NextResponse.json(
         {
           success: false,
@@ -146,137 +67,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const arrayBuffer = await finalFile.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const result = await uploadMediaToRadioCult({
+      mediaUrl: mediaUrl || undefined,
+      file: file || undefined,
+      fileName: requestedFileName || undefined,
+      metadata: parsedMetadata,
+      stationId,
+      secretKey,
+    });
 
-    // For MP3 files, inspect the structure for diagnostics (read-only, non-blocking)
-    let mp3Structure: ReturnType<typeof inspectMp3Structure> | undefined;
-    if (ext === 'mp3' || finalFileName.toLowerCase().endsWith('.mp3')) {
-      try {
-        mp3Structure = inspectMp3Structure(buffer);
-        console.log('🔍 MP3 structure inspection:', {
-          ...mp3Structure,
-          fileName: finalFileName,
-          originalType: originalFileType,
-          normalizedType: finalFileType,
-        });
-
-        if (!mp3Structure.hasId3Header) {
-          console.warn('⚠️ MP3 lacks ID3 header - may cause upload issues');
-        }
-        if (!mp3Structure.hasMpegFrameSync) {
-          console.warn('⚠️ MP3 lacks MPEG frame sync marker - may be corrupted or non-standard');
-        }
-        if (mp3Structure.paddingPattern === 'FF-dominant') {
-          console.warn('⚠️ MP3 has FF-dominant padding - RadioCult may reject this');
-        }
-      } catch (inspectError) {
-        console.warn('⚠️ Could not inspect MP3 structure:', inspectError);
-      }
-    }
-
-    let bufferForUpload: Buffer<ArrayBufferLike> = buffer;
-    if (ext === 'mp3' || finalFileName.toLowerCase().endsWith('.mp3')) {
-      const title = parsedMetadata.title?.trim() || buildMediaMetadataTitle(finalFileName);
-      bufferForUpload = writeMp3Id3v23Metadata(buffer, {
-        title,
-        artist: parsedMetadata.artist,
-      });
-      console.log('🔧 Wrote ID3v2.3.0 metadata before RadioCult upload:', {
-        title,
-        artist: parsedMetadata.artist,
-      });
-    }
-
-    // Re-create Blob with the normalized MIME type so RadioCult receives the correct Content-Type
-    const uploadBytes = new Uint8Array(bufferForUpload.length);
-    uploadBytes.set(bufferForUpload);
-    const fileBlob = new Blob([uploadBytes], { type: finalFileType });
-    const rcForm = new FormData();
-    rcForm.append('stationMedia', fileBlob, finalFileName);
-    rcForm.append('metadata', JSON.stringify(parsedMetadata));
-
-    console.log('📡 Attempting RadioCult upload...');
-
-    const rcAbortController = new AbortController();
-    const rcTimeoutId = setTimeout(() => rcAbortController.abort(), RADIOCULT_FETCH_TIMEOUT_MS);
-
-    try {
-      const rcRes = await fetch(`https://api.radiocult.fm/api/station/${stationId}/media/track`, {
-        method: 'POST',
-        headers: { 'x-api-key': secretKey },
-        body: rcForm,
-        signal: rcAbortController.signal,
-      });
-      clearTimeout(rcTimeoutId);
-
-      if (!rcRes.ok) {
-        const rcErrorText = await rcRes.text();
-        console.warn('❌ RadioCult upload FAILED (status:', rcRes.status, '):', rcErrorText);
-        await cleanupTemporaryBlob();
-        return NextResponse.json(
-          {
-            success: false,
-            error: `RadioCult upload failed: ${rcErrorText}`,
-            radiocultError: rcErrorText,
-            mediaUrl: mediaUrl || undefined,
-            mp3Diagnostics: mp3Structure,
-          },
-          { status: 502 }
-        );
-      }
-
-      const rcJson = await rcRes.json();
-      const radiocultMediaId = rcJson.track?.id;
-
-      if (!radiocultMediaId) {
-        console.warn('❌ RadioCult response missing track id:', rcJson);
-        await cleanupTemporaryBlob();
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'RadioCult did not return a media ID',
-            mediaUrl: mediaUrl || undefined,
-          },
-          { status: 502 }
-        );
-      }
-
-      console.log('✅ RadioCult upload SUCCESS - Media ID:', radiocultMediaId);
-      await cleanupTemporaryBlob();
-
-      return NextResponse.json({
-        success: true,
-        radiocultMediaId,
-      });
-    } catch (rcError) {
-      clearTimeout(rcTimeoutId);
-      console.error('❌ RadioCult upload error:', rcError);
-      const errorMessage = rcError instanceof Error ? rcError.message : 'Unknown upload error';
-      await cleanupTemporaryBlob();
+    if (!result.success) {
       return NextResponse.json(
         {
           success: false,
-          error: errorMessage,
-          mediaUrl: mediaUrl || undefined,
+          error: result.error,
+          radiocultError: result.radiocultError,
+          mediaUrl: result.mediaUrl,
+          mp3Diagnostics: result.mp3Diagnostics,
         },
-        { status: 502 }
+        { status: result.status && result.status >= 400 && result.status < 500 ? result.status : 502 }
       );
     }
-  } catch (error) {
-    console.error('❌ Error uploading media:', error);
 
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Full error details:', {
-      message: errorMessage,
-      type: (error as Error)?.constructor?.name,
-      stack: error instanceof Error ? error.stack : undefined,
+    if (cleanup && mediaUrl && isVercelBlobUrl(mediaUrl)) {
+      try {
+        await del(mediaUrl);
+      } catch (cleanupError) {
+        console.error('Failed to delete temporary blob after successful upload:', cleanupError);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      radiocultMediaId: result.radiocultMediaId,
     });
-
+  } catch (error) {
+    console.error('Error uploading media:', error);
     return NextResponse.json(
       {
         error: 'Failed to upload media',
-        details: errorMessage,
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

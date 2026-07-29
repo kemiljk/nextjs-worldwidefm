@@ -19,8 +19,10 @@ import { Check, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { upload } from '@vercel/blob/client';
 import { buildMediaMetadataTitle, buildTemporaryMediaBlobPath } from '@/lib/upload-filename-utils';
+import { getMaxMediaUploadMb } from '@/lib/upload-config';
+import { runUploadMasterFlow, buildUploadResultSummary } from '@/lib/upload-master-flow';
 
-const MAX_MEDIA_MB = Number(process.env.NEXT_PUBLIC_MAX_MEDIA_UPLOAD_MB || 2048);
+const MAX_MEDIA_MB = getMaxMediaUploadMb();
 
 type SubmissionPhase =
   | 'idle'
@@ -155,9 +157,6 @@ export function UploadMasterForm() {
     setIsSubmitting(true);
     setPhase('uploadingBlob');
 
-    let radiocultMediaId: string | undefined;
-    let mixcloudUrl: string | undefined;
-
     const mixcloudHostUsernames = selectedCoHosts
       .map(host => host.metadata?.mixcloud_username?.trim().replace(/^@/, '') || '')
       .filter(Boolean);
@@ -165,127 +164,73 @@ export function UploadMasterForm() {
     const combinedHostIds = Array.from(new Set(selectedCoHostIds));
 
     try {
-      const blob = await upload(buildTemporaryMediaBlobPath(mediaFile.name), mediaFile, {
-        access: 'public',
-        handleUploadUrl: '/api/upload-media/token',
-      });
+      const e2eBlobUrl = process.env.NEXT_PUBLIC_E2E_FAKE_BLOB_URL;
+      const blobUrl =
+        e2eBlobUrl ||
+        (
+          await upload(buildTemporaryMediaBlobPath(mediaFile.name), mediaFile, {
+            access: 'public',
+            handleUploadUrl: '/api/upload-media/token',
+          })
+        ).url;
 
       setPhase('uploadingMixcloud');
-      const mixcloudRes = await fetch('/api/upload-mixcloud', {
-        method: 'POST',
-        body: (() => {
-          const fd = new FormData();
-          fd.append('mediaUrl', blob.url);
-          fd.append('fileName', mediaFile.name);
-          fd.append('cleanup', 'false');
-          fd.append('episodeId', selectedEpisode.id);
-          fd.append('title', `${selectedEpisode.title} // ${formatDateForMixcloud(dateStr)}`);
-          fd.append('tags', JSON.stringify(buildMixcloudTags(selectedEpisode)));
-          fd.append('description', buildMixcloudDescription(selectedEpisode, showPageUrl));
-          const img =
-            selectedEpisode.metadata?.external_image_url ||
-            selectedEpisode.metadata?.image?.imgix_url;
-          if (img) fd.append('imageUrl', img);
-          if (mixcloudHostUsernames.length > 0) {
-            fd.append('hosts', JSON.stringify(mixcloudHostUsernames));
-          }
-          fd.append('broadcastDate', dateStr);
-          fd.append('broadcastTime', broadcast_time || '');
-          fd.append('duration', duration || '');
-          return fd;
-        })(),
+      const flowResult = await runUploadMasterFlow({
+        blobUrl,
+        mediaFileName: mediaFile.name,
+        episodeId: selectedEpisode.id,
+        episodeSlug: selectedEpisode.slug,
+        mixcloudTitle: `${selectedEpisode.title} // ${formatDateForMixcloud(dateStr)}`,
+        mixcloudTags: buildMixcloudTags(selectedEpisode),
+        mixcloudDescription: buildMixcloudDescription(selectedEpisode, showPageUrl),
+        mixcloudImageUrl:
+          selectedEpisode.metadata?.external_image_url ||
+          selectedEpisode.metadata?.image?.imgix_url,
+        mixcloudHostUsernames,
+        broadcastDate: dateStr,
+        broadcastTime: broadcast_time || '',
+        duration: duration || '',
+        radiocultMetadata: {
+          title: buildMediaMetadataTitle(mediaFile.name),
+          artist:
+            selectedCoHosts[0]?.title ||
+            selectedEpisode.metadata?.regular_hosts?.[0]?.title ||
+            undefined,
+        },
+        regularHostIds: combinedHostIds,
+        clientTimeoutMs: process.env.NEXT_PUBLIC_E2E_UPLOAD_CLIENT_TIMEOUT_MS
+          ? Number(process.env.NEXT_PUBLIC_E2E_UPLOAD_CLIENT_TIMEOUT_MS)
+          : undefined,
       });
 
-      const mixcloudText = await mixcloudRes.text();
-      const mixcloudData = (() => {
-        try {
-          return JSON.parse(mixcloudText) as { url?: string; error?: string; details?: unknown };
-        } catch {
-          return { error: mixcloudText || 'Mixcloud upload failed' };
-        }
-      })();
-
-      if (!mixcloudRes.ok || !mixcloudData.url) {
-        const detailText = mixcloudData.details ? ` ${JSON.stringify(mixcloudData.details)}` : '';
-        throw new Error(`${mixcloudData.error || 'Mixcloud upload failed'}${detailText}`);
+      if (flowResult.radiocultMediaId) {
+        setPhase('uploadingRadioCult');
       }
 
-      mixcloudUrl = mixcloudData.url;
-      toast.success('Mixcloud upload complete');
-
-      let radioCultError: string | undefined;
-      setPhase('uploadingRadioCult');
-      try {
-        const mediaFormData = new FormData();
-        mediaFormData.append('mediaUrl', blob.url);
-        mediaFormData.append('fileName', mediaFile.name);
-        mediaFormData.append('cleanup', 'true');
-        mediaFormData.append(
-          'metadata',
-          JSON.stringify({
-            title: buildMediaMetadataTitle(mediaFile.name),
-            artist:
-              selectedCoHosts[0]?.title ||
-              selectedEpisode.metadata?.regular_hosts?.[0]?.title ||
-              undefined,
-          })
-        );
-
-        const uploadRes = await fetch('/api/upload-media', {
-          method: 'POST',
-          body: mediaFormData,
-        });
-        const uploadResult = await uploadRes.json();
-
-        if (!uploadRes.ok || !uploadResult.success) {
-          throw new Error(uploadResult.error || 'RadioCult upload failed');
-        }
-        radiocultMediaId = uploadResult.radiocultMediaId;
-        toast.success('RadioCult upload complete');
-      } catch (err) {
-        radioCultError = err instanceof Error ? err.message : 'RadioCult upload failed';
-        console.error('RadioCult upload failed; continuing with website archive:', err);
-        toast.warning(`RadioCult failed — still updating the website archive. ${radioCultError}`);
+      if (flowResult.archiveUpdated) {
+        setPhase('updatingEpisode');
       }
 
-      setPhase('updatingEpisode');
-      const updateRes = await fetch(`/api/episodes/${selectedEpisode.id}/archive`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(radiocultMediaId ? { radiocult_media_id: radiocultMediaId } : {}),
-          player: mixcloudUrl || undefined,
-          page_link: mixcloudUrl || undefined,
-          regular_hosts: combinedHostIds,
-          slug: selectedEpisode.slug,
-        }),
-      });
-
-      if (!updateRes.ok) {
-        const updateText = await updateRes.text();
-        const updateError = (() => {
-          try {
-            return JSON.parse(updateText) as { error?: string };
-          } catch {
-            return { error: updateText };
-          }
-        })();
-        throw new Error(
-          `Website archive update failed: ${updateError.error || 'Failed to update episode'}. Mixcloud URL: ${mixcloudUrl}`
-        );
-      }
-
-      setPhase('success');
-      if (radioCultError) {
-        toast.success('Website archive updated with Mixcloud player. Retry RadioCult separately.');
-      } else {
+      const summary = buildUploadResultSummary(flowResult);
+      if (flowResult.archiveUpdated && !flowResult.mixcloudError && !flowResult.radioCultError) {
+        setPhase('success');
         toast.success('Mastered audio uploaded and episode updated');
+        setSelectedEpisode(null);
+        setMediaFile(null);
+        setEpisodeInput('');
+        setSelectedCoHostIds([]);
+        setCoHostInput('');
+      } else if (flowResult.hasAnySuccess) {
+        setPhase('success');
+        toast.warning(summary);
+        setSelectedEpisode(null);
+        setMediaFile(null);
+        setEpisodeInput('');
+        setSelectedCoHostIds([]);
+        setCoHostInput('');
+      } else {
+        throw new Error(summary);
       }
-      setSelectedEpisode(null);
-      setMediaFile(null);
-      setEpisodeInput('');
-      setSelectedCoHostIds([]);
-      setCoHostInput('');
     } catch (err) {
       setPhase('error');
       console.error('Upload failed:', err);

@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "lib/upload-config.ts",
+    "lib/upload-fetch.ts",
+    "lib/radiocult-upload.ts",
+    "lib/mixcloud-upload.ts",
+    "lib/upload-master-flow.ts",
+    "lib/mp3-utils.ts",
+    "lib/upload-filename-utils.ts",
+    "lib/blob-client.ts",
+    "lib/date-utils.ts",
+    "app/api/upload-media/**/*.ts",
+    "app/api/upload-mixcloud/**/*.ts",
+    "app/api/shows/create/route.ts",
+    "app/api/episodes/[id]/archive/route.ts"
+  ]
+}

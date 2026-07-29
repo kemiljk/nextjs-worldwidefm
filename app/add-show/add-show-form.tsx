@@ -46,6 +46,8 @@ import {
   buildShowImageFilename,
   buildTemporaryMediaBlobPath,
 } from '@/lib/upload-filename-utils';
+import { UPLOAD_CLIENT_TIMEOUT_MS } from '@/lib/upload-config';
+import { fetchWithTimeout } from '@/lib/upload-fetch';
 import { AddNewHost, AddNewHostTrigger } from './add-new-host';
 
 // Form schema using zod
@@ -324,6 +326,7 @@ export function AddShowForm() {
 
     try {
       let radiocultMediaId: string | null | undefined = undefined;
+      let rawMediaUrl: string | undefined;
       let cosmicImage: any = undefined;
 
       console.log('🚀 Starting form submission:', {
@@ -403,6 +406,8 @@ export function AddShowForm() {
         setPhase('uploadingMedia');
         console.log('🎵 Starting client-side media upload to Vercel Blob...');
 
+        let uploadedBlobUrl: string | undefined;
+
         try {
           const mediaFileName = buildRawMediaFilename(
             values.startDate,
@@ -414,6 +419,7 @@ export function AddShowForm() {
             access: 'public',
             handleUploadUrl: '/api/upload-media/token',
           });
+          uploadedBlobUrl = blob.url;
 
           console.log('✅ Media uploaded to Vercel Blob:', blob.url);
 
@@ -430,17 +436,11 @@ export function AddShowForm() {
 
           console.log('📝 Calling API route to upload media to RadioCult...');
 
-          const UPLOAD_TIMEOUT_MS = 4.5 * 60 * 1000;
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
-
-          const uploadResponse = await fetch('/api/upload-media', {
+          const uploadResponse = await fetchWithTimeout('/api/upload-media', {
             method: 'POST',
             body: mediaFormData,
-            signal: controller.signal,
+            timeoutMs: UPLOAD_CLIENT_TIMEOUT_MS,
           });
-
-          clearTimeout(timeoutId);
 
           const uploadResult = await uploadResponse.json();
           console.log('🎵 Media upload result:', uploadResult);
@@ -460,9 +460,14 @@ export function AddShowForm() {
           setPhase('uploadedMedia');
         } catch (mediaError) {
           console.error('❌ Media upload/processing failed:', mediaError);
+          if (uploadedBlobUrl) {
+            rawMediaUrl = uploadedBlobUrl;
+          }
           toast.warning('Audio upload failed — continuing without attaching media', {
             description:
-              mediaError instanceof Error ? mediaError.message : 'Unknown error during upload',
+              mediaError instanceof Error
+                ? `${mediaError.message}. The raw audio was saved for staff retry.`
+                : 'Unknown error during upload. The raw audio was saved for staff retry.',
           });
           radiocultMediaId = undefined;
           setPhase('uploadedMedia');
@@ -488,6 +493,7 @@ export function AddShowForm() {
             tracklist: processedTracklist,
             status: 'draft',
             radiocult_media_id: radiocultMediaId,
+            raw_media_url: rawMediaUrl,
             image: cosmicImage,
           }),
         });

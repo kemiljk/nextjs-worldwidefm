@@ -7,13 +7,16 @@ export default defineConfig({
     timeout: 10_000,
   },
   webServer: {
-    command: 'npm run dev -- --hostname 127.0.0.1 --port 3000',
+    command: 'bun run dev -- --hostname 127.0.0.1 --port 3000',
     url: 'http://127.0.0.1:3000',
     reuseExistingServer: !process.env.CI,
     env: {
       NEXT_PUBLIC_RADIOCULT_STREAM_URL: 'https://example.com/stream',
       NEXT_PUBLIC_RADIOCULT_STATION_ID: 'test-station',
       NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY: 'test-key',
+      NEXT_PUBLIC_E2E_FAKE_BLOB_URL:
+        'https://example.public.blob.vercel-storage.com/media/master.mp3',
+      NEXT_PUBLIC_E2E_UPLOAD_CLIENT_TIMEOUT_MS: '3000',
     },
   },
   use: {
