@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del, isVercelBlobUrl } from '@/lib/blob-client';
 import { uploadMediaToMixcloud } from '@/lib/mixcloud-upload';
-import { UPLOAD_ROUTE_MAX_DURATION_SEC } from '@/lib/upload-config';
 
-export const maxDuration = UPLOAD_ROUTE_MAX_DURATION_SEC;
+// Must be a literal — Next.js rejects imported segment config. Keep in sync with lib/upload-config.ts.
+export const maxDuration = 800;
 
 export async function POST(request: NextRequest) {
   let mediaUrlForCleanup: string | undefined;
