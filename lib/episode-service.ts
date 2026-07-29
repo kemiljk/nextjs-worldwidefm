@@ -1,6 +1,7 @@
 import { cosmic } from './cosmic-config';
 import { EpisodeObject } from './cosmic-types';
 import { withRetry } from './cosmic-retry';
+import { applySearchToQuery, SEARCH_PAGE_SIZE } from './search-query';
 
 export interface EpisodeParams {
   limit?: number;
@@ -106,7 +107,7 @@ async function fetchRandomEpisodesFromCosmic(
  * Simplified episode service that works directly with Cosmic data
  */
 export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeResponse> {
-  const baseLimit = params.limit || 20;
+  const baseLimit = params.limit || SEARCH_PAGE_SIZE;
   const offset = params.offset || 0;
   const yesterdayStr = getYesterdayDateString();
 
@@ -223,10 +224,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
     }
 
     if (params.searchTerm) {
-      const term = String(params.searchTerm).trim();
-      if (term) {
-        query.title = { $regex: term, $options: 'i' };
-      }
+      applySearchToQuery(query, String(params.searchTerm));
     }
 
     if (params.broadcastDate) {
@@ -417,6 +415,7 @@ export async function getTakeovers(
     genre?: string[];
     location?: string[];
     host?: string[];
+    searchTerm?: string;
   } = {}
 ): Promise<{
   shows: EpisodeObject[];
@@ -424,7 +423,7 @@ export async function getTakeovers(
   hasNext: boolean;
 }> {
   try {
-    const { limit = 100, offset = 0, genre, location, host } = params;
+    const { limit = 100, offset = 0, genre, location, host, searchTerm } = params;
 
     const query: Record<string, unknown> = {
       type: 'takeovers',
@@ -442,6 +441,8 @@ export async function getTakeovers(
     if (host && host.length > 0) {
       query['metadata.regular_hosts'] = { $in: host };
     }
+
+    applySearchToQuery(query, searchTerm);
 
     const { objects: shows, total: totalCount } = await fetchTakeoversFromCosmic(
       query,

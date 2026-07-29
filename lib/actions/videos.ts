@@ -2,6 +2,7 @@
 
 import { VideoObject } from '../cosmic-config';
 import { cosmic } from '../cosmic-config';
+import { applySearchToQuery } from '../search-query';
 
 /**
  * Fetch for videos
@@ -40,9 +41,7 @@ export async function getVideos({
     if (tag) {
       query['metadata.categories'] = tag;
     }
-    if (searchTerm) {
-      query['title'] = searchTerm;
-    }
+    applySearchToQuery(query, searchTerm);
 
     const videos = await fetchVideosFromCosmic(query, limit, offset);
     const hasNext = videos.length === limit;

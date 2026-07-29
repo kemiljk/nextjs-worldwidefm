@@ -35,6 +35,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useInView } from 'react-intersection-observer';
 import { Combobox } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SEARCH_PAGE_SIZE } from '@/lib/search-query';
 
 interface SearchDialogProps {
   open: boolean;
@@ -102,9 +103,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     rootMargin: '100px',
   });
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
   const requestIdRef = useRef<number>(0);
-  const PAGE_SIZE = 20;
+  const resultsCacheRef = useRef<Map<string, { results: any[]; hasNext: boolean }>>(new Map());
+  const PAGE_SIZE = SEARCH_PAGE_SIZE;
 
   // Lazy load filter data only when dialog opens (optimized - no type checking)
   useEffect(() => {
@@ -136,11 +139,25 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     requestIdRef.current += 1;
     const currentRequestId = requestIdRef.current;
 
-    // Show loading and clear old results
-    setIsLoading(true);
-    setResults([]);
+    const cacheKey = JSON.stringify({
+      selectedType,
+      searchTerm: debouncedSearchTerm.trim(),
+      selectedGenres,
+      selectedLocations,
+      selectedHosts,
+    });
+    const cached = resultsCacheRef.current.get(cacheKey);
+
     setPage(1);
-    setHasNext(true);
+    if (cached) {
+      setResults(cached.results);
+      setHasNext(cached.hasNext);
+      setIsLoading(false);
+    } else {
+      setIsLoading(true);
+      setResults([]);
+      setHasNext(true);
+    }
 
     async function fetchResults() {
       // If search term is cleared (empty) and no filters, fetch default content immediately
@@ -247,6 +264,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
           apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
         }
 
+        resultsCacheRef.current.set(cacheKey, { results: allResults, hasNext: apiHasNext });
+
         // Only update results if this is still the latest request
         if (isMounted && currentRequestId === requestIdRef.current) {
           setResults(allResults);
@@ -255,10 +274,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       } catch (error) {
         // Only log and update if this is still the latest request
         if (isMounted && currentRequestId === requestIdRef.current) {
-          // Check if it's a timeout error
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          const isTimeout = errorMessage.includes('timeout') || errorMessage.includes('503');
-
           if (process.env.NODE_ENV === 'development') {
             console.warn('Error fetching search results:', error);
           }
@@ -280,7 +295,13 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     // Always fetch results - either default episodes or filtered/search results
     fetchResults();
 
-    const focusTimeoutId = setTimeout(() => searchInputRef.current?.focus(), 100);
+    const focusTimeoutId = setTimeout(() => {
+      const input =
+        window.matchMedia('(min-width: 640px)').matches
+          ? desktopSearchInputRef.current
+          : mobileSearchInputRef.current;
+      input?.focus();
+    }, 100);
 
     return () => {
       clearTimeout(focusTimeoutId);
@@ -457,9 +478,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className='max-w-[90vw] h-[80vh] p-0 gap-0 overflow-hidden'>
-        <div className='flex h-full overflow-hidden relative flex-col sm:flex-row'>
-          {/* --- Mobile: Search bar always at top, toggle below it --- */}
-          <div className='sm:hidden w-full z-40 bg-background border-b shrink-0'>
+        <div className='flex h-full overflow-hidden relative flex-col'>
+          {/* Mobile: Search bar always at top */}
+          <div className='sm:hidden w-full z-40 bg-background border-b border-almostblack dark:border-white shrink-0'>
             {/* Search Input and Edit filters button always at top */}
             <form
               onSubmit={e => {
@@ -471,7 +492,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               <div className='px-4 h-12 items-center flex flex-1'>
                 <Search className='h-6 w-6 text-muted-foreground' />
                 <Input
-                  ref={searchInputRef}
+                  ref={mobileSearchInputRef}
                   placeholder='Search'
                   className='border-none pl-4 font-mono text-m8 uppercase bg-background focus-visible:ring-0 focus-visible:ring-offset-0'
                   value={searchTerm}
@@ -517,8 +538,29 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             </form>
           </div>
 
-          {/* Main flex: Filters and Results (desktop: row, mobile: overlays below search bar) */}
-          <div className='flex flex-1 w-full h-full relative overflow-hidden'>
+          {/* Desktop: full-width search bar above filters and results */}
+          <div className='hidden sm:block border-b border-almostblack dark:border-white shrink-0 w-full bg-background'>
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+              }}
+              className='flex gap-2'
+            >
+              <div className='px-4 h-12 items-center flex flex-1 pr-12'>
+                <Search className='h-4 w-4 text-muted-foreground' />
+                <Input
+                  ref={desktopSearchInputRef}
+                  placeholder='Search'
+                  className='border-none pl-4 font-mono text-m8 uppercase focus-visible:ring-0'
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </form>
+          </div>
+
+          {/* Main flex: Filters and Results */}
+          <div className='flex flex-1 w-full min-h-0 relative overflow-hidden'>
             {/* Filters Section */}
             <div
               className={cn(
@@ -530,7 +572,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             >
               {/* On mobile, add top margin for search bar and toggle */}
               <div className={cn('flex flex-col h-full', 'sm:mt-0', 'mt-0')}>
-                <div className='px-4 py-3 sm:border-b'>
+                <div className='px-4 py-3'>
                   <div className='flex h-4 items-center justify-between'>
                     <h3 className='font-mono uppercase text-m8'>Filters</h3>
                     <div className='flex items-center gap-2'>
@@ -724,38 +766,16 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             {/* Main Content Section */}
             <div
               className={cn(
-                'flex-1 w-full justify-left flex-col min-w-0 overflow-hidden transition-all duration-200',
+                'flex flex-1 w-full justify-left flex-col min-w-0 min-h-0 overflow-hidden transition-all duration-200',
                 'sm:static absolute h-full left-0',
                 // On mobile: hide results if showFilters is true, always show on desktop
                 !showFilters ? 'translate-x-0 block' : 'translate-x-full hidden',
                 'sm:translate-x-0 sm:block'
               )}
             >
-              {/* Desktop search bar (mobile: already at top) */}
-              <div className='hidden sm:block border-b shrink-0 w-full z-10'>
-                <form
-                  onSubmit={e => {
-                    e.preventDefault();
-                    // Search is automatic via debounce, no need to reset state here
-                  }}
-                  className='flex gap-2'
-                >
-                  <div className='px-4 h-10 items-center flex flex-1'>
-                    <Search className='h-4 w-4 text-muted-foreground' />
-                    <Input
-                      ref={searchInputRef}
-                      placeholder='Search'
-                      className='border-none pl-4 font-mono text-m8 uppercase focus-visible:ring-0'
-                      value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                </form>
-              </div>
-
               {/* Results Section */}
               <ScrollArea
-                className='flex-1 w-full hide-scrollbar min-h-0 h-[calc(100%-2.5rem)]'
+                className='flex-1 w-full hide-scrollbar min-h-0 h-full'
                 ref={scrollAreaRef}
               >
                 <div className='p-8 space-y-6 min-h-0'>

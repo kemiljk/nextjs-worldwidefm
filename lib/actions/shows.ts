@@ -4,6 +4,7 @@ import { getRadioShowBySlug } from '../cosmic-service';
 import { getEventBySlug as getRadioCultEventBySlug, RadioCultEvent } from '../radiocult-service';
 import { stripUrlsFromText } from '../utils';
 import { EventType, EpisodeObject } from '../cosmic-types';
+import { applySearchToQuery } from '../search-query';
 
 type ShowData = EpisodeObject | Record<string, unknown>;
 
@@ -330,9 +331,7 @@ export async function getAllEvents({
       skip: offset,
     };
 
-    if (searchTerm && searchTerm.trim()) {
-      query.title = { $regex: searchTerm.trim(), $options: 'i' };
-    }
+    applySearchToQuery(query, searchTerm);
 
     const cosmicImport = await import('../cosmic-config');
     const response = await cosmicImport.cosmic.objects.find(query).depth(1);
@@ -352,6 +351,7 @@ export async function getTakeovers({
   genre,
   location,
   host,
+  searchTerm,
 }: {
   limit?: number;
   offset?: number;
@@ -359,6 +359,7 @@ export async function getTakeovers({
   location?: string[];
   host?: string[];
   letter?: string;
+  searchTerm?: string;
 } = {}): Promise<{ shows: unknown[]; hasNext: boolean }> {
   try {
     const { getTakeovers: getTakeoversFromService } = await import('../episode-service');
@@ -368,6 +369,7 @@ export async function getTakeovers({
       genre,
       location,
       host,
+      searchTerm,
     });
 
     return {
@@ -466,9 +468,8 @@ export async function getRegularHosts({
     }
     if (letter) {
       query.title = { $regex: `^${letter}`, $options: 'i' };
-    }
-    if (searchTerm && searchTerm.trim()) {
-      query.title = { $regex: searchTerm.trim(), $options: 'i' };
+    } else {
+      applySearchToQuery(query, searchTerm);
     }
 
     const response = await cosmicImport.cosmic.objects

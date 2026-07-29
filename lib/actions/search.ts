@@ -11,6 +11,7 @@ import {
 import { PostObject } from '../cosmic-config';
 import { getAllPosts } from './posts';
 import { getAllShows, getRegularHosts, getTakeovers } from './shows';
+import { applySearchToQuery } from '../search-query';
 
 export async function getAllSearchableContent(limit?: number): Promise<SearchResult[]> {
   try {
@@ -147,33 +148,44 @@ export async function searchContent(
     const { cosmic } = await import('../cosmic-config');
     const [episodesResponse, postsResponse, hostsResponse, takeoversResponse] = await Promise.all([
       import('../episode-service').then(m => m.getEpisodesForShows({ searchTerm: query, limit })),
-      cosmic.objects
-        .find({
+      (() => {
+        const postQuery: Record<string, unknown> = {
           type: 'posts',
-          ...(query && { q: query }),
-        })
-        .props('id,title,slug,metadata,created_at')
-        .limit(limit)
-        .status('published'),
+        };
+        if (query) {
+          applySearchToQuery(postQuery, query);
+        }
+        return cosmic.objects
+          .find(postQuery)
+          .props('id,title,slug,metadata,created_at')
+          .limit(limit)
+          .status('published');
+      })(),
       query
-        ? cosmic.objects
-            .find({
+        ? (() => {
+            const hostQuery: Record<string, unknown> = {
               type: 'regular-hosts',
-              title: { $regex: query.trim(), $options: 'i' },
-            })
-            .props('id,title,slug,metadata,created_at')
-            .limit(limit)
-            .status('published')
+            };
+            applySearchToQuery(hostQuery, query);
+            return cosmic.objects
+              .find(hostQuery)
+              .props('id,title,slug,metadata,created_at')
+              .limit(limit)
+              .status('published');
+          })()
         : Promise.resolve({ objects: [] }),
       query
-        ? cosmic.objects
-            .find({
+        ? (() => {
+            const takeoverQuery: Record<string, unknown> = {
               type: 'takeovers',
-              title: { $regex: query.trim(), $options: 'i' },
-            })
-            .props('id,title,slug,metadata,created_at')
-            .limit(limit)
-            .status('published')
+            };
+            applySearchToQuery(takeoverQuery, query);
+            return cosmic.objects
+              .find(takeoverQuery)
+              .props('id,title,slug,metadata,created_at')
+              .limit(limit)
+              .status('published');
+          })()
         : Promise.resolve({ objects: [] }),
     ]);
     const episodes = episodesResponse.shows || [];

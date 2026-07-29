@@ -3,6 +3,7 @@
 import { getPosts, getEditorialHomepage } from '../cosmic-service';
 import { PostObject } from '../cosmic-config';
 import { cosmic } from '../cosmic-config';
+import { applySearchToQuery } from '../search-query';
 
 /**
  * Fetch for posts with filters
@@ -50,14 +51,7 @@ export async function getPostsWithFilters({
       status: 'published',
     };
 
-    if (searchTerm && searchTerm.trim()) {
-      const searchRegex = { $regex: searchTerm.trim(), $options: 'i' };
-      query.$or = [
-        { title: searchRegex },
-        { 'metadata.excerpt': searchRegex },
-        { 'metadata.description': searchRegex },
-      ];
-    }
+    applySearchToQuery(query, searchTerm);
 
     if (categories && categories.length > 0) {
       query['metadata.categories.id'] = { $in: categories };
@@ -93,19 +87,25 @@ export async function getAllPosts({
   hasNext: boolean;
 }> {
   try {
-    const filters: Record<string, unknown> = {
-      limit,
-      skip: offset,
-      sort: '-metadata.date',
+    const query: Record<string, unknown> = {
+      type: 'posts',
       status: 'published',
     };
+
     if (tag) {
-      filters['metadata.categories'] = tag;
+      query['metadata.categories'] = tag;
     }
-    if (searchTerm) {
-      filters['title'] = searchTerm;
-    }
-    const response = await getPosts(filters);
+
+    applySearchToQuery(query, searchTerm);
+
+    const response = await cosmic.objects
+      .find(query)
+      .props('id,slug,title,metadata,type,created_at')
+      .limit(limit)
+      .skip(offset)
+      .sort('-metadata.date')
+      .depth(1);
+
     const posts = response.objects || [];
     const hasNext = posts.length === limit;
     return { posts, hasNext };
