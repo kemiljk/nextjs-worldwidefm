@@ -17,8 +17,9 @@ declare global {
       }
     ) => {
       on: (event: string, callback: (data?: unknown) => void) => void;
+      off: (event: string, callback?: (data?: unknown) => void) => void;
       disconnect: () => void;
-      readyState: number;
+      connected: boolean;
     };
   }
 }
@@ -69,6 +70,8 @@ export default function LivePlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const socketRef = useRef<ReturnType<NonNullable<typeof window.io>> | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mountedRef = useRef(true);
+  const playAttemptRef = useRef(0);
 
   // Environment variables
   const streamUrl = process.env.NEXT_PUBLIC_RADIOCULT_STREAM_URL;
@@ -223,14 +226,20 @@ export default function LivePlayer() {
 
   // WebSocket connection for real-time metadata
   const connectWebSocket = useCallback(() => {
-    if (!stationId || !apiKey) {
-      console.warn('RadioCult WebSocket: Missing station ID or API key');
+    if (!mountedRef.current || !stationId || !apiKey) {
+      if (!stationId || !apiKey) {
+        console.warn('RadioCult WebSocket: Missing station ID or API key');
+      }
       return;
     }
 
-    // Don't connect if already connected
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
+    if (socketRef.current?.connected) {
       return;
+    }
+
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
     }
 
     try {
@@ -287,8 +296,10 @@ export default function LivePlayer() {
         });
 
         socket.on('disconnect', () => {
-          // Attempt reconnection immediately - don't clear metadata yet
-          // Keep showing last known show until we reconnect and get new data
+          if (!mountedRef.current) {
+            return;
+          }
+          // Attempt reconnection - don't clear metadata yet
           reconnectTimeoutRef.current = setTimeout(connectWebSocket, 1000);
         });
 
@@ -305,23 +316,27 @@ export default function LivePlayer() {
 
   // Initialize WebSocket connection immediately on mount
   useEffect(() => {
+    mountedRef.current = true;
+
     if (!stationId || !apiKey) {
-      return;
+      return () => {
+        mountedRef.current = false;
+      };
     }
 
-    // Connect immediately - Socket.IO should be preloaded in layout
-    // If not available, load it quickly
+    let script: HTMLScriptElement | null = null;
+
     if (typeof window !== 'undefined') {
       if (window.io) {
-        // Socket.IO already loaded, connect immediately
         connectWebSocket();
       } else {
-        // Load Socket.IO with async to not block, but connect as soon as ready
-        const script = document.createElement('script');
+        script = document.createElement('script');
         script.src = 'https://cdn.socket.io/4.7.2/socket.io.min.js';
         script.async = true;
         script.onload = () => {
-          connectWebSocket();
+          if (mountedRef.current) {
+            connectWebSocket();
+          }
         };
         script.onerror = () => {
           console.error('[LivePlayer] Failed to load Socket.IO');
@@ -331,11 +346,17 @@ export default function LivePlayer() {
     }
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      mountedRef.current = false;
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      if (script?.parentNode) {
+        script.parentNode.removeChild(script);
       }
     };
   }, [connectWebSocket, stationId, apiKey]);
@@ -387,6 +408,7 @@ export default function LivePlayer() {
     }
 
     if (isLivePlaying) {
+      playAttemptRef.current += 1;
       plausible('Live Stream Paused', {
         props: {
           show: eventToPlay.showName || 'Unknown',
@@ -406,6 +428,8 @@ export default function LivePlayer() {
       }
 
       setStreamState(prev => ({ ...prev, loading: true, error: null }));
+
+      const playAttempt = ++playAttemptRef.current;
 
       try {
         // Call audio.play() FIRST to preserve the user gesture chain.
@@ -442,7 +466,16 @@ export default function LivePlayer() {
         try {
           audio.load();
           await new Promise(resolve => setTimeout(resolve, 1000));
+
+          if (playAttempt !== playAttemptRef.current) {
+            return;
+          }
+
           await audio.play();
+
+          if (playAttempt !== playAttemptRef.current) {
+            return;
+          }
 
           // Retry succeeded
           plausible('Live Stream Played', {

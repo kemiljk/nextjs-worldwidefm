@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
 
     if (includeDrafts) {
       query = query.status('any');
+    } else {
+      query = query.status('published');
     }
 
     const response = await query;

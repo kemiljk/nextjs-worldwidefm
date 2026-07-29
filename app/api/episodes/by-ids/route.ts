@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       })
       .props('id,slug,title,type,metadata,created_at,modified_at')
       .depth(1)
-      .status('any');
+      .status('published');
 
     return NextResponse.json({ episodes: response.objects || [] });
   } catch (error) {

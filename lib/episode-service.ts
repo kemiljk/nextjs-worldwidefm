@@ -62,6 +62,13 @@ async function fetchEpisodesFromCosmic(
   offset: number,
   sort: string = '-metadata.broadcast_date'
 ): Promise<{ objects: EpisodeObject[]; total: number }> {
+  if (typeof window === 'undefined') {
+    const { fetchEpisodesFromCosmic: fetchEpisodesCached } = await import(
+      './episode-service.server'
+    );
+    return fetchEpisodesCached(query, baseLimit, offset);
+  }
+
   const response = await cosmic.objects
     .find(query)
     .props(EPISODE_PROPS)
@@ -83,6 +90,13 @@ async function fetchRandomEpisodesFromCosmic(
   query: Record<string, unknown>,
   fetchLimit: number
 ): Promise<EpisodeObject[]> {
+  if (typeof window === 'undefined') {
+    const { fetchRandomEpisodesFromCosmic: fetchRandomCached } = await import(
+      './episode-service.server'
+    );
+    return fetchRandomCached(query, fetchLimit);
+  }
+
   const response = await cosmic.objects.find(query).props(EPISODE_PROPS).limit(fetchLimit).depth(1);
 
   return response.objects || [];
@@ -521,7 +535,8 @@ function is404Error(error: unknown): boolean {
  * Episode fetch by slug
  */
 async function fetchEpisodeBySlugFromCosmic(
-  slugToFetch: string
+  slugToFetch: string,
+  options: { includeDrafts?: boolean } = {}
 ): Promise<EpisodeObject | null> {
   const query: Record<string, unknown> = {
     type: 'episode',
@@ -530,12 +545,11 @@ async function fetchEpisodeBySlugFromCosmic(
 
   try {
     const response = await withRetry(
-      async () =>
-        cosmic.objects
-          .findOne(query)
-          .props(EPISODE_DETAIL_PROPS)
-          .depth(1)
-          .status('any'),
+      async () => {
+        let request = cosmic.objects.findOne(query).props(EPISODE_DETAIL_PROPS).depth(1);
+        request = options.includeDrafts ? request.status('any') : request.status('published');
+        return request;
+      },
       `episode:${slugToFetch}`
     );
     return response.object || null;
@@ -552,18 +566,32 @@ async function fetchEpisodeBySlugFromCosmic(
  * Handles URL-encoded slugs and normalizes them to match stored slugs
  */
 export async function getEpisodeBySlug(
-  slug: string
+  slug: string,
+  options: { includeDrafts?: boolean } = {}
 ): Promise<EpisodeObject | null> {
-  // First try the original slug as-is
-  const episode = await fetchEpisodeBySlugFromCosmic(slug);
+  if (typeof window === 'undefined') {
+    const { fetchEpisodeBySlugFromCosmic } = await import('./episode-service.server');
+    const episode = await fetchEpisodeBySlugFromCosmic(slug, Boolean(options.includeDrafts));
+    if (episode) {
+      return episode;
+    }
+
+    const normalizedSlug = normalizeSlug(slug);
+    if (normalizedSlug !== slug) {
+      return fetchEpisodeBySlugFromCosmic(normalizedSlug, Boolean(options.includeDrafts));
+    }
+
+    return null;
+  }
+
+  const episode = await fetchEpisodeBySlugFromCosmic(slug, options);
   if (episode) {
     return episode;
   }
 
-  // If not found, try the normalized version
   const normalizedSlug = normalizeSlug(slug);
   if (normalizedSlug !== slug) {
-    return fetchEpisodeBySlugFromCosmic(normalizedSlug);
+    return fetchEpisodeBySlugFromCosmic(normalizedSlug, options);
   }
 
   return null;

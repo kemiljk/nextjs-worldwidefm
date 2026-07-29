@@ -99,6 +99,8 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
   // New: Play and pause controls for archive
   const playShow = useCallback(
     (show: Show) => {
+      setIsLivePlaying(false);
+      setCurrentLiveEvent(null);
       setSelectedArchiveUrl(show.url);
       setSelectedShow(show);
       setIsArchivePlaying(true);

@@ -38,15 +38,25 @@ export default async function TermsAndConditionsPage() {
   }
 
   // Extract the last updated date from the content if it exists
-  const lastUpdatedMatch = termsAndConditions.metadata.text.match(
-    /Last Updated (\d{2}\.\d{2}\.\d{2})/
-  );
+  const text = termsAndConditions.metadata?.text;
+  if (!text) {
+    return (
+      <div className='max-w-4xl mx-auto py-8'>
+        <h1 className='text-4xl font-display font-bold mb-4'>Terms and Conditions</h1>
+        <p className='text-muted-foreground'>
+          Unable to load terms and conditions content at this time. Please try again later.
+        </p>
+      </div>
+    );
+  }
+
+  const lastUpdatedMatch = text.match(/Last Updated (\d{2}\.\d{2}\.\d{2})/);
   const lastUpdated = lastUpdatedMatch ? lastUpdatedMatch[1] : undefined;
 
   return (
     <LegalContent
       title={termsAndConditions.title}
-      content={termsAndConditions.metadata.text}
+      content={text}
       lastUpdated={lastUpdated}
     />
   );

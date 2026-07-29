@@ -59,17 +59,20 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
     notFound();
   }
 
-  // Fetch initial episodes for this host (single source of truth: episode's regular_hosts field)
   const PAGE_SIZE = 20;
-  const initialHostShows = await getRadioShows({
-    filters: { host: host.id },
-    limit: PAGE_SIZE,
-    sort: '-metadata.broadcast_date',
-  });
+  const [initialHostShows, canonicalGenres, user] = await Promise.all([
+    getRadioShows({
+      filters: { host: host.id },
+      limit: PAGE_SIZE,
+      sort: '-metadata.broadcast_date',
+    }),
+    getCanonicalGenres(),
+    getAuthUser(),
+  ]);
   const initialShows = (initialHostShows.objects || []).map(transformShowToViewData);
-  const initialHasNext = initialShows.length === PAGE_SIZE && initialShows.length < (initialHostShows.total || 0);
+  const initialHasNext =
+    initialShows.length === PAGE_SIZE && initialShows.length < (initialHostShows.total || 0);
 
-  const user = await getAuthUser();
   let isFavorited = false;
 
   if (user) {
@@ -92,7 +95,6 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
     host.metadata?.image?.imgix_url ||
     '/image-placeholder.png';
 
-  const canonicalGenres = await getCanonicalGenres();
   const getGenreLink = (genreId: string): string | undefined => {
     if (!canonicalGenres.length) return undefined;
     const canonicalGenre = canonicalGenres.find(genre => genre.id === genreId);

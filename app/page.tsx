@@ -23,7 +23,6 @@ import UpcomingEpisodes from '@/components/upcoming-episodes';
 import ColouredSectionGallery from '@/components/coloured-section-gallery';
 import MembershipPromoSection from '@/components/membership-promo-section';
 import { ShowCard } from '@/components/ui/show-card';
-import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
 import { ShowsGridSkeleton } from '@/components/shows-grid-skeleton';
 
 // Generate metadata for the homepage
@@ -131,12 +130,11 @@ export default async function Home() {
   // Content updates via revalidation or manual trigger at /api/revalidate
 
   // Parallel fetch all initial data in a single Promise.all
-  const [homepageData, videosData, postsData, user, canonicalGenres, recentEpisodesResponse] =
+  const [homepageData, videosData, postsData, canonicalGenres, recentEpisodesResponse] =
     await Promise.all([
       getCosmicHomepageData(),
       getVideos(),
       getAllPosts(),
-      getAuthUser(),
       getCanonicalGenres(),
       getEpisodesForShows({ limit: 20 }),
     ]);
@@ -149,28 +147,6 @@ export default async function Home() {
       key: transformed.slug,
     };
   });
-
-  // Fetch user data in parallel if user exists (non-blocking)
-  const userDataPromise = user
-    ? getUserData(user.id).catch(() => ({ data: null }))
-    : Promise.resolve({ data: null });
-
-  let favoriteGenreIds: string[] = [];
-  let favoriteHostIds: string[] = [];
-
-  const { data: userData } = await userDataPromise;
-  if (userData?.metadata?.favourite_genres) {
-    favoriteGenreIds = userData.metadata.favourite_genres
-      .map((g: any) => (typeof g === 'string' ? g : g.id))
-      .filter(Boolean);
-  }
-  if (userData?.metadata?.favourite_hosts) {
-    favoriteHostIds = userData.metadata.favourite_hosts
-      .map((h: any) => (typeof h === 'string' ? h : h.id))
-      .filter(Boolean);
-  }
-
-  const hasFavorites = favoriteGenreIds.length > 0 || favoriteHostIds.length > 0;
 
   // Get page order from Cosmic
   const pageOrder = homepageData?.metadata?.page_order || [];
@@ -343,32 +319,13 @@ export default async function Home() {
     shows: [],
   }));
 
-  // Execute all in parallel
-  const [genreResults, archiveResponse] = await Promise.all([
-    Promise.all(genrePromises),
-    archivePromise,
-  ]);
-
-  // Build randomShowsByGenre from parallel results
-  const randomShowsByGenre: Record<string, any> = {};
-  for (const { genreTitle, show } of genreResults) {
-    if (show) randomShowsByGenre[genreTitle] = show;
-  }
-
-  // Transform archive shows
-  const archiveShows = (archiveResponse.shows || []).map(show => {
-    const transformed = transformShowToViewData(show);
-    return { ...transformed, key: transformed.slug };
-  });
-
   const displayHeroItems = homepageData?.metadata?.display_hero_items ?? false;
   const heroLayout = homepageData?.metadata?.heroLayout;
   const heroItemsRaw = homepageData?.metadata?.heroItems || [];
 
-  // Fetch full episode data for hero items only if display_hero_items is enabled
-  const heroItems = displayHeroItems
-    ? (
-        await Promise.all(
+  const heroItemsPromise =
+    displayHeroItems && heroItemsRaw.length > 0
+      ? Promise.all(
           heroItemsRaw
             .filter(item => item.type === 'episode')
             .map(async item => {
@@ -397,9 +354,27 @@ export default async function Home() {
                   : '',
               };
             })
-        )
-      ).filter(Boolean)
-    : [];
+        ).then(items => items.filter(Boolean))
+      : Promise.resolve([]);
+
+  // Execute genre/archive and hero fetches in parallel
+  const [genreResults, archiveResponse, heroItems] = await Promise.all([
+    Promise.all(genrePromises),
+    archivePromise,
+    heroItemsPromise,
+  ]);
+
+  // Build randomShowsByGenre from parallel results
+  const randomShowsByGenre: Record<string, any> = {};
+  for (const { genreTitle, show } of genreResults) {
+    if (show) randomShowsByGenre[genreTitle] = show;
+  }
+
+  // Transform archive shows
+  const archiveShows = (archiveResponse.shows || []).map(show => {
+    const transformed = transformShowToViewData(show);
+    return { ...transformed, key: transformed.slug };
+  });
 
   // Check if sections are in page_order (new system) or should use old system
   const hasColouredSectionsInOrder = pageOrder.some(item => item.type === 'coloured-sections');

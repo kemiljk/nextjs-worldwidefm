@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { getAuthUser } from '@/cosmic/blocks/user-management/actions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +34,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
-    const { email, firstName, lastName, userId } = body;
+    const { email, firstName, lastName } = body;
+    const authUser = await getAuthUser();
+    const userId = authUser?.id ?? '';
 
     if (!email || !firstName || !lastName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });

@@ -120,15 +120,25 @@ export async function getAllPosts({
 /**
  * Fetch for single post by slug
  */
-async function fetchPostBySlugFromCosmic(slug: string): Promise<{ object: PostObject } | null> {
+async function fetchPostBySlugFromCosmic(
+  slug: string,
+  options: { includeDrafts?: boolean } = {}
+): Promise<{ object: PostObject } | null> {
   try {
-    const response = await cosmic.objects
+    let query = cosmic.objects
       .findOne({
         type: 'posts',
-        slug: slug,
+        slug,
       })
-      .depth(2)
-      .status('any');
+      .depth(2);
+
+    if (options.includeDrafts) {
+      query = query.status('any');
+    } else {
+      query = query.status('published');
+    }
+
+    const response = await query;
 
     return response || null;
   } catch (error) {
@@ -137,8 +147,11 @@ async function fetchPostBySlugFromCosmic(slug: string): Promise<{ object: PostOb
   }
 }
 
-export async function getPostBySlug(slug: string): Promise<{ object: PostObject } | null> {
-  return fetchPostBySlugFromCosmic(slug);
+export async function getPostBySlug(
+  slug: string,
+  options: { includeDrafts?: boolean } = {}
+): Promise<{ object: PostObject } | null> {
+  return fetchPostBySlugFromCosmic(slug, options);
 }
 
 export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {

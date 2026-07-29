@@ -88,58 +88,29 @@ const mapTakeoverToFilterItem = (takeover: TakeoverObject): FilterItem => ({
 
 // Fetch and normalize all content types from Cosmic
 export async function fetchAllCosmicContent(): Promise<SearchResult[]> {
-  const [showsRes, eventsRes, postsRes, videosRes, takeoversRes] = await Promise.all([
+  const contentProps = 'id,slug,title,metadata,created_at';
+  const [eventsRes, postsRes, videosRes, takeoversRes] = await Promise.all([
     cosmic.objects
-      .find({
-        type: 'episode',
-        props: 'id,slug,title,metadata,created_at',
-        status: 'published',
-        limit: 1000,
-      })
-      .sort('-metadata.broadcast_date'),
-    cosmic.objects.find({
-      type: 'events',
-      props: 'id,slug,title,metadata,created_at',
-      status: 'published',
-      limit: 1000,
-    }),
-    cosmic.objects.find({
-      type: 'posts',
-      props: 'id,slug,title,metadata,created_at',
-      status: 'published',
-      limit: 1000,
-    }),
-    cosmic.objects.find({
-      type: 'videos',
-      props: 'id,slug,title,metadata,created_at',
-      status: 'published',
-      limit: 1000,
-    }),
-    cosmic.objects.find({
-      type: 'takeovers',
-      props: 'id,slug,title,metadata,created_at',
-      status: 'published',
-      limit: 1000,
-    }),
+      .find({ type: 'events' })
+      .props(contentProps)
+      .status('published')
+      .limit(1000),
+    cosmic.objects
+      .find({ type: 'posts' })
+      .props(contentProps)
+      .status('published')
+      .limit(1000),
+    cosmic.objects
+      .find({ type: 'videos' })
+      .props(contentProps)
+      .status('published')
+      .limit(1000),
+    cosmic.objects
+      .find({ type: 'takeovers' })
+      .props(contentProps)
+      .status('published')
+      .limit(1000),
   ]);
-  const shows = (showsRes.objects || [])
-    .map((item: any) => {
-      const meta = item.metadata || {};
-      return {
-        id: item.id,
-        type: 'episodes' as SearchResultType,
-        slug: item.slug,
-        title: safeString(item.title) || '',
-        description: stripHtmlTags(meta.description || meta.subtitle || ''),
-        image: getImage(meta),
-        date: getDate(meta, item.created_at),
-        genres: getGenres(meta),
-        locations: getLocations(meta),
-        hosts: getHosts(meta),
-        takeovers: getTakeovers(meta),
-      };
-    })
-    .filter((item: any) => item.title);
   const events = (eventsRes.objects || [])
     .map((item: any) => {
       const meta = item.metadata || {};
@@ -212,7 +183,7 @@ export async function fetchAllCosmicContent(): Promise<SearchResult[]> {
       };
     })
     .filter((item: any) => item.title);
-  return [...shows, ...events, ...posts, ...videos, ...takeovers];
+  return [...events, ...posts, ...videos, ...takeovers];
 }
 
 // Fetch episodes from Cosmic and normalize for search
@@ -229,10 +200,10 @@ export async function fetchEpisodesForSearch(): Promise<SearchResult[]> {
       description: stripHtmlTags(episode.metadata.description || episode.title),
       image: episode.metadata.external_image_url || episode.metadata.image?.imgix_url,
       date: episode.metadata.broadcast_date || episode.created_at,
-      genres: episode.metadata.genres.map(mapGenreToFilterItem),
-      locations: episode.metadata.locations.map(mapLocationToFilterItem),
-      hosts: episode.metadata.regular_hosts.map(mapHostToFilterItem),
-      takeovers: episode.metadata.takeovers.map(mapTakeoverToFilterItem),
+      genres: (episode.metadata.genres ?? []).map(mapGenreToFilterItem),
+      locations: (episode.metadata.locations ?? []).map(mapLocationToFilterItem),
+      hosts: (episode.metadata.regular_hosts ?? []).map(mapHostToFilterItem),
+      takeovers: (episode.metadata.takeovers ?? []).map(mapTakeoverToFilterItem),
       metadata: episode, // Store full episode for detail pages
     }))
     .filter(item => item.title);
@@ -245,9 +216,9 @@ export async function fetchAllFilters(): Promise<{
   hosts: FilterItem[];
 }> {
   const [genresRes, locationsRes, hostsRes] = await Promise.all([
-    cosmic.objects.find({ type: 'genres', props: 'id,slug,title', limit: 1000 }),
-    cosmic.objects.find({ type: 'locations', props: 'id,slug,title', limit: 1000 }),
-    cosmic.objects.find({ type: 'regular-hosts', props: 'id,slug,title', limit: 1000 }),
+    cosmic.objects.find({ type: 'genres' }).props('id,slug,title').limit(1000),
+    cosmic.objects.find({ type: 'locations' }).props('id,slug,title').limit(1000),
+    cosmic.objects.find({ type: 'regular-hosts' }).props('id,slug,title').limit(1000),
   ]);
   const genres = (genresRes.objects || []).map((g: any) => ({
     title: g.title,
@@ -275,11 +246,8 @@ export async function getAllSearchResultsAndFilters() {
     fetchAllFilters(),
   ]);
 
-  // Filter out legacy episodes from cosmic content and replace with episodes
-  const otherContent = cosmicContent.filter(item => item.type !== 'episodes');
-
   return {
-    results: [...episodes, ...otherContent],
+    results: [...episodes, ...cosmicContent],
     filters,
   };
 }

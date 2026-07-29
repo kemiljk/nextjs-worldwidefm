@@ -280,9 +280,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     // Always fetch results - either default episodes or filtered/search results
     fetchResults();
 
-    setTimeout(() => searchInputRef.current?.focus(), 100);
+    const focusTimeoutId = setTimeout(() => searchInputRef.current?.focus(), 100);
 
     return () => {
+      clearTimeout(focusTimeoutId);
       isMounted = false;
       requestIdRef.current += 1;
     };
@@ -309,6 +310,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       const timeoutId = setTimeout(() => {
         setIsLoadingMore(true);
         const nextOffset = page * PAGE_SIZE;
+        const fetchRequestId = requestIdRef.current;
 
         async function fetchMore() {
           try {
@@ -331,6 +333,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 searchParams.host = selectedHosts;
               }
               res = await searchEpisodes(searchParams);
+              if (fetchRequestId !== requestIdRef.current) return;
               setResults(prev => [...prev, ...(res?.shows || [])]);
               setHasNext(res?.hasNext || false);
             } else if (selectedType === 'posts') {
@@ -338,6 +341,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 ? { searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset }
                 : { limit: PAGE_SIZE, offset: nextOffset };
               res = await getAllPosts(searchParams);
+              if (fetchRequestId !== requestIdRef.current) return;
               setResults(prev => [...prev, ...(res?.posts || [])]);
               setHasNext(res?.hasNext || false);
             } else if (selectedType === 'videos') {
@@ -345,6 +349,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 ? { searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset }
                 : { limit: PAGE_SIZE, offset: nextOffset };
               res = await getVideos(searchParams);
+              if (fetchRequestId !== requestIdRef.current) return;
               setResults(prev => [...prev, ...(res?.videos || [])]);
               setHasNext(res?.hasNext || false);
             } else if (selectedType === 'takeovers') {
@@ -365,6 +370,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 searchParams.host = selectedHosts;
               }
               res = await getTakeovers(searchParams);
+              if (fetchRequestId !== requestIdRef.current) return;
               setResults(prev => [...prev, ...(res?.shows || [])]);
               setHasNext(res?.hasNext || false);
             } else if (selectedType === 'hosts-series') {
@@ -382,16 +388,27 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 searchParams.location = selectedLocations;
               }
               res = await getRegularHosts(searchParams);
+              if (fetchRequestId !== requestIdRef.current) return;
               const hosts = res?.shows || [];
               setResults(prev => [...prev, ...hosts]);
               setHasNext(res?.hasNext || false);
             }
+
+            if (fetchRequestId !== requestIdRef.current) {
+              return;
+            }
+
             setPage(prev => prev + 1);
           } catch (error) {
+            if (fetchRequestId !== requestIdRef.current) {
+              return;
+            }
             console.warn('Error loading more results:', error);
             setHasNext(false);
           } finally {
-            setIsLoadingMore(false);
+            if (fetchRequestId === requestIdRef.current) {
+              setIsLoadingMore(false);
+            }
           }
         }
 
@@ -505,20 +522,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             {/* Filters Section */}
             <div
               className={cn(
-                'w-full md:w-[30%] lg:w-[25%] border-r bg-background relative inset-y-0 left-0 z-30 sm:relative sm:block transition-transform duration-200 ease-in-out',
+                'w-full md:w-[30%] lg:w-[25%] border-r bg-background relative inset-y-0 left-0 z-30 sm:relative transition-transform duration-200 ease-in-out',
                 'sm:static absolute h-full',
-                // On mobile: overlay left, show/hide with showFilters, always block on desktop
-                showFilters ? 'translate-x-0' : '-translate-x-full',
-                'sm:translate-x-0'
+                showFilters ? 'translate-x-0 block' : '-translate-x-full hidden',
+                'sm:translate-x-0 sm:block'
               )}
-              style={{
-                display:
-                  typeof window !== 'undefined' && window.innerWidth >= 640
-                    ? 'block'
-                    : showFilters
-                      ? 'block'
-                      : 'none',
-              }}
             >
               {/* On mobile, add top margin for search bar and toggle */}
               <div className={cn('flex flex-col h-full', 'sm:mt-0', 'mt-0')}>
@@ -719,17 +727,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 'flex-1 w-full justify-left flex-col min-w-0 overflow-hidden transition-all duration-200',
                 'sm:static absolute h-full left-0',
                 // On mobile: hide results if showFilters is true, always show on desktop
-                !showFilters ? 'translate-x-0' : 'translate-x-full',
-                'sm:translate-x-0'
+                !showFilters ? 'translate-x-0 block' : 'translate-x-full hidden',
+                'sm:translate-x-0 sm:block'
               )}
-              style={{
-                display:
-                  typeof window !== 'undefined' && window.innerWidth >= 640
-                    ? 'block'
-                    : !showFilters
-                      ? 'block'
-                      : 'none',
-              }}
             >
               {/* Desktop search bar (mobile: already at top) */}
               <div className='hidden sm:block border-b shrink-0 w-full z-10'>

@@ -147,30 +147,33 @@ export async function searchContent(
     const { cosmic } = await import('../cosmic-config');
     const [episodesResponse, postsResponse, hostsResponse, takeoversResponse] = await Promise.all([
       import('../episode-service').then(m => m.getEpisodesForShows({ searchTerm: query, limit })),
-      cosmic.objects.find({
-        type: 'posts',
-        ...(query && { q: query }),
-        props: 'id,title,slug,metadata,created_at',
-        limit,
-        status: 'published',
-      }),
+      cosmic.objects
+        .find({
+          type: 'posts',
+          ...(query && { q: query }),
+        })
+        .props('id,title,slug,metadata,created_at')
+        .limit(limit)
+        .status('published'),
       query
-        ? cosmic.objects.find({
-            type: 'regular-hosts',
-            ...(query && { title: { $regex: query.trim(), $options: 'i' } }),
-            props: 'id,title,slug,metadata,created_at',
-            limit,
-            status: 'published',
-          })
+        ? cosmic.objects
+            .find({
+              type: 'regular-hosts',
+              title: { $regex: query.trim(), $options: 'i' },
+            })
+            .props('id,title,slug,metadata,created_at')
+            .limit(limit)
+            .status('published')
         : Promise.resolve({ objects: [] }),
       query
-        ? cosmic.objects.find({
-            type: 'takeovers',
-            ...(query && { title: { $regex: query.trim(), $options: 'i' } }),
-            props: 'id,title,slug,metadata,created_at',
-            limit,
-            status: 'published',
-          })
+        ? cosmic.objects
+            .find({
+              type: 'takeovers',
+              title: { $regex: query.trim(), $options: 'i' },
+            })
+            .props('id,title,slug,metadata,created_at')
+            .limit(limit)
+            .status('published')
         : Promise.resolve({ objects: [] }),
     ]);
     const episodes = episodesResponse.shows || [];

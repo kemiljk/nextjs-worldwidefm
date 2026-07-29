@@ -20,7 +20,7 @@ export async function getCachedShowBySlug(slug: string) {
       async () =>
         cosmic.objects
           .findOne({
-            type: 'shows',
+            type: 'episode',
             slug,
             status: 'published',
           })

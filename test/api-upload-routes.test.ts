@@ -1,4 +1,6 @@
 /// <reference types="bun-types" />
+process.env.RESEND_API_KEY = 're_test';
+
 import { afterAll, beforeAll, describe, expect, it, mock } from 'bun:test';
 import { NextRequest } from 'next/server';
 

@@ -87,7 +87,7 @@ export function generateBaseMetadata(config: BaseMetadataConfig): Metadata {
 // Template for homepage metadata
 export function generateHomepageMetadata(cosmicData?: any): Metadata {
   const baseConfig: BaseMetadataConfig = {
-    title: cosmicData?.metadata?.seo.title || 'Worldwide FM - Independent Radio Station',
+    title: cosmicData?.metadata?.seo?.title || 'Worldwide FM - Independent Radio Station',
     description:
       'Listen to the best independent music, shows, and content from Worldwide FM. Discover new artists, exclusive mixes, and curated playlists.',
     keywords: [
@@ -115,7 +115,7 @@ export function generateHomepageMetadata(cosmicData?: any): Metadata {
 // Template for about page metadata
 export function generateAboutMetadata(cosmicData?: any): Metadata {
   const baseConfig: BaseMetadataConfig = {
-    title: cosmicData?.metadata?.seo.title || 'About - Worldwide FM',
+    title: cosmicData?.metadata?.seo?.title || 'About - Worldwide FM',
     description:
       cosmicData?.metadata?.mission_content ||
       "Learn about Worldwide FM's mission to promote independent music and provide a platform for emerging artists and established musicians alike.",
@@ -268,7 +268,7 @@ export function generateTermsMetadata(): Metadata {
 
 // Template for individual show/episode metadata
 export function generateShowMetadata(showData: any): Metadata {
-  const title = showData?.metadata?.seo.title || 'Show - Worldwide FM';
+  const title = showData?.metadata?.seo?.title || showData?.title || 'Show - Worldwide FM';
   const description =
     showData?.metadata?.description ||
     showData?.metadata?.subtitle ||
@@ -279,6 +279,7 @@ export function generateShowMetadata(showData: any): Metadata {
     description,
     keywords: ['radio show', 'music', 'worldwide fm', title.toLowerCase()],
     image: showData?.metadata?.external_image_url || showData?.metadata?.image?.imgix_url,
+    noIndex: showData?.noIndex || showData?.status === 'draft',
   });
 }
 
@@ -319,7 +320,8 @@ export function generatePostMetadata(postData: any): Metadata {
     description,
     keywords,
     image,
-    canonical: `https://worldwidefm.net/editorial/${postData?.slug}`,
+    canonical: postData?.slug ? `https://worldwidefm.net/editorial/${postData.slug}` : undefined,
+    noIndex: postData?.noIndex || postData?.status === 'draft',
     // Use OG-specific fields if provided, otherwise fall back to regular fields
     ogTitle: ogTitle ? `${ogTitle} - Worldwide FM` : undefined,
     ogDescription: ogDescription || undefined,

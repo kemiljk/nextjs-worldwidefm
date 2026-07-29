@@ -2,6 +2,7 @@ import { cosmic, type GenreObject, type HostObject } from './cosmic-config';
 import type { EpisodeObject } from './cosmic-types';
 import {
   getCurrentUkWeek,
+  parseDurationToMinutes,
   parseLondonDateTime,
   type UkWeekday,
   UK_WEEK_DAYS,
@@ -26,33 +27,21 @@ export interface WeeklyScheduleResult {
   error?: string;
 }
 
-const episodeCache = new Map<string, EpisodeObject>();
+const episodeCache = new Map<string, { episode: EpisodeObject; expiresAt: number }>();
+const EPISODE_CACHE_TTL_MS = 5 * 60 * 1000;
 
-export function parseDurationToMinutes(duration: string | null | undefined): number {
-  if (!duration) return 0;
-  const trimmed = String(duration).trim();
+function getEpisodeFromCache(id: string): EpisodeObject | null {
+  const cached = episodeCache.get(id);
+  if (!cached) return null;
+  if (Date.now() > cached.expiresAt) {
+    episodeCache.delete(id);
+    return null;
+  }
+  return cached.episode;
+}
 
-  // If there is no colon, treat numeric-only values as hours (e.g. "4" => 4 hours)
-  const isNumeric = !trimmed.includes(':') && !Number.isNaN(Number(trimmed));
-  if (isNumeric) {
-    const n = Number(trimmed);
-    // Interpret reasonable hour values (<= 24) as hours, otherwise treat as minutes
-    if (n <= 24) {
-      return Math.round(n * 60);
-    }
-    return Math.round(n);
-  }
-
-  const parts = trimmed.split(':').map(Number);
-  // Treat two-part values as hours:minutes (e.g. "04:00" => 4 hours)
-  if (parts.length === 2) {
-    return parts[0] * 60 + parts[1];
-  }
-  // Treat three-part values as H:MM:SS
-  if (parts.length === 3) {
-    return Math.round(parts[0] * 60 + parts[1] + parts[2] / 60);
-  }
-  return 0;
+function setEpisodeCache(id: string, episode: EpisodeObject): void {
+  episodeCache.set(id, { episode, expiresAt: Date.now() + EPISODE_CACHE_TTL_MS });
 }
 
 export function parseDurationToSeconds(duration: string | null | undefined): number {
@@ -70,8 +59,9 @@ function isEpisodeObject(value: unknown): value is EpisodeObject {
 }
 
 async function fetchEpisodeById(id: string): Promise<EpisodeObject | null> {
-  if (episodeCache.has(id)) {
-    return episodeCache.get(id) ?? null;
+  const cached = getEpisodeFromCache(id);
+  if (cached) {
+    return cached;
   }
   try {
     const response = await cosmic.objects
@@ -82,7 +72,7 @@ async function fetchEpisodeById(id: string): Promise<EpisodeObject | null> {
       .depth(2);
     const episode = (response?.object as EpisodeObject) || null;
     if (episode) {
-      episodeCache.set(id, episode);
+      setEpisodeCache(id, episode);
     }
     return episode;
   } catch (error) {
@@ -248,6 +238,12 @@ async function fetchManualOverrides(dayDates: Partial<ScheduleDayMap>): Promise<
     }
 
     const overrides: ScheduleShow[] = [];
+    const pendingEntries: Array<{
+      entry: Record<string, unknown>;
+      day: UkWeekday;
+      date: string;
+      isReplay: boolean;
+    }> = [];
 
     for (const { metadata, id } of schedules) {
       const isReplay = id === RERUN_SCHEDULE_ID;
@@ -255,47 +251,61 @@ async function fetchManualOverrides(dayDates: Partial<ScheduleDayMap>): Promise<
       for (const day of TARGET_DAYS) {
         const dayKey = day.toLowerCase();
         const scheduleBlock = metadata[dayKey];
-        const showEntries: any[] | undefined = Array.isArray(scheduleBlock)
+        const showEntries: unknown[] | undefined = Array.isArray(scheduleBlock)
           ? scheduleBlock
-          : (scheduleBlock as { show?: any[] })?.show;
+          : (scheduleBlock as { show?: unknown[] })?.show;
 
         if (!Array.isArray(showEntries) || !dayDates[day]) {
           continue;
         }
 
         for (const entry of showEntries) {
-          const typedEntry = entry as Record<string, unknown>;
-          const episode = await resolveEpisodeFromEntry(typedEntry);
-          const overrideTime =
-            typedEntry?.broadcast_time_override ||
-            typedEntry?.override_broadcast_time ||
-            (typedEntry?.metadata as Record<string, unknown>)?.override_broadcast_time ||
-            episode?.metadata?.broadcast_time ||
-            '00:00';
-
-          const overrideDuration =
-            typedEntry?.override_duration ||
-            (typedEntry?.metadata as Record<string, unknown>)?.override_duration ||
-            undefined;
-
-          const scheduleShow = buildScheduleShow({
-            episode,
-            fallbackTitle: (typedEntry?.title ||
-              typedEntry?.name ||
-              episode?.title ||
-              'Untitled') as string,
-            showDay: day,
+          pendingEntries.push({
+            entry: entry as Record<string, unknown>,
+            day,
             date: dayDates[day]!,
-            time: overrideTime as string,
-            isManual: true,
             isReplay,
-            overrideDuration: overrideDuration as string | undefined,
-            urlOverride: typedEntry?.url as string | undefined,
           });
-
-          overrides.push(scheduleShow);
         }
       }
+    }
+
+    const resolvedEpisodes = await Promise.all(
+      pendingEntries.map(({ entry }) => resolveEpisodeFromEntry(entry))
+    );
+
+    for (let index = 0; index < pendingEntries.length; index++) {
+      const { entry, day, date, isReplay } = pendingEntries[index]!;
+      const episode = resolvedEpisodes[index];
+      const typedEntry = entry;
+      const overrideTime =
+        typedEntry?.broadcast_time_override ||
+        typedEntry?.override_broadcast_time ||
+        (typedEntry?.metadata as Record<string, unknown>)?.override_broadcast_time ||
+        episode?.metadata?.broadcast_time ||
+        '00:00';
+
+      const overrideDuration =
+        typedEntry?.override_duration ||
+        (typedEntry?.metadata as Record<string, unknown>)?.override_duration ||
+        undefined;
+
+      overrides.push(
+        buildScheduleShow({
+          episode,
+          fallbackTitle: (typedEntry?.title ||
+            typedEntry?.name ||
+            episode?.title ||
+            'Untitled') as string,
+          showDay: day,
+          date,
+          time: overrideTime as string,
+          isManual: true,
+          isReplay,
+          overrideDuration: overrideDuration as string | undefined,
+          urlOverride: typedEntry?.url as string | undefined,
+        })
+      );
     }
 
     return overrides;

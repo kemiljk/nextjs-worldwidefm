@@ -25,13 +25,16 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     const response = await getPostBySlug(slug);
 
     if (response?.object) {
-      return generatePostMetadata(response.object);
+      return generatePostMetadata({
+        ...response.object,
+        noIndex: response.object.status === 'draft',
+      });
     }
 
-    return generatePostMetadata({ title: 'Article Not Found' });
+    return generatePostMetadata({ title: 'Article Not Found', noIndex: true });
   } catch (error) {
     console.error('Error generating editorial metadata:', error);
-    return generatePostMetadata({ title: 'Article Not Found' });
+    return generatePostMetadata({ title: 'Article Not Found', noIndex: true });
   }
 }
 

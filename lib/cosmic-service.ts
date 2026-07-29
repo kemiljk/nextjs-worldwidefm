@@ -509,7 +509,7 @@ export async function getPosts(
 /**
  * Get About page data
  */
-export async function getAboutPage(): Promise<AboutPage> {
+export async function getAboutPage(): Promise<AboutPage | null> {
   const { object } = await cosmic.objects
     .findOne({
       type: 'about',
@@ -518,7 +518,7 @@ export async function getAboutPage(): Promise<AboutPage> {
     .props('metadata')
     .depth(2);
 
-  return object;
+  return object ?? null;
 }
 
 /**
@@ -535,7 +535,7 @@ export async function getHosts(
   try {
     const response = await cosmic.objects
       .find({
-        type: 'hosts',
+        type: 'regular-hosts',
         status: params.status || 'published',
       })
       .props('id,slug,title,content,metadata')
@@ -560,7 +560,7 @@ export async function getHosts(
 export async function getHostBySlug(slug: string): Promise<CosmicResponse<unknown>> {
   try {
     const response = await cosmic.objects
-      .findOne({ type: 'hosts', slug })
+      .findOne({ type: 'regular-hosts', slug })
       .props('id,slug,title,content,metadata')
       .depth(1);
     return response;
@@ -577,7 +577,7 @@ export async function getHostByName(name: string): Promise<unknown | null> {
   try {
     const response = await cosmic.objects
       .find({
-        type: 'hosts',
+        type: 'regular-hosts',
         title: { $regex: name, $options: 'i' },
       })
       .props('id,slug,title,content,metadata')
@@ -594,7 +594,7 @@ export async function getHostByName(name: string): Promise<unknown | null> {
 /**
  * Get Membership page data
  */
-export async function getMembershipPage(): Promise<MembershipPage> {
+export async function getMembershipPage(): Promise<MembershipPage | null> {
   const { object } = await cosmic.objects
     .findOne({
       type: 'memberships',
@@ -603,5 +603,5 @@ export async function getMembershipPage(): Promise<MembershipPage> {
     .props('slug,title,content,metadata,type')
     .depth(1);
 
-  return object;
+  return object ?? null;
 }

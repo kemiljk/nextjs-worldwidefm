@@ -37,5 +37,17 @@ export default async function PrivacyPolicyPage() {
     );
   }
 
-  return <LegalContent title={privacyPolicy.title} content={privacyPolicy.metadata.text} />;
+  const text = privacyPolicy.metadata?.text;
+  if (!text) {
+    return (
+      <div className='max-w-4xl mx-auto py-8'>
+        <h1 className='text-4xl font-display font-bold mb-4'>Privacy Policy</h1>
+        <p className='text-muted-foreground'>
+          Unable to load privacy policy content at this time. Please try again later.
+        </p>
+      </div>
+    );
+  }
+
+  return <LegalContent title={privacyPolicy.title} content={text} />;
 }

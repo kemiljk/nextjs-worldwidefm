@@ -35,13 +35,13 @@ export default function PostsGrid({
   async function loadMorePosts() {
     try {
       setIsLoading(true);
-      const newPosts = await getAllPosts();
+      const newPosts = await getAllPosts({ offset: posts.length });
 
-      // Apply filters to new posts
       const filteredNewPosts = filterPosts(newPosts.posts);
 
       if (filteredNewPosts.length > 0) {
         setPosts(prev => [...prev, ...filteredNewPosts]);
+        setHasMore(newPosts.hasNext);
       } else {
         setHasMore(false);
       }

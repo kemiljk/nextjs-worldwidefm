@@ -123,7 +123,8 @@ export function parseBroadcastDateTime(
 
   // Handle old format (full ISO string)
   if (dateToUse.includes('T')) {
-    return new Date(dateToUse);
+    const date = new Date(dateToUse);
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   // Handle new format (YYYY-MM-DD + HH:MM) as Europe/London wall clock
@@ -198,22 +199,29 @@ export function extractTimePart(dateString: string | null | undefined): string |
 export function parseDurationToMinutes(duration: string | number | null | undefined): number {
   if (!duration) return 0;
 
-  const durationStr = duration.toString();
+  const trimmed = String(duration).trim();
 
-  // Handle colon format (H:MM or H:MM:SS)
-  if (durationStr.includes(':')) {
-    const parts = durationStr.split(':').map(Number);
-    // H:MM or H:MM:SS
-    if (parts.length >= 2) {
-      const hours = parts[0] || 0;
-      const minutes = parts[1] || 0;
-      return hours * 60 + minutes;
+  const isNumeric = !trimmed.includes(':') && !Number.isNaN(Number(trimmed));
+  if (isNumeric) {
+    const n = Number(trimmed);
+    if (n <= 24) {
+      return Math.round(n * 60);
+    }
+    return Math.round(n);
+  }
+
+  if (trimmed.includes(':')) {
+    const parts = trimmed.split(':').map(Number);
+    if (parts.length === 2) {
+      return parts[0] * 60 + parts[1];
+    }
+    if (parts.length === 3) {
+      return Math.round(parts[0] * 60 + parts[1] + parts[2] / 60);
     }
   }
 
-  // Handle plain number (legacy minutes)
-  const parsed = parseInt(durationStr, 10);
-  return isNaN(parsed) ? 0 : parsed;
+  const parsed = parseInt(trimmed, 10);
+  return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 /**

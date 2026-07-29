@@ -103,7 +103,10 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
     notFound();
   }
 
-  const relatedEpisodes = await getRelatedEpisodes(takeover, 12);
+  const [relatedEpisodes, canonicalGenres] = await Promise.all([
+    getRelatedEpisodes(takeover, 12),
+    getCanonicalGenres(),
+  ]);
 
   const displayName = takeover.title || 'Untitled Takeover';
   const displayImage =
@@ -119,7 +122,6 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
     metadata: takeover.metadata,
   };
 
-  const canonicalGenres = await getCanonicalGenres();
   const getGenreLink = (genreId: string): string | undefined => {
     if (!canonicalGenres.length) return undefined;
     const canonicalGenre = canonicalGenres.find(genre => genre.id === genreId);

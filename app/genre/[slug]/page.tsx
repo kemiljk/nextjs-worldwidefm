@@ -1,11 +1,37 @@
 import { notFound } from 'next/navigation';
+import { Metadata } from 'next';
 import { connection } from 'next/server';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import GenreDetail from './genre-detail-client';
 import { getEpisodesForShows, getRegularHosts, getTakeovers } from '@/lib/episode-service';
 import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
+import { generateBaseMetadata } from '@/lib/metadata-utils';
 
 type ActiveType = 'all' | 'hosts-series' | 'takeovers';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const canonicalGenres = await getCanonicalGenres();
+  const genre = canonicalGenres.find(g => g.slug === slug);
+
+  if (!genre) {
+    return generateBaseMetadata({
+      title: 'Genre Not Found - Worldwide FM',
+      description: 'The requested genre could not be found.',
+      noIndex: true,
+    });
+  }
+
+  return generateBaseMetadata({
+    title: `${genre.title} - Genre - Worldwide FM`,
+    description: `Explore shows, hosts, and takeovers in ${genre.title} on Worldwide FM.`,
+    keywords: ['genre', 'music', 'worldwide fm', genre.title.toLowerCase()],
+  });
+}
 
 export default async function GenreDetailPage({
   params,
@@ -20,13 +46,12 @@ export default async function GenreDetailPage({
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
 
-  const canonicalGenres = await getCanonicalGenres();
+  const [canonicalGenres, user] = await Promise.all([getCanonicalGenres(), getAuthUser()]);
   const genre = canonicalGenres.find(g => g.slug === slug);
   if (!genre) {
     notFound();
   }
 
-  const user = await getAuthUser();
   let isFavorited = false;
 
   if (user) {

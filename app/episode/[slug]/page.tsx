@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { Metadata } from 'next';
 import { connection } from 'next/server';
 import { getEpisodeBySlug, getRelatedEpisodes } from '@/lib/episode-service';
 import { addMinutes } from 'date-fns';
@@ -22,6 +23,25 @@ import { getEpisodeImageUrl } from '@/lib/cosmic-types';
 import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
 import { SaveShowButton } from '@/components/save-show-button';
 import { FavoriteButton } from '@/components/favorite-button';
+import { generateShowMetadata } from '@/lib/metadata-utils';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const episode = await getEpisodeBySlug(slug);
+
+  if (!episode) {
+    return generateShowMetadata(null);
+  }
+
+  return generateShowMetadata({
+    ...episode,
+    noIndex: episode.status === 'draft',
+  });
+}
 
 function HostLink({ host, className }: { host: unknown; className: string }) {
   const typedHost = host as { title?: string; name?: string; slug?: string };
@@ -101,7 +121,12 @@ export default async function EpisodePage({
   const hostIds = episode.metadata.regular_hosts?.map((host: any) => host.id).filter(Boolean) || [];
   const genreIds = episode.metadata.genres?.map((genre: any) => genre.id).filter(Boolean) || [];
   const takeoverIds = episode.metadata.takeovers?.map((takeover: any) => takeover.id).filter(Boolean) || [];
-  const { episodes: relatedEpisodesRaw, matchType } = await getRelatedEpisodes(episode.id, 3, hostIds, genreIds, takeoverIds);
+
+  const [{ episodes: relatedEpisodesRaw, matchType }, canonicalGenres, user] = await Promise.all([
+    getRelatedEpisodes(episode.id, 3, hostIds, genreIds, takeoverIds),
+    getCanonicalGenres(),
+    getAuthUser(),
+  ]);
   const relatedEpisodes = relatedEpisodesRaw.map(ep => transformShowToViewData(ep));
 
   // Pick a heading that honestly reflects how episodes were matched
@@ -112,9 +137,6 @@ export default async function EpisodePage({
   } else if (matchType === 'recent') {
     relatedHeading = 'Recent Episodes';
   }
-
-  // Get canonical genres for genre tag linking
-  const canonicalGenres = await getCanonicalGenres();
 
   // Helper function to get genre link
   const getGenreLink = (genreId: string): string | undefined => {
@@ -144,8 +166,6 @@ export default async function EpisodePage({
     .concat(yearSuffix)
     .toUpperCase();
 
-  // Check if show is saved/favorited
-  const user = await getAuthUser();
   let isSaved = false;
   let isHostFavorited = false;
 
