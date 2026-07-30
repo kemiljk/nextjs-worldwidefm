@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       url: result.url,
       key: result.key,
+      warning: result.warning,
     });
   } catch (error) {
     console.error('Mixcloud upload error:', error);

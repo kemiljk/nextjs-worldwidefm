@@ -3,7 +3,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import {
   buildMixcloudPublishDate,
   extractMixcloudUploadLocation,
+  isMixcloudSchedulingError,
   parseMixcloudError,
+  truncateMixcloudDescription,
   uploadMediaToMixcloud,
 } from '@/lib/mixcloud-upload';
 
@@ -16,6 +18,8 @@ let mixcloudServer: ReturnType<typeof Bun.serve>;
 let mediaServerUrl = '';
 let mixcloudBaseUrl = '';
 let receivedAudioLength = 0;
+let rejectPublishDate = false;
+let uploadAttempts = 0;
 
 beforeAll(() => {
   mediaServer = Bun.serve({
@@ -35,6 +39,7 @@ beforeAll(() => {
   mixcloudServer = Bun.serve({
     port: 0,
     async fetch(request) {
+      uploadAttempts += 1;
       const body = Buffer.from(await request.arrayBuffer());
       receivedAudioLength = body.length;
 
@@ -42,6 +47,18 @@ beforeAll(() => {
         return Response.json({
           data: [{ name: 'Test Show', key: '/worldwidefm/test-show/' }],
         });
+      }
+
+      if (rejectPublishDate && body.includes('publish_date')) {
+        return Response.json(
+          {
+            error: {
+              message: 'Invalid publish date',
+            },
+            details: { publish_date: ['must be in the future'] },
+          },
+          { status: 400 }
+        );
       }
 
       return Response.json({
@@ -102,11 +119,29 @@ describe('mixcloud upload helpers', () => {
 
     expect(publishDate).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
   });
+
+  it('truncates descriptions to the Mixcloud 1,000 character limit', () => {
+    const longDescription = 'a'.repeat(1500);
+    const truncated = truncateMixcloudDescription(longDescription);
+
+    expect(truncated.length).toBeLessThanOrEqual(1000);
+    expect(truncated.endsWith('...')).toBe(true);
+  });
+
+  it('detects Mixcloud scheduling validation errors', () => {
+    expect(
+      isMixcloudSchedulingError('Mixcloud upload failed: Invalid publish date', {
+        publish_date: ['must be in the future'],
+      })
+    ).toBe(true);
+  });
 });
 
 describe('uploadMediaToMixcloud', () => {
   it('streams fetched media to Mixcloud and resolves a URL', async () => {
     receivedAudioLength = 0;
+    rejectPublishDate = false;
+    uploadAttempts = 0;
 
     const result = await uploadMediaToMixcloud({
       mediaUrl: mediaServerUrl,
@@ -127,6 +162,36 @@ describe('uploadMediaToMixcloud', () => {
     }
 
     expect(receivedAudioLength).toBeGreaterThan(TAGLESS_MP3.length);
+  });
+
+  it('retries without publish_date when Mixcloud rejects scheduling', async () => {
+    rejectPublishDate = true;
+    uploadAttempts = 0;
+
+    const futureDate = new Date();
+    futureDate.setUTCDate(futureDate.getUTCDate() + 2);
+
+    const result = await uploadMediaToMixcloud({
+      mediaUrl: mediaServerUrl,
+      fileName: 'master.mp3',
+      title: 'Scheduled Show',
+      description: 'Show description',
+      accessToken: 'token',
+      apiBaseUrl: mixcloudBaseUrl,
+      broadcastDate: futureDate.toISOString().slice(0, 10),
+      broadcastTime: '18:00',
+      duration: '2:00',
+      blobFetchTimeoutMs: 5_000,
+      externalUploadTimeoutMs: 5_000,
+    });
+
+    rejectPublishDate = false;
+
+    expect(uploadAttempts).toBe(2);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.warning).toContain('drafts');
+    }
   });
 
   it('returns structured failure for Mixcloud API errors', async () => {

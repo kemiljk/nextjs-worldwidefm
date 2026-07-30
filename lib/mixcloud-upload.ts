@@ -1,7 +1,5 @@
 import axios from 'axios';
 import FormData from 'form-data';
-import { Readable } from 'node:stream';
-import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import { parseBroadcastDateTime, parseDurationToMinutes } from '@/lib/date-utils';
 import { fetchWithRetry } from '@/lib/upload-fetch';
 import {
@@ -33,6 +31,7 @@ export type MixcloudUploadSuccess = {
   success: true;
   url: string;
   key?: string;
+  warning?: string;
 };
 
 export type MixcloudUploadFailure = {
@@ -73,6 +72,65 @@ type MixcloudCloudcast = {
   url?: string;
 };
 
+export const MIXCLOUD_MAX_DESCRIPTION_LENGTH = 1000;
+
+type PreparedMixcloudAudio = {
+  buffer: Buffer;
+  fileName: string;
+  contentType: string;
+};
+
+export function truncateMixcloudDescription(
+  description: string,
+  maxLength = MIXCLOUD_MAX_DESCRIPTION_LENGTH
+): string {
+  const trimmed = description.trim();
+  if (trimmed.length <= maxLength) {
+    return trimmed;
+  }
+
+  if (maxLength <= 3) {
+    return trimmed.slice(0, maxLength);
+  }
+
+  return `${trimmed.slice(0, maxLength - 3).trimEnd()}...`;
+}
+
+export function isMixcloudSchedulingError(message: string, details?: unknown): boolean {
+  const normalizedMessage = message.toLowerCase();
+  if (normalizedMessage.includes('publish_date') || normalizedMessage.includes('publish date')) {
+    return true;
+  }
+
+  if (!details || typeof details !== 'object') {
+    return false;
+  }
+
+  return Object.keys(details as Record<string, unknown>).some(key =>
+    key.toLowerCase().includes('publish_date')
+  );
+}
+
+export function isMixcloudDescriptionLengthError(message: string, details?: unknown): boolean {
+  const normalizedMessage = message.toLowerCase();
+  if (normalizedMessage.includes('description') && normalizedMessage.includes('1000')) {
+    return true;
+  }
+
+  if (!details || typeof details !== 'object') {
+    return false;
+  }
+
+  const descriptionDetails = (details as Record<string, unknown>).description;
+  if (Array.isArray(descriptionDetails)) {
+    return descriptionDetails.some(entry => String(entry).toLowerCase().includes('1000'));
+  }
+
+  return String(descriptionDetails || '')
+    .toLowerCase()
+    .includes('1000');
+}
+
 export async function uploadMediaToMixcloud(
   input: MixcloudUploadInput
 ): Promise<MixcloudUploadResult> {
@@ -98,11 +156,103 @@ export async function uploadMediaToMixcloud(
     return { success: false, error: 'Missing audio file or title' };
   }
 
-  let audioStreamOrBuffer: Readable | Buffer;
-  let audioContentType: string;
-  let fileName: string;
-  let audioSize: number | undefined;
+  const preparedAudio = await prepareMixcloudAudio({
+    audioFile,
+    mediaUrl,
+    requestedFileName,
+    blobFetchTimeoutMs,
+  });
+  if ('success' in preparedAudio && preparedAudio.success === false) {
+    return preparedAudio;
+  }
 
+  const audio = preparedAudio as PreparedMixcloudAudio;
+  const publishDate = buildMixcloudPublishDate(broadcastDate, broadcastTime, duration);
+  const mixcloudDescription = truncateMixcloudDescription(description?.trim() || '');
+
+  let result = await submitMixcloudUpload({
+    preparedAudio: audio,
+    title,
+    description: mixcloudDescription,
+    imageUrl,
+    tagsJson,
+    hostsJson,
+    publishDate,
+    accessToken,
+    apiBaseUrl,
+    externalUploadTimeoutMs,
+  });
+
+  if (
+    !result.success &&
+    publishDate &&
+    isMixcloudSchedulingError(result.error, result.details)
+  ) {
+    const unscheduledResult = await submitMixcloudUpload({
+      preparedAudio: audio,
+      title,
+      description: mixcloudDescription,
+      imageUrl,
+      tagsJson,
+      hostsJson,
+      publishDate: null,
+      accessToken,
+      apiBaseUrl,
+      externalUploadTimeoutMs,
+    });
+
+    if (unscheduledResult.success) {
+      return {
+        ...unscheduledResult,
+        warning:
+          'Mixcloud rejected the scheduled publish time, so the upload was saved to drafts instead.',
+      };
+    }
+
+    return unscheduledResult;
+  }
+
+  if (
+    !result.success &&
+    mixcloudDescription &&
+    isMixcloudDescriptionLengthError(result.error, result.details)
+  ) {
+    const shortenedDescription = truncateMixcloudDescription(mixcloudDescription, 900);
+    result = await submitMixcloudUpload({
+      preparedAudio: audio,
+      title,
+      description: shortenedDescription,
+      imageUrl,
+      tagsJson,
+      hostsJson,
+      publishDate,
+      accessToken,
+      apiBaseUrl,
+      externalUploadTimeoutMs,
+    });
+
+    if (result.success) {
+      return {
+        ...result,
+        warning: 'Mixcloud description was shortened to fit the 1,000 character limit.',
+      };
+    }
+  }
+
+  return result;
+}
+
+async function prepareMixcloudAudio({
+  audioFile,
+  mediaUrl,
+  requestedFileName,
+  blobFetchTimeoutMs,
+}: {
+  audioFile?: File | null;
+  mediaUrl?: string | null;
+  requestedFileName?: string | null;
+  blobFetchTimeoutMs: number;
+}): Promise<PreparedMixcloudAudio | MixcloudUploadFailure> {
   if (mediaUrl) {
     try {
       const mediaRes = await fetchWithRetry(mediaUrl, { timeoutMs: blobFetchTimeoutMs });
@@ -113,48 +263,72 @@ export async function uploadMediaToMixcloud(
         };
       }
 
-      fileName = requestedFileName?.trim() || mediaUrl.split('/').pop() || 'audio.mp3';
-      audioContentType = normalizeAudioMimeType(
+      const fileName = requestedFileName?.trim() || mediaUrl.split('/').pop() || 'audio.mp3';
+      const contentType = normalizeAudioMimeType(
         fileName,
         mediaRes.headers.get('content-type') || 'audio/mpeg'
       );
-      audioSize = Number(mediaRes.headers.get('content-length')) || undefined;
 
-      if (!mediaRes.body) {
-        return {
-          success: false,
-          error: 'Fetched media response did not include a readable body',
-        };
-      }
-
-      audioStreamOrBuffer = Readable.fromWeb(
-        mediaRes.body as unknown as NodeReadableStream<Uint8Array>
-      );
+      return {
+        buffer: Buffer.from(await mediaRes.arrayBuffer()),
+        fileName,
+        contentType,
+      };
     } catch (fetchError) {
       return {
         success: false,
         error: `Failed to fetch media: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`,
       };
     }
-  } else if (audioFile) {
-    fileName = requestedFileName?.trim() || audioFile.name || 'audio.mp3';
-    audioContentType = normalizeAudioMimeType(fileName, audioFile.type || 'audio/mpeg');
-    audioSize = audioFile.size;
-    audioStreamOrBuffer = Buffer.from(await audioFile.arrayBuffer());
-  } else {
-    return { success: false, error: 'Missing audio file' };
   }
 
+  if (audioFile) {
+    const fileName = requestedFileName?.trim() || audioFile.name || 'audio.mp3';
+    return {
+      buffer: Buffer.from(await audioFile.arrayBuffer()),
+      fileName,
+      contentType: normalizeAudioMimeType(fileName, audioFile.type || 'audio/mpeg'),
+    };
+  }
+
+  return { success: false, error: 'Missing audio file' };
+}
+
+async function submitMixcloudUpload({
+  preparedAudio,
+  title,
+  description,
+  imageUrl,
+  tagsJson,
+  hostsJson,
+  publishDate,
+  accessToken,
+  apiBaseUrl,
+  externalUploadTimeoutMs,
+}: {
+  preparedAudio: PreparedMixcloudAudio;
+  title: string;
+  description: string;
+  imageUrl?: string | null;
+  tagsJson?: string | null;
+  hostsJson?: string | null;
+  publishDate?: string | null;
+  accessToken: string;
+  apiBaseUrl: string;
+  externalUploadTimeoutMs: number;
+}): Promise<MixcloudUploadResult> {
+  const { buffer, fileName, contentType } = preparedAudio;
+
   const mcForm = new FormData();
-  mcForm.append('mp3', audioStreamOrBuffer, {
+  mcForm.append('mp3', buffer, {
     filename: fileName,
-    contentType: audioContentType,
-    knownLength: audioSize,
+    contentType,
+    knownLength: buffer.length,
   });
   mcForm.append('name', title);
 
-  if (description?.trim()) {
-    mcForm.append('description', description.trim());
+  if (description) {
+    mcForm.append('description', description);
   }
 
   const tags = parseTags(tagsJson);
@@ -168,7 +342,6 @@ export async function uploadMediaToMixcloud(
     mcForm.append(`hosts-${index}-username`, username);
   });
 
-  const publishDate = buildMixcloudPublishDate(broadcastDate, broadcastTime, duration);
   if (publishDate) {
     mcForm.append('publish_date', publishDate);
   }

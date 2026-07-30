@@ -28,6 +28,7 @@ export type UploadMasterFlowInput = {
 export type UploadMasterFlowResult = {
   mixcloudUrl?: string;
   mixcloudError?: string;
+  mixcloudWarning?: string;
   radiocultMediaId?: string;
   radioCultError?: string;
   archiveUpdated: boolean;
@@ -40,6 +41,7 @@ export type UploadMasterFlowResult = {
 type JsonResponse = {
   success?: boolean;
   url?: string;
+  warning?: string;
   radiocultMediaId?: string;
   error?: string;
   details?: unknown;
@@ -53,6 +55,7 @@ export async function runUploadMasterFlow(
 
   let mixcloudUrl: string | undefined;
   let mixcloudError: string | undefined;
+  let mixcloudWarning: string | undefined;
   let radiocultMediaId: string | undefined;
   let radioCultError: string | undefined;
   let archiveUpdated = false;
@@ -72,6 +75,7 @@ export async function runUploadMasterFlow(
       mixcloudError = `${mixcloudData.error || 'Mixcloud upload failed'}${detailText}`;
     } else {
       mixcloudUrl = mixcloudData.url;
+      mixcloudWarning = mixcloudData.warning;
     }
   } catch (error) {
     mixcloudError = error instanceof Error ? error.message : 'Mixcloud upload failed';
@@ -139,6 +143,7 @@ export async function runUploadMasterFlow(
   return {
     mixcloudUrl,
     mixcloudError,
+    mixcloudWarning,
     radiocultMediaId,
     radioCultError,
     archiveUpdated,
@@ -206,7 +211,7 @@ export function buildUploadResultSummary(result: UploadMasterFlowResult): string
   const parts: string[] = [];
 
   if (result.mixcloudUrl) {
-    parts.push('Mixcloud: uploaded');
+    parts.push(result.mixcloudWarning ? `Mixcloud: uploaded (${result.mixcloudWarning})` : 'Mixcloud: uploaded');
   } else if (result.mixcloudError) {
     parts.push(`Mixcloud: failed (${result.mixcloudError})`);
   }
