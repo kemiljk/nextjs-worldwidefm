@@ -2,7 +2,7 @@
 
 import crypto from 'crypto';
 import { cookies, headers } from 'next/headers';
-import { unstable_noStore as noStore, revalidateTag, unstable_cache as cache } from 'next/cache';
+import { unstable_noStore as noStore, revalidateTag } from 'next/cache';
 import { cosmic } from '@/lib/cosmic-config';
 import bcrypt from 'bcryptjs';
 import { Resend } from 'resend';
@@ -805,7 +805,6 @@ export async function getDashboardOptions() {
 
 export async function getDashboardData(userId: string) {
   try {
-
     // Fetch user data first
     const { data: userData, error: userError } = await getUserData(userId);
     if (userError || !userData) {

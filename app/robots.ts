@@ -4,13 +4,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      disallow: [
-        '/staff/',
-        '/add-show',
-        '/upload-master',
-        '/update-tracklist',
-        '/dashboard',
-      ],
+      disallow: ['/staff/', '/add-show', '/upload-master', '/update-tracklist', '/dashboard'],
     },
   };
 }

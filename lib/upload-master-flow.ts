@@ -195,10 +195,7 @@ function buildRadioCultFormData(input: UploadMasterFlowInput): FormData {
   mediaFormData.append('mediaUrl', input.blobUrl);
   mediaFormData.append('fileName', input.mediaFileName);
   mediaFormData.append('cleanup', 'false');
-  mediaFormData.append(
-    'metadata',
-    JSON.stringify(input.radiocultMetadata)
-  );
+  mediaFormData.append('metadata', JSON.stringify(input.radiocultMetadata));
   return mediaFormData;
 }
 
@@ -222,7 +219,11 @@ export function buildUploadResultSummary(result: UploadMasterFlowResult): string
   const parts: string[] = [];
 
   if (result.mixcloudUrl) {
-    parts.push(result.mixcloudWarning ? `Mixcloud: uploaded (${result.mixcloudWarning})` : 'Mixcloud: uploaded');
+    parts.push(
+      result.mixcloudWarning
+        ? `Mixcloud: uploaded (${result.mixcloudWarning})`
+        : 'Mixcloud: uploaded'
+    );
   } else if (result.mixcloudError) {
     parts.push(`Mixcloud: failed (${result.mixcloudError})`);
   }

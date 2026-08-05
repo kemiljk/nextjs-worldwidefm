@@ -12,7 +12,12 @@ interface HostClientProps {
   initialHasNext?: boolean;
 }
 
-export default function HostClient({ hostId, hostTitle, initialShows, initialHasNext = true }: HostClientProps) {
+export default function HostClient({
+  hostId,
+  hostTitle,
+  initialShows,
+  initialHasNext = true,
+}: HostClientProps) {
   const [shows, setShows] = useState(initialShows);
   const [hasNext, setHasNext] = useState(initialHasNext);
   const [isLoadingMore, setIsLoadingMore] = useState(false);

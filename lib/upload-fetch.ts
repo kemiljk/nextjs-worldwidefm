@@ -4,10 +4,7 @@ import {
   UPLOAD_MAX_RETRIES,
 } from '@/lib/upload-config';
 
-export type UploadFetchFn = (
-  input: RequestInfo | URL,
-  init?: RequestInit
-) => Promise<Response>;
+export type UploadFetchFn = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
 export type FetchWithTimeoutOptions = RequestInit & {
   timeoutMs?: number;
@@ -73,7 +70,11 @@ export async function fetchWithRetry(
   for (let attempt = 0; attempt <= UPLOAD_MAX_RETRIES; attempt += 1) {
     try {
       const response = await fetchWithTimeout(input, options);
-      if (!response.ok && isRetryableUploadError(undefined, response.status) && attempt < UPLOAD_MAX_RETRIES) {
+      if (
+        !response.ok &&
+        isRetryableUploadError(undefined, response.status) &&
+        attempt < UPLOAD_MAX_RETRIES
+      ) {
         await delay(UPLOAD_RETRY_DELAY_MS);
         continue;
       }

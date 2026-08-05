@@ -256,9 +256,7 @@ export function AddNewHost({
               <FormDescription>
                 Upload an image for the host. Maximum file size is 10MB. Accepts JPG, PNG, or WebP.
               </FormDescription>
-              {imageError && (
-                <p className='text-sm font-medium text-destructive'>{imageError}</p>
-              )}
+              {imageError && <p className='text-sm font-medium text-destructive'>{imageError}</p>}
             </FormItem>
 
             <DialogFooter>

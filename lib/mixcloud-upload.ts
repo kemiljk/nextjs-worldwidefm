@@ -183,11 +183,7 @@ export async function uploadMediaToMixcloud(
     externalUploadTimeoutMs,
   });
 
-  if (
-    !result.success &&
-    publishDate &&
-    isMixcloudSchedulingError(result.error, result.details)
-  ) {
+  if (!result.success && publishDate && isMixcloudSchedulingError(result.error, result.details)) {
     const unscheduledResult = await submitMixcloudUpload({
       preparedAudio: audio,
       title,

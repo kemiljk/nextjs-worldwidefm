@@ -17,13 +17,13 @@ interface SaveShowButtonProps {
   onBeforeClick?: (isSaved: boolean) => void;
 }
 
-export function SaveShowButton({ 
-  show, 
-  isSaved: initialIsSaved, 
+export function SaveShowButton({
+  show,
+  isSaved: initialIsSaved,
   className,
   iconOnly = false,
   onSuccess,
-  onBeforeClick
+  onBeforeClick,
 }: SaveShowButtonProps) {
   const { user } = useAuth();
   const router = useRouter();
@@ -78,21 +78,21 @@ export function SaveShowButton({
         disabled={isPending}
         className={cn(
           'z-30 p-2 rounded-full transition-all duration-200 group/save',
-          isSaved 
-            ? 'bg-almostblack dark:bg-white' 
+          isSaved
+            ? 'bg-almostblack dark:bg-white'
             : 'bg-almostblack/10 dark:bg-white/10 hover:bg-almostblack/20 dark:hover:bg-white/20',
           isPending && 'opacity-50 cursor-wait',
           className
         )}
         aria-label={isSaved ? 'Remove from listen later' : 'Add to listen later'}
       >
-        <Bookmark 
+        <Bookmark
           className={cn(
             'w-4 h-4 transition-colors',
-            isSaved 
-              ? 'text-white dark:text-almostblack fill-current' 
+            isSaved
+              ? 'text-white dark:text-almostblack fill-current'
               : 'text-almostblack dark:text-white'
-          )} 
+          )}
         />
       </button>
     );

@@ -6,14 +6,12 @@ import { useAuth } from '@/cosmic/blocks/user-management/AuthContext';
 import { UserProfileForm } from '@/cosmic/blocks/user-management/UserProfileForm';
 import { XIcon, Settings, LogOut, Crown, CreditCard, CheckCircle } from 'lucide-react';
 import {
-  addFavouriteGenre,
   removeFavouriteGenre,
-  addFavouriteHost,
   removeFavouriteHost,
   addFavouriteGenres,
   addFavouriteHosts,
 } from './actions';
-import { Music, Users, Bookmark, Sparkles } from 'lucide-react';
+import { Music, Users, Sparkles } from 'lucide-react';
 import { createStripePortalSession } from './stripe-actions';
 import { cn } from '@/lib/utils';
 import { DashboardSectionShows } from '@/components/dashboard/dashboard-section-shows';
@@ -149,7 +147,7 @@ export default function DashboardClient({
 
   const handleManageSubscription = async () => {
     if (!user) return;
-    
+
     startTransition(async () => {
       const res = await createStripePortalSession(user.id);
       if (res.url) {
@@ -328,7 +326,9 @@ export default function DashboardClient({
               <div className='flex items-start md:items-center space-x-3'>
                 <Crown className='size-8 text-primary shrink-0' />
                 <div>
-                  <h2 className='text-2xl font-bold uppercase font-mono tracking-tight'>Membership</h2>
+                  <h2 className='text-2xl font-bold uppercase font-mono tracking-tight'>
+                    Membership
+                  </h2>
                   <p className='text-muted-foreground'>
                     {isActive
                       ? 'You have an active membership'
@@ -369,16 +369,16 @@ export default function DashboardClient({
                     <span className='uppercase font-mono'>Early access</span>
                   </div>
                 </div>
-                
+
                 <div className='mt-6'>
-                    <Button 
-                        variant="outline" 
-                        onClick={handleManageSubscription}
-                        disabled={isPending}
-                        className="uppercase font-mono"
-                    >
-                        Manage Subscription
-                    </Button>
+                  <Button
+                    variant='outline'
+                    onClick={handleManageSubscription}
+                    disabled={isPending}
+                    className='uppercase font-mono'
+                  >
+                    Manage Subscription
+                  </Button>
                 </div>
               </div>
             )}
@@ -387,15 +387,24 @@ export default function DashboardClient({
 
         {/* Listen Later */}
         <section className='mt-10'>
-          <h2 className='text-2xl font-bold mb-4 uppercase font-mono tracking-tight'>Listen Later</h2>
+          <h2 className='text-2xl font-bold mb-4 uppercase font-mono tracking-tight'>
+            Listen Later
+          </h2>
           <ListenLaterClient listenLaterIds={listenLaterIds} />
         </section>
 
         {/* Favourite Genres */}
         <section className='mt-10'>
           <div className='flex items-center justify-between mb-4'>
-            <h2 className='text-2xl font-bold uppercase font-mono tracking-tight'>Favourite Genres</h2>
-            <Button variant='outline' onClick={() => handleAddClick('genre')} disabled={isPending} className='uppercase font-mono'>
+            <h2 className='text-2xl font-bold uppercase font-mono tracking-tight'>
+              Favourite Genres
+            </h2>
+            <Button
+              variant='outline'
+              onClick={() => handleAddClick('genre')}
+              disabled={isPending}
+              className='uppercase font-mono'
+            >
               Add Genre
             </Button>
           </div>
@@ -410,10 +419,17 @@ export default function DashboardClient({
           ) : (
             <div className='space-y-8'>
               <div className='flex flex-wrap gap-2'>
-                {optimisticGenresRemove.map(genre => renderFavouriteBadge(genre, () => handleRemoveGenre(genre.id), 'genre'))}
+                {optimisticGenresRemove.map(genre =>
+                  renderFavouriteBadge(genre, () => handleRemoveGenre(genre.id), 'genre')
+                )}
               </div>
               {optimisticGenresRemove.map(genre => (
-                <DashboardSectionShows key={genre.id} genreId={genre.id} title={`Latest in ${genre.title}`} limit={5} />
+                <DashboardSectionShows
+                  key={genre.id}
+                  genreId={genre.id}
+                  title={`Latest in ${genre.title}`}
+                  limit={5}
+                />
               ))}
             </div>
           )}
@@ -422,8 +438,15 @@ export default function DashboardClient({
         {/* Favourite Hosts */}
         <section className='mt-10'>
           <div className='flex items-center justify-between mb-4'>
-            <h2 className='text-2xl font-bold uppercase font-mono tracking-tight'>Favourite Hosts</h2>
-            <Button variant='outline' onClick={() => handleAddClick('host')} disabled={isPending} className='uppercase font-mono'>
+            <h2 className='text-2xl font-bold uppercase font-mono tracking-tight'>
+              Favourite Hosts
+            </h2>
+            <Button
+              variant='outline'
+              onClick={() => handleAddClick('host')}
+              disabled={isPending}
+              className='uppercase font-mono'
+            >
               Add Host
             </Button>
           </div>
@@ -438,10 +461,17 @@ export default function DashboardClient({
           ) : (
             <div className='space-y-8'>
               <div className='flex flex-wrap gap-2'>
-                {optimisticHostsRemove.map(host => renderFavouriteBadge(host, () => handleRemoveHost(host.id), 'host'))}
+                {optimisticHostsRemove.map(host =>
+                  renderFavouriteBadge(host, () => handleRemoveHost(host.id), 'host')
+                )}
               </div>
               {optimisticHostsRemove.map(host => (
-                <DashboardSectionShows key={host.id} hostId={host.id} title={`Latest from ${host.title}`} limit={5} />
+                <DashboardSectionShows
+                  key={host.id}
+                  hostId={host.id}
+                  title={`Latest from ${host.title}`}
+                  limit={5}
+                />
               ))}
             </div>
           )}
@@ -449,7 +479,9 @@ export default function DashboardClient({
 
         {/* For You Section */}
         <section className='mt-10'>
-          <h2 className='text-2xl font-bold mb-4 uppercase font-mono tracking-tight'>Recommended For You</h2>
+          <h2 className='text-2xl font-bold mb-4 uppercase font-mono tracking-tight'>
+            Recommended For You
+          </h2>
           {hasFavorites ? (
             <ForYouClient
               favoriteGenreIds={favoriteGenreIds}
@@ -495,7 +527,9 @@ export default function DashboardClient({
                 </Button>
                 <Button
                   onClick={handleSave}
-                  disabled={(selectedGenres.length === 0 && selectedHosts.length === 0) || isPending}
+                  disabled={
+                    (selectedGenres.length === 0 && selectedHosts.length === 0) || isPending
+                  }
                   className='flex-1'
                 >
                   {isPending ? 'Saving...' : 'Save'}

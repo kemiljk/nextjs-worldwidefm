@@ -90,26 +90,10 @@ const mapTakeoverToFilterItem = (takeover: TakeoverObject): FilterItem => ({
 export async function fetchAllCosmicContent(): Promise<SearchResult[]> {
   const contentProps = 'id,slug,title,metadata,created_at';
   const [eventsRes, postsRes, videosRes, takeoversRes] = await Promise.all([
-    cosmic.objects
-      .find({ type: 'events' })
-      .props(contentProps)
-      .status('published')
-      .limit(1000),
-    cosmic.objects
-      .find({ type: 'posts' })
-      .props(contentProps)
-      .status('published')
-      .limit(1000),
-    cosmic.objects
-      .find({ type: 'videos' })
-      .props(contentProps)
-      .status('published')
-      .limit(1000),
-    cosmic.objects
-      .find({ type: 'takeovers' })
-      .props(contentProps)
-      .status('published')
-      .limit(1000),
+    cosmic.objects.find({ type: 'events' }).props(contentProps).status('published').limit(1000),
+    cosmic.objects.find({ type: 'posts' }).props(contentProps).status('published').limit(1000),
+    cosmic.objects.find({ type: 'videos' }).props(contentProps).status('published').limit(1000),
+    cosmic.objects.find({ type: 'takeovers' }).props(contentProps).status('published').limit(1000),
   ]);
   const events = (eventsRes.objects || [])
     .map((item: any) => {

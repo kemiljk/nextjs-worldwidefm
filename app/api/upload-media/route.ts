@@ -13,7 +13,10 @@ export async function POST(request: NextRequest) {
 
     if (cleanupOnly) {
       if (!mediaUrl || !isVercelBlobUrl(mediaUrl)) {
-        return NextResponse.json({ error: 'No temporary blob URL provided for cleanup' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'No temporary blob URL provided for cleanup' },
+          { status: 400 }
+        );
       }
 
       try {
@@ -85,7 +88,10 @@ export async function POST(request: NextRequest) {
           mediaUrl: result.mediaUrl,
           mp3Diagnostics: result.mp3Diagnostics,
         },
-        { status: result.status && result.status >= 400 && result.status < 500 ? result.status : 502 }
+        {
+          status:
+            result.status && result.status >= 400 && result.status < 500 ? result.status : 502,
+        }
       );
     }
 

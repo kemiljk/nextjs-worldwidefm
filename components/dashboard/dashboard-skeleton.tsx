@@ -1,5 +1,3 @@
-import { Music, Users, Bookmark, Sparkles, Crown } from 'lucide-react';
-
 export function DashboardSkeleton() {
   return (
     <div className='py-8'>

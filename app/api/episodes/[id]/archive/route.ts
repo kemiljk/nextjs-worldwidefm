@@ -28,7 +28,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         !Array.isArray(regularHosts) ||
         !regularHosts.every(hostId => typeof hostId === 'string' && hostId.trim().length > 0)
       ) {
-        return NextResponse.json({ error: 'regular_hosts must be an array of host IDs' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'regular_hosts must be an array of host IDs' },
+          { status: 400 }
+        );
       }
       updates.regular_hosts = Array.from(new Set(regularHosts.map(hostId => hostId.trim())));
     }

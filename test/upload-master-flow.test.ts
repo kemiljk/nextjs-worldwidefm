@@ -104,9 +104,7 @@ describe('runUploadMasterFlow', () => {
     const result = await runUploadMasterFlow({ ...baseInput, fetchFn });
 
     expect(result.mixcloudLinkSaved).toBe(false);
-    expect(buildUploadResultSummary(result)).toContain(
-      'Mixcloud link NOT saved to the show page'
-    );
+    expect(buildUploadResultSummary(result)).toContain('Mixcloud link NOT saved to the show page');
   });
 
   it('continues to RadioCult and archive when Mixcloud fails', async () => {
@@ -191,7 +189,10 @@ function createMockFetch(options: {
       }
 
       return new Response(
-        JSON.stringify({ success: true, radiocultMediaId: options.radiocultMediaId || 'rc-default' }),
+        JSON.stringify({
+          success: true,
+          radiocultMediaId: options.radiocultMediaId || 'rc-default',
+        }),
         { status: 200 }
       );
     }

@@ -7,15 +7,17 @@ import EditorialClient from './editorial-client';
 type FilterItem = BaseFilterItem;
 
 function buildAvailableFilters(categoriesData: unknown[]) {
-  const categories = (categoriesData as Array<{
-    id: string;
-    title: string;
-    slug: string;
-    content?: string;
-    status?: string;
-    created_at: string;
-    metadata?: unknown;
-  }>)
+  const categories = (
+    categoriesData as Array<{
+      id: string;
+      title: string;
+      slug: string;
+      content?: string;
+      status?: string;
+      created_at: string;
+      metadata?: unknown;
+    }>
+  )
     .map(cat => ({
       id: cat.id,
       title: cat.title,
@@ -85,8 +87,7 @@ function EditorialPageHeader() {
 }
 
 export default async function EditorialPage() {
-  const { categories, categoryOrder, featuredPost, posts, total } =
-    await getEditorialLandingData();
+  const { categories, categoryOrder, featuredPost, posts, total } = await getEditorialLandingData();
   const availableFilters = buildAvailableFilters(categories);
 
   return (

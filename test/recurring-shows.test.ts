@@ -23,9 +23,7 @@ describe('recurring-shows', () => {
   });
 
   it('builds deterministic episode slugs from title and date', () => {
-    expect(buildRecurringEpisodeSlug('First Light', '2026-06-24')).toBe(
-      'first-light-2026-06-24'
-    );
+    expect(buildRecurringEpisodeSlug('First Light', '2026-06-24')).toBe('first-light-2026-06-24');
   });
 
   it('links Worldwide Breakfast to Valentine Comar in Cosmic', () => {

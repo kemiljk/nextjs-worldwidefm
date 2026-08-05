@@ -45,7 +45,7 @@ const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
           );
           return d ? formatLondonBroadcastTime(d) : item.metadata.broadcast_time;
         })()
-      : item.metadata?.broadcast_time ?? null;
+      : (item.metadata?.broadcast_time ?? null);
 
   const handlePlayPause = (e: React.MouseEvent) => {
     e.preventDefault();

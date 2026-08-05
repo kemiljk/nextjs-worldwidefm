@@ -509,7 +509,6 @@ export default function ShowsClient({
 
   return (
     <>
-
       <div className='px-5 flex flex-col gap-1 w-full'>
         {/* Filter Controls */}
         <div className='flex flex-wrap gap-2 text-m7 pt-4 pb-2'>

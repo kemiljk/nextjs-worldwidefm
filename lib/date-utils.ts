@@ -47,7 +47,12 @@ function londonWallClockMatches(
   s: number
 ): boolean {
   return (
-    p.year === y && p.month === mo && p.day === d && p.hour === h && p.minute === mi && p.second === s
+    p.year === y &&
+    p.month === mo &&
+    p.day === d &&
+    p.hour === h &&
+    p.minute === mi &&
+    p.second === s
   );
 }
 

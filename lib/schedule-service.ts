@@ -166,8 +166,17 @@ function buildScheduleShow(params: {
   overrideDuration?: string;
   urlOverride?: string;
 }): ScheduleShow {
-  const { episode, fallbackTitle, showDay, date, time, isManual, isReplay, overrideDuration, urlOverride } =
-    params;
+  const {
+    episode,
+    fallbackTitle,
+    showDay,
+    date,
+    time,
+    isManual,
+    isReplay,
+    overrideDuration,
+    urlOverride,
+  } = params;
 
   const title = fallbackTitle || episode?.title || 'Untitled';
   const slug = episode?.slug;
@@ -218,12 +227,12 @@ async function fetchAllSchedules(): Promise<{ metadata: Record<string, unknown>;
       .props('id,metadata')
       .depth(3);
 
-    return (
-      (response?.objects as { id: string; metadata: Record<string, unknown> }[]) || []
-    ).map(obj => ({
-      metadata: obj.metadata,
-      id: obj.id,
-    }));
+    return ((response?.objects as { id: string; metadata: Record<string, unknown> }[]) || []).map(
+      obj => ({
+        metadata: obj.metadata,
+        id: obj.id,
+      })
+    );
   } catch (error) {
     console.warn('[Schedule] Failed to fetch schedule metadata', error);
     return [];

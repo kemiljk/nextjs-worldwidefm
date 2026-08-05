@@ -59,7 +59,10 @@ export async function POST(request: NextRequest) {
           error: result.error,
           details: result.details,
         },
-        { status: result.status && result.status >= 400 && result.status < 500 ? result.status : 502 }
+        {
+          status:
+            result.status && result.status >= 400 && result.status < 500 ? result.status : 502,
+        }
       );
     }
 

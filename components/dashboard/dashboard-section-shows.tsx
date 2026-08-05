@@ -53,14 +53,14 @@ export function DashboardSectionShows({
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold uppercase font-mono">{title}</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 w-full">
+      <div className='space-y-4'>
+        <h3 className='text-xl font-semibold uppercase font-mono'>{title}</h3>
+        <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 w-full'>
           {Array.from({ length: limit }).map((_, i) => (
-            <div key={i} className="animate-pulse">
-              <div className="aspect-square bg-gray-200 dark:bg-gray-800 border border-almostblack dark:border-white" />
-              <div className="mt-2 h-4 bg-gray-200 dark:bg-gray-800 w-3/4" />
-              <div className="mt-1 h-3 bg-gray-200 dark:bg-gray-800 w-1/2" />
+            <div key={i} className='animate-pulse'>
+              <div className='aspect-square bg-gray-200 dark:bg-gray-800 border border-almostblack dark:border-white' />
+              <div className='mt-2 h-4 bg-gray-200 dark:bg-gray-800 w-3/4' />
+              <div className='mt-1 h-3 bg-gray-200 dark:bg-gray-800 w-1/2' />
             </div>
           ))}
         </div>
@@ -73,10 +73,10 @@ export function DashboardSectionShows({
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-xl font-semibold uppercase font-mono">{title}</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 w-full h-auto">
-        {episodes.map((episode) => {
+    <div className='space-y-4'>
+      <h3 className='text-xl font-semibold uppercase font-mono'>{title}</h3>
+      <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 w-full h-auto'>
+        {episodes.map(episode => {
           const transformed = transformShowToViewData(episode);
           return (
             <ShowCard

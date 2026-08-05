@@ -140,15 +140,12 @@ export async function uploadMediaToRadioCult(
   rcForm.append('metadata', JSON.stringify(metadata));
 
   try {
-    const rcRes = await fetchWithRetry(
-      `${apiBaseUrl}/api/station/${stationId}/media/track`,
-      {
-        method: 'POST',
-        headers: { 'x-api-key': secretKey },
-        body: rcForm,
-        timeoutMs: externalUploadTimeoutMs,
-      }
-    );
+    const rcRes = await fetchWithRetry(`${apiBaseUrl}/api/station/${stationId}/media/track`, {
+      method: 'POST',
+      headers: { 'x-api-key': secretKey },
+      body: rcForm,
+      timeoutMs: externalUploadTimeoutMs,
+    });
 
     if (!rcRes.ok) {
       const rcErrorText = await rcRes.text();

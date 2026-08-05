@@ -78,12 +78,12 @@ export async function POST(request: NextRequest) {
       const error = handlerError as Error;
       console.error(`Error processing ${event.type} [${event.id}]:`, error.message, error.stack);
       return NextResponse.json(
-        { 
-          error: 'Event processing failed', 
+        {
+          error: 'Event processing failed',
           details: error.message,
           stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
           eventType: event.type,
-          eventId: event.id
+          eventId: event.id,
         },
         { status: 500 }
       );
@@ -111,8 +111,8 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '') // Remove accents
-    .replace(/[^a-z0-9]+/g, '-')     // Replace non-alphanumeric with hyphens
-    .replace(/^-+|-+$/g, '');        // Remove leading/trailing hyphens
+    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
 
   const memberData = {
     title: `${firstName} ${lastName}`,

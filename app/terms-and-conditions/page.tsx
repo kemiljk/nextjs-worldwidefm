@@ -53,11 +53,5 @@ export default async function TermsAndConditionsPage() {
   const lastUpdatedMatch = text.match(/Last Updated (\d{2}\.\d{2}\.\d{2})/);
   const lastUpdated = lastUpdatedMatch ? lastUpdatedMatch[1] : undefined;
 
-  return (
-    <LegalContent
-      title={termsAndConditions.title}
-      content={text}
-      lastUpdated={lastUpdated}
-    />
-  );
+  return <LegalContent title={termsAndConditions.title} content={text} lastUpdated={lastUpdated} />;
 }

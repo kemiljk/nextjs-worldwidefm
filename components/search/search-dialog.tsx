@@ -296,10 +296,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     fetchResults();
 
     const focusTimeoutId = setTimeout(() => {
-      const input =
-        window.matchMedia('(min-width: 640px)').matches
-          ? desktopSearchInputRef.current
-          : mobileSearchInputRef.current;
+      const input = window.matchMedia('(min-width: 640px)').matches
+        ? desktopSearchInputRef.current
+        : mobileSearchInputRef.current;
       input?.focus();
     }, 100);
 

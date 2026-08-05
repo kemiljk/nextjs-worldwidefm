@@ -318,7 +318,7 @@ export default function EditorialClient({
   const showEmptyState = posts.length === 0 && !isRefreshing;
 
   return (
-  <>
+    <>
       <div className='px-5'>
         <FilterToolbar
           availableFilters={availableFilters}

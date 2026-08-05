@@ -1,4 +1,3 @@
-import js from '@eslint/js';
 import typescript from '@typescript-eslint/eslint-plugin';
 import typescriptParser from '@typescript-eslint/parser';
 import unusedImports from 'eslint-plugin-unused-imports';
@@ -34,6 +33,7 @@ export default [
       'lib/**/*.{js,jsx,ts,tsx}',
       'hooks/**/*.{js,jsx,ts,tsx}',
       'cosmic/**/*.{js,jsx,ts,tsx}',
+      'test/**/*.{js,jsx,ts,tsx}',
     ],
     languageOptions: {
       parser: typescriptParser,

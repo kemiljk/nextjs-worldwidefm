@@ -9,7 +9,7 @@ import { getCachedTakeoverBySlug } from '@/lib/cached-data';
 import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';
 import { GenreTag } from '@/components/ui/genre-tag';
-import { Share2, MapPin } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { ShowCard } from '@/components/ui/show-card';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 
@@ -172,14 +172,21 @@ export default async function TakeoverPage({ params }: { params: Promise<{ slug:
               <div className='flex flex-wrap gap-x-1.5 gap-y-1 items-center'>
                 {takeover.metadata?.locations?.length > 0 ? (
                   takeover.metadata.locations.map((loc: any, i: number) => (
-                    <span key={loc.id || loc.slug} className='text-m8 font-mono uppercase tracking-wider'>
+                    <span
+                      key={loc.id || loc.slug}
+                      className='text-m8 font-mono uppercase tracking-wider'
+                    >
                       {loc.title}
-                      {i < takeover.metadata.locations.length - 1 && <span className='mx-1'>•</span>}
+                      {i < takeover.metadata.locations.length - 1 && (
+                        <span className='mx-1'>•</span>
+                      )}
                     </span>
                   ))
                 ) : (
                   <span className='text-m8 font-mono uppercase tracking-wider'>
-                    {typeof takeover.metadata.location === 'object' ? takeover.metadata.location.title : takeover.metadata.location}
+                    {typeof takeover.metadata.location === 'object'
+                      ? takeover.metadata.location.title
+                      : takeover.metadata.location}
                   </span>
                 )}
               </div>

@@ -55,11 +55,11 @@ export function ListenLaterClient({ listenLaterIds }: ListenLaterClientProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 w-full">
+      <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 w-full'>
         {Array.from({ length: Math.min(listenLaterIds.length, 5) }).map((_, i) => (
-          <div key={i} className="animate-pulse">
-            <div className="aspect-square bg-gray-200 dark:bg-gray-800 border border-almostblack dark:border-white" />
-            <div className="mt-2 h-4 bg-gray-200 dark:bg-gray-800 w-3/4" />
+          <div key={i} className='animate-pulse'>
+            <div className='aspect-square bg-gray-200 dark:bg-gray-800 border border-almostblack dark:border-white' />
+            <div className='mt-2 h-4 bg-gray-200 dark:bg-gray-800 w-3/4' />
           </div>
         ))}
       </div>
@@ -70,23 +70,23 @@ export function ListenLaterClient({ listenLaterIds }: ListenLaterClientProps) {
     return (
       <EmptyState
         icon={Bookmark}
-        title="No Saved Shows"
+        title='No Saved Shows'
         description="Save episodes to 'Listen Later' while browsing and they'll appear here."
       />
     );
   }
 
   const removeEpisode = (episodeId: string) => {
-    setEpisodes((prev) => prev.filter((ep) => (ep.id || ep._id) !== episodeId));
+    setEpisodes(prev => prev.filter(ep => (ep.id || ep._id) !== episodeId));
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 w-full h-auto">
-      {episodes.map((episode) => {
+    <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 w-full h-auto'>
+      {episodes.map(episode => {
         const transformed = transformShowToViewData(episode);
         const episodeId = episode.id || episode._id;
         return (
-          <div key={episodeId || episode.slug} className="relative group">
+          <div key={episodeId || episode.slug} className='relative group'>
             <ShowCard
               show={{
                 ...transformed,
@@ -105,8 +105,8 @@ export function ListenLaterClient({ listenLaterIds }: ListenLaterClientProps) {
               show={{ id: episodeId, slug: episode.slug, title: episode.title }}
               isSaved={true}
               iconOnly
-              className="absolute top-4 right-4"
-              onBeforeClick={(saved) => {
+              className='absolute top-4 right-4'
+              onBeforeClick={saved => {
                 if (saved) removeEpisode(episodeId);
               }}
             />

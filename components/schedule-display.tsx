@@ -3,7 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { UkWeekday } from '@/lib/date-utils';
-import { getUKTimezoneAbbreviation, parseDurationToMinutes, parseLondonDateTime } from '@/lib/date-utils';
+import {
+  getUKTimezoneAbbreviation,
+  parseDurationToMinutes,
+  parseLondonDateTime,
+} from '@/lib/date-utils';
 import type { ScheduleShow, ScheduleDayMap } from '@/lib/types/schedule';
 
 interface ScheduleDisplayProps {

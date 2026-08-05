@@ -44,9 +44,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error in /api/episodes/by-date:', error);
-    return NextResponse.json(
-      { episodes: [], error: 'Failed to fetch episodes' },
-      { status: 500 }
-    );
+    return NextResponse.json({ episodes: [], error: 'Failed to fetch episodes' }, { status: 500 });
   }
 }

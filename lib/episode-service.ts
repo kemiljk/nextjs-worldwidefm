@@ -545,14 +545,11 @@ async function fetchEpisodeBySlugFromCosmic(
   };
 
   try {
-    const response = await withRetry(
-      async () => {
-        let request = cosmic.objects.findOne(query).props(EPISODE_DETAIL_PROPS).depth(1);
-        request = options.includeDrafts ? request.status('any') : request.status('published');
-        return request;
-      },
-      `episode:${slugToFetch}`
-    );
+    const response = await withRetry(async () => {
+      let request = cosmic.objects.findOne(query).props(EPISODE_DETAIL_PROPS).depth(1);
+      request = options.includeDrafts ? request.status('any') : request.status('published');
+      return request;
+    }, `episode:${slugToFetch}`);
     return response.object || null;
   } catch (error) {
     if (!is404Error(error)) {
@@ -756,12 +753,7 @@ export async function getRelatedEpisodes(
     if (result.length < limit && hostIds && hostIds.length > 0) {
       try {
         const remainingLimit = limit - result.length;
-        const hostEpisodes = await fetchRelatedByHost(
-          episodeId,
-          hostIds,
-          remainingLimit,
-          todayStr
-        );
+        const hostEpisodes = await fetchRelatedByHost(episodeId, hostIds, remainingLimit, todayStr);
         if (hostEpisodes.length > 0 && primaryMatchType === 'recent') {
           primaryMatchType = 'host';
         }

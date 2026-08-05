@@ -145,14 +145,19 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
               <div className='flex flex-wrap gap-x-1.5 gap-y-1 items-center'>
                 {host.metadata?.locations?.length > 0 ? (
                   host.metadata.locations.map((loc: any, i: number) => (
-                    <span key={loc.id || loc.slug} className='text-m8 font-mono uppercase tracking-wider'>
+                    <span
+                      key={loc.id || loc.slug}
+                      className='text-m8 font-mono uppercase tracking-wider'
+                    >
                       {loc.title}
                       {i < host.metadata.locations.length - 1 && <span className='mx-1'>•</span>}
                     </span>
                   ))
                 ) : (
                   <span className='text-m8 font-mono uppercase tracking-wider'>
-                    {typeof host.metadata.location === 'object' ? host.metadata.location.title : host.metadata.location}
+                    {typeof host.metadata.location === 'object'
+                      ? host.metadata.location.title
+                      : host.metadata.location}
                   </span>
                 )}
               </div>

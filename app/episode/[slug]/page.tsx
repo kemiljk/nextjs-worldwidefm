@@ -120,7 +120,8 @@ export default async function EpisodePage({
   // Get related episodes based on genres, hosts and takeovers
   const hostIds = episode.metadata.regular_hosts?.map((host: any) => host.id).filter(Boolean) || [];
   const genreIds = episode.metadata.genres?.map((genre: any) => genre.id).filter(Boolean) || [];
-  const takeoverIds = episode.metadata.takeovers?.map((takeover: any) => takeover.id).filter(Boolean) || [];
+  const takeoverIds =
+    episode.metadata.takeovers?.map((takeover: any) => takeover.id).filter(Boolean) || [];
 
   const [{ episodes: relatedEpisodesRaw, matchType }, canonicalGenres, user] = await Promise.all([
     getRelatedEpisodes(episode.id, 3, hostIds, genreIds, takeoverIds),

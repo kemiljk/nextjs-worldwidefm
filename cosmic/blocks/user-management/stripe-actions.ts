@@ -8,7 +8,7 @@ export async function createStripePortalSession(userId: string) {
   try {
     const authUser = await getAuthUser();
     if (!authUser || authUser.id !== userId) {
-      return {  error: 'Unauthorized' };
+      return { error: 'Unauthorized' };
     }
 
     // specific lookup to get stripe_customer_id
@@ -20,7 +20,7 @@ export async function createStripePortalSession(userId: string) {
     const customerId = user?.metadata?.stripe_customer_id;
 
     if (!customerId) {
-        return { error: 'No Stripe customer found for this user.' };
+      return { error: 'No Stripe customer found for this user.' };
     }
 
     const session = await stripe.billingPortal.sessions.create({
