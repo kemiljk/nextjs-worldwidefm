@@ -29,6 +29,8 @@ export type UploadMasterFlowResult = {
   mixcloudUrl?: string;
   mixcloudError?: string;
   mixcloudWarning?: string;
+  /** True once the Mixcloud URL is stored on the episode in Cosmic. */
+  mixcloudLinkSaved: boolean;
   radiocultMediaId?: string;
   radioCultError?: string;
   archiveUpdated: boolean;
@@ -42,6 +44,8 @@ type JsonResponse = {
   success?: boolean;
   url?: string;
   warning?: string;
+  episodeUpdated?: boolean;
+  episodeUpdateError?: string;
   radiocultMediaId?: string;
   error?: string;
   details?: unknown;
@@ -56,6 +60,7 @@ export async function runUploadMasterFlow(
   let mixcloudUrl: string | undefined;
   let mixcloudError: string | undefined;
   let mixcloudWarning: string | undefined;
+  let mixcloudLinkSaved = false;
   let radiocultMediaId: string | undefined;
   let radioCultError: string | undefined;
   let archiveUpdated = false;
@@ -76,6 +81,7 @@ export async function runUploadMasterFlow(
     } else {
       mixcloudUrl = mixcloudData.url;
       mixcloudWarning = mixcloudData.warning;
+      mixcloudLinkSaved = mixcloudData.episodeUpdated === true;
     }
   } catch (error) {
     mixcloudError = error instanceof Error ? error.message : 'Mixcloud upload failed';
@@ -119,6 +125,9 @@ export async function runUploadMasterFlow(
     }
 
     archiveUpdated = true;
+    if (mixcloudUrl) {
+      mixcloudLinkSaved = true;
+    }
   } catch (error) {
     archiveError = error instanceof Error ? error.message : 'Failed to update episode';
   }
@@ -144,6 +153,7 @@ export async function runUploadMasterFlow(
     mixcloudUrl,
     mixcloudError,
     mixcloudWarning,
+    mixcloudLinkSaved,
     radiocultMediaId,
     radioCultError,
     archiveUpdated,
@@ -160,6 +170,7 @@ function buildMixcloudFormData(input: UploadMasterFlowInput): FormData {
   fd.append('fileName', input.mediaFileName);
   fd.append('cleanup', 'false');
   fd.append('episodeId', input.episodeId);
+  fd.append('episodeSlug', input.episodeSlug);
   fd.append('title', input.mixcloudTitle);
   fd.append('tags', JSON.stringify(input.mixcloudTags));
   fd.append('description', input.mixcloudDescription);
@@ -214,6 +225,10 @@ export function buildUploadResultSummary(result: UploadMasterFlowResult): string
     parts.push(result.mixcloudWarning ? `Mixcloud: uploaded (${result.mixcloudWarning})` : 'Mixcloud: uploaded');
   } else if (result.mixcloudError) {
     parts.push(`Mixcloud: failed (${result.mixcloudError})`);
+  }
+
+  if (result.mixcloudUrl && !result.mixcloudLinkSaved) {
+    parts.push(`Mixcloud link NOT saved to the show page — add it manually: ${result.mixcloudUrl}`);
   }
 
   if (result.radiocultMediaId) {

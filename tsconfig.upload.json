@@ -6,6 +6,8 @@
     "lib/radiocult-upload.ts",
     "lib/mixcloud-upload.ts",
     "lib/upload-master-flow.ts",
+    "lib/upload-master-metadata.ts",
+    "lib/episode-archive.ts",
     "lib/mp3-utils.ts",
     "lib/upload-filename-utils.ts",
     "lib/blob-client.ts",

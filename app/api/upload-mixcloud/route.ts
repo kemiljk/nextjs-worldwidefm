@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del, isVercelBlobUrl } from '@/lib/blob-client';
 import { uploadMediaToMixcloud } from '@/lib/mixcloud-upload';
+import { saveMixcloudLinkToEpisode } from '@/lib/episode-archive';
 
 // Must be a literal — Next.js rejects imported segment config. Keep in sync with lib/upload-config.ts.
 export const maxDuration = 800;
@@ -16,6 +17,8 @@ export async function POST(request: NextRequest) {
     const audioFile = formData.get('audio') as File | null;
     const mediaUrl = formData.get('mediaUrl') as string | null;
     const requestedFileName = formData.get('fileName') as string | null;
+    const episodeId = (formData.get('episodeId') as string | null)?.trim() || '';
+    const episodeSlug = (formData.get('episodeSlug') as string | null)?.trim() || '';
     const title = formData.get('title') as string | null;
     const description = formData.get('description') as string | null;
     const imageUrl = formData.get('imageUrl') as string | null;
@@ -60,10 +63,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Save the cloudcast URL to Cosmic here rather than relying on the browser to
+    // follow up: a long master upload can outlive the client, and the episode page
+    // is useless without its player.
+    let episodeUpdated = false;
+    let episodeUpdateError: string | undefined;
+
+    if (episodeId) {
+      try {
+        await saveMixcloudLinkToEpisode(episodeId, result.url, episodeSlug || undefined);
+        episodeUpdated = true;
+      } catch (updateError) {
+        episodeUpdateError =
+          updateError instanceof Error && updateError.message
+            ? updateError.message
+            : 'Failed to save the Mixcloud link to the episode';
+        console.error('Failed to save Mixcloud link to episode:', updateError);
+      }
+    }
+
     return NextResponse.json({
       url: result.url,
       key: result.key,
       warning: result.warning,
+      episodeUpdated,
+      episodeUpdateError,
     });
   } catch (error) {
     console.error('Mixcloud upload error:', error);

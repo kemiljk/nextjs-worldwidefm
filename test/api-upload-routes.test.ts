@@ -22,6 +22,30 @@ mock.module('@/lib/blob-client', () => ({
   isVercelBlobUrl: (url: string) => url.includes('blob.vercel-storage.com'),
 }));
 
+type CosmicUpdate = { id: string; data: { metadata?: Record<string, unknown> } };
+
+const cosmicUpdates: CosmicUpdate[] = [];
+let cosmicUpdateShouldFail = false;
+
+mock.module('@/lib/cosmic-config', () => ({
+  cosmic: {
+    objects: {
+      updateOne: async (id: string, data: CosmicUpdate['data']) => {
+        if (cosmicUpdateShouldFail) {
+          throw new Error('Cosmic rejected the update');
+        }
+        cosmicUpdates.push({ id, data });
+        return { object: { id } };
+      },
+    },
+  },
+}));
+
+mock.module('next/cache', () => ({
+  revalidateTag: () => undefined,
+  revalidatePath: () => undefined,
+}));
+
 beforeAll(() => {
   mediaServer = Bun.serve({
     port: 0,
@@ -108,6 +132,7 @@ describe('upload API routes', () => {
     expect(json.radiocultMediaId).toBe('route-rc-1');
   });
 
+  // Retrying a 5xx costs a deliberate delay, so this needs more than the default budget.
   it('keeps the blob URL on RadioCult failure', async () => {
     const failingServer = Bun.serve({
       port: 0,
@@ -117,28 +142,33 @@ describe('upload API routes', () => {
     });
 
     process.env.RADIOCULT_API_BASE_URL = `http://127.0.0.1:${failingServer.port}`;
-    const { POST } = await import('@/app/api/upload-media/route');
 
-    const formData = new FormData();
-    formData.append('mediaUrl', BLOB_URL);
-    formData.append('fileName', 'failed.mp3');
-    formData.append('metadata', JSON.stringify({ title: 'Failed' }));
+    try {
+      const { POST } = await import('@/app/api/upload-media/route');
 
-    const response = await POST(
-      new NextRequest('http://localhost/api/upload-media', {
-        method: 'POST',
-        body: formData,
-      })
-    );
+      const formData = new FormData();
+      formData.append('mediaUrl', BLOB_URL);
+      formData.append('fileName', 'failed.mp3');
+      formData.append('metadata', JSON.stringify({ title: 'Failed' }));
 
-    const json = await response.json();
-    failingServer.stop();
-    process.env.RADIOCULT_API_BASE_URL = radioCultBaseUrl;
+      const response = await POST(
+        new NextRequest('http://localhost/api/upload-media', {
+          method: 'POST',
+          body: formData,
+        })
+      );
 
-    expect(response.status).toBe(502);
-    expect(json.success).toBe(false);
-    expect(json.mediaUrl).toBe(BLOB_URL);
-  });
+      const json = await response.json();
+
+      expect(response.status).toBe(502);
+      expect(json.success).toBe(false);
+      expect(json.mediaUrl).toBe(BLOB_URL);
+    } finally {
+      // Restore even on failure, so a later test does not inherit the broken host.
+      failingServer.stop();
+      process.env.RADIOCULT_API_BASE_URL = radioCultBaseUrl;
+    }
+  }, 30_000);
 
   it('cleans up a temporary blob when cleanupOnly is set', async () => {
     const { POST } = await import('@/app/api/upload-media/route');
@@ -177,6 +207,81 @@ describe('upload API routes', () => {
     const json = await response.json();
     expect(response.status).toBe(200);
     expect(json.url).toContain('mixcloud.com');
+  });
+
+  it('saves the resolved Mixcloud URL onto the episode when an episodeId is sent', async () => {
+    cosmicUpdates.length = 0;
+    const { POST } = await import('@/app/api/upload-mixcloud/route');
+    const formData = new FormData();
+    formData.append('mediaUrl', mediaServerUrl);
+    formData.append('fileName', 'route-master.mp3');
+    formData.append('title', 'Route Master');
+    formData.append('episodeId', 'episode-1');
+    formData.append('episodeSlug', 'route-master');
+
+    const response = await POST(
+      new NextRequest('http://localhost/api/upload-mixcloud', {
+        method: 'POST',
+        body: formData,
+      })
+    );
+
+    const json = await response.json();
+    expect(response.status).toBe(200);
+    expect(json.episodeUpdated).toBe(true);
+    expect(cosmicUpdates).toHaveLength(1);
+    expect(cosmicUpdates[0].id).toBe('episode-1');
+    expect(cosmicUpdates[0].data.metadata).toEqual({
+      player: 'https://www.mixcloud.com/worldwidefm/route-test/',
+      page_link: 'https://www.mixcloud.com/worldwidefm/route-test/',
+    });
+  });
+
+  it('leaves the episode alone when no episodeId is sent', async () => {
+    cosmicUpdates.length = 0;
+    const { POST } = await import('@/app/api/upload-mixcloud/route');
+    const formData = new FormData();
+    formData.append('mediaUrl', mediaServerUrl);
+    formData.append('fileName', 'route-master.mp3');
+    formData.append('title', 'Route Master');
+
+    const response = await POST(
+      new NextRequest('http://localhost/api/upload-mixcloud', {
+        method: 'POST',
+        body: formData,
+      })
+    );
+
+    const json = await response.json();
+    expect(response.status).toBe(200);
+    expect(json.episodeUpdated).toBe(false);
+    expect(cosmicUpdates).toHaveLength(0);
+  });
+
+  it('still returns the Mixcloud URL when saving it to the episode fails', async () => {
+    cosmicUpdates.length = 0;
+    cosmicUpdateShouldFail = true;
+    const { POST } = await import('@/app/api/upload-mixcloud/route');
+    const formData = new FormData();
+    formData.append('mediaUrl', mediaServerUrl);
+    formData.append('fileName', 'route-master.mp3');
+    formData.append('title', 'Route Master');
+    formData.append('episodeId', 'episode-1');
+
+    const response = await POST(
+      new NextRequest('http://localhost/api/upload-mixcloud', {
+        method: 'POST',
+        body: formData,
+      })
+    );
+
+    const json = await response.json();
+    cosmicUpdateShouldFail = false;
+
+    expect(response.status).toBe(200);
+    expect(json.url).toContain('mixcloud.com');
+    expect(json.episodeUpdated).toBe(false);
+    expect(json.episodeUpdateError).toContain('Cosmic rejected the update');
   });
 
   it('handles large media files without failing the route handler', async () => {

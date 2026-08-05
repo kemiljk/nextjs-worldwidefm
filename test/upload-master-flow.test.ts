@@ -39,6 +39,7 @@ describe('runUploadMasterFlow', () => {
     expect(result.mixcloudUrl).toContain('mixcloud.com');
     expect(result.radiocultMediaId).toBe('rc-1');
     expect(result.archiveUpdated).toBe(true);
+    expect(result.mixcloudLinkSaved).toBe(true);
     expect(result.shouldCleanupBlob).toBe(true);
     expect(calls).toEqual([
       '/api/upload-mixcloud',
@@ -46,6 +47,66 @@ describe('runUploadMasterFlow', () => {
       '/api/episodes/episode-1/archive',
       '/api/upload-media',
     ]);
+  });
+
+  it('writes the Mixcloud URL to the episode player and page link', async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const fetchFn = createMockFetch({
+      mixcloudUrl: 'https://www.mixcloud.com/worldwidefm/test-show/',
+      radiocultMediaId: 'rc-1',
+      onArchiveBody: body => bodies.push(body),
+    });
+
+    await runUploadMasterFlow({ ...baseInput, fetchFn });
+
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0]).toMatchObject({
+      player: 'https://www.mixcloud.com/worldwidefm/test-show/',
+      page_link: 'https://www.mixcloud.com/worldwidefm/test-show/',
+      radiocult_media_id: 'rc-1',
+      slug: 'test-episode',
+    });
+  });
+
+  it('sends the episode id and slug so the server can save the link itself', async () => {
+    const forms: FormData[] = [];
+    const fetchFn = createMockFetch({
+      mixcloudUrl: 'https://www.mixcloud.com/worldwidefm/test-show/',
+      onMixcloudForm: form => forms.push(form),
+    });
+
+    await runUploadMasterFlow({ ...baseInput, fetchFn });
+
+    expect(forms[0]?.get('episodeId')).toBe('episode-1');
+    expect(forms[0]?.get('episodeSlug')).toBe('test-episode');
+  });
+
+  it('treats a server-saved link as saved even when the archive PATCH fails', async () => {
+    const fetchFn = createMockFetch({
+      mixcloudUrl: 'https://www.mixcloud.com/worldwidefm/test-show/',
+      mixcloudEpisodeUpdated: true,
+      archiveError: true,
+    });
+
+    const result = await runUploadMasterFlow({ ...baseInput, fetchFn });
+
+    expect(result.archiveUpdated).toBe(false);
+    expect(result.mixcloudLinkSaved).toBe(true);
+    expect(buildUploadResultSummary(result)).not.toContain('NOT saved');
+  });
+
+  it('flags an uploaded show whose link never reached the show page', async () => {
+    const fetchFn = createMockFetch({
+      mixcloudUrl: 'https://www.mixcloud.com/worldwidefm/test-show/',
+      archiveError: true,
+    });
+
+    const result = await runUploadMasterFlow({ ...baseInput, fetchFn });
+
+    expect(result.mixcloudLinkSaved).toBe(false);
+    expect(buildUploadResultSummary(result)).toContain(
+      'Mixcloud link NOT saved to the show page'
+    );
   });
 
   it('continues to RadioCult and archive when Mixcloud fails', async () => {
@@ -87,21 +148,34 @@ describe('runUploadMasterFlow', () => {
 function createMockFetch(options: {
   mixcloudUrl?: string;
   mixcloudError?: boolean;
+  mixcloudEpisodeUpdated?: boolean;
   radiocultMediaId?: string;
   radiocultError?: boolean;
   archiveError?: boolean;
   onCall?: (url: string) => void;
+  onArchiveBody?: (body: Record<string, unknown>) => void;
+  onMixcloudForm?: (form: FormData) => void;
 }): UploadFetchFn {
   return async (input, init) => {
     const url = typeof input === 'string' ? input : input.toString();
     options.onCall?.(url);
 
     if (url.includes('/api/upload-mixcloud')) {
+      if (init?.body instanceof FormData) {
+        options.onMixcloudForm?.(init.body);
+      }
+
       if (options.mixcloudError) {
         return new Response(JSON.stringify({ error: 'Mixcloud upload failed' }), { status: 502 });
       }
 
-      return new Response(JSON.stringify({ url: options.mixcloudUrl }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          url: options.mixcloudUrl,
+          episodeUpdated: options.mixcloudEpisodeUpdated === true,
+        }),
+        { status: 200 }
+      );
     }
 
     if (url.includes('/api/upload-media')) {
@@ -123,6 +197,10 @@ function createMockFetch(options: {
     }
 
     if (url.includes('/archive')) {
+      if (typeof init?.body === 'string') {
+        options.onArchiveBody?.(JSON.parse(init.body) as Record<string, unknown>);
+      }
+
       if (options.archiveError) {
         return new Response(JSON.stringify({ error: 'Archive failed' }), { status: 500 });
       }

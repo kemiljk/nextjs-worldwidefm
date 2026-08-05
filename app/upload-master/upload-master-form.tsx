@@ -21,6 +21,11 @@ import { upload } from '@vercel/blob/client';
 import { buildMediaMetadataTitle, buildTemporaryMediaBlobPath } from '@/lib/upload-filename-utils';
 import { getMaxMediaUploadMb } from '@/lib/upload-config';
 import { runUploadMasterFlow, buildUploadResultSummary } from '@/lib/upload-master-flow';
+import {
+  buildMixcloudDescription,
+  buildMixcloudTags,
+  formatDateForMixcloud,
+} from '@/lib/upload-master-metadata';
 
 const MAX_MEDIA_MB = getMaxMediaUploadMb();
 
@@ -212,7 +217,12 @@ export function UploadMasterForm() {
       }
 
       const summary = buildUploadResultSummary(flowResult);
-      if (flowResult.archiveUpdated && !flowResult.mixcloudError && !flowResult.radioCultError) {
+      if (
+        flowResult.archiveUpdated &&
+        flowResult.mixcloudLinkSaved &&
+        !flowResult.mixcloudError &&
+        !flowResult.radioCultError
+      ) {
         setPhase('success');
         toast.success('Mastered audio uploaded and episode updated');
         setSelectedEpisode(null);
@@ -421,50 +431,6 @@ export function UploadMasterForm() {
       </div>
     </div>
   );
-}
-
-function formatDateForMixcloud(dateStr: string): string {
-  const [y, m, d] = dateStr.split('-');
-  if (!d || !m || !y) return dateStr;
-  return `${d.padStart(2, '0')}-${m.padStart(2, '0')}-${y.slice(-2)}`;
-}
-
-function buildMixcloudTags(episode: EpisodeObject): string[] {
-  const tags = [...(episode.metadata?.genres?.map(genre => genre.title) ?? []), 'WorldWide FM'];
-
-  return Array.from(new Set(tags.map(tag => tag.trim()).filter(Boolean))).slice(0, 5);
-}
-
-function htmlToPlainText(value: string): string {
-  return value
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|li|h[1-6])>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&quot;/gi, '"')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-function buildMixcloudDescription(episode: EpisodeObject, showPageUrl: string): string {
-  const showCopy = htmlToPlainText(
-    episode.metadata?.body_text || episode.metadata?.description || ''
-  );
-  const tracklist = htmlToPlainText(episode.metadata?.tracklist || '');
-
-  const sections = [showCopy];
-  if (tracklist) {
-    sections.push(`Tracklist:\n${tracklist}`);
-  }
-  if (showPageUrl) {
-    sections.push(`Full show: ${showPageUrl}`);
-  }
-
-  return sections.filter(Boolean).join('\n\n');
 }
 
 function UploadProgressPanel({ phase }: { phase: SubmissionPhase }) {

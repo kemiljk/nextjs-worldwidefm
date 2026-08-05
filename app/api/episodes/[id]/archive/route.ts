@@ -1,14 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { revalidatePath, revalidateTag } from 'next/cache';
-import { cosmic } from '@/lib/cosmic-config';
-
-function revalidateEpisodeCaches(slug?: string) {
-  revalidateTag('episodes', { expire: 0 });
-  if (slug) {
-    revalidateTag(`episode-${slug}`, { expire: 0 });
-    revalidatePath(`/episode/${slug}`);
-  }
-}
+import { updateEpisodeArchive, type EpisodeArchiveUpdates } from '@/lib/episode-archive';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -21,7 +12,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const regularHosts = body.regular_hosts as string[] | undefined;
     const slug = typeof body.slug === 'string' && body.slug.trim() ? body.slug.trim() : undefined;
 
-    const updates: Record<string, unknown> = {};
+    const updates: EpisodeArchiveUpdates = {};
 
     if (radiocultMediaId !== undefined) {
       updates.radiocult_media_id = radiocultMediaId;
@@ -46,11 +37,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'No archive fields to update' }, { status: 400 });
     }
 
-    await cosmic.objects.updateOne(id, {
-      metadata: updates,
-    });
-
-    revalidateEpisodeCaches(slug);
+    await updateEpisodeArchive(id, updates, slug);
 
     return NextResponse.json({ success: true });
   } catch (error) {
