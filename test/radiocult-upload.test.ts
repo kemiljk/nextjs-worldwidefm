@@ -7,6 +7,12 @@ const TAGLESS_MP3 = Buffer.from([
   0xff, 0xfb, 0xe0, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 ]);
 
+/** Same audio, already carrying an ID3v2.3 tag that must be replaced, not stacked. */
+const TAGGED_MP3 = writeMp3Id3v23Metadata(TAGLESS_MP3, {
+  title: 'Stale Title',
+  artist: 'Stale Artist',
+});
+
 let mediaServer: ReturnType<typeof Bun.serve>;
 let radioCultServer: ReturnType<typeof Bun.serve>;
 let mediaServerUrl = '';
@@ -182,5 +188,60 @@ describe('uploadMediaToRadioCult', () => {
 
     expect(result.success).toBe(true);
     expect(receivedUploads.at(-1)?.bodyLength).toBeGreaterThanOrEqual(expected.length);
+  });
+});
+
+describe('uploadMediaToRadioCult tagging is byte-exact', () => {
+  let server: ReturnType<typeof Bun.serve>;
+  let uploadedFile: Buffer | undefined;
+
+  beforeAll(() => {
+    server = Bun.serve({
+      port: 0,
+      async fetch(request) {
+        const form = await request.formData();
+        const media = form.get('stationMedia') as File;
+        uploadedFile = Buffer.from(await media.arrayBuffer());
+        return Response.json({ track: { id: 'rc-track-bytes' } });
+      },
+    });
+  });
+
+  afterAll(() => {
+    server.stop();
+  });
+
+  const upload = (source: Buffer) =>
+    uploadMediaToRadioCult({
+      file: new Blob([source], { type: 'application/octet-stream' }),
+      fileName: 'bytes.mp3',
+      metadata: { title: 'New Title', artist: 'New Artist' },
+      stationId: 'station-1',
+      secretKey: 'secret',
+      apiBaseUrl: `http://127.0.0.1:${server.port}`,
+      blobFetchTimeoutMs: 5_000,
+      externalUploadTimeoutMs: 5_000,
+    });
+
+  it('sends a tagless MP3 with the tag prepended', async () => {
+    uploadedFile = undefined;
+    const result = await upload(TAGLESS_MP3);
+
+    expect(result.success).toBe(true);
+    expect(uploadedFile).toEqual(
+      writeMp3Id3v23Metadata(TAGLESS_MP3, { title: 'New Title', artist: 'New Artist' })
+    );
+  });
+
+  it('replaces an existing tag rather than stacking a second one', async () => {
+    uploadedFile = undefined;
+    const result = await upload(TAGGED_MP3);
+
+    expect(result.success).toBe(true);
+    expect(uploadedFile).toEqual(
+      writeMp3Id3v23Metadata(TAGGED_MP3, { title: 'New Title', artist: 'New Artist' })
+    );
+    // The original audio frames survive the swap untouched.
+    expect(uploadedFile?.subarray(uploadedFile.length - TAGLESS_MP3.length)).toEqual(TAGLESS_MP3);
   });
 });

@@ -23,7 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { X, CheckCircle, ArrowLeft, Check, ChevronsUpDown } from 'lucide-react';
+import { X, CheckCircle, AlertTriangle, ArrowLeft, Check, ChevronsUpDown } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -100,12 +100,17 @@ export function AddShowForm() {
     | 'uploadedImage'
     | 'uploadingMedia'
     | 'uploadedMedia'
+    | 'mediaFailed'
     | 'creatingShow'
     | 'success'
     | 'error';
   const [phase, setPhase] = useState<SubmissionPhase>('idle');
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [submittedShowTitle, setSubmittedShowTitle] = useState<string>('');
+  /** Set when the show saved but its audio never reached RadioCult. */
+  const [audioFailure, setAudioFailure] = useState<{ reason: string; recoverable: boolean } | null>(
+    null
+  );
   const [hosts, setHosts] = useState<CosmicHost[]>([]);
   const [genres, setGenres] = useState<CosmicGenre[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -309,6 +314,7 @@ export function AddShowForm() {
   const handleCreateAnother = () => {
     setIsSubmitted(false);
     setSubmittedShowTitle('');
+    setAudioFailure(null);
     setHostInput('');
     setLocationInput('');
     setSelectedLocation(undefined);
@@ -323,6 +329,7 @@ export function AddShowForm() {
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
     setPhase('preparing');
+    setAudioFailure(null);
 
     try {
       let radiocultMediaId: string | null | undefined = undefined;
@@ -415,9 +422,12 @@ export function AddShowForm() {
             mediaFile.name
           );
 
+          // Multipart chunks the upload so multi-hundred-MB masters survive a flaky
+          // connection instead of failing a single unresumable PUT.
           const blob = await upload(buildTemporaryMediaBlobPath(mediaFileName), mediaFile, {
             access: 'public',
             handleUploadUrl: '/api/upload-media/token',
+            multipart: true,
           });
           uploadedBlobUrl = blob.url;
 
@@ -460,17 +470,24 @@ export function AddShowForm() {
           setPhase('uploadedMedia');
         } catch (mediaError) {
           console.error('❌ Media upload/processing failed:', mediaError);
+
+          const reason = mediaError instanceof Error ? mediaError.message : 'Unknown upload error';
+
+          // Only claim the audio was kept when it actually reached temporary storage.
           if (uploadedBlobUrl) {
             rawMediaUrl = uploadedBlobUrl;
           }
-          toast.warning('Audio upload failed — continuing without attaching media', {
-            description:
-              mediaError instanceof Error
-                ? `${mediaError.message}. The raw audio was saved for staff retry.`
-                : 'Unknown error during upload. The raw audio was saved for staff retry.',
+
+          toast.error('Audio was NOT sent to RadioCult', {
+            description: uploadedBlobUrl
+              ? `${reason}. Your audio was saved for staff to retry — the show details will still be submitted.`
+              : `${reason}. The audio did not upload, so you will need to send it to the team separately.`,
+            duration: 20000,
           });
+
+          setAudioFailure({ reason, recoverable: Boolean(uploadedBlobUrl) });
           radiocultMediaId = undefined;
-          setPhase('uploadedMedia');
+          setPhase('mediaFailed');
         }
       }
 
@@ -520,6 +537,7 @@ export function AddShowForm() {
           props: {
             title: values.title,
             hasMedia: !!mediaFile,
+            audioAttached: !!radiocultMediaId,
             hasImage: !!imageFile,
             genreCount: selectedGenres.length,
           },
@@ -530,7 +548,11 @@ export function AddShowForm() {
         setIsSubmitted(true);
         setPhase('success');
 
-        toast.success('Show submitted successfully!');
+        if (mediaFile && !radiocultMediaId) {
+          toast.warning('Show submitted, but without its audio');
+        } else {
+          toast.success('Show submitted successfully!');
+        }
 
         // Reset the form for potential next submission
         form.reset();
@@ -583,19 +605,40 @@ export function AddShowForm() {
   if (isSubmitted) {
     return (
       <div className='flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center'>
-        <div className='flex items-center justify-center w-16 h-16 bg-green-100 rounded-full'>
-          <CheckCircle className='w-8 h-8 text-green-600' />
+        <div
+          className={cn(
+            'flex items-center justify-center w-16 h-16 rounded-full',
+            audioFailure ? 'bg-amber-100' : 'bg-green-100'
+          )}
+        >
+          {audioFailure ? (
+            <AlertTriangle className='w-8 h-8 text-amber-600' />
+          ) : (
+            <CheckCircle className='w-8 h-8 text-green-600' />
+          )}
         </div>
 
         <div className='space-y-2'>
           <h2 className='text-2xl font-semibold text-almostblack dark:text-white'>
-            Show Submitted Successfully!
+            {audioFailure ? 'Show Submitted — Audio Missing' : 'Show Submitted Successfully!'}
           </h2>
           <p className='text-neutral-600 max-w-md'>
             "<strong>{submittedShowTitle}</strong>" has been submitted for approval. Once approved,
             it will be published to RadioCult and appear on your station.
           </p>
         </div>
+
+        {audioFailure && (
+          <div className='max-w-md space-y-2 border border-amber-300 bg-amber-50 p-4 text-left text-sm text-amber-900'>
+            <p className='font-semibold'>Your audio did not reach RadioCult.</p>
+            <p>
+              {audioFailure.recoverable
+                ? 'The file was saved to temporary storage and the team has been given the details to retry it. No action needed unless you are asked.'
+                : 'The file never finished uploading. Please email the audio to the team so your show can go out on time.'}
+            </p>
+            <p className='text-xs text-amber-800'>Reason: {audioFailure.reason}</p>
+          </div>
+        )}
 
         <div className='flex flex-col sm:flex-row gap-3'>
           <Button onClick={handleCreateAnother} className='flex items-center gap-2 px-4'>
@@ -1297,9 +1340,11 @@ export function AddShowForm() {
                       ? 'Uploading audio…'
                       : phase === 'uploadedMedia'
                         ? 'Audio uploaded ✓'
-                        : phase === 'creatingShow'
-                          ? 'Creating show…'
-                          : 'Submitting…'
+                        : phase === 'mediaFailed'
+                          ? 'Audio failed — saving show…'
+                          : phase === 'creatingShow'
+                            ? 'Creating show…'
+                            : 'Submitting…'
               : 'Submit for Approval'}
           </Button>
         </div>

@@ -1,4 +1,12 @@
 {
+  "functions": {
+    "app/api/upload-media/route.ts": {
+      "memory": 3009
+    },
+    "app/api/upload-mixcloud/route.ts": {
+      "memory": 3009
+    }
+  },
   "crons": [
     {
       "path": "/api/cron/migrate-cold-storage",

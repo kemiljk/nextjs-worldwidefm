@@ -176,6 +176,7 @@ export function UploadMasterForm() {
           await upload(buildTemporaryMediaBlobPath(mediaFile.name), mediaFile, {
             access: 'public',
             handleUploadUrl: '/api/upload-media/token',
+            multipart: true,
           })
         ).url;
 

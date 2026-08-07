@@ -1,4 +1,9 @@
-import { inspectMp3Structure, writeMp3Id3v23Metadata } from '@/lib/mp3-utils';
+import {
+  buildId3v23Tag,
+  ID3V2_HEADER_LENGTH,
+  inspectMp3Structure,
+  readId3v2TagLength,
+} from '@/lib/mp3-utils';
 import { fetchWithRetry } from '@/lib/upload-fetch';
 import {
   UPLOAD_BLOB_FETCH_TIMEOUT_MS,
@@ -75,7 +80,7 @@ export async function uploadMediaToRadioCult(
     return { success: false, error: 'No file or mediaUrl provided' };
   }
 
-  let finalFile: File | Blob;
+  let finalFile: Blob;
   let finalFileName: string;
   let finalFileType: string;
 
@@ -112,28 +117,34 @@ export async function uploadMediaToRadioCult(
   const ext = finalFileName.split('.').pop()?.toLowerCase();
   finalFileType = normalizeAudioMimeType(finalFileName, finalFileType);
 
-  const arrayBuffer = await finalFile.arrayBuffer();
-  let buffer = Buffer.from(arrayBuffer);
-
+  let fileBlob: Blob = finalFile;
   let mp3Diagnostics: ReturnType<typeof inspectMp3Structure> | undefined;
+
   if (ext === 'mp3' || finalFileName.toLowerCase().endsWith('.mp3')) {
+    const head = await readId3Head(fileBlob);
+
     try {
-      mp3Diagnostics = inspectMp3Structure(buffer);
+      mp3Diagnostics = inspectMp3Structure(head, fileBlob.size);
     } catch {
       // Non-blocking diagnostics only.
     }
 
-    const title = metadata.title?.trim() || buildMediaMetadataTitle(finalFileName);
-    buffer = Buffer.from(
-      writeMp3Id3v23Metadata(buffer, {
-        title,
-        artist: metadata.artist,
-      })
-    );
+    const tag = buildId3v23Tag({
+      title: metadata.title?.trim() || buildMediaMetadataTitle(finalFileName),
+      artist: metadata.artist,
+    });
+
+    if (tag) {
+      // Slicing keeps the audio as a view onto the original blob, so a
+      // multi-hundred-MB master is never duplicated in memory.
+      const audio = fileBlob.slice(readId3v2TagLength(head, fileBlob.size));
+      fileBlob = new Blob([new Uint8Array(tag), audio], { type: finalFileType });
+    }
   }
 
-  const fileBlob = new Blob([buffer], { type: finalFileType });
-  buffer = Buffer.alloc(0);
+  if (fileBlob.type !== finalFileType) {
+    fileBlob = fileBlob.slice(0, fileBlob.size, finalFileType);
+  }
 
   const rcForm = new FormData();
   rcForm.append('stationMedia', fileBlob, finalFileName);
@@ -185,6 +196,27 @@ export async function uploadMediaToRadioCult(
       mp3Diagnostics,
     };
   }
+}
+
+/** Extra bytes past the ID3 tag needed for the MPEG frame-sync diagnostic. */
+const ID3_HEAD_PROBE_BYTES = 64;
+
+/**
+ * Read just enough of the file to parse its ID3v2 tag and run diagnostics.
+ * Two small reads instead of pulling the whole master into a Buffer.
+ */
+async function readId3Head(blob: Blob): Promise<Buffer> {
+  const prefix = Buffer.from(
+    await blob.slice(0, Math.min(ID3V2_HEADER_LENGTH, blob.size)).arrayBuffer()
+  );
+  const tagLength = readId3v2TagLength(prefix, blob.size);
+  const headLength = Math.min(tagLength + ID3_HEAD_PROBE_BYTES, blob.size);
+
+  if (headLength <= prefix.length) {
+    return prefix;
+  }
+
+  return Buffer.from(await blob.slice(0, headLength).arrayBuffer());
 }
 
 function resolveFileName(mediaUrl: string, requestedFileName?: string | null): string {

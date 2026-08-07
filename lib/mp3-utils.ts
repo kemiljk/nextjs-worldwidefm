@@ -1,8 +1,14 @@
 /**
  * Inspect MP3 file structure for diagnostics.
  * Returns info about ID3 header, MPEG frame sync, and padding patterns.
+ *
+ * Only the leading bytes are read, so callers holding a large file may pass a
+ * head slice plus the real `totalSize` instead of the whole thing.
  */
-export function inspectMp3Structure(buffer: Buffer): {
+export function inspectMp3Structure(
+  buffer: Buffer,
+  totalSize: number = buffer.length
+): {
   hasId3Header: boolean;
   hasMpegFrameSync: boolean;
   firstBytes: string;
@@ -51,9 +57,11 @@ export function inspectMp3Structure(buffer: Buffer): {
     firstBytes,
     id3Version,
     paddingPattern,
-    fileSize: buffer.length,
+    fileSize: totalSize,
   };
 }
+
+export const ID3V2_HEADER_LENGTH = 10;
 
 /**
  * Minimal ID3v2.3.0 header (10 bytes, size 0).
@@ -67,18 +75,24 @@ export function prependMinimalId3Tag(buffer: Buffer): Buffer {
   return Buffer.concat([MINIMAL_ID3V2_HEADER, buffer]);
 }
 
-function getId3v2TagLength(buffer: Buffer): number {
-  if (buffer.length < 10 || buffer.toString('ascii', 0, 3) !== 'ID3') {
+/**
+ * Byte length of the leading ID3v2 tag, or 0 when there is none.
+ *
+ * `head` only needs to contain the first 10 bytes; pass `totalSize` when it is
+ * a slice of a larger file so the result stays clamped to the real length.
+ */
+export function readId3v2TagLength(head: Buffer, totalSize: number = head.length): number {
+  if (head.length < ID3V2_HEADER_LENGTH || head.toString('ascii', 0, 3) !== 'ID3') {
     return 0;
   }
 
   const size =
-    ((buffer[6] & 0x7f) << 21) |
-    ((buffer[7] & 0x7f) << 14) |
-    ((buffer[8] & 0x7f) << 7) |
-    (buffer[9] & 0x7f);
+    ((head[6] & 0x7f) << 21) |
+    ((head[7] & 0x7f) << 14) |
+    ((head[8] & 0x7f) << 7) |
+    (head[9] & 0x7f);
 
-  return Math.min(10 + size, buffer.length);
+  return Math.min(ID3V2_HEADER_LENGTH + size, totalSize);
 }
 
 function encodeSyncSafeSize(size: number): Buffer {
@@ -97,17 +111,20 @@ function createId3v23TextFrame(frameId: 'TIT2' | 'TPE1', value: string): Buffer 
   return Buffer.concat([header, payload]);
 }
 
-export function writeMp3Id3v23Metadata(
-  buffer: Buffer,
-  metadata: { title?: string; artist?: string }
-): Buffer {
+/**
+ * Build a standalone ID3v2.3 tag, or null when there is nothing to write.
+ *
+ * Returned separately from the audio so large files can be reassembled as a
+ * `Blob` view rather than a full in-memory concat.
+ */
+export function buildId3v23Tag(metadata: { title?: string; artist?: string }): Buffer | null {
   const frames = [
     metadata.title?.trim() ? createId3v23TextFrame('TIT2', metadata.title) : undefined,
     metadata.artist?.trim() ? createId3v23TextFrame('TPE1', metadata.artist) : undefined,
   ].filter((frame): frame is Buffer => !!frame);
 
   if (frames.length === 0) {
-    return buffer;
+    return null;
   }
 
   const payload = Buffer.concat(frames);
@@ -116,7 +133,18 @@ export function writeMp3Id3v23Metadata(
     Buffer.from([0x03, 0x00, 0x00]),
     encodeSyncSafeSize(payload.length),
   ]);
-  const audioData = buffer.subarray(getId3v2TagLength(buffer));
 
-  return Buffer.concat([header, payload, audioData]);
+  return Buffer.concat([header, payload]);
+}
+
+export function writeMp3Id3v23Metadata(
+  buffer: Buffer,
+  metadata: { title?: string; artist?: string }
+): Buffer {
+  const tag = buildId3v23Tag(metadata);
+  if (!tag) {
+    return buffer;
+  }
+
+  return Buffer.concat([tag, buffer.subarray(readId3v2TagLength(buffer))]);
 }
