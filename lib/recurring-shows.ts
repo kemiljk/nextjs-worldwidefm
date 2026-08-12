@@ -17,6 +17,26 @@ export interface RecurringShowTemplate {
   placeholderImageUrl: string;
 }
 
+export interface RecurringHostMetadata {
+  description?: string | null;
+  image?: { url?: string | null; imgix_url?: string | null } | null;
+  external_image_url?: string | null;
+}
+
+export function getRecurringEpisodeContent(
+  template: Pick<RecurringShowTemplate, 'description' | 'placeholderImageUrl'>,
+  hostMetadata?: RecurringHostMetadata | null
+): { description: string; imageUrl: string } {
+  const description = hostMetadata?.description?.trim() || template.description;
+  const imageUrl =
+    hostMetadata?.external_image_url ||
+    hostMetadata?.image?.imgix_url ||
+    hostMetadata?.image?.url ||
+    template.placeholderImageUrl;
+
+  return { description, imageUrl };
+}
+
 export const RECURRING_SHOWS: RecurringShowTemplate[] = [
   {
     title: 'Breakfast Club Coco',

@@ -14,6 +14,7 @@
     "fetch-archive": "bun run scripts/fetch-archive.ts",
     "populate-takeovers": "bun run scripts/populate-takeovers.ts",
     "create-weekly-shows": "bun run scripts/create-weekly-shows.ts",
+    "repair-recurring-episodes": "bun run scripts/repair-recurring-episodes.ts",
     "verify-recurring-hosts": "bun run scripts/verify-recurring-hosts.ts",
     "export-shows": "bun run scripts/export-shows.ts",
     "retry-radiocult-upload": "bun run scripts/retry-radiocult-upload.ts",

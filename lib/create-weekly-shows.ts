@@ -3,6 +3,7 @@ import { getCurrentUkWeek } from '@/lib/date-utils';
 import {
   buildRecurringEpisodeSlug,
   RECURRING_SHOWS,
+  getRecurringEpisodeContent,
   type RecurringShowTemplate,
 } from '@/lib/recurring-shows';
 
@@ -60,17 +61,24 @@ async function findExistingEpisode(title: string, broadcastDate: string): Promis
   }
 }
 
-async function findHostIdBySlug(slug: string): Promise<string | null> {
+async function findHostBySlug(slug: string): Promise<{
+  id: string;
+  metadata?: {
+    description?: string | null;
+    image?: { url?: string | null; imgix_url?: string | null } | null;
+    external_image_url?: string | null;
+  } | null;
+} | null> {
   try {
     const response = await cosmic.objects
       .findOne({
         type: 'regular-hosts',
         slug,
       })
-      .props('id')
+      .props('id,metadata.description,metadata.image,metadata.external_image_url')
       .status('any');
 
-    return response?.object?.id ?? null;
+    return response?.object ?? null;
   } catch (error) {
     const typedError = error as { status?: number };
     if (typedError?.status === 404) {
@@ -83,9 +91,10 @@ async function findHostIdBySlug(slug: string): Promise<string | null> {
 async function createRecurringEpisode(params: {
   template: RecurringShowTemplate;
   broadcastDate: string;
-  hostId: string | null;
+  host: Awaited<ReturnType<typeof findHostBySlug>>;
 }): Promise<void> {
-  const { template, broadcastDate, hostId } = params;
+  const { template, broadcastDate, host } = params;
+  const { description, imageUrl } = getRecurringEpisodeContent(template, host?.metadata);
   const broadcastDay = new Date(`${broadcastDate}T12:00:00Z`).toLocaleDateString('en-GB', {
     weekday: 'long',
     timeZone: 'Europe/London',
@@ -96,14 +105,14 @@ async function createRecurringEpisode(params: {
     broadcast_time: template.startTime,
     broadcast_day: broadcastDay,
     duration: `${template.durationHours}:00`,
-    description: template.description,
-    external_image_url: template.placeholderImageUrl,
+    description,
+    external_image_url: imageUrl,
     is_live: true,
     source: 'recurring-auto',
   };
 
-  if (hostId) {
-    metadata.regular_hosts = [hostId];
+  if (host) {
+    metadata.regular_hosts = [host.id];
   }
 
   const objectData = {
@@ -167,10 +176,10 @@ export async function createWeeklyRecurringShows(
         continue;
       }
 
-      let hostId: string | null = null;
+      let host: Awaited<ReturnType<typeof findHostBySlug>> = null;
       if (template.hostSlug) {
-        hostId = await findHostIdBySlug(template.hostSlug);
-        if (!hostId) {
+        host = await findHostBySlug(template.hostSlug);
+        if (!host) {
           result.warnings.push({
             title: template.title,
             broadcastDate,
@@ -182,7 +191,7 @@ export async function createWeeklyRecurringShows(
       await createRecurringEpisode({
         template,
         broadcastDate,
-        hostId,
+        host,
       });
 
       result.created.push(`${template.title} (${broadcastDate})`);
