@@ -334,15 +334,19 @@ function startOfUkWeek(date: Date): Date {
 
 /**
  * Get the current UK week (Monday -> Sunday) based on the Europe/London timezone.
- * If it's Saturday or Sunday, it returns the dates for the following week.
+ * By default, Saturday and Sunday return the following week. Callers that need
+ * the active weekend can disable that rollover.
  */
-export function getCurrentUkWeek(referenceDate: Date = new Date()): UkWeekInfo {
+export function getCurrentUkWeek(
+  referenceDate: Date = new Date(),
+  advanceOnWeekend = true
+): UkWeekInfo {
   const londonDate = getDateInTimeZone(referenceDate, 'Europe/London');
 
   // If it's Saturday (6) or Sunday (0), move the reference to next week
   // so we show the upcoming schedule instead of the one that just finished.
   const dayOfWeek = londonDate.getUTCDay();
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
+  if (advanceOnWeekend && (dayOfWeek === 0 || dayOfWeek === 6)) {
     londonDate.setUTCDate(londonDate.getUTCDate() + 7);
   }
 

@@ -8,8 +8,8 @@ import {
   UK_WEEK_DAYS,
 } from './date-utils';
 import type { ScheduleShow, ScheduleDayMap } from './types/schedule';
+import { getScheduleEventId, mergeScheduleItems } from './schedule-days';
 
-const TARGET_DAYS: UkWeekday[] = ['Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const PLACEHOLDER_IMAGE = '/image-placeholder.png';
 const RERUN_SCHEDULE_ID = '69217f64b183692bb397e481';
 export type { ScheduleShow };
@@ -197,7 +197,7 @@ function buildScheduleShow(params: {
 
   return {
     show_key: slug || `schedule-${title}-${date}-${time}`,
-    event_id: episode ? `episode-${episode.id}` : `schedule-${date}-${time}-${title}`,
+    event_id: getScheduleEventId(episode?.id, date, time, title),
     show_time: time || '00:00',
     show_day: showDay,
     date,
@@ -257,7 +257,7 @@ async function fetchManualOverrides(dayDates: Partial<ScheduleDayMap>): Promise<
     for (const { metadata, id } of schedules) {
       const isReplay = id === RERUN_SCHEDULE_ID;
 
-      for (const day of TARGET_DAYS) {
+      for (const day of UK_WEEK_DAYS) {
         const dayKey = day.toLowerCase();
         const scheduleBlock = metadata[dayKey];
         const showEntries: unknown[] | undefined = Array.isArray(scheduleBlock)
@@ -352,7 +352,7 @@ async function fetchEpisodesByDate(date: string): Promise<EpisodeObject[]> {
 }
 
 async function fetchAutomaticEpisodes(dayDates: Partial<ScheduleDayMap>): Promise<ScheduleShow[]> {
-  const targetDates = TARGET_DAYS.map(day => dayDates[day]).filter(Boolean) as string[];
+  const targetDates = UK_WEEK_DAYS.map(day => dayDates[day]).filter(Boolean) as string[];
   if (targetDates.length === 0) {
     return [];
   }
@@ -383,7 +383,7 @@ async function fetchAutomaticEpisodes(dayDates: Partial<ScheduleDayMap>): Promis
           timeZone: 'Europe/London',
         }) as UkWeekday;
 
-        if (!showDay || !TARGET_DAYS.includes(showDay)) {
+        if (!showDay || !UK_WEEK_DAYS.includes(showDay)) {
           return null;
         }
 
@@ -428,8 +428,8 @@ function sortScheduleItems(items: ScheduleShow[]): ScheduleShow[] {
 
 export async function getWeeklySchedule(): Promise<WeeklyScheduleResult> {
   try {
-    const { dayDates } = getCurrentUkWeek();
-    const targetDayDates = TARGET_DAYS.reduce((acc, day) => {
+    const { dayDates } = getCurrentUkWeek(new Date(), false);
+    const targetDayDates = UK_WEEK_DAYS.reduce((acc, day) => {
       acc[day] = dayDates[day];
       return acc;
     }, {} as Partial<ScheduleDayMap>);
@@ -439,22 +439,7 @@ export async function getWeeklySchedule(): Promise<WeeklyScheduleResult> {
       fetchAutomaticEpisodes(targetDayDates),
     ]);
 
-    const dedupeMap = new Map<string, ScheduleShow>();
-    for (const item of manualOverrides) {
-      if (item.name !== 'Untitled') {
-        dedupeMap.set(item.event_id || item.show_key, item);
-      }
-    }
-    for (const item of automaticEpisodes) {
-      if (item.name !== 'Untitled') {
-        const key = item.event_id || item.show_key;
-        if (!dedupeMap.has(key)) {
-          dedupeMap.set(key, item);
-        }
-      }
-    }
-
-    const scheduleItems = sortScheduleItems(Array.from(dedupeMap.values()));
+    const scheduleItems = sortScheduleItems(mergeScheduleItems(manualOverrides, automaticEpisodes));
 
     return {
       scheduleItems,
@@ -465,7 +450,7 @@ export async function getWeeklySchedule(): Promise<WeeklyScheduleResult> {
     console.error('[Schedule] Unexpected error generating schedule', error);
     return {
       scheduleItems: [],
-      dayDates: getCurrentUkWeek().dayDates,
+      dayDates: getCurrentUkWeek(new Date(), false).dayDates,
       isActive: false,
       error: error instanceof Error ? error.message : 'Failed to generate schedule.',
     };

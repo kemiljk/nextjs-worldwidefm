@@ -9,6 +9,7 @@ import {
   parseLondonDateTime,
 } from '@/lib/date-utils';
 import type { ScheduleShow, ScheduleDayMap } from '@/lib/types/schedule';
+import { getVisibleScheduleDays } from '@/lib/schedule-days';
 
 interface ScheduleDisplayProps {
   scheduleItems: ScheduleShow[];
@@ -84,9 +85,6 @@ export default function ScheduleDisplay({
     }
   };
 
-  // Target days for schedule (Tuesday-Friday)
-  const targetDays: UkWeekday[] = ['Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-
   // Group shows by day
   const showsByDay = scheduleItems.reduce(
     (acc, show) => {
@@ -107,6 +105,8 @@ export default function ScheduleDisplay({
       return timeA[0] * 60 + timeA[1] - (timeB[0] * 60 + timeB[1]);
     });
   });
+
+  const visibleDays = getVisibleScheduleDays(scheduleItems);
 
   if (!isActive || scheduleItems.length === 0) {
     return (
@@ -148,7 +148,7 @@ export default function ScheduleDisplay({
 
       {/* Schedule list */}
       <div className='space-y-0 px-5'>
-        {targetDays.map(day => {
+        {visibleDays.map(day => {
           const dayShows = showsByDay[day] || [];
           const dayIso = getDayIso(day);
           if (!dayIso) return null;
@@ -186,7 +186,7 @@ export default function ScheduleDisplay({
                 </div>
               ) : (
                 <div className='divide-y divide-gray-200 dark:divide-gray-700'>
-                  {dayShows.map((show, index) => {
+                  {dayShows.map(show => {
                     const startTime = convertTime(show.show_time, show.show_day);
                     const durationMinutes = parseDurationToMinutes(show.duration);
                     const startDate = buildDateFromDay(show.show_day, show.show_time);

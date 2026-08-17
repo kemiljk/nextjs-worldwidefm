@@ -3,6 +3,7 @@ import {
   parseBroadcastDateTime,
   parseLondonDateTime,
   formatLondonBroadcastTime,
+  getCurrentUkWeek,
 } from '@/lib/date-utils';
 
 describe('parseLondonDateTime', () => {
@@ -47,5 +48,13 @@ describe('formatLondonBroadcastTime', () => {
     const s = formatLondonBroadcastTime(d);
     expect(s).toMatch(/^13:00 /);
     expect(s).toMatch(/\[(BST|GMT)\]$/);
+  });
+});
+
+describe('getCurrentUkWeek', () => {
+  it('can retain the current week when the schedule is viewed at the weekend', () => {
+    const saturday = new Date('2026-08-22T12:00:00.000Z');
+
+    expect(getCurrentUkWeek(saturday, false).dayDates.Saturday).toBe('2026-08-22');
   });
 });
