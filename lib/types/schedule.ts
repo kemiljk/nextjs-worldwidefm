@@ -10,6 +10,7 @@ export interface ScheduleShow {
   url: string;
   picture: string;
   created_time: string;
+  modified_time?: string;
   tags: string[];
   hosts: string[];
   duration: number;

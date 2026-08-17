@@ -205,6 +205,7 @@ function buildScheduleShow(params: {
     url: url || '',
     picture: imageUrl || PLACEHOLDER_IMAGE,
     created_time: episode?.created_at || new Date().toISOString(),
+    modified_time: episode?.modified_at,
     tags: genres.map(genre => genre.title).filter(Boolean),
     hosts: hosts.map(host => host.title).filter(Boolean),
     duration: parseDurationToMinutes(durationSource),
@@ -335,7 +336,7 @@ async function fetchEpisodesByDate(date: string): Promise<EpisodeObject[]> {
         status: 'published',
         'metadata.broadcast_date': date,
       })
-      .props('id,slug,title,metadata,created_at')
+      .props('id,slug,title,metadata,created_at,modified_at')
       .limit(50)
       .sort('metadata.broadcast_time')
       .depth(2);

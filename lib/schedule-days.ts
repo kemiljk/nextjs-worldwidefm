@@ -26,6 +26,11 @@ export function mergeScheduleItems(
   const manuallyScheduledShows = new Set(
     manualOverrides.filter(item => item.name !== 'Untitled').map(item => item.show_key)
   );
+  const occupiedManualSlots = new Set(
+    manualOverrides
+      .filter(item => item.name !== 'Untitled')
+      .map(item => `${item.date}-${item.show_time}`)
+  );
 
   for (const item of manualOverrides) {
     if (item.name !== 'Untitled') {
@@ -33,15 +38,30 @@ export function mergeScheduleItems(
     }
   }
 
+  const automaticBySlot = new Map<string, ScheduleShow>();
   for (const item of automaticEpisodes) {
-    if (item.name === 'Untitled' || manuallyScheduledShows.has(item.show_key)) {
+    const slotKey = `${item.date}-${item.show_time}`;
+    if (
+      item.name === 'Untitled' ||
+      manuallyScheduledShows.has(item.show_key) ||
+      occupiedManualSlots.has(slotKey)
+    ) {
       continue;
     }
 
-    const key = item.event_id || item.show_key;
-    if (!itemsBySlot.has(key)) {
-      itemsBySlot.set(key, item);
+    const current = automaticBySlot.get(slotKey);
+    const itemModifiedAt = Date.parse(item.modified_time || item.created_time);
+    const currentModifiedAt = current
+      ? Date.parse(current.modified_time || current.created_time)
+      : Number.NEGATIVE_INFINITY;
+
+    if (!current || itemModifiedAt > currentModifiedAt) {
+      automaticBySlot.set(slotKey, item);
     }
+  }
+
+  for (const item of automaticBySlot.values()) {
+    itemsBySlot.set(item.event_id || item.show_key, item);
   }
 
   return Array.from(itemsBySlot.values());

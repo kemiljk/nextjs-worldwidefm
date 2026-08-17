@@ -57,4 +57,21 @@ describe('getVisibleScheduleDays', () => {
       saturdayManual,
     ]);
   });
+
+  it('keeps only the most recently modified automatic episode in a broadcast slot', () => {
+    const older = {
+      ...makeShow('Saturday'),
+      show_key: 'older-episode',
+      event_id: 'older-event',
+      modified_time: '2026-08-01T12:00:00.000Z',
+    };
+    const newer = {
+      ...makeShow('Saturday'),
+      show_key: 'newer-episode',
+      event_id: 'newer-event',
+      modified_time: '2026-08-12T12:00:00.000Z',
+    };
+
+    expect(mergeScheduleItems([], [older, newer])).toEqual([newer]);
+  });
 });
