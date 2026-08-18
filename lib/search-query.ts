@@ -20,6 +20,44 @@ export function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+const ACCENT_EQUIVALENTS: Record<string, string> = {
+  a: 'aàáâãäåāăąǎæ',
+  c: 'cçćĉċč',
+  d: 'dďđð',
+  e: 'eèéêëēĕėęě',
+  g: 'gĝğġģ',
+  i: 'iìíîïĩīĭįıǐ',
+  l: 'lĺļľł',
+  n: 'nñńņňŋ',
+  o: 'oòóôõöøōŏőǒœ',
+  r: 'rŕŗř',
+  s: 'sśŝşšß',
+  t: 'tţťŧþ',
+  u: 'uùúûüũūŭůűųǔ',
+  y: 'yýÿŷ',
+  z: 'zźżž',
+};
+
+/** Build a regex fragment that treats common Latin diacritics as equivalent. */
+export function buildAccentInsensitivePattern(value: string): string {
+  const folded = foldSearchText(value);
+
+  return Array.from(folded)
+    .map(character => {
+      const equivalents = ACCENT_EQUIVALENTS[character.toLowerCase()];
+      const fragment = equivalents ? `[${equivalents}]` : escapeRegex(character);
+      return /[a-z]/i.test(character) ? `${fragment}[\\u0300-\\u036f]*` : fragment;
+    })
+    .join('');
+}
+
+export function foldSearchText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
 export function tokenizeSearchQuery(
   searchTerm: string,
   minTokenLength: number = SEARCH_MIN_TOKEN_LENGTH
@@ -42,11 +80,11 @@ export function buildSearchRegex(searchTerm: string | undefined): CosmicRegexCon
   }
 
   if (tokens.length === 1) {
-    return { $regex: escapeRegex(tokens[0]), $options: 'i' };
+    return { $regex: buildAccentInsensitivePattern(tokens[0]), $options: 'i' };
   }
 
   return {
-    $regex: tokens.map(token => `(?=.*${escapeRegex(token)})`).join(''),
+    $regex: tokens.map(token => `(?=.*${buildAccentInsensitivePattern(token)})`).join(''),
     $options: 'i',
   };
 }

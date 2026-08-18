@@ -132,6 +132,71 @@ test('metadata updates do not pause playback', async ({ page }) => {
   await expect(toggle).toHaveAttribute('data-state', 'playing');
 });
 
+test('a new programme does not restart a stream the listener paused', async ({ page }) => {
+  await page.addInitScript(() => {
+    HTMLMediaElement.prototype.play = function () {
+      (window as any).__playCount += 1;
+      this.dispatchEvent(new Event('playing'));
+      return Promise.resolve();
+    };
+  });
+
+  await page.goto('/');
+  const toggle = page.getByTestId('live-player-toggle');
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('data-state', 'playing');
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('data-state', 'paused');
+
+  const playCountBeforeChange = await page.evaluate(() => (window as any).__playCount);
+  await page.evaluate(() => {
+    (window as any).__emitPlayerMetadata({
+      content: { name: 'The Next Programme', artist: 'New Presenter' },
+      metadata: { title: 'New Programme' },
+    });
+  });
+
+  await expect(page.getByTestId('live-player-label')).toHaveText(/the next programme/i);
+  await expect(toggle).toHaveAttribute('data-state', 'paused');
+  expect(await page.evaluate(() => (window as any).__playCount)).toBe(playCountBeforeChange);
+});
+
+test('a polled schedule change does not restart a paused stream', async ({ page }) => {
+  let currentShow = 'First Programme';
+  await page.unroute('**/api/live/current');
+  await page.route('**/api/live/current', route =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        scheduleShow: { name: currentShow, url: '/schedule', slug: null },
+      }),
+    })
+  );
+  await page.addInitScript(() => {
+    HTMLMediaElement.prototype.play = function () {
+      (window as any).__playCount += 1;
+      this.dispatchEvent(new Event('playing'));
+      return Promise.resolve();
+    };
+  });
+
+  await page.goto('/');
+  const toggle = page.getByTestId('live-player-toggle');
+  await expect(page.getByTestId('live-player-label')).toHaveText(/first programme/i);
+  await toggle.click();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('data-state', 'paused');
+  const playCountBeforeChange = await page.evaluate(() => (window as any).__playCount);
+
+  currentShow = 'Second Programme';
+  await expect(page.getByTestId('live-player-label')).toHaveText(/second programme/i);
+  await expect(toggle).toHaveAttribute('data-state', 'paused');
+  expect(await page.evaluate(() => (window as any).__playCount)).toBe(playCountBeforeChange);
+});
+
 test('slow connection shows loading state before playing', async ({ page }) => {
   await page.addInitScript(() => {
     HTMLMediaElement.prototype.play = function () {

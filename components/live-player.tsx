@@ -48,7 +48,7 @@ interface ScheduleShowInfo {
   slug: string | null;
 }
 
-const LIVE_CURRENT_POLL_MS = 2 * 60 * 1000;
+const LIVE_CURRENT_POLL_MS = Number(process.env.NEXT_PUBLIC_LIVE_CURRENT_POLL_MS) || 2 * 60 * 1000;
 
 export default function LivePlayer() {
   const { isLivePlaying, playLive, pauseLive, liveVolume } = useMediaPlayer();

@@ -20,12 +20,15 @@ interface HomepageHeroProps {
 const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
   const { playShow, pauseShow, selectedShow, isArchivePlaying } = useMediaPlayer();
 
-  const href =
-    item.type === 'episode' || item.type === 'episodes'
-      ? `/episode/${item.slug}`
-      : item.type === 'posts'
-        ? `/editorial/${item.slug}`
-        : '#';
+  const hrefByType: Record<string, string> = {
+    episode: `/episode/${item.slug}`,
+    episodes: `/episode/${item.slug}`,
+    posts: `/editorial/${item.slug}`,
+    hosts: `/hosts/${item.slug}`,
+    takeovers: `/takeovers/${item.slug}`,
+    videos: `/videos/${item.slug}`,
+  };
+  const href = hrefByType[item.type] ?? '#';
 
   // Check if this item has audio content and can be played
   const isEpisode = item.type === 'episode' || item.type === 'episodes';
@@ -65,7 +68,7 @@ const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
     >
       <Link href={href} className='flex flex-col h-full'>
         <CardContent className='p-0 grow flex flex-col'>
-          <div className='relative w-full h-[90vh] flex items-center justify-center'>
+          <div className='relative w-full aspect-square flex items-center justify-center'>
             <HeroImage
               src={
                 item.metadata?.external_image_url ||

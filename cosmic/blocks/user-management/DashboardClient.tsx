@@ -21,6 +21,10 @@ import type { GenreObject, HostObject } from '@/lib/cosmic-config';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ForYouClient } from '@/components/for-you-client';
+import { foldSearchText } from '@/lib/search-query';
+import { PersonalSchedule } from '@/components/dashboard/personal-schedule';
+import type { ScheduleReminderPreference } from '@/lib/schedule-reminders';
+import type { ScheduleShow } from '@/lib/types/schedule';
 
 interface DashboardClientProps {
   userData: any;
@@ -29,6 +33,8 @@ interface DashboardClientProps {
   canonicalGenres: { slug: string; title: string }[];
   favouriteGenres: GenreObject[];
   favouriteHosts: HostObject[];
+  scheduleItems: ScheduleShow[];
+  scheduleReminders: ScheduleReminderPreference[];
 }
 
 export default function DashboardClient({
@@ -38,6 +44,8 @@ export default function DashboardClient({
   canonicalGenres = [],
   favouriteGenres = [],
   favouriteHosts = [],
+  scheduleItems = [],
+  scheduleReminders = [],
 }: DashboardClientProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -221,10 +229,12 @@ export default function DashboardClient({
     const selected = isAdding === 'genre' ? selectedGenres : selectedHosts;
     const toggle = isAdding === 'genre' ? toggleGenre : toggleHost;
     const alreadyFavorited = isAdding === 'genre' ? optimisticGenresRemove : optimisticHostsRemove;
+    const alreadyFavoritedIds = new Set(alreadyFavorited.map(item => item.id));
+    const foldedQuery = foldSearchText(searchQuery);
 
     const filteredItems = items
-      .filter(item => !alreadyFavorited.some(fav => fav.id === item.id))
-      .filter(item => item.title.toLowerCase().includes(searchQuery.toLowerCase()))
+      .filter(item => !alreadyFavoritedIds.has(item.id))
+      .filter(item => foldSearchText(item.title).includes(foldedQuery))
       .sort((a, b) => a.title.localeCompare(b.title));
 
     return (
@@ -392,6 +402,8 @@ export default function DashboardClient({
           </h2>
           <ListenLaterClient listenLaterIds={listenLaterIds} />
         </section>
+
+        <PersonalSchedule reminders={scheduleReminders} scheduleItems={scheduleItems} />
 
         {/* Favourite Genres */}
         <section className='mt-10'>

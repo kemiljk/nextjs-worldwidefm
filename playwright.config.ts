@@ -14,6 +14,7 @@ export default defineConfig({
       NEXT_PUBLIC_RADIOCULT_STREAM_URL: 'https://example.com/stream',
       NEXT_PUBLIC_RADIOCULT_STATION_ID: 'test-station',
       NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY: 'test-key',
+      NEXT_PUBLIC_LIVE_CURRENT_POLL_MS: '100',
       NEXT_PUBLIC_E2E_FAKE_BLOB_URL:
         'https://example.public.blob.vercel-storage.com/media/master.mp3',
       NEXT_PUBLIC_E2E_UPLOAD_CLIENT_TIMEOUT_MS: '3000',

@@ -5,6 +5,8 @@ import DashboardClient from '@/cosmic/blocks/user-management/DashboardClient';
 import { getAuthUser, getDashboardData } from '@/cosmic/blocks/user-management/actions';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
 import { DashboardSkeleton } from '@/components/dashboard/dashboard-skeleton';
+import { getWeeklySchedule } from '@/lib/schedule-service';
+import { parseScheduleReminders } from '@/lib/schedule-reminders';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateBaseMetadata({
@@ -16,7 +18,10 @@ export const generateMetadata = async (): Promise<Metadata> => {
 
 async function DashboardContent({ userId }: { userId: string }) {
   // Fetch all dashboard data server-side
-  const { data, error } = await getDashboardData(userId);
+  const [{ data, error }, weeklySchedule] = await Promise.all([
+    getDashboardData(userId),
+    getWeeklySchedule(),
+  ]);
 
   if (error || !data) {
     return (
@@ -37,6 +42,8 @@ async function DashboardContent({ userId }: { userId: string }) {
       canonicalGenres={data.canonicalGenres}
       favouriteGenres={data.favouriteGenres}
       favouriteHosts={data.favouriteHosts}
+      scheduleItems={weeklySchedule.scheduleItems}
+      scheduleReminders={parseScheduleReminders(data.userData.metadata?.schedule_reminders)}
     />
   );
 }

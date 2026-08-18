@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import type { UkWeekday } from '@/lib/date-utils';
 import {
@@ -10,12 +10,15 @@ import {
 } from '@/lib/date-utils';
 import type { ScheduleShow, ScheduleDayMap } from '@/lib/types/schedule';
 import { getVisibleScheduleDays } from '@/lib/schedule-days';
+import { createScheduleReminderKey } from '@/lib/schedule-reminders';
+import { ScheduleReminderButton } from './schedule-reminder-button';
 
 interface ScheduleDisplayProps {
   scheduleItems: ScheduleShow[];
   dayDates: ScheduleDayMap;
   isActive: boolean;
   error?: string;
+  savedReminderKeys?: string[];
 }
 
 export default function ScheduleDisplay({
@@ -23,9 +26,11 @@ export default function ScheduleDisplay({
   dayDates,
   isActive,
   error,
+  savedReminderKeys = [],
 }: ScheduleDisplayProps) {
   const [userTimezone, setUserTimezone] = useState<string>('Europe/London');
   const [userTimezoneAbbr, setUserTimezoneAbbr] = useState<string>(getUKTimezoneAbbreviation());
+  const savedReminderKeySet = useMemo(() => new Set(savedReminderKeys), [savedReminderKeys]);
 
   useEffect(() => {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -223,26 +228,27 @@ export default function ScheduleDisplay({
                     const isEpisodeLink = show.url.startsWith('/episode/');
                     const isShowLink = show.url.startsWith('/shows/');
 
-                    if (isEpisodeLink || isShowLink) {
-                      return (
-                        <Link
-                          href={show.url}
-                          key={`${show.show_day}-${show.show_time}-${show.name}`}
-                          className='flex-row flex py-4 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors'
-                        >
-                          {content}
-                        </Link>
-                      );
-                    } else {
-                      return (
-                        <div
-                          key={`${show.show_day}-${show.show_time}-${show.name}`}
-                          className='flex-row flex py-4 opacity-60 cursor-default'
-                        >
-                          {content}
-                        </div>
-                      );
-                    }
+                    const rowKey = `${show.show_day}-${show.show_time}-${show.name}`;
+                    return (
+                      <div key={rowKey} className='flex items-center py-4'>
+                        {isEpisodeLink || isShowLink ? (
+                          <Link
+                            href={show.url}
+                            className='min-w-0 flex-1 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors'
+                          >
+                            {content}
+                          </Link>
+                        ) : (
+                          <div className='min-w-0 flex-1 opacity-60 cursor-default'>{content}</div>
+                        )}
+                        <ScheduleReminderButton
+                          show={show}
+                          initiallySaved={savedReminderKeySet.has(
+                            createScheduleReminderKey(show.name, show.show_day, show.show_time)
+                          )}
+                        />
+                      </div>
+                    );
                   })}
                 </div>
               )}

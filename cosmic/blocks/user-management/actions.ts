@@ -8,6 +8,12 @@ import bcrypt from 'bcryptjs';
 import { Resend } from 'resend';
 
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
+import {
+  createScheduleReminderKey,
+  parseScheduleReminders,
+  type ScheduleReminderPreference,
+} from '@/lib/schedule-reminders';
+import { getWeeklySchedule } from '@/lib/schedule-service';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -664,6 +670,67 @@ export async function addListenLater(userId: string, show: { id: string }) {
 
 export async function removeListenLater(userId: string, showId: string) {
   return manageFavourites(userId, { id: showId } as { id: string }, 'listen_later', 'remove');
+}
+
+export async function setScheduleReminder(
+  preference: Omit<ScheduleReminderPreference, 'key'>,
+  enabled: boolean
+) {
+  try {
+    const authenticatedUser = await getAuthUser();
+    if (!authenticatedUser) {
+      return { success: false, error: 'You must be signed in to update reminders.' };
+    }
+    const userId = authenticatedUser.id;
+
+    const submittedPreference = parseScheduleReminders([preference])[0];
+    if (!submittedPreference) {
+      return { success: false, error: 'Invalid reminder preference.' };
+    }
+    const key = submittedPreference.key;
+    const weeklySchedule = await getWeeklySchedule();
+    const matchedShow = weeklySchedule.scheduleItems.find(
+      show => createScheduleReminderKey(show.name, show.show_day, show.show_time) === key
+    );
+    if (!matchedShow) return { success: false, error: 'Programme is not in the current schedule.' };
+    const nextPreference: ScheduleReminderPreference = {
+      ...submittedPreference,
+      name: matchedShow.name,
+      showDay: matchedShow.show_day,
+      showTime: matchedShow.show_time,
+      key,
+    };
+
+    const { object: user } = await cosmic.objects
+      .findOne({ id: userId, type: 'users' })
+      .props(['metadata.schedule_reminders'])
+      .depth(0);
+    if (!user) return { success: false, error: 'User not found.' };
+
+    const current = parseScheduleReminders(user.metadata?.schedule_reminders);
+    const exists = current.some(item => item.key === key);
+    if (enabled && !exists && current.length >= 50) {
+      return { success: false, error: 'You can save up to 50 programme reminders.' };
+    }
+    const updated = enabled
+      ? exists
+        ? current
+        : [...current, nextPreference]
+      : current.filter(item => item.key !== key);
+
+    await cosmic.objects.updateOne(userId, {
+      metadata: { schedule_reminders: updated },
+    });
+    revalidateTag('user-profile', { expire: 0 });
+
+    return { success: true, saved: enabled, reminders: updated };
+  } catch (error) {
+    console.error('Error updating schedule reminder:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unable to update reminder.',
+    };
+  }
 }
 
 // Helper function to get latest shows by genre

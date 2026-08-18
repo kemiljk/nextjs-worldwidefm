@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   applySearchToQuery,
   buildSearchRegex,
+  foldSearchText,
   hasUsableSearchTerm,
   tokenizeSearchQuery,
 } from '@/lib/search-query';
@@ -25,20 +26,52 @@ describe('tokenizeSearchQuery', () => {
   });
 });
 
+describe('foldSearchText', () => {
+  it('folds case and combining accents for client-side filtering', () => {
+    expect(foldSearchText('CLÉMENTINE')).toBe('clementine');
+  });
+});
+
 describe('buildSearchRegex', () => {
   it('uses a plain substring pattern for a single token', () => {
-    expect(buildSearchRegex('Bhok')).toEqual({ $regex: 'Bhok', $options: 'i' });
+    const regex = buildSearchRegex('Bhok');
+    expect(new RegExp(regex!.$regex, regex!.$options).test('Bhok')).toBe(true);
   });
 
   it('chains lookaheads so multi-word queries match in any order', () => {
-    expect(buildSearchRegex('Sam Bhok Karl')).toEqual({
-      $regex: '(?=.*Sam)(?=.*Bhok)(?=.*Karl)',
-      $options: 'i',
-    });
+    const regex = buildSearchRegex('Sam Bhok Karl');
+    expect(regex).not.toBeNull();
+    const compiled = new RegExp(regex!.$regex, regex!.$options);
+    expect(compiled.test('Karl Bos w/ Sam Bhok')).toBe(true);
   });
 
   it('escapes regex characters in user input', () => {
-    expect(buildSearchRegex('foo.bar')).toEqual({ $regex: 'foo\\.bar', $options: 'i' });
+    const regex = buildSearchRegex('foo.bar');
+    expect(regex?.$regex).toContain('\\.');
+  });
+
+  it('matches accented titles when the query omits the accent', () => {
+    const regex = buildSearchRegex('Clementine');
+    expect(regex).not.toBeNull();
+
+    const compiled = new RegExp(regex!.$regex, regex!.$options);
+    expect(compiled.test('Clémentine')).toBe(true);
+    expect(compiled.test('Clementine')).toBe(true);
+  });
+
+  it('matches unaccented titles when the query includes an accent', () => {
+    const regex = buildSearchRegex('Clémentine');
+    expect(regex).not.toBeNull();
+
+    const compiled = new RegExp(regex!.$regex, regex!.$options);
+    expect(compiled.test('Clémentine')).toBe(true);
+    expect(compiled.test('Clementine')).toBe(true);
+  });
+
+  it('matches titles stored with decomposed combining accents', () => {
+    const regex = buildSearchRegex('Clementine');
+    const compiled = new RegExp(regex!.$regex, regex!.$options);
+    expect(compiled.test('Cle\u0301mentine')).toBe(true);
   });
 
   it('returns null when no token meets the minimum length', () => {
@@ -68,12 +101,10 @@ describe('applySearchToQuery', () => {
 
     applySearchToQuery(query, 'Sam Bhok');
 
-    expect(query).toEqual({
-      type: 'episode',
-      status: 'published',
-      'metadata.broadcast_date': { $lte: '2026-07-28' },
-      title: { $regex: '(?=.*Sam)(?=.*Bhok)', $options: 'i' },
-    });
+    expect(query.type).toBe('episode');
+    expect(query.status).toBe('published');
+    expect(query['metadata.broadcast_date']).toEqual({ $lte: '2026-07-28' });
+    expect(query.title).toEqual(buildSearchRegex('Sam Bhok'));
     expect(query.$and).toBeUndefined();
     expect(query.$or).toBeUndefined();
   });

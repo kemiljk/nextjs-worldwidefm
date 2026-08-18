@@ -4,6 +4,8 @@ import { generateScheduleMetadata } from '@/lib/metadata-utils';
 import { PageHeader } from '@/components/shared/page-header';
 import ScheduleDisplay from '@/components/schedule-display';
 import { getWeeklySchedule } from '@/lib/schedule-service';
+import { parseScheduleReminders } from '@/lib/schedule-reminders';
+import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   return generateScheduleMetadata();
@@ -12,7 +14,14 @@ export const generateMetadata = async (): Promise<Metadata> => {
 export default async function SchedulePage() {
   await connection();
 
-  const { scheduleItems, dayDates, isActive, error } = await getWeeklySchedule();
+  const [{ scheduleItems, dayDates, isActive, error }, user] = await Promise.all([
+    getWeeklySchedule(),
+    getAuthUser(),
+  ]);
+  const userResult = user ? await getUserData(user.id) : null;
+  const savedReminderKeys = parseScheduleReminders(
+    userResult?.data?.metadata?.schedule_reminders
+  ).map(reminder => reminder.key);
 
   return (
     <div className='min-h-screen bg-white pb-40 dark:bg-black'>
@@ -27,6 +36,7 @@ export default async function SchedulePage() {
           dayDates={dayDates}
           isActive={isActive}
           error={error}
+          savedReminderKeys={savedReminderKeys}
         />
       </div>
     </div>

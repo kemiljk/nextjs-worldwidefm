@@ -12,6 +12,7 @@ import NavWrapper from '@/components/nav-wrapper';
 import Footer from '@/components/footer';
 import LivePlayer from '@/components/live-player';
 import ArchivePlayer from '@/components/archive-player';
+import { ScheduleNotificationManager } from '@/components/schedule-notification-manager';
 import DiscordButton from '@/components/discord-button';
 import './globals.css';
 
@@ -69,6 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <NavWrapper />
           </Suspense>
           <LivePlayer />
+          <ScheduleNotificationManager />
           <main className='w-full pt-14 overflow-x-hidden'>
             <Suspense>{children}</Suspense>
           </main>

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { getAuthUser, logoutUser } from './actions';
+import { SCHEDULE_NOTIFICATIONS_CHANGED_EVENT } from '@/lib/schedule-reminders';
 
 type User = {
   id: string;
@@ -53,12 +54,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = (userData: User) => {
     setUser(userData);
+    window.dispatchEvent(new Event(SCHEDULE_NOTIFICATIONS_CHANGED_EVENT));
   };
 
   const logout = async () => {
     try {
       await logoutUser();
       setUser(null);
+      window.dispatchEvent(new Event(SCHEDULE_NOTIFICATIONS_CHANGED_EVENT));
     } catch (error) {
       console.error('Error logging out:', error);
     }
