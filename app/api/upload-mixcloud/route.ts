@@ -54,6 +54,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result.success) {
+      console.error('Mixcloud upload rejected:', {
+        status: result.status,
+        error: result.error,
+        details: result.details,
+      });
       return NextResponse.json(
         {
           error: result.error,

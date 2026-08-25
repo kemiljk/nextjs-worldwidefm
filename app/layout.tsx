@@ -14,6 +14,7 @@ import LivePlayer from '@/components/live-player';
 import ArchivePlayer from '@/components/archive-player';
 import { ScheduleNotificationManager } from '@/components/schedule-notification-manager';
 import DiscordButton from '@/components/discord-button';
+import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 
 const sans = Nimbus({
@@ -76,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </main>
           <ArchivePlayer />
           <DiscordButton />
+          <Toaster />
         </Providers>
         <Suspense
           fallback={

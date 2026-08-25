@@ -25,6 +25,7 @@ const baseInput = {
 describe('runUploadMasterFlow', () => {
   it('completes the happy path and cleans up the blob', async () => {
     const calls: string[] = [];
+    const phases: string[] = [];
     const fetchFn = createMockFetch({
       mixcloudUrl: 'https://www.mixcloud.com/worldwidefm/test-show/',
       radiocultMediaId: 'rc-1',
@@ -34,6 +35,7 @@ describe('runUploadMasterFlow', () => {
     const result = await runUploadMasterFlow({
       ...baseInput,
       fetchFn,
+      onPhaseChange: phase => phases.push(phase),
     });
 
     expect(result.mixcloudUrl).toContain('mixcloud.com');
@@ -47,6 +49,7 @@ describe('runUploadMasterFlow', () => {
       '/api/episodes/episode-1/archive',
       '/api/upload-media',
     ]);
+    expect(phases).toEqual(['uploadingMixcloud', 'uploadingRadioCult', 'updatingEpisode']);
   });
 
   it('writes the Mixcloud URL to the episode player and page link', async () => {
@@ -126,10 +129,11 @@ describe('runUploadMasterFlow', () => {
   });
 
   it('keeps the blob and reports both destination failures', async () => {
+    const calls: string[] = [];
     const fetchFn = createMockFetch({
       mixcloudError: true,
       radiocultError: true,
-      archiveError: true,
+      onCall: url => calls.push(url),
     });
 
     const result = await runUploadMasterFlow({
@@ -138,8 +142,10 @@ describe('runUploadMasterFlow', () => {
     });
 
     expect(result.hasAnySuccess).toBe(false);
+    expect(result.archiveUpdated).toBe(false);
     expect(result.shouldCleanupBlob).toBe(false);
     expect(buildUploadResultSummary(result)).toContain('Raw audio kept at');
+    expect(calls).toEqual(['/api/upload-mixcloud', '/api/upload-media']);
   });
 });
 

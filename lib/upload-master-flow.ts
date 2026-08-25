@@ -3,6 +3,8 @@ import { fetchWithTimeout, type UploadFetchFn } from '@/lib/upload-fetch';
 
 export type { UploadFetchFn };
 
+export type UploadMasterFlowPhase = 'uploadingMixcloud' | 'uploadingRadioCult' | 'updatingEpisode';
+
 export type UploadMasterFlowInput = {
   blobUrl: string;
   mediaFileName: string;
@@ -21,6 +23,7 @@ export type UploadMasterFlowInput = {
     artist?: string;
   };
   regularHostIds: string[];
+  onPhaseChange?: (phase: UploadMasterFlowPhase) => void;
   fetchFn?: UploadFetchFn;
   clientTimeoutMs?: number;
 };
@@ -66,6 +69,7 @@ export async function runUploadMasterFlow(
   let archiveUpdated = false;
   let archiveError: string | undefined;
 
+  input.onPhaseChange?.('uploadingMixcloud');
   try {
     const mixcloudRes = await fetchWithTimeout('/api/upload-mixcloud', {
       method: 'POST',
@@ -87,6 +91,7 @@ export async function runUploadMasterFlow(
     mixcloudError = error instanceof Error ? error.message : 'Mixcloud upload failed';
   }
 
+  input.onPhaseChange?.('uploadingRadioCult');
   try {
     const uploadRes = await fetchWithTimeout('/api/upload-media', {
       method: 'POST',
@@ -105,31 +110,36 @@ export async function runUploadMasterFlow(
     radioCultError = error instanceof Error ? error.message : 'RadioCult upload failed';
   }
 
-  try {
-    const updateRes = await fetchWithTimeout(`/api/episodes/${input.episodeId}/archive`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...(radiocultMediaId ? { radiocult_media_id: radiocultMediaId } : {}),
-        ...(mixcloudUrl ? { player: mixcloudUrl, page_link: mixcloudUrl } : {}),
-        regular_hosts: input.regularHostIds,
-        slug: input.episodeSlug,
-      }),
-      timeoutMs,
-      fetchFn: fetchImpl,
-    });
+  // A host-only PATCH is not a successful master upload. If both destinations
+  // fail, leave the episode and form untouched so staff can retry the same file.
+  if (radiocultMediaId || mixcloudUrl) {
+    input.onPhaseChange?.('updatingEpisode');
+    try {
+      const updateRes = await fetchWithTimeout(`/api/episodes/${input.episodeId}/archive`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(radiocultMediaId ? { radiocult_media_id: radiocultMediaId } : {}),
+          ...(mixcloudUrl ? { player: mixcloudUrl, page_link: mixcloudUrl } : {}),
+          regular_hosts: input.regularHostIds,
+          slug: input.episodeSlug,
+        }),
+        timeoutMs,
+        fetchFn: fetchImpl,
+      });
 
-    if (!updateRes.ok) {
-      const updateData = await parseJsonResponse(updateRes);
-      throw new Error(updateData.error || 'Failed to update episode');
-    }
+      if (!updateRes.ok) {
+        const updateData = await parseJsonResponse(updateRes);
+        throw new Error(updateData.error || 'Failed to update episode');
+      }
 
-    archiveUpdated = true;
-    if (mixcloudUrl) {
-      mixcloudLinkSaved = true;
+      archiveUpdated = true;
+      if (mixcloudUrl) {
+        mixcloudLinkSaved = true;
+      }
+    } catch (error) {
+      archiveError = error instanceof Error ? error.message : 'Failed to update episode';
     }
-  } catch (error) {
-    archiveError = error instanceof Error ? error.message : 'Failed to update episode';
   }
 
   const shouldCleanupBlob = !mixcloudError && !radioCultError && !archiveError;
@@ -147,7 +157,7 @@ export async function runUploadMasterFlow(
     }
   }
 
-  const hasAnySuccess = Boolean(mixcloudUrl || radiocultMediaId || archiveUpdated);
+  const hasAnySuccess = Boolean(mixcloudUrl || radiocultMediaId);
 
   return {
     mixcloudUrl,

@@ -55,7 +55,7 @@ test.describe('upload master reliability', () => {
     await page.locator('#broadcast-date').fill('2099-01-01');
     await page.getByPlaceholder('Search shows on this date').fill('Test Episode');
     await page.getByText('Test Episode').click();
-    await page.getByLabel('Mastered audio').setInputFiles({
+    await page.locator('input[type="file"]').setInputFiles({
       name: 'master.mp3',
       mimeType: 'audio/mpeg',
       buffer: Buffer.from([
@@ -113,7 +113,7 @@ test.describe('upload master reliability', () => {
     await page.locator('#broadcast-date').fill('2099-01-01');
     await page.getByPlaceholder('Search shows on this date').fill('Test Episode');
     await page.getByText('Test Episode').click();
-    await page.getByLabel('Mastered audio').setInputFiles({
+    await page.locator('input[type="file"]').setInputFiles({
       name: 'master.mp3',
       mimeType: 'audio/mpeg',
       buffer: Buffer.from([
@@ -127,5 +127,55 @@ test.describe('upload master reliability', () => {
     await expect(page.getByText(/mastered audio uploaded and episode updated/i)).toBeVisible({
       timeout: 15_000,
     });
+  });
+
+  test('keeps the selected show and file visible when both destinations fail', async ({ page }) => {
+    await mockEpisodeSelection(page);
+
+    await page.route('**/api/upload-mixcloud', async route => {
+      await route.fulfill({
+        status: 502,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Mixcloud unavailable' }),
+      });
+    });
+
+    await page.route('**/api/upload-media', async route => {
+      await route.fulfill({
+        status: 502,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: false, error: 'RadioCult unavailable' }),
+      });
+    });
+
+    let archivePatchCalled = false;
+    await page.route('**/api/episodes/episode-1/archive', async route => {
+      archivePatchCalled = true;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      });
+    });
+
+    await page.goto('/upload-master');
+    await page.locator('#broadcast-date').fill('2099-01-01');
+    await page.getByPlaceholder('Search shows on this date').fill('Test Episode');
+    await page.getByText('Test Episode').click();
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'master.mp3',
+      mimeType: 'audio/mpeg',
+      buffer: Buffer.from([0xff, 0xfb, 0xe0, 0x40]),
+    });
+
+    await page.getByRole('button', { name: 'Upload mastered audio' }).click();
+
+    await expect(
+      page.getByLabel('Notifications alt+T').getByText(/mixcloud: failed \(mixcloud unavailable\)/i)
+    ).toBeVisible();
+    await expect(page.getByText('Test Episode', { exact: true })).toBeVisible();
+    await expect(page.getByText('master.mp3', { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/upload-master$/);
+    expect(archivePatchCalled).toBe(false);
   });
 });

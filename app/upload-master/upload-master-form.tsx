@@ -204,18 +204,11 @@ export function UploadMasterForm() {
             undefined,
         },
         regularHostIds: combinedHostIds,
+        onPhaseChange: setPhase,
         clientTimeoutMs: process.env.NEXT_PUBLIC_E2E_UPLOAD_CLIENT_TIMEOUT_MS
           ? Number(process.env.NEXT_PUBLIC_E2E_UPLOAD_CLIENT_TIMEOUT_MS)
           : undefined,
       });
-
-      if (flowResult.radiocultMediaId) {
-        setPhase('uploadingRadioCult');
-      }
-
-      if (flowResult.archiveUpdated) {
-        setPhase('updatingEpisode');
-      }
 
       const summary = buildUploadResultSummary(flowResult);
       if (
@@ -416,7 +409,11 @@ export function UploadMasterForm() {
       {selectedEpisode && mediaFile && <UploadProgressPanel phase={phase} />}
 
       <div className='flex justify-end'>
-        <Button onClick={handleSubmit} disabled={!selectedEpisode || !mediaFile || isSubmitting}>
+        <Button
+          type='button'
+          onClick={handleSubmit}
+          disabled={!selectedEpisode || !mediaFile || isSubmitting}
+        >
           {isSubmitting
             ? phase === 'uploadingBlob'
               ? 'Preparing upload...'
