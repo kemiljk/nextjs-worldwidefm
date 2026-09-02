@@ -9,13 +9,20 @@ const getIcon = (iconName: string) => {
 };
 
 export default async function Footer() {
-  const socialLinks = await cosmic.objects
-    .findOne({
-      type: 'social-links',
-      slug: 'social-links',
-    })
-    .props('slug,title,metadata,type')
-    .depth(1);
+  let socialLinks: Array<{ icon: string; link: string }> = [];
+
+  try {
+    const response = await cosmic.objects
+      .findOne({
+        type: 'social-links',
+        slug: 'social-links',
+      })
+      .props('slug,title,metadata,type')
+      .depth(1);
+    socialLinks = response.object?.metadata?.social_link || [];
+  } catch (error) {
+    console.error('Error fetching footer social links:', error);
+  }
 
   return (
     <footer className='bg-white dark:bg-gray-900 text-almostblack dark:text-white pt-8 border-t border-almostblack w-full'>
@@ -35,7 +42,7 @@ export default async function Footer() {
                 Connect
               </h3>
               <div className='flex gap-4'>
-                {socialLinks.object?.metadata?.social_link?.map((link: any, index: number) => {
+                {socialLinks.map((link, index) => {
                   const icon = getIcon(link.icon);
 
                   if (!icon) {

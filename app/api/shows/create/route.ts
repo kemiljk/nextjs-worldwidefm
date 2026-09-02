@@ -1,4 +1,6 @@
 import { cosmic } from '@/lib/cosmic-config';
+import { completeAudioRecoveryAfterCreate } from '@/lib/audio-recovery-after-create';
+import { RADIOCULT_FAILURE_CODES } from '@/lib/radiocult-failure';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -23,6 +25,12 @@ const createShowSchema = z.object({
   location: z.string().optional(),
   isLive: z.boolean().default(false),
   takeover: z.string().optional(),
+  audio_recovery: z
+    .object({
+      failureCode: z.enum(RADIOCULT_FAILURE_CODES),
+      fileName: z.string().min(1).max(500),
+    })
+    .optional(),
 });
 
 // Helper function to remove null/undefined/empty values from metadata
@@ -72,6 +80,27 @@ export async function POST(request: NextRequest) {
     // Parse and validate the request body
     const body = await request.json();
     const validatedData = createShowSchema.parse(body);
+
+    const respondWithCreatedShow = async (
+      object: { id: string; slug: string; [key: string]: unknown },
+      storedWithSubmission: boolean,
+      details: Record<string, unknown> = {}
+    ) => {
+      const audioRecovery = await completeAudioRecoveryAfterCreate({
+        episode: object,
+        showTitle: validatedData.title,
+        mediaUrl: validatedData.raw_media_url || undefined,
+        pendingRecovery: validatedData.audio_recovery,
+        storedWithSubmission,
+      });
+
+      return NextResponse.json({
+        success: true,
+        object,
+        ...details,
+        ...(audioRecovery ? { audioRecovery } : {}),
+      });
+    };
 
     console.log('📥 Show creation request received:', {
       title: validatedData.title,
@@ -349,10 +378,7 @@ export async function POST(request: NextRequest) {
       try {
         const cosmicResponse = await cosmic.objects.insertOne(objectData);
 
-        return NextResponse.json({
-          success: true,
-          object: cosmicResponse.object,
-        });
+        return respondWithCreatedShow(cosmicResponse.object, Boolean(validatedData.raw_media_url));
       } catch (firstError: any) {
         console.error('Cosmic creation error (first attempt):', firstError);
 
@@ -371,11 +397,11 @@ export async function POST(request: NextRequest) {
           };
 
           const retryResponse = await cosmic.objects.insertOne(retryData);
-          return NextResponse.json({
-            success: true,
-            object: retryResponse.object,
-            warning: `Created without unsupported metafield: ${offendingKey}`,
-          });
+          return respondWithCreatedShow(
+            retryResponse.object,
+            Boolean(validatedData.raw_media_url && offendingKey !== 'raw_media_url'),
+            { warning: `Created without unsupported metafield: ${offendingKey}` }
+          );
         }
 
         // Re-throw to be handled by the outer catch which applies minimal fallback
@@ -429,11 +455,11 @@ export async function POST(request: NextRequest) {
 
           const retryResponse = await cosmic.objects.insertOne(retryData);
 
-          return NextResponse.json({
-            success: true,
-            object: retryResponse.object,
-            warning: 'Show created with minimal metadata due to object type constraints',
-          });
+          return respondWithCreatedShow(
+            retryResponse.object,
+            Boolean(validatedData.raw_media_url),
+            { warning: 'Show created with minimal metadata due to object type constraints' }
+          );
         } catch (secondError: any) {
           console.error('Second retry failed, creating basic object:', secondError);
 
@@ -451,9 +477,7 @@ export async function POST(request: NextRequest) {
 
           const basicResponse = await cosmic.objects.insertOne(basicData);
 
-          return NextResponse.json({
-            success: true,
-            object: basicResponse.object,
+          return respondWithCreatedShow(basicResponse.object, false, {
             warning:
               'Show created with title only - Cosmic object type needs metafield configuration',
             note: "To store full show data, please configure the 'episode' object type in Cosmic with required metafields like: broadcast_date, broadcast_time, broadcast_day, duration, radiocult_artist_id, etc.",

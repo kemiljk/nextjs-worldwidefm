@@ -48,6 +48,8 @@ import {
 } from '@/lib/upload-filename-utils';
 import { UPLOAD_CLIENT_TIMEOUT_MS } from '@/lib/upload-config';
 import { fetchWithTimeout } from '@/lib/upload-fetch';
+import { getAudioRecoveryCopy, type AudioRecoveryState } from '@/lib/audio-recovery-copy';
+import type { RadioCultFailureCode } from '@/lib/radiocult-failure';
 import { AddNewHost, AddNewHostTrigger } from './add-new-host';
 
 // Form schema using zod
@@ -79,6 +81,41 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+type SubmissionPhase =
+  | 'idle'
+  | 'preparing'
+  | 'uploadingImage'
+  | 'uploadedImage'
+  | 'uploadingMedia'
+  | 'uploadedMedia'
+  | 'mediaPending'
+  | 'creatingShow'
+  | 'success'
+  | 'error';
+
+function getSubmissionLabel(isLoading: boolean, phase: SubmissionPhase): string {
+  if (!isLoading) return 'Submit for Approval';
+
+  switch (phase) {
+    case 'preparing':
+      return 'Preparing submission…';
+    case 'uploadingImage':
+      return 'Uploading image…';
+    case 'uploadedImage':
+      return 'Image uploaded ✓';
+    case 'uploadingMedia':
+      return 'Uploading audio…';
+    case 'uploadedMedia':
+      return 'Audio uploaded ✓';
+    case 'mediaPending':
+      return 'Audio received — saving show…';
+    case 'creatingShow':
+      return 'Creating show…';
+    default:
+      return 'Submitting…';
+  }
+}
+
 interface CosmicGenre {
   id: string;
   slug: string;
@@ -93,24 +130,11 @@ interface CosmicGenre {
 export function AddShowForm() {
   const MAX_MEDIA_MB = Number(process.env.NEXT_PUBLIC_MAX_MEDIA_UPLOAD_MB || 2048);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  type SubmissionPhase =
-    | 'idle'
-    | 'preparing'
-    | 'uploadingImage'
-    | 'uploadedImage'
-    | 'uploadingMedia'
-    | 'uploadedMedia'
-    | 'mediaFailed'
-    | 'creatingShow'
-    | 'success'
-    | 'error';
   const [phase, setPhase] = useState<SubmissionPhase>('idle');
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [submittedShowTitle, setSubmittedShowTitle] = useState<string>('');
-  /** Set when the show saved but its audio never reached RadioCult. */
-  const [audioFailure, setAudioFailure] = useState<{ reason: string; recoverable: boolean } | null>(
-    null
-  );
+  /** Set when the show saved but its audio still needs staff attention. */
+  const [audioRecovery, setAudioRecovery] = useState<AudioRecoveryState | null>(null);
   const [hosts, setHosts] = useState<CosmicHost[]>([]);
   const [genres, setGenres] = useState<CosmicGenre[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -314,7 +338,7 @@ export function AddShowForm() {
   const handleCreateAnother = () => {
     setIsSubmitted(false);
     setSubmittedShowTitle('');
-    setAudioFailure(null);
+    setAudioRecovery(null);
     setHostInput('');
     setLocationInput('');
     setSelectedLocation(undefined);
@@ -329,11 +353,14 @@ export function AddShowForm() {
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
     setPhase('preparing');
-    setAudioFailure(null);
+    setAudioRecovery(null);
 
     try {
       let radiocultMediaId: string | null | undefined = undefined;
       let rawMediaUrl: string | undefined;
+      let recoveryFileName: string | undefined;
+      let recoveryFailureCode: RadioCultFailureCode = 'unknown';
+      let pendingAudioRecovery: AudioRecoveryState | null = null;
       let cosmicImage: any = undefined;
 
       console.log('🚀 Starting form submission:', {
@@ -421,6 +448,7 @@ export function AddShowForm() {
             values.title,
             mediaFile.name
           );
+          recoveryFileName = mediaFileName;
 
           // Multipart chunks the upload so multi-hundred-MB masters survive a flaky
           // connection instead of failing a single unresumable PUT.
@@ -456,6 +484,7 @@ export function AddShowForm() {
           console.log('🎵 Media upload result:', uploadResult);
 
           if (!uploadResponse.ok || !uploadResult.success) {
+            recoveryFailureCode = uploadResult.failureCode || 'unknown';
             throw new Error(uploadResult.error || `Upload failed (HTTP ${uploadResponse.status})`);
           }
 
@@ -471,23 +500,33 @@ export function AddShowForm() {
         } catch (mediaError) {
           console.error('❌ Media upload/processing failed:', mediaError);
 
-          const reason = mediaError instanceof Error ? mediaError.message : 'Unknown upload error';
-
           // Only claim the audio was kept when it actually reached temporary storage.
           if (uploadedBlobUrl) {
             rawMediaUrl = uploadedBlobUrl;
           }
 
-          toast.error('Audio was NOT sent to RadioCult', {
-            description: uploadedBlobUrl
-              ? `${reason}. Your audio was saved for staff to retry — the show details will still be submitted.`
-              : `${reason}. The audio did not upload, so you will need to send it to the team separately.`,
-            duration: 20000,
-          });
+          pendingAudioRecovery = {
+            audioReceived: Boolean(uploadedBlobUrl),
+            storedWithSubmission: false,
+            teamNotified: false,
+          };
 
-          setAudioFailure({ reason, recoverable: Boolean(uploadedBlobUrl) });
+          if (uploadedBlobUrl) {
+            toast.info('Audio received', {
+              description:
+                "We couldn't finish processing it automatically. We're saving it with your show now.",
+              duration: 10000,
+            });
+          } else {
+            toast.error("We couldn't receive the audio file", {
+              description:
+                'Your show details will still be submitted, and we will explain what to do next.',
+              duration: 10000,
+            });
+          }
+
           radiocultMediaId = undefined;
-          setPhase('mediaFailed');
+          setPhase('mediaPending');
         }
       }
 
@@ -511,6 +550,13 @@ export function AddShowForm() {
             status: 'draft',
             radiocult_media_id: radiocultMediaId,
             raw_media_url: rawMediaUrl,
+            audio_recovery:
+              pendingAudioRecovery?.audioReceived && recoveryFileName
+                ? {
+                    failureCode: recoveryFailureCode,
+                    fileName: recoveryFileName,
+                  }
+                : undefined,
             image: cosmicImage,
           }),
         });
@@ -532,6 +578,16 @@ export function AddShowForm() {
         const data = await response.json();
         console.log('✅ Show created successfully:', data);
 
+        let finalAudioRecovery: AudioRecoveryState | null = null;
+        if (pendingAudioRecovery) {
+          finalAudioRecovery = {
+            ...pendingAudioRecovery,
+            storedWithSubmission: Boolean(data.audioRecovery?.storedWithSubmission),
+            teamNotified: Boolean(data.audioRecovery?.teamNotified),
+          };
+          setAudioRecovery(finalAudioRecovery);
+        }
+
         // Track successful show submission
         plausible('Show Submitted', {
           props: {
@@ -548,8 +604,13 @@ export function AddShowForm() {
         setIsSubmitted(true);
         setPhase('success');
 
-        if (mediaFile && !radiocultMediaId) {
-          toast.warning('Show submitted, but without its audio');
+        if (finalAudioRecovery) {
+          const recoveryCopy = getAudioRecoveryCopy(finalAudioRecovery);
+          if (recoveryCopy.requiresHostAction) {
+            toast.warning(recoveryCopy.title);
+          } else {
+            toast.success(recoveryCopy.title);
+          }
         } else {
           toast.success('Show submitted successfully!');
         }
@@ -603,15 +664,18 @@ export function AddShowForm() {
 
   // Show success view if submitted
   if (isSubmitted) {
+    const recoveryCopy = audioRecovery ? getAudioRecoveryCopy(audioRecovery) : null;
+    const requiresHostAction = recoveryCopy?.requiresHostAction ?? false;
+
     return (
       <div className='flex flex-col items-center justify-center min-h-[60vh] space-y-6 text-center'>
         <div
           className={cn(
             'flex items-center justify-center w-16 h-16 rounded-full',
-            audioFailure ? 'bg-amber-100' : 'bg-green-100'
+            requiresHostAction ? 'bg-amber-100' : 'bg-green-100'
           )}
         >
-          {audioFailure ? (
+          {requiresHostAction ? (
             <AlertTriangle className='w-8 h-8 text-amber-600' />
           ) : (
             <CheckCircle className='w-8 h-8 text-green-600' />
@@ -620,23 +684,33 @@ export function AddShowForm() {
 
         <div className='space-y-2'>
           <h2 className='text-2xl font-semibold text-almostblack dark:text-white'>
-            {audioFailure ? 'Show Submitted — Audio Missing' : 'Show Submitted Successfully!'}
+            {recoveryCopy?.title || 'Show submitted successfully!'}
           </h2>
           <p className='text-neutral-600 max-w-md'>
-            "<strong>{submittedShowTitle}</strong>" has been submitted for approval. Once approved,
-            it will be published to RadioCult and appear on your station.
+            {recoveryCopy ? (
+              recoveryCopy.summary
+            ) : (
+              <>
+                "<strong>{submittedShowTitle}</strong>" has been submitted for approval. Once
+                approved, it will be published and appear on the station.
+              </>
+            )}
           </p>
         </div>
 
-        {audioFailure && (
-          <div className='max-w-md space-y-2 border border-amber-300 bg-amber-50 p-4 text-left text-sm text-amber-900'>
-            <p className='font-semibold'>Your audio did not reach RadioCult.</p>
-            <p>
-              {audioFailure.recoverable
-                ? 'The file was saved to temporary storage and the team has been given the details to retry it. No action needed unless you are asked.'
-                : 'The file never finished uploading. Please email the audio to the team so your show can go out on time.'}
+        {recoveryCopy && (
+          <div
+            className={cn(
+              'max-w-md space-y-2 border p-4 text-left text-sm',
+              requiresHostAction
+                ? 'border-amber-300 bg-amber-50 text-amber-900'
+                : 'border-green-300 bg-green-50 text-green-950'
+            )}
+          >
+            <p className='font-semibold'>
+              {requiresHostAction ? 'One more step' : 'We have your audio'}
             </p>
-            <p className='text-xs text-amber-800'>Reason: {audioFailure.reason}</p>
+            <p>{recoveryCopy.detail}</p>
           </div>
         )}
 
@@ -1329,23 +1403,7 @@ export function AddShowForm() {
 
         <div className='flex justify-end'>
           <Button type='submit' className='px-2' disabled={isLoading}>
-            {isLoading
-              ? phase === 'preparing'
-                ? 'Preparing submission…'
-                : phase === 'uploadingImage'
-                  ? 'Uploading image…'
-                  : phase === 'uploadedImage'
-                    ? 'Image uploaded ✓'
-                    : phase === 'uploadingMedia'
-                      ? 'Uploading audio…'
-                      : phase === 'uploadedMedia'
-                        ? 'Audio uploaded ✓'
-                        : phase === 'mediaFailed'
-                          ? 'Audio failed — saving show…'
-                          : phase === 'creatingShow'
-                            ? 'Creating show…'
-                            : 'Submitting…'
-              : 'Submit for Approval'}
+            {getSubmissionLabel(isLoading, phase)}
           </Button>
         </div>
       </form>

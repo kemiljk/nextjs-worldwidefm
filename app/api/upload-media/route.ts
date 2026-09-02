@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { del, isVercelBlobUrl } from '@/lib/blob-client';
 import { uploadMediaToRadioCult } from '@/lib/radiocult-upload';
+import { describeRadioCultFailure } from '@/lib/radiocult-failure';
 
 // Must be a literal — Next.js rejects imported segment config. Keep in sync with lib/upload-config.ts.
 export const maxDuration = 800;
@@ -80,13 +81,21 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result.success) {
+      const failure = describeRadioCultFailure(result);
+      console.error('[upload-media] RadioCult upload did not finish', {
+        failureCode: failure.code,
+        status: result.status,
+        diagnosticMessage: failure.diagnosticMessage,
+        mediaUrl: result.mediaUrl,
+        mp3Diagnostics: result.mp3Diagnostics,
+      });
+
       return NextResponse.json(
         {
           success: false,
-          error: result.error,
-          radiocultError: result.radiocultError,
+          error: failure.publicMessage,
+          failureCode: failure.code,
           mediaUrl: result.mediaUrl,
-          mp3Diagnostics: result.mp3Diagnostics,
         },
         {
           status:

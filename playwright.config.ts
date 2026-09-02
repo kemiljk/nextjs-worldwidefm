@@ -11,6 +11,9 @@ export default defineConfig({
     url: 'http://127.0.0.1:3000',
     reuseExistingServer: !process.env.CI,
     env: {
+      NEXT_PUBLIC_COSMIC_BUCKET_SLUG: 'e2e-test',
+      NEXT_PUBLIC_COSMIC_READ_KEY: 'e2e-test',
+      COSMIC_WRITE_KEY: 'e2e-test',
       NEXT_PUBLIC_RADIOCULT_STREAM_URL: 'https://example.com/stream',
       NEXT_PUBLIC_RADIOCULT_STATION_ID: 'test-station',
       NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY: 'test-key',

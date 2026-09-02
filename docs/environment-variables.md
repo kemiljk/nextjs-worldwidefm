@@ -115,6 +115,7 @@ SUPPORT_EMAIL=noreply@worldwidefm.net
 
 - Resend dashboard: https://resend.com/api-keys
 - Support email should match your verified domain in Resend
+- Audio recovery notifications are sent to `info@worldwidefm.net`.
 
 ## 📦 Vercel Blob (Cold Storage)
 
