@@ -23,6 +23,12 @@ async function mockEpisodeSelection(page: Page) {
   });
 }
 
+async function openHydratedUploadMaster(page: Page) {
+  const hydrated = page.waitForResponse('**/api/live/current**');
+  await page.goto('/upload-master');
+  await hydrated;
+}
+
 test.describe('upload master reliability', () => {
   test.beforeEach(async ({ page }) => {
     await page.route('**/api/live/current**', async route => {
@@ -61,7 +67,7 @@ test.describe('upload master reliability', () => {
       });
     });
 
-    await page.goto('/upload-master');
+    await openHydratedUploadMaster(page);
     await page.locator('#broadcast-date').fill('2099-01-01');
     await page.getByPlaceholder('Search shows on this date').fill('Test Episode');
     await page.getByText('Test Episode').click();
@@ -119,7 +125,7 @@ test.describe('upload master reliability', () => {
       });
     });
 
-    await page.goto('/upload-master');
+    await openHydratedUploadMaster(page);
     await page.locator('#broadcast-date').fill('2099-01-01');
     await page.getByPlaceholder('Search shows on this date').fill('Test Episode');
     await page.getByText('Test Episode').click();
@@ -168,7 +174,7 @@ test.describe('upload master reliability', () => {
       });
     });
 
-    await page.goto('/upload-master');
+    await openHydratedUploadMaster(page);
     await page.locator('#broadcast-date').fill('2099-01-01');
     await page.getByPlaceholder('Search shows on this date').fill('Test Episode');
     await page.getByText('Test Episode').click();
