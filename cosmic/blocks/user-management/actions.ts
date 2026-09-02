@@ -15,7 +15,11 @@ import {
 } from '@/lib/schedule-reminders';
 import { getWeeklySchedule } from '@/lib/schedule-service';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResendClient(): Resend {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error('RESEND_API_KEY is not configured');
+  return new Resend(apiKey);
+}
 
 function isValidPassword(password: string): boolean {
   return password.length >= 8 && /[A-Za-z]/.test(password) && /[0-9]/.test(password);
@@ -84,7 +88,7 @@ export async function signUp(formData: FormData) {
     const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify?code=${verificationCode}`;
 
     try {
-      const result = await resend.emails.send({
+      const result = await getResendClient().emails.send({
         from: `${process.env.NEXT_PUBLIC_APP_NAME} Support <${process.env.SUPPORT_EMAIL}>`,
         to: email,
         subject: 'Verify your email address',
