@@ -211,9 +211,14 @@ describe('uploadMediaToRadioCult tagging is byte-exact', () => {
     server.stop();
   });
 
+  const requireUploadedFile = (): Buffer => {
+    if (!uploadedFile) throw new Error('RadioCult test server did not receive an upload');
+    return uploadedFile;
+  };
+
   const upload = (source: Buffer) =>
     uploadMediaToRadioCult({
-      file: new Blob([source], { type: 'application/octet-stream' }),
+      file: new Blob([Uint8Array.from(source)], { type: 'application/octet-stream' }),
       fileName: 'bytes.mp3',
       metadata: { title: 'New Title', artist: 'New Artist' },
       stationId: 'station-1',
@@ -228,7 +233,7 @@ describe('uploadMediaToRadioCult tagging is byte-exact', () => {
     const result = await upload(TAGLESS_MP3);
 
     expect(result.success).toBe(true);
-    expect(uploadedFile).toEqual(
+    expect(requireUploadedFile()).toEqual(
       writeMp3Id3v23Metadata(TAGLESS_MP3, { title: 'New Title', artist: 'New Artist' })
     );
   });
@@ -238,10 +243,11 @@ describe('uploadMediaToRadioCult tagging is byte-exact', () => {
     const result = await upload(TAGGED_MP3);
 
     expect(result.success).toBe(true);
-    expect(uploadedFile).toEqual(
+    expect(requireUploadedFile()).toEqual(
       writeMp3Id3v23Metadata(TAGGED_MP3, { title: 'New Title', artist: 'New Artist' })
     );
     // The original audio frames survive the swap untouched.
-    expect(uploadedFile?.subarray(uploadedFile.length - TAGLESS_MP3.length)).toEqual(TAGLESS_MP3);
+    const received = requireUploadedFile();
+    expect(received.subarray(received.length - TAGLESS_MP3.length)).toEqual(TAGLESS_MP3);
   });
 });
