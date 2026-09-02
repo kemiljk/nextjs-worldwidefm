@@ -1,18 +1,34 @@
 /// <reference types="bun-types" />
 import { describe, expect, it } from 'bun:test';
 import {
+  AUDIO_RECOVERY_EMAIL,
   notifyAudioRecovery,
-  parseAudioRecoveryRecipients,
   type AudioRecoveryEmail,
 } from '@/lib/audio-recovery-notification';
 
 describe('audio recovery notifications', () => {
-  it('uses configured recipients without duplicates', () => {
-    expect(
-      parseAudioRecoveryRecipients(
-        'programming@worldwidefm.net, ops@worldwidefm.net, programming@worldwidefm.net'
-      )
-    ).toEqual(['programming@worldwidefm.net', 'ops@worldwidefm.net']);
+  it('always routes recovery notifications to the WWFM info mailbox', async () => {
+    const sent: AudioRecoveryEmail[] = [];
+
+    await notifyAudioRecovery(
+      {
+        episodeId: 'episode-123',
+        episodeSlug: 'morning-show-123',
+        showTitle: 'Morning Show',
+        mediaUrl: 'https://example.public.blob.vercel-storage.com/media/morning-show.mp3',
+        fileName: 'morning-show.mp3',
+        failureCode: 'storage_full',
+        storedWithSubmission: true,
+      },
+      {
+        env: { AUDIO_RECOVERY_EMAILS: 'someone-else@example.com' },
+        send: async email => {
+          sent.push(email);
+        },
+      }
+    );
+
+    expect(sent[0]?.to).toEqual([AUDIO_RECOVERY_EMAIL]);
   });
 
   it('sends key people the episode reference and retained audio location', async () => {
@@ -29,7 +45,6 @@ describe('audio recovery notifications', () => {
       },
       {
         env: {
-          AUDIO_RECOVERY_EMAILS: 'programming@worldwidefm.net,ops@worldwidefm.net',
           SUPPORT_EMAIL: 'noreply@worldwidefm.net',
           NEXT_PUBLIC_APP_NAME: 'Worldwide FM',
         },
@@ -42,12 +57,15 @@ describe('audio recovery notifications', () => {
 
     expect(result.notified).toBe(true);
     expect(sent).toHaveLength(1);
-    expect(sent[0]?.to).toEqual(['programming@worldwidefm.net', 'ops@worldwidefm.net']);
+    expect(sent[0]?.to).toEqual(['info@worldwidefm.net']);
     expect(sent[0]?.subject).toContain('Morning Show');
     expect(sent[0]?.text).toContain('episode-123');
     expect(sent[0]?.text).toContain('morning-show-123');
     expect(sent[0]?.text).toContain('blob.vercel-storage.com');
     expect(sent[0]?.text).toContain('RadioCult storage is full');
+    expect(sent[0]?.text).toContain('Link saved on the Cosmic episode: yes');
+    expect(sent[0]?.text).toContain('Complete the RadioCult upload');
+    expect(sent[0]?.text).toContain('do not need to upload it again');
   });
 
   it('reports that notification is unconfirmed when email is not configured', async () => {
@@ -79,7 +97,7 @@ describe('audio recovery notifications', () => {
         storedWithSubmission: true,
       },
       {
-        env: { AUDIO_RECOVERY_EMAILS: 'ops@worldwidefm.net' },
+        env: {},
         timeoutMs: 5,
         send: () => new Promise(() => {}),
       }

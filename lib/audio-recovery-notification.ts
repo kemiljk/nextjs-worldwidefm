@@ -26,22 +26,13 @@ type NotificationDependencies = {
 };
 
 const DEFAULT_NOTIFICATION_TIMEOUT_MS = 8_000;
-
-export function parseAudioRecoveryRecipients(value?: string): string[] {
-  const recipients = (value || 'info@worldwidefm.net')
-    .split(',')
-    .map(recipient => recipient.trim())
-    .filter(Boolean);
-
-  return [...new Set(recipients)];
-}
+export const AUDIO_RECOVERY_EMAIL = 'info@worldwidefm.net';
 
 export async function notifyAudioRecovery(
   input: AudioRecoveryNotificationInput,
   dependencies: NotificationDependencies = {}
 ): Promise<{ notified: boolean }> {
   const env = dependencies.env || process.env;
-  const recipients = parseAudioRecoveryRecipients(env.AUDIO_RECOVERY_EMAILS);
   const supportEmail = env.SUPPORT_EMAIL || 'noreply@worldwidefm.net';
   const appName = env.NEXT_PUBLIC_APP_NAME || 'Worldwide FM';
   let send = dependencies.send;
@@ -49,20 +40,29 @@ export async function notifyAudioRecovery(
   const subjectTitle = input.showTitle.replace(/[\r\n]+/g, ' ').trim();
   const email: AudioRecoveryEmail = {
     from: `${appName} audio recovery <${supportEmail}>`,
-    to: recipients,
+    to: [AUDIO_RECOVERY_EMAIL],
     subject: `Audio needs attention: ${subjectTitle}`,
     text: [
-      'A show was submitted with audio that needs manual attention.',
+      'A show has been submitted, but its automatic RadioCult upload did not finish.',
       '',
+      'Submission details',
       `Show: ${input.showTitle}`,
       `Episode ID: ${input.episodeId}`,
       `Episode slug: ${input.episodeSlug}`,
       `Audio file: ${input.fileName}`,
-      `Audio location: ${input.mediaUrl}`,
-      `Stored on Cosmic submission: ${input.storedWithSubmission ? 'yes' : 'no'}`,
       `Reason: ${failureLabel(input.failureCode)}`,
       '',
-      'The host has been told not to upload the same file again.',
+      'Audio recovery',
+      `Direct audio link: ${input.mediaUrl}`,
+      `Link saved on the Cosmic episode: ${input.storedWithSubmission ? 'yes' : 'no'}`,
+      '',
+      'What to do next',
+      '1. Open or download the retained audio from the direct link above.',
+      '2. Complete the RadioCult upload when the account is ready.',
+      '3. Add the resulting RadioCult media ID to the Cosmic episode.',
+      '4. Remove the recovery link only after the audio is safely attached in RadioCult.',
+      '',
+      'The host has been told that WWFM has the audio and that they do not need to upload it again.',
     ].join('\n'),
   };
 
