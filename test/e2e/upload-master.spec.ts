@@ -24,6 +24,16 @@ async function mockEpisodeSelection(page: Page) {
 }
 
 test.describe('upload master reliability', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/api/live/current**', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, currentEvent: null, scheduleShow: null }),
+      });
+    });
+  });
+
   test('surfaces a Mixcloud timeout instead of hanging forever', async ({ page }) => {
     test.setTimeout(20_000);
 
