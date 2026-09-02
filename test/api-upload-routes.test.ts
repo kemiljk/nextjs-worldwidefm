@@ -170,6 +170,49 @@ describe('upload API routes', () => {
     }
   }, 30_000);
 
+  it('keeps RadioCult quota details out of the host-facing response', async () => {
+    const quotaServer = Bun.serve({
+      port: 0,
+      fetch() {
+        return Response.json(
+          {
+            success: false,
+            error: "You have exceeded all of your plan's available storage",
+          },
+          { status: 400 }
+        );
+      },
+    });
+
+    process.env.RADIOCULT_API_BASE_URL = `http://127.0.0.1:${quotaServer.port}`;
+
+    try {
+      const { POST } = await import('@/app/api/upload-media/route');
+      const formData = new FormData();
+      formData.append('mediaUrl', mediaServerUrl);
+      formData.append('fileName', 'quota.mp3');
+      formData.append('metadata', JSON.stringify({ title: 'Quota' }));
+
+      const response = await POST(
+        new NextRequest('http://localhost/api/upload-media', {
+          method: 'POST',
+          body: formData,
+        })
+      );
+      const json = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(json.success).toBe(false);
+      expect(json.failureCode).toBe('storage_full');
+      expect(json.error).toBe("We couldn't finish processing your audio automatically.");
+      expect(JSON.stringify(json)).not.toContain("plan's available storage");
+      expect(json.mediaUrl).toBe(mediaServerUrl);
+    } finally {
+      quotaServer.stop();
+      process.env.RADIOCULT_API_BASE_URL = radioCultBaseUrl;
+    }
+  });
+
   it('cleans up a temporary blob when cleanupOnly is set', async () => {
     const { POST } = await import('@/app/api/upload-media/route');
     const formData = new FormData();

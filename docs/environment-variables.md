@@ -109,12 +109,16 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```bash
 RESEND_API_KEY=re_...
 SUPPORT_EMAIL=noreply@worldwidefm.net
+AUDIO_RECOVERY_EMAILS=programming@worldwidefm.net,operations@worldwidefm.net
 ```
 
 **Where to find:**
 
 - Resend dashboard: https://resend.com/api-keys
 - Support email should match your verified domain in Resend
+- `AUDIO_RECOVERY_EMAILS` is a comma-separated list of the WWFM people who should receive the
+  Cosmic episode reference and retained Blob URL when audio needs manual attention. It defaults to
+  `info@worldwidefm.net` when omitted.
 
 ## 📦 Vercel Blob (Cold Storage)
 
@@ -173,6 +177,7 @@ REVALIDATION_SECRET=local-test-secret
 # Email
 RESEND_API_KEY=re_...
 SUPPORT_EMAIL=noreply@worldwidefm.net
+AUDIO_RECOVERY_EMAILS=programming@worldwidefm.net,operations@worldwidefm.net
 ```
 
 ### Staging/Preview (Vercel)
