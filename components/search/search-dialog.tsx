@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogClose, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +36,7 @@ import { useInView } from 'react-intersection-observer';
 import { Combobox } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SEARCH_PAGE_SIZE } from '@/lib/search-query';
+import styles from './search-dialog.module.css';
 
 interface SearchDialogProps {
   open: boolean;
@@ -105,9 +106,33 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const desktopSearchInputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const requestIdRef = useRef<number>(0);
   const resultsCacheRef = useRef<Map<string, { results: any[]; hasNext: boolean }>>(new Map());
   const PAGE_SIZE = SEARCH_PAGE_SIZE;
+
+  // iOS keeps the layout viewport tall when the keyboard opens. Fit the dialog
+  // to the visual viewport so its input, close control and results stay reachable.
+  useEffect(() => {
+    if (!open) return;
+    const viewport = window.visualViewport;
+    const updateViewport = () => {
+      dialogRef.current?.style.setProperty(
+        '--search-height',
+        `${viewport?.height ?? window.innerHeight}px`
+      );
+      dialogRef.current?.style.setProperty('--search-top', `${viewport?.offsetTop ?? 0}px`);
+    };
+    updateViewport();
+    viewport?.addEventListener('resize', updateViewport);
+    viewport?.addEventListener('scroll', updateViewport);
+    window.addEventListener('resize', updateViewport);
+    return () => {
+      viewport?.removeEventListener('resize', updateViewport);
+      viewport?.removeEventListener('scroll', updateViewport);
+      window.removeEventListener('resize', updateViewport);
+    };
+  }, [open]);
 
   // Lazy load filter data only when dialog opens (optimized - no type checking)
   useEffect(() => {
@@ -295,15 +320,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     // Always fetch results - either default episodes or filtered/search results
     fetchResults();
 
-    const focusTimeoutId = setTimeout(() => {
-      const input = window.matchMedia('(min-width: 640px)').matches
-        ? desktopSearchInputRef.current
-        : mobileSearchInputRef.current;
-      input?.focus();
-    }, 100);
-
     return () => {
-      clearTimeout(focusTimeoutId);
       isMounted = false;
       requestIdRef.current += 1;
     };
@@ -476,64 +493,71 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className='max-w-[90vw] h-[80vh] p-0 gap-0 overflow-hidden'>
+      <DialogContent
+        ref={dialogRef}
+        aria-describedby={undefined}
+        onOpenAutoFocus={event => {
+          event.preventDefault();
+          if (window.matchMedia('(min-width: 640px)').matches) {
+            desktopSearchInputRef.current?.focus({ preventScroll: true });
+          } else {
+            dialogRef.current?.focus({ preventScroll: true });
+          }
+        }}
+        className={cn(
+          'max-w-[90vw] h-[80vh] p-0 gap-0 overflow-hidden translate-x-0 translate-y-0 sm:-translate-x-1/2 sm:-translate-y-1/2',
+          styles.dialog
+        )}
+      >
+        <DialogTitle className='sr-only'>Search Worldwide FM</DialogTitle>
         <div className='flex h-full overflow-hidden relative flex-col'>
-          {/* Mobile: Search bar always at top */}
-          <div className='sm:hidden w-full z-40 bg-background border-b border-almostblack dark:border-white shrink-0'>
-            {/* Search Input and Edit filters button always at top */}
+          <div className='sm:hidden shrink-0 border-b bg-background'>
+            <div className='flex items-center justify-between pl-4 pr-2'>
+              <span className='font-mono text-sm uppercase'>Search Worldwide FM</span>
+              <DialogClose
+                className='flex min-h-11 min-w-11 items-center justify-center'
+                aria-label='Close search'
+              >
+                <X className='h-5 w-5' />
+              </DialogClose>
+            </div>
             <form
-              onSubmit={e => {
-                e.preventDefault();
-                // Search is automatic via debounce, no need to reset state here
+              role='search'
+              onSubmit={event => {
+                event.preventDefault();
+                mobileSearchInputRef.current?.blur();
               }}
-              className='flex gap-2'
+              className='flex items-center gap-2 px-4 pb-3'
             >
-              <div className='px-4 h-12 items-center flex flex-1'>
-                <Search className='h-6 w-6 text-muted-foreground' />
+              <div className='flex min-w-0 flex-1 items-center border px-3'>
+                <Search className='h-4 w-4 shrink-0 text-muted-foreground' />
                 <Input
                   ref={mobileSearchInputRef}
+                  aria-label='Search'
                   placeholder='Search'
-                  className='border-none pl-4 font-mono text-m8 uppercase bg-background focus-visible:ring-0 focus-visible:ring-offset-0'
+                  enterKeyHint='search'
+                  autoComplete='off'
+                  autoCorrect='off'
+                  spellCheck={false}
+                  className='min-w-0 h-11 border-none pl-2 font-mono text-[16px] focus-visible:ring-0 focus-visible:ring-offset-0'
                   value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
+                  onChange={event => setSearchTerm(event.target.value)}
                 />
-                {/* Edit filters button always visible on mobile, to right of input */}
-                <div className='w-auto flex justify-left py-2 bg-background pr-4'>
-                  {!showFilters ? (
-                    <Button
-                      variant='none'
-                      size='icon'
-                      className='border h-8 w-8 p-0 flex items-center justify-center rounded-none'
-                      onClick={() => {
-                        setShowFilters(true); // Show filters overlay
-                      }}
-                      type='button'
-                      aria-label='Edit filters'
-                    >
-                      <SlidersHorizontal className='h-4 w-4' />
-                    </Button>
-                  ) : (
-                    <Button
-                      variant='none'
-                      size='icon'
-                      className='border h-8 w-8 p-0 flex items-center justify-center bg-almostblack text-white dark:bg-white dark:text-almostblack rounded-none'
-                      onClick={() => {
-                        // Apply filters: hide overlay and refresh results
-                        setShowFilters(false);
-                        setPage(1);
-                        setResults([]);
-                        setHasNext(true);
-                        // Clear search term when applying filters to show filtered results
-                        setSearchTerm('');
-                      }}
-                      type='button'
-                      aria-label='Apply filters'
-                    >
-                      <SlidersHorizontal className='h-4 w-4' />
-                    </Button>
-                  )}
-                </div>
               </div>
+              <Button
+                variant='outline'
+                type='button'
+                className='h-11 shrink-0 gap-2 px-3'
+                aria-label={showFilters ? 'Show results' : 'Edit filters'}
+                aria-expanded={showFilters}
+                onClick={() => {
+                  mobileSearchInputRef.current?.blur();
+                  setShowFilters(value => !value);
+                }}
+              >
+                <SlidersHorizontal className='h-4 w-4' />
+                <span className='text-xs'>{showFilters ? 'Done' : 'Filters'}</span>
+              </Button>
             </form>
           </div>
 
@@ -550,6 +574,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 <Input
                   ref={desktopSearchInputRef}
                   placeholder='Search'
+                  aria-label='Search'
                   className='border-none pl-4 font-mono text-m8 uppercase focus-visible:ring-0'
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
@@ -563,7 +588,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             {/* Filters Section */}
             <div
               className={cn(
-                'w-full md:w-[30%] lg:w-[25%] border-r bg-background relative inset-y-0 left-0 z-30 sm:relative transition-transform duration-200 ease-in-out',
+                'w-full sm:w-[35%] md:w-[30%] lg:w-[25%] border-r bg-background relative inset-y-0 left-0 z-30 sm:relative transition-transform duration-200 ease-in-out',
                 'sm:static absolute h-full',
                 showFilters ? 'translate-x-0 block' : '-translate-x-full hidden',
                 'sm:translate-x-0 sm:block'
@@ -616,8 +641,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                               key={type}
                               onClick={() => handleFilterToggle({ type: 'types', slug: type })}
                               className={cn(
-                                'uppercase font-mono gap-3 rounded-full flex items-center px-3 py-2 w-full',
-                                activeFilters.includes(type)
+                                'min-h-11 uppercase font-mono gap-3 rounded-full flex items-center px-3 py-2 w-full',
+                                selectedType === type
                                   ? 'bg-accent text-accent-foreground'
                                   : 'hover:bg-accent/100 hover:text-white hover:cursor-pointer'
                               )}
@@ -777,7 +802,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 className='flex-1 w-full hide-scrollbar min-h-0 h-full'
                 ref={scrollAreaRef}
               >
-                <div className='p-8 space-y-6 min-h-0'>
+                <div className='p-4 sm:p-8 space-y-4 sm:space-y-6 min-h-0'>
                   {results.length > 0 ? (
                     <>
                       {results.map((result, idx) => {
@@ -862,7 +887,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                                   </span>
                                 )}
                               </div>
-                              <h3 className='text-[16px] font-mono uppercase leading-tight'>
+                              <h3 className='text-[16px] font-mono uppercase leading-snug break-words'>
                                 {result.title}
                               </h3>
                               {(genres || categories || hosts) && (

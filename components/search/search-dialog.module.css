@@ -1,0 +1,21 @@
+@media (max-width: 639px) {
+  .dialog {
+    top: var(--search-top, 0px);
+    left: 0;
+    width: 100%;
+    max-width: none;
+    height: var(--search-height, 100dvh);
+    max-height: none;
+    transform: none;
+    translate: none;
+    border: 0;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    animation: none;
+  }
+
+  /* The mobile header owns its accessible, touch-sized close control. */
+  .dialog > button {
+    display: none;
+  }
+}
