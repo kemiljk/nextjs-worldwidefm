@@ -33,6 +33,12 @@ describe('foldSearchText', () => {
 });
 
 describe('buildSearchRegex', () => {
+  it('uses literal combining marks instead of JavaScript-only Unicode escapes for Cosmic', () => {
+    const regex = buildSearchRegex('Gilles');
+    expect(regex!.$regex).not.toContain('\\u');
+    expect(regex!.$regex).toContain('[\u0300-\u036f]*');
+  });
+
   it('uses a plain substring pattern for a single token', () => {
     const regex = buildSearchRegex('Bhok');
     expect(new RegExp(regex!.$regex, regex!.$options).test('Bhok')).toBe(true);

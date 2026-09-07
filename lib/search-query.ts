@@ -46,7 +46,8 @@ export function buildAccentInsensitivePattern(value: string): string {
     .map(character => {
       const equivalents = ACCENT_EQUIVALENTS[character.toLowerCase()];
       const fragment = equivalents ? `[${equivalents}]` : escapeRegex(character);
-      return /[a-z]/i.test(character) ? `${fragment}[\\u0300-\\u036f]*` : fragment;
+      // Cosmic rejects literal \\u escapes. Let JS encode the actual Unicode range.
+      return /[a-z]/i.test(character) ? `${fragment}[\u0300-\u036f]*` : fragment;
     })
     .join('');
 }
