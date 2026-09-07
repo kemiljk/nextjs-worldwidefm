@@ -1,3 +1,5 @@
+import { liveCacheHeaders } from '@/lib/live-cache';
+import { connection } from 'next/server';
 import { NextResponse } from 'next/server';
 import { getScheduleData, findMatchingShow } from '@/lib/radiocult-service';
 import { getCurrentScheduleShow } from '@/lib/schedule-service';
@@ -8,15 +10,16 @@ import { getCurrentScheduleShow } from '@/lib/schedule-service';
  * Also includes matching Cosmic show info for linking to episode detail pages
  */
 export async function GET() {
+  await connection();
   try {
-    const [{ currentEvent }, scheduleShow] = await Promise.all([
+    const [{ currentEvent, upcomingEvent }, scheduleShow] = await Promise.all([
       getScheduleData(),
       getCurrentScheduleShow(),
     ]);
 
     let matchingShowSlug: string | null = null;
 
-    if (currentEvent) {
+    if (currentEvent && !scheduleShow?.slug) {
       const matchingShow = await findMatchingShow(currentEvent);
       matchingShowSlug = matchingShow?.slug || null;
     }
@@ -31,9 +34,11 @@ export async function GET() {
       },
       {
         headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
-          Pragma: 'no-cache',
-          Expires: '0',
+          ...liveCacheHeaders(Date.now(), [
+            scheduleShow?.endsAt,
+            currentEvent?.endTime,
+            upcomingEvent?.startTime,
+          ]),
           'X-Content-Type-Options': 'nosniff',
         },
       }

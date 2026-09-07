@@ -1,7 +1,8 @@
 'use server';
 
+import { getPublicObjects, getPublicObject } from '@/lib/cosmic-public';
+
 import { VideoObject } from '../cosmic-config';
-import { cosmic } from '../cosmic-config';
 import { applySearchToQuery } from '../search-query';
 
 /**
@@ -12,13 +13,13 @@ async function fetchVideosFromCosmic(
   limit: number,
   offset: number
 ): Promise<VideoObject[]> {
-  const response = await cosmic.objects
-    .find(query)
-    .props('id,slug,title,metadata,created_at')
-    .limit(limit)
-    .skip(offset)
-    .sort('-metadata.date')
-    .depth(2);
+  const response = await getPublicObjects(query, {
+    props: 'id,slug,title,metadata,created_at',
+    limit: limit,
+    skip: offset,
+    sort: '-metadata.date',
+    depth: 2,
+  });
 
   return response.objects || [];
 }
@@ -48,18 +49,18 @@ export async function getVideos({
     return { videos, hasNext };
   } catch (error) {
     console.error('Error in getVideos:', error);
-    return { videos: [], hasNext: false };
+    throw error;
   }
 }
 
-export async function getVideoCategories(): Promise<unknown[]> {
+export async function getVideoCategories(): Promise<{ id: string; slug: string; title: string }[]> {
   try {
-    const response = await cosmic.objects
-      .find({
+    const response = await getPublicObjects(
+      {
         type: 'video-categories',
-      })
-      .props('id,slug,title,metadata')
-      .depth(1);
+      },
+      { props: 'id,slug,title,metadata', depth: 1 }
+    );
 
     return response.objects || [];
   } catch (error) {
@@ -70,14 +71,14 @@ export async function getVideoCategories(): Promise<unknown[]> {
 
 export async function getVideoBySlug(slug: string): Promise<VideoObject | null> {
   try {
-    const response = await cosmic.objects
-      .findOne({
+    const response = await getPublicObject(
+      {
         type: 'videos',
         slug: slug,
         status: 'published',
-      })
-      .props('id,slug,title,metadata,created_at')
-      .depth(2);
+      },
+      { props: 'id,slug,title,metadata,created_at', depth: 2 }
+    );
 
     return response?.object || null;
   } catch (error) {

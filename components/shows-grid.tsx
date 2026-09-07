@@ -47,6 +47,7 @@ export function ShowsGrid({
         return (
           <ShowCard
             className='w-full'
+            priority={index < 4}
             key={uniqueKey}
             show={show}
             slug={slug}

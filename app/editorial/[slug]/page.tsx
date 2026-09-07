@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import EditorialSection from '@/components/editorial/editorial-section';
 import { generatePostMetadata } from '@/lib/metadata-utils';
 import { PostObject } from '@/lib/cosmic-config';
+import { ShowCard } from '@/components/ui/show-card';
+import { transformShowToViewData } from '@/lib/cosmic-service';
 import {
   StandardLayout,
   FeaturedLayout,
@@ -116,12 +118,48 @@ export default async function EditorialArticlePage({
   // Check if this is a draft post
   const isDraft = post.status === 'draft';
 
+  // Shows/episodes linked to this editorial piece (special projects, partnerships)
+  const relatedShows = post.metadata?.related_shows || [];
+
   return (
     <>
       {/* Preview Banner - show when post is a draft */}
       {isDraft && <PreviewBanner />}
 
       {getLayoutComponent()}
+
+      {/* Related Shows - linked episodes/series for special projects */}
+      {relatedShows.length > 0 && (
+        <div className='border-t'>
+          <div className='max-w-7xl mx-auto px-4 py-16'>
+            <h2 className='text-h8 md:text-h7 font-bold mb-4 tracking-tight uppercase'>
+              Related Shows
+            </h2>
+            <div className='grid grid-cols-2 md:grid-cols-5 gap-3 w-full h-auto'>
+              {relatedShows.map((show, index) => {
+                const transformed = transformShowToViewData(show);
+                const player = show.metadata?.player;
+                return (
+                  <ShowCard
+                    key={show.id || show.slug || index}
+                    show={{
+                      ...transformed,
+                      url: player
+                        ? player.startsWith('http')
+                          ? player
+                          : `https://www.mixcloud.com${player}`
+                        : '',
+                      key: show.slug,
+                    }}
+                    slug={`/episode/${show.slug}`}
+                    playable
+                  />
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Related Articles */}
       {relatedPosts.length > 0 && (

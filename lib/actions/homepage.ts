@@ -1,20 +1,21 @@
 'use server';
 
+import { getPublicObject, getPublicObjects } from '@/lib/cosmic-public';
+
 import { CosmicHomepageData, HomepageSectionItem, ProcessedHomepageSection } from '../cosmic-types';
-import { cosmic } from '../cosmic-config';
 
 /**
  * Fetch for homepage data
  */
 async function fetchHomepageFromCosmic(): Promise<CosmicHomepageData | null> {
   try {
-    const response = await cosmic.objects
-      .findOne({
+    const response = await getPublicObject(
+      {
         type: 'homepage',
         slug: 'homepage',
-      })
-      .props('slug,title,metadata,type')
-      .depth(4);
+      },
+      { props: 'slug,title,metadata,type', depth: 4 }
+    );
 
     if (response?.object) {
       return response.object as CosmicHomepageData;
@@ -23,7 +24,7 @@ async function fetchHomepageFromCosmic(): Promise<CosmicHomepageData | null> {
     return null;
   } catch (error) {
     console.error('Error fetching homepage from Cosmic:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -32,15 +33,12 @@ async function fetchHomepageFromCosmic(): Promise<CosmicHomepageData | null> {
  */
 async function fetchHomepageByIdFromCosmic(id: string): Promise<CosmicHomepageData | null> {
   try {
-    const response = await cosmic.objects
-      .findOne({ id })
-      .props('slug,title,metadata,type')
-      .depth(4);
+    const response = await getPublicObject({ id }, { props: 'slug,title,metadata,type', depth: 4 });
 
     return (response?.object as CosmicHomepageData) || null;
   } catch (error) {
     console.error('Error fetching homepage by ID:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -69,15 +67,12 @@ export async function getCosmicHomepageData(): Promise<CosmicHomepageData | null
  */
 async function fetchObjectByIdFromCosmic(id: string): Promise<HomepageSectionItem | null> {
   try {
-    const response = await cosmic.objects
-      .findOne({ id })
-      .props('slug,title,metadata,type')
-      .depth(1);
+    const response = await getPublicObject({ id }, { props: 'slug,title,metadata,type', depth: 1 });
 
     return (response?.object as HomepageSectionItem) || null;
   } catch (error) {
     console.error('Error fetching Cosmic object by ID:', error, { id });
-    return null;
+    throw error;
   }
 }
 
@@ -92,31 +87,29 @@ export async function fetchCosmicObjectById(id: string): Promise<HomepageSection
 export async function createColouredSections(
   colouredSections: ProcessedHomepageSection[]
 ): Promise<ProcessedHomepageSection[]> {
-  try {
-    const processedSections = await Promise.all(
-      colouredSections.map(async section => {
-        if (section.items && Array.isArray(section.items)) {
-          const fetchedItems = await Promise.all(
-            section.items.map(async (item: { id?: string }) => {
-              if (item.id && typeof item.id === 'string') {
-                const fetchedItem = await fetchCosmicObjectById(item.id);
-                return fetchedItem || item;
-              }
-              return item;
-            })
-          );
-          return {
-            ...section,
-            items: fetchedItems.filter(Boolean),
-          };
-        }
-        return section;
-      })
+  const missingIds = [
+    ...new Set(
+      colouredSections.flatMap(section =>
+        (section.items || [])
+          .filter((item: any) => item.id && !item.metadata)
+          .map((item: any) => item.id as string)
+      )
+    ),
+  ];
+  const objects = new Map<string, HomepageSectionItem>();
+  for (let offset = 0; offset < missingIds.length; offset += 100) {
+    const { objects: batch } = await getPublicObjects(
+      { id: { $in: missingIds.slice(offset, offset + 100) } },
+      {
+        props: 'id,slug,title,metadata,type',
+        depth: 1,
+        limit: 100,
+      }
     );
-
-    return processedSections.filter(Boolean);
-  } catch (error) {
-    console.error('Error creating coloured sections:', error);
-    return colouredSections;
+    for (const item of batch) objects.set(item.id, item);
   }
+  return colouredSections.map(section => ({
+    ...section,
+    items: (section.items || []).map((item: any) => objects.get(item.id) || item),
+  }));
 }

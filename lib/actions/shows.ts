@@ -454,7 +454,7 @@ export async function getRegularHosts({
   searchTerm?: string;
 } = {}): Promise<{ shows: unknown[]; hasNext: boolean }> {
   try {
-    const cosmicImport = await import('../cosmic-config');
+    const { getPublicObjects } = await import('../cosmic-public');
     const query: Record<string, unknown> = {
       type: 'regular-hosts',
       status: 'published',
@@ -472,14 +472,13 @@ export async function getRegularHosts({
       applySearchToQuery(query, searchTerm);
     }
 
-    const response = await cosmicImport.cosmic.objects
-      .find(query)
-      .props(
-        'id,slug,title,type,content,metadata.image,metadata.external_image_url,metadata.description,metadata.genres,metadata.locations'
-      )
-      .limit(limit)
-      .skip(offset)
-      .depth(1);
+    const response = await getPublicObjects(query, {
+      props:
+        'id,slug,title,type,content,metadata.image,metadata.external_image_url,metadata.description,metadata.genres,metadata.locations',
+      limit: Math.min(100, Math.max(1, limit)),
+      skip: Math.max(0, offset),
+      depth: 1,
+    });
 
     return {
       shows: response.objects || [],

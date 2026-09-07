@@ -193,7 +193,7 @@ export const SRCSET_CONFIGS: Record<string, number[]> = {
   /** For thumbnails: 100, 200, 300px */
   thumbnail: [100, 200, 300],
   /** For hero images: 768, 1024, 1400, 1920px */
-  hero: [768, 1024, 1400, 1920],
+  hero: [480, 768, 1024, 1200, 1400, 1920],
   /** For video thumbnails: 320, 640, 1280px */
   video: [320, 640, 1280],
   /** For featured content: 600, 900, 1200px */

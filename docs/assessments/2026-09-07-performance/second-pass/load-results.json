@@ -1,0 +1,10 @@
+{
+  "scope": "Bounded local warm-cache test; not a production capacity or latency guarantee",
+  "concurrency": 20,
+  "requests": 160,
+  "elapsedMs": 853,
+  "medianMs": 20,
+  "p95Ms": 399,
+  "additionalCosmicReads": 0,
+  "responseBytes": 27497000
+}

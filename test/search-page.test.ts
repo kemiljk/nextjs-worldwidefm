@@ -1,34 +1,19 @@
-import { afterEach, describe, expect, it, spyOn } from 'bun:test';
-import { cosmic } from '@/lib/cosmic-config';
-import {
-  buildSearchPageQuery,
-  getSearchPage,
-  searchPageSchema,
-  SEARCH_RESULT_PROPS,
-} from '@/lib/search-page';
-
+import { describe, expect, it, mock } from 'bun:test';
+let handler: (query: unknown, options: unknown) => Promise<any>;
+mock.module('@/lib/cosmic-public', () => ({
+  getPublicObjects: (query: unknown, options: unknown) => handler(query, options),
+}));
+const { buildSearchPageQuery, getSearchPage, searchPageSchema, SEARCH_RESULT_PROPS } = await import(
+  '@/lib/search-page'
+);
 const yesterday = '2026-09-06';
-const spies: Array<{ mockRestore(): void }> = [];
-afterEach(() => {
-  for (const spy of spies.splice(0)) spy.mockRestore();
-});
 function stubResponse(response: unknown, reject = false) {
   const calls: Record<string, unknown> = {};
-  const chain: any = {
-    then: (resolve: any, failure: any) =>
-      (reject ? Promise.reject(response) : Promise.resolve(response)).then(resolve, failure),
+  handler = async (query, options) => {
+    Object.assign(calls, options, { query });
+    if (reject) throw response;
+    return response;
   };
-  for (const method of ['props', 'limit', 'skip', 'after', 'depth', 'sort'])
-    chain[method] = (value: unknown) => {
-      calls[method] = value;
-      return chain;
-    };
-  spies.push(
-    spyOn(cosmic.objects, 'find').mockImplementation((query: any) => {
-      calls.query = query;
-      return chain;
-    })
-  );
   return calls;
 }
 
@@ -71,7 +56,7 @@ describe('search pages', () => {
     expect(calls.limit).toBe(20);
   });
   it('treats a genuine no-match response as empty', async () => {
-    stubResponse({ status: 404 }, true);
+    stubResponse({ objects: [], total: 0 });
     expect(await getSearchPage(searchPageSchema.parse({}), yesterday)).toEqual({
       results: [],
       hasNext: false,
@@ -82,6 +67,15 @@ describe('search pages', () => {
     stubResponse({ status: 500 }, true);
     expect(getSearchPage(searchPageSchema.parse({}), yesterday)).rejects.toMatchObject({
       status: 500,
+    });
+  });
+  it('shares cache keys for reordered and repeated filters', () => {
+    expect(searchPageSchema.parse({ genre: ['b', 'a', 'b'] }).genre).toEqual(['a', 'b']);
+  });
+  it('does not mask an upstream 404 configuration failure', async () => {
+    stubResponse({ status: 404 }, true);
+    expect(getSearchPage(searchPageSchema.parse({}), yesterday)).rejects.toMatchObject({
+      status: 404,
     });
   });
   it('bounds public requests and rejects unknown types', () => {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidateEpisodeCaches } from '@/lib/episode-archive';
 import { cosmic } from '@/lib/cosmic-config';
 
 interface UpdateLiveShowBody {
@@ -11,14 +11,6 @@ interface UpdateLiveShowBody {
 
 function plainTextTracklistToHtml(tracklist: string): string {
   return tracklist.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().replace(/\n/g, '<br />');
-}
-
-function revalidateEpisodeCaches(slug?: string) {
-  revalidateTag('episodes', { expire: 0 });
-  if (slug) {
-    revalidateTag(`episode-${slug}`, { expire: 0 });
-    revalidatePath(`/episode/${slug}`);
-  }
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

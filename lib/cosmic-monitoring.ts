@@ -1,39 +1,9 @@
 /**
- * CosmicJS Cost Monitoring Utilities
- *
- * Use these utilities to track API bandwidth and validate optimizations.
- *
- * MONITORING RECOMMENDATIONS:
- *
- * 1. **Cosmic Dashboard** → API Bandwidth usage (should drop 60-70%)
- *    - Check daily/weekly bandwidth trends
- *    - Monitor API Non-Cached Requests count
- *
- * 2. **imgix Dashboard** → Image optimization and CDN hits
- *    - Monitor cache hit rates
- *    - Check bandwidth usage
- *    - Note: Using native <img> with imgix params avoids Vercel Image costs
- *
- * 3. **API Response Times** → Should improve with smaller payloads
- *    - Use browser DevTools to monitor response sizes
- *    - Check for reduced payload sizes in Network tab
- *
- * EXPECTED COST REDUCTION:
- * - API Bandwidth: $258.84 → ~$80-100 (60-70% reduction from .props() field selection)
- * - Media Bandwidth: $153.30 → ~$100-120 (30-40% reduction via imgix params)
- * - API Non-Cached Requests: Minimal reduction (pages use dynamic rendering for instant updates)
- * - Target Monthly Cost: $180-220 (down from $471)
- *
- * CACHING STRATEGY:
- * - Pages use `await connection()` for dynamic rendering (instant Cosmic updates)
- * - API bandwidth reduced via .props() field selection (60-70% smaller payloads)
- * - Vercel Edge caching still applies to static assets
- * - On-demand revalidation available via /api/revalidate endpoint
- *
- * IMAGE OPTIMIZATION STRATEGY:
- * - Using native <img> with imgix URL params (no Vercel Image costs)
- * - imgix provides: WebP/AVIF auto-format, responsive sizing, compression
- * - Helper: getOptimizedImageUrl() in components/ui/optimized-image.tsx
+ * Development-only payload diagnostics. Production cache-fill metrics are emitted
+ * by cosmic-public.ts as cosmic.read events (operation, fingerprint, status, bytes,
+ * durationMs, attempt). Compare upstream reads per 1,000 page views and real invoices;
+ * a Cosmic CDN hit is still a billable request. No fixed savings estimate is assumed.
+ * See docs/assessments/2026-09-07-performance/implementation.md for cache policy.
  */
 
 // Development-only logging for API response sizes

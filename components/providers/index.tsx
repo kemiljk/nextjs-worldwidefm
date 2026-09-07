@@ -2,7 +2,6 @@
 
 import { ReactNode } from 'react';
 import { ThemeProvider } from './theme-provider';
-import SearchProvider from './search-provider';
 import { AuthProvider } from '@/cosmic/blocks/user-management/AuthContext';
 import { MediaPlayerProvider } from './media-player-provider';
 import PlausibleProvider from 'next-plausible';
@@ -22,9 +21,7 @@ export function Providers({ children }: ProvidersProps) {
         storageKey='worldwidefm-theme'
       >
         <AuthProvider>
-          <SearchProvider>
-            <MediaPlayerProvider>{children}</MediaPlayerProvider>
-          </SearchProvider>
+          <MediaPlayerProvider>{children}</MediaPlayerProvider>
         </AuthProvider>
       </ThemeProvider>
     </PlausibleProvider>

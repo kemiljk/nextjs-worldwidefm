@@ -4,10 +4,10 @@ Scans your Next.js codebase for patterns that drive up your Vercel bill, focusin
 
 ## Usage
 
-\`\`\`bash
+```bash
 npx -y vercel-doctor@latest . --verbose --diff
-\`\`\`
+```
 
 ## Workflow
 
-Run after making changes to catch cost-heavy patterns early. Focus on fixing issues that reduce function execution time and invocations first.
+Run the scan for changes affecting server execution, data fetching, deployment, or Vercel cost behavior, and for explicit cost reviews. A copy-only or unrelated visual edit does not require it. Focus on findings relevant to the requested scope; verify affected behavior after fixes.

@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cacheLife, cacheTag } from 'next/cache';
-import { getSearchPage, searchPageSchema, type SearchPageParams } from '@/lib/search-page';
-
-async function cachedSearch(params: SearchPageParams, yesterday: string) {
-  'use cache';
-  cacheLife('latest');
-  cacheTag('episodes', 'posts', 'videos', 'hosts', 'takeovers');
-  return getSearchPage(params, yesterday);
-}
+import { getSearchPage, searchPageSchema } from '@/lib/search-page';
 
 export async function GET(request: NextRequest) {
   const search = request.nextUrl.searchParams;
@@ -26,12 +18,12 @@ export async function GET(request: NextRequest) {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   try {
-    const result = await cachedSearch(parsed.data, yesterday.toISOString().slice(0, 10));
-    return NextResponse.json(result);
+    const result = await getSearchPage(parsed.data, yesterday.toISOString().slice(0, 10));
+    return NextResponse.json(result, { headers: { 'Cache-Control': 'no-store' } });
   } catch {
     return NextResponse.json(
       { error: 'Search is temporarily unavailable. Please try again.' },
-      { status: 502 }
+      { status: 502, headers: { 'Cache-Control': 'no-store' } }
     );
   }
 }

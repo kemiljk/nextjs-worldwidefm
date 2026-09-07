@@ -1,0 +1,53 @@
+[Schedule] Fetching automatic episodes for dates: [ "2026-09-07", "2026-09-08", "2026-09-09",
+  "2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13"
+]
+[Schedule] Found 0 automatic episodes total
+[Schedule] Fetching automatic episodes for dates: [ "2026-09-07", "2026-09-08", "2026-09-09",
+  "2026-09-10", "2026-09-11", "2026-09-12", "2026-09-13"
+]
+[Schedule] Found 0 automatic episodes total
+{
+  "fixture": "empty successful CMS responses, no linked episode lookups",
+  "firstPoll": 8,
+  "secondPoll": 8,
+  "queries": [
+    {
+      "type": "schedule"
+    },
+    {
+      "type": "episode",
+      "status": "published",
+      "metadata.broadcast_date": "2026-09-07"
+    },
+    {
+      "type": "episode",
+      "status": "published",
+      "metadata.broadcast_date": "2026-09-08"
+    },
+    {
+      "type": "episode",
+      "status": "published",
+      "metadata.broadcast_date": "2026-09-09"
+    },
+    {
+      "type": "episode",
+      "status": "published",
+      "metadata.broadcast_date": "2026-09-10"
+    },
+    {
+      "type": "episode",
+      "status": "published",
+      "metadata.broadcast_date": "2026-09-11"
+    },
+    {
+      "type": "episode",
+      "status": "published",
+      "metadata.broadcast_date": "2026-09-12"
+    },
+    {
+      "type": "episode",
+      "status": "published",
+      "metadata.broadcast_date": "2026-09-13"
+    }
+  ]
+}

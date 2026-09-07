@@ -1,0 +1,56 @@
+{
+  "scope": "local next start, one process; does not verify Vercel cross-instance cache",
+  "requests": [
+    {
+      "status": 200,
+      "success": true,
+      "ms": 7.28
+    },
+    {
+      "status": 200,
+      "success": true,
+      "ms": 11.85
+    },
+    {
+      "status": 200,
+      "success": true,
+      "ms": 16.31
+    },
+    {
+      "status": 200,
+      "success": true,
+      "ms": 20.18
+    },
+    {
+      "status": 200,
+      "success": true,
+      "ms": 23.14
+    },
+    {
+      "status": 200,
+      "success": true,
+      "ms": 26.05
+    },
+    {
+      "status": 200,
+      "success": true,
+      "ms": 29.13
+    },
+    {
+      "status": 200,
+      "success": true,
+      "ms": 32.53
+    },
+    {
+      "status": 200,
+      "success": true,
+      "ms": 35.09
+    },
+    {
+      "status": 200,
+      "success": true,
+      "ms": 37.27
+    }
+  ],
+  "additionalCosmicReads": 0
+}

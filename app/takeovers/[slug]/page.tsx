@@ -4,7 +4,7 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import { getEpisodesForShows } from '@/lib/episode-service';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
-import { transformShowToViewData } from '@/lib/cosmic-service';
+import { toShowCardData as transformShowToViewData } from '@/lib/show-card-data';
 import { getCachedTakeoverBySlug } from '@/lib/cached-data';
 import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';

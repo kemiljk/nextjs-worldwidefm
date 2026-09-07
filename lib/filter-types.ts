@@ -46,7 +46,7 @@ export function filterShowsByCategory(
   });
 }
 
-export function deduplicateFilters(filters: FilterItem[]): FilterItem[] {
+export function deduplicateFilters<T extends FilterItem>(filters: T[]): T[] {
   const seenIds = new Set();
   const seenTitles = new Set();
 

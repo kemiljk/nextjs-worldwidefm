@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Metadata } from 'next';
-import { connection } from 'next/server';
+import { cacheLife, cacheTag } from 'next/cache';
 import {
   getCosmicHomepageData,
   getVideos,
@@ -9,8 +9,8 @@ import {
 } from '@/lib/actions';
 import { generateHomepageMetadata } from '@/lib/metadata-utils';
 import { getEpisodesForShows, getEpisodeBySlug, getEpisodes } from '@/lib/episode-service';
-import { transformShowToViewData } from '@/lib/cosmic-service';
-import { getCanonicalGenres } from '@/lib/get-canonical-genres';
+import { toShowCardData as transformShowToViewData } from '@/lib/show-card-data';
+import { getCachedGenres as getCanonicalGenres } from '@/lib/cached-data';
 import EditorialSection from '@/components/editorial/editorial-section';
 import VideoSection from '@/components/video/video-section';
 import ArchiveSection from '@/components/archive/archive-section';
@@ -36,78 +36,111 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
+// Page-level data the synchronous block renderer needs in scope so that
+// auto-generated blocks (archive, genre selector, video, editorial) can be
+// positioned anywhere in page_order.
+interface HomepageRenderContext {
+  colouredSections: any[];
+  archiveShows: any[];
+  videos: any[];
+  posts: any[];
+  genreSelector: {
+    shows: any[];
+    randomShowsByGenre: Record<string, any>;
+    allCanonicalGenres: any[];
+  };
+}
+
+// Render a curated grid of episodes/shows.
+function renderShowsGrid(title: string, items: any[]): React.ReactNode {
+  return (
+    <section className='py-8 px-5'>
+      <h2 className='text-h8 md:text-h7 font-bold mb-4 tracking-tight uppercase'>{title}</h2>
+      <div className='grid grid-cols-2 md:grid-cols-5 gap-3 w-full h-auto'>
+        {items.map((show: any, index: number) => {
+          const transformed = transformShowToViewData(show);
+          return (
+            <ShowCard
+              key={show.id || show.slug || index}
+              show={{
+                ...transformed,
+                url: show.metadata?.player
+                  ? show.metadata.player.startsWith('http')
+                    ? show.metadata.player
+                    : `https://www.mixcloud.com${show.metadata.player}`
+                  : '',
+                key: show.slug,
+              }}
+              slug={`/episode/${show.slug}`}
+              playable
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function renderGenreSelector(ctx: HomepageRenderContext): React.ReactNode {
+  return (
+    <GenreSelector
+      shows={ctx.genreSelector.shows}
+      randomShowsByGenre={ctx.genreSelector.randomShowsByGenre}
+      allCanonicalGenres={ctx.genreSelector.allCanonicalGenres}
+    />
+  );
+}
+
 // Helper function to render page order items (sync only - async components handled separately)
-function renderPageOrderItem(
-  item: PageOrderItem,
-  colouredSections: any[],
-  hasHeroItems: boolean
-): React.ReactNode {
+function renderPageOrderItem(item: PageOrderItem, ctx: HomepageRenderContext): React.ReactNode {
   switch (item.type) {
     case 'latest-episodes':
       // Async component - handled separately in the main render
       return null;
 
-    case 'sections':
-      const sectionType = item.metadata?.type;
+    case 'sections': {
       const items = item.metadata?.items || [];
       const sectionTitle = item.title;
+      if (items.length === 0) return null;
 
-      // Determine the content type based on items
-      if (items.length > 0) {
-        const firstItem = items[0];
-        const itemType = firstItem.type;
+      // Prefer the editor's explicit section type; fall back to inferring from
+      // the first item's object type. Object types are singular ("episode",
+      // "post", "video") so we normalise both singular and plural forms.
+      const explicitType = (item.metadata?.type || '').toLowerCase();
+      const firstItemType = (items[0]?.type || '').toLowerCase();
 
-        // For Editorial/Video posts, use EditorialSection
-        if (itemType === 'posts') {
-          return (
-            <EditorialSection
-              posts={items}
-              title={sectionTitle}
-              className='pt-8'
-              isHomepage={true}
-            />
-          );
-        }
+      const isArchive = explicitType === 'archive';
+      const isVideos =
+        explicitType === 'videos' || firstItemType === 'video' || firstItemType === 'videos';
+      const isEditorial =
+        explicitType === 'editorial' || firstItemType === 'post' || firstItemType === 'posts';
+      const isShows =
+        explicitType === 'shows' || firstItemType === 'episode' || firstItemType === 'episodes';
 
-        // For Shows/Episodes, use ShowsGrid
-        if (itemType === 'episodes') {
-          return (
-            <section className='py-8 px-5'>
-              <h2 className='text-h8 md:text-h7 font-bold mb-4 tracking-tight uppercase'>
-                {sectionTitle}
-              </h2>
-              <div className='grid grid-cols-2 md:grid-cols-5 gap-3 w-full h-auto'>
-                {items.map((show: any, index: number) => {
-                  const transformed = transformShowToViewData(show);
-                  return (
-                    <ShowCard
-                      key={show.id || show.slug || index}
-                      show={{
-                        ...transformed,
-                        url: show.metadata?.player
-                          ? show.metadata.player.startsWith('http')
-                            ? show.metadata.player
-                            : `https://www.mixcloud.com${show.metadata.player}`
-                          : '',
-                        key: show.slug,
-                      }}
-                      slug={`/episode/${show.slug}`}
-                      playable
-                    />
-                  );
-                })}
-              </div>
-            </section>
-          );
-        }
-
-        // For Archive, use ArchiveSection or ShowsGrid
-        if (sectionType === 'Archive') {
-          return <ArchiveSection shows={items} className='pt-8' />;
-        }
+      // Archive items are episodes too, so check the explicit Archive type first.
+      if (isArchive) {
+        return <ArchiveSection shows={items} className='pt-8' />;
       }
-
+      if (isVideos) {
+        return (
+          <VideoSection videos={items.slice(0, 3)} title={sectionTitle} className='pt-8' curated />
+        );
+      }
+      if (isEditorial) {
+        return (
+          <EditorialSection
+            posts={items.slice(0, 3)}
+            title={sectionTitle}
+            className='pt-8'
+            isHomepage={true}
+          />
+        );
+      }
+      if (isShows) {
+        return renderShowsGrid(sectionTitle, items);
+      }
       return null;
+    }
 
     case 'membership-promo':
       return <MembershipPromoSection config={item.metadata} />;
@@ -115,7 +148,28 @@ function renderPageOrderItem(
     case 'coloured-sections':
       // Render carousel of coloured sections
       // Note: colouredSections are pre-processed in the main Home component
-      return <ColouredSectionGallery colouredSections={colouredSections} homepageData={item} />;
+      return (
+        <ColouredSectionGallery
+          colouredSections={ctx.colouredSections}
+          homepageData={{ metadata: { coloured_sections: item.metadata?.coloured_sections } }}
+        />
+      );
+
+    case 'genre-selector':
+      return renderGenreSelector(ctx);
+
+    case 'archive-block':
+      return ctx.archiveShows.length > 0 ? (
+        <ArchiveSection shows={ctx.archiveShows} className='pt-8' />
+      ) : null;
+
+    case 'video-block':
+      return ctx.videos.length > 0 ? <VideoSection videos={ctx.videos} className='pt-8' /> : null;
+
+    case 'editorial-block':
+      return ctx.posts.length > 0 ? (
+        <EditorialSection posts={ctx.posts} title='Editorial' className='pt-8' isHomepage={true} />
+      ) : null;
 
     default:
       return null;
@@ -123,18 +177,19 @@ function renderPageOrderItem(
 }
 
 export default async function Home() {
-  // Opt into dynamic rendering - ensures time-based calculations are correct during prerender
-  await connection();
+  'use cache';
+  cacheLife('latest');
+  cacheTag('homepage', 'hero', 'episodes', 'content-relationships');
 
-  // Data fetching now uses time-based caching (hero: 15min, latest: 5min)
+  // Public data is shared across requests; this rendered page refreshes after five minutes.
   // Content updates via revalidation or manual trigger at /api/revalidate
 
   // Parallel fetch all initial data in a single Promise.all
   const [homepageData, videosData, postsData, canonicalGenres, recentEpisodesResponse] =
     await Promise.all([
       getCosmicHomepageData(),
-      getVideos(),
-      getAllPosts(),
+      getVideos({ limit: 3 }),
+      getAllPosts({ limit: 3 }),
       getCanonicalGenres(),
       getEpisodesForShows({ limit: 20 }),
     ]);
@@ -156,8 +211,8 @@ export default async function Home() {
   let colouredSections: any[] = [];
 
   if (colouredSectionItems.length > 0) {
-    // Process coloured sections from page_order with timeout protection
-    const allSections = await Promise.allSettled(
+    // Preserve the previous cached page if a section refresh fails.
+    const allSections = await Promise.all(
       colouredSectionItems.flatMap(item => {
         const sectionData = item.metadata?.coloured_section || [];
         return sectionData.map(async (section: any, idx: number) => {
@@ -179,18 +234,7 @@ export default async function Home() {
                   ? section.show_type.id
                   : section.show_type;
 
-              // Add timeout protection
-              const fetchWithTimeout = Promise.race([
-                getEpisodes({
-                  showType: [showTypeId],
-                  limit: 10,
-                }),
-                new Promise<{ episodes: any[] }>((_, reject) =>
-                  setTimeout(() => reject(new Error('Timeout')), 6000)
-                ),
-              ]);
-
-              const episodes = await fetchWithTimeout;
+              const episodes = await getEpisodes({ showType: [showTypeId], limit: 10 });
 
               shows = (episodes.episodes || []).map((episode: any) => {
                 const transformed = transformShowToViewData(episode);
@@ -218,16 +262,14 @@ export default async function Home() {
             };
           } catch (error) {
             console.error(`Error processing coloured section ${section.title}:`, error);
-            return null;
+            throw error;
           }
         });
       })
     );
 
     // Extract successful sections only
-    colouredSections = allSections
-      .filter(result => result.status === 'fulfilled' && result.value !== null)
-      .map(result => (result as PromiseFulfilledResult<any>).value);
+    colouredSections = allSections.filter(Boolean);
   } else {
     // Fallback to OLD structure - if homepageData is null or doesn't have the expected structure,
     // colouredSections will remain an empty array
@@ -243,6 +285,7 @@ export default async function Home() {
         }
       } catch (error) {
         console.error('Error processing old coloured sections format:', error);
+        throw error;
       }
     }
   }
@@ -283,7 +326,8 @@ export default async function Home() {
 
   // Fetch random shows for top genres AND archive shows in parallel
   const topGenresToPreload = topGenres.slice(0, 5);
-  const randomOffset = Math.floor(Math.random() * 150) + 50;
+  // One archive selection per UTC day keeps the upstream cache key bounded.
+  const randomOffset = (Math.floor(Date.now() / 86400000) % 150) + 50;
 
   // Build parallel fetch promises for genres
   const genrePromises = topGenresToPreload.map(async genreTitle => {
@@ -293,65 +337,84 @@ export default async function Home() {
     if (!canonicalGenre) return { genreTitle, show: null };
 
     try {
-      const response = await Promise.race([
-        getEpisodesForShows({
-          genre: [canonicalGenre.id],
-          random: true,
-          limit: 1,
-        }).catch(() => ({ shows: [], total: 0, hasNext: false })),
-        new Promise<{ shows: any[] }>((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout')), 5000)
-        ),
-      ]);
+      const response = await getEpisodesForShows({
+        genre: [canonicalGenre.id],
+        random: true,
+        limit: 1,
+      });
 
       if (response?.shows?.[0]) {
         const transformed = transformShowToViewData(response.shows[0]);
         return { genreTitle, show: { ...transformed, key: transformed.slug } };
       }
-    } catch {
-      // Silently fail for individual genres
+    } catch (error) {
+      throw error;
     }
     return { genreTitle, show: null };
   });
 
   // Fetch archive shows promise
-  const archivePromise = getEpisodesForShows({ limit: 20, offset: randomOffset }).catch(() => ({
-    shows: [],
-  }));
+  const archivePromise = getEpisodesForShows({ limit: 5, offset: randomOffset });
 
   const displayHeroItems = homepageData?.metadata?.display_hero_items ?? false;
   const heroLayout = homepageData?.metadata?.heroLayout;
   const heroItemsRaw = homepageData?.metadata?.heroItems || [];
 
+  // Build hero items only if display_hero_items is enabled.
+  // Hero items can be any featured content type (episodes, editorial posts,
+  // hosts, series/takeovers, videos) - not just episodes. Episodes are
+  // enriched with full data (for the inline player); other types render from
+  // the already-populated relationship data (homepage fetch uses depth 4).
+  const HERO_SUPPORTED_TYPES = new Set([
+    'episode',
+    'episodes',
+    'posts',
+    'hosts',
+    'takeovers',
+    'videos',
+  ]);
+
   const heroItemsPromise =
     displayHeroItems && heroItemsRaw.length > 0
       ? Promise.all(
           heroItemsRaw
-            .filter(item => item.type === 'episode')
+            .filter(item => HERO_SUPPORTED_TYPES.has(item.type))
             .map(async item => {
-              try {
-                const fullEpisode = await getEpisodeBySlug(item.slug);
-                if (fullEpisode) {
-                  const transformed = transformShowToViewData(fullEpisode);
-                  return {
-                    ...transformed,
-                    key: transformed.slug,
-                    url: transformed.url,
-                  };
+              const isEpisode = item.type === 'episode' || item.type === 'episodes';
+
+              if (isEpisode) {
+                try {
+                  const fullEpisode = await getEpisodeBySlug(item.slug);
+                  if (fullEpisode) {
+                    const transformed = transformShowToViewData(fullEpisode);
+                    return {
+                      ...transformed,
+                      key: transformed.slug,
+                      url: transformed.url,
+                    };
+                  }
+                } catch (error) {
+                  console.error(`Error fetching hero episode ${item.slug}:`, error);
                 }
-              } catch (error) {
-                console.error(`Error fetching hero episode ${item.slug}:`, error);
+
+                const playerUrl = item.metadata?.player as unknown as string | undefined;
+                return {
+                  ...item,
+                  key: item.slug,
+                  url: playerUrl
+                    ? playerUrl.startsWith('http')
+                      ? playerUrl
+                      : `https://www.mixcloud.com${playerUrl}`
+                    : '',
+                };
               }
 
-              const playerUrl = item.metadata?.player as unknown as string | undefined;
+              // Non-episode hero items (editorial, host, series, video) render
+              // directly from their relationship data - no audio/player URL.
               return {
                 ...item,
                 key: item.slug,
-                url: playerUrl
-                  ? playerUrl.startsWith('http')
-                    ? playerUrl
-                    : `https://www.mixcloud.com${playerUrl}`
-                  : '',
+                url: '',
               };
             })
         ).then(items => items.filter(Boolean))
@@ -370,14 +433,36 @@ export default async function Home() {
     if (show) randomShowsByGenre[genreTitle] = show;
   }
 
-  // Transform archive shows
-  const archiveShows = (archiveResponse.shows || []).map(show => {
+  // Prefer the editor's hand-picked archive selection, falling back to random episodes.
+  const curatedArchive = homepageData?.metadata?.archive_shows || [];
+  const archiveSource = curatedArchive.length > 0 ? curatedArchive : archiveResponse.shows || [];
+  const archiveShows = archiveSource.map((show: any) => {
     const transformed = transformShowToViewData(show);
     return { ...transformed, key: transformed.slug };
   });
 
   // Check if sections are in page_order (new system) or should use old system
   const hasColouredSectionsInOrder = pageOrder.some(item => item.type === 'coloured-sections');
+
+  // Auto-generated blocks render at fixed positions by default, but if the
+  // editor has placed a corresponding marker block in page_order, render them
+  // there instead (and suppress the fixed-position fallback to avoid duplicates).
+  const hasGenreSelectorInOrder = pageOrder.some(item => item.type === 'genre-selector');
+  const hasArchiveBlockInOrder = pageOrder.some(item => item.type === 'archive-block');
+  const hasVideoBlockInOrder = pageOrder.some(item => item.type === 'video-block');
+  const hasEditorialBlockInOrder = pageOrder.some(item => item.type === 'editorial-block');
+
+  const renderContext: HomepageRenderContext = {
+    colouredSections,
+    archiveShows,
+    videos: videosData.videos,
+    posts: postsData.posts,
+    genreSelector: {
+      shows,
+      randomShowsByGenre,
+      allCanonicalGenres: canonicalGenres,
+    },
+  };
 
   return (
     <div className='w-full min-h-screen'>
@@ -401,7 +486,9 @@ export default async function Home() {
           <Suspense>
             <ColouredSectionGallery
               colouredSections={colouredSections}
-              homepageData={homepageData}
+              homepageData={{
+                metadata: { coloured_sections: homepageData?.metadata?.coloured_sections },
+              }}
             />
           </Suspense>
         )}
@@ -425,29 +512,34 @@ export default async function Home() {
 
           return (
             <Suspense key={`${item.type}-${item.id}-${index}`} fallback={<div>Loading...</div>}>
-              {renderPageOrderItem(item, colouredSections, hasHeroItemsFlag)}
+              {renderPageOrderItem(item, renderContext)}
             </Suspense>
           );
         })}
 
-        {/* From The Archive Section */}
-        {archiveShows.length > 0 && <ArchiveSection shows={archiveShows} className='pt-8' />}
+        {/* From The Archive Section - fixed position fallback */}
+        {!hasArchiveBlockInOrder && archiveShows.length > 0 && (
+          <ArchiveSection shows={archiveShows} className='pt-8' />
+        )}
 
-        {/* Genre Selector Section */}
-        <Suspense>
-          <GenreSelector
-            shows={shows}
-            randomShowsByGenre={randomShowsByGenre}
-            allCanonicalGenres={canonicalGenres}
-          />
-        </Suspense>
+        {/* Genre Selector Section - fixed position fallback */}
+        {!hasGenreSelectorInOrder && (
+          <Suspense>
+            <GenreSelector
+              shows={shows}
+              randomShowsByGenre={randomShowsByGenre}
+              allCanonicalGenres={canonicalGenres}
+            />
+          </Suspense>
+        )}
 
-        {/* Video Section */}
-        {videosData.videos.length > 0 && (
+        {/* Video Section - fixed position fallback */}
+        {!hasVideoBlockInOrder && videosData.videos.length > 0 && (
           <VideoSection videos={videosData.videos} className='pt-8' />
         )}
 
-        {postsData.posts.length > 0 && (
+        {/* Editorial Section - fixed position fallback */}
+        {!hasEditorialBlockInOrder && postsData.posts.length > 0 && (
           <EditorialSection
             posts={postsData.posts}
             title='Editorial'

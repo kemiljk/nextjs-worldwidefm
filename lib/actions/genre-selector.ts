@@ -1,7 +1,7 @@
 'use server';
 
 import { getEpisodesForShows } from '@/lib/episode-service';
-import { transformShowToViewData } from '@/lib/cosmic-service';
+import { toShowCardData as transformShowToViewData } from '@/lib/show-card-data';
 
 export async function fetchShowsByGenre(genreId: string, limit: number = 10) {
   try {

@@ -31,7 +31,7 @@ jobs:
         run: bunx tsc -p tsconfig.test.json --noEmit
 
       - name: Unit and integration tests
-        run: bun test test/*.test.ts
+        run: bun run test
 
   e2e:
     runs-on: ubuntu-latest

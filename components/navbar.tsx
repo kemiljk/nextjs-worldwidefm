@@ -103,7 +103,7 @@ export default function Navbar({ navItems, initialUser = null }: NavbarProps) {
     >
       <div className='w-full flex flex-1 justify-between'>
         <div className='flex items-center ml-4 w-full'>
-          <Link href='/' className='flex items-center'>
+          <Link href='/' prefetch={false} className='flex items-center'>
             <Logo className='w-auto h-5 text-foreground' />
           </Link>
 

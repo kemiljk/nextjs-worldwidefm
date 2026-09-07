@@ -125,7 +125,16 @@ export interface PageOrderItem {
   id: string;
   slug: string;
   title: string;
-  type: 'latest-episodes' | 'sections' | 'coloured-sections' | 'membership-promo' | string;
+  type:
+    | 'latest-episodes'
+    | 'sections'
+    | 'coloured-sections'
+    | 'membership-promo'
+    | 'genre-selector'
+    | 'archive-block'
+    | 'video-block'
+    | 'editorial-block'
+    | string;
   metadata: any;
 }
 
@@ -153,6 +162,9 @@ export interface CosmicHomepageData {
     page_order: PageOrderItem[];
     sections?: HomepageSection[]; // Keep for backwards compatibility
     coloured_sections?: ColouredSection[];
+    // Hand-picked episodes for the "From the Archive" section. When empty,
+    // the homepage auto-selects random archive episodes.
+    archive_shows?: CosmicItem[];
   };
 }
 

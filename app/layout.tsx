@@ -1,7 +1,6 @@
 import type React from 'react';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import Nimbus from 'next/font/local';
 import AirCompressed from 'next/font/local';
 import FoundersGrotesk from 'next/font/local';
@@ -26,7 +25,7 @@ const sans = Nimbus({
 });
 
 const display = AirCompressed({
-  src: './fonts/AirCompressed-Black-WWFM.woff',
+  src: './fonts/AirCompressed-Black-WWFM.woff2',
   weight: '900',
   style: 'normal',
   display: 'swap',
@@ -39,6 +38,8 @@ const mono = FoundersGrotesk({
   style: 'normal',
   display: 'swap',
   variable: '--font-mono',
+  adjustFontFallback: false,
+  fallback: ['WWFM Mono Fallback', 'monospace'],
 });
 
 export const metadata: Metadata = {
@@ -58,10 +59,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang='en' suppressHydrationWarning>
+      <head>
+        <link rel='preconnect' href='https://imgix.cosmicjs.com' />
+      </head>
       <body
         className={`${sans.variable} ${display.variable} ${mono.variable} min-h-screen w-full bg-background font-sans`}
       >
-        <Script src='https://cdn.socket.io/4.7.2/socket.io.min.js' strategy='lazyOnload' />
         <Providers>
           <Suspense
             fallback={
@@ -72,8 +75,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </Suspense>
           <LivePlayer />
           <ScheduleNotificationManager />
-          <main className='w-full pt-14 overflow-x-hidden'>
-            <Suspense>{children}</Suspense>
+          <main className='w-full min-h-screen pt-14 overflow-x-hidden'>
+            <Suspense
+              fallback={
+                <div className='min-h-screen px-5 py-10' role='status'>
+                  Loading Worldwide FM…
+                </div>
+              }
+            >
+              {children}
+            </Suspense>
           </main>
           <ArchivePlayer />
           <DiscordButton />

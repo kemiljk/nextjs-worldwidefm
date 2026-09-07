@@ -1,0 +1,145 @@
+[
+  {
+    "mode": "mobile-simulated-4xCPU-1.6Mbps-150ms",
+    "metrics": {
+      "lcp": 3008,
+      "cls": 0.8329383886255924,
+      "shiftSum": 0.8329383886255924,
+      "shifts": [
+        {
+          "at": 5909.5,
+          "value": 0.8329383886255924,
+          "sources": [
+            {
+              "tag": "FOOTER",
+              "cls": "bg-white dark:bg-gray-900 text-almostblack dark:text-white pt-8 border-t border-almostblack w-full",
+              "previous": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              },
+              "current": {
+                "x": 0,
+                "y": 56,
+                "width": 390,
+                "height": 703.078125,
+                "top": 56,
+                "right": 390,
+                "bottom": 759.078125,
+                "left": 0
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": 2,
+      "longTaskMs": 152,
+      "navigation": [
+        {
+          "ttfb": 103.59999999403954,
+          "dcl": 10840.59999999404,
+          "load": 15060.09999999404,
+          "encodedBody": 120025,
+          "decodedBody": 1147498
+        }
+      ],
+      "domNodes": 1931,
+      "images": 90,
+      "loadedImages": 33,
+      "imageSamples": [],
+      "buttons": [
+        {
+          "label": null,
+          "text": "Open menu"
+        },
+        {
+          "label": "Play live stream",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": null,
+          "text": "Previous slide"
+        },
+        {
+          "label": null,
+          "text": "Next slide"
+        },
+        {
+          "label": null,
+          "text": "Learn More"
+        },
+        {
+          "label": null,
+          "text": "■"
+        },
+        {
+          "label": "Play",
+          "text": ""
+        }
+      ]
+    },
+    "grouped": {
+      "www.worldwidefm.net": {
+        "requests": 35,
+        "bytes": 617863
+      },
+      "plausible.io": {
+        "requests": 1,
+        "bytes": 0
+      },
+      "imgix.cosmicjs.com": {
+        "requests": 30,
+        "bytes": 2239071
+      },
+      "": {
+        "requests": 1,
+        "bytes": 0
+      },
+      "cdn.socket.io": {
+        "requests": 1,
+        "bytes": 15494
+      }
+    },
+    "cosmicRequests": [],
+    "errors": [],
+    "resourceTypes": {
+      "Document": {
+        "count": 1,
+        "bytes": 121914
+      },
+      "Font": {
+        "count": 3,
+        "bytes": 135814
+      },
+      "Stylesheet": {
+        "count": 2,
+        "bytes": 26853
+      },
+      "Script": {
+        "count": 22,
+        "bytes": 338693
+      },
+      "Image": {
+        "count": 31,
+        "bytes": 2239071
+      },
+      "Fetch": {
+        "count": 9,
+        "bytes": 10083
+      }
+    }
+  }
+]

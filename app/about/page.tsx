@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/shared/page-header';
-import { getAboutPage } from '@/lib/cosmic-service';
+import { getCachedAboutPage as getAboutPage } from '@/lib/cached-data';
 import { generateAboutMetadata } from '@/lib/metadata-utils';
 
 export async function generateMetadata(): Promise<Metadata> {

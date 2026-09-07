@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { NearViewportImage } from './near-viewport-image';
 import {
   buildImgixUrl,
   generateSrcSet,
@@ -53,7 +54,6 @@ export function OptimizedImage({
   onClick,
 }: OptimizedImageProps) {
   const [hasError, setHasError] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   // Determine quality based on variant or explicit quality prop
   const qualityValue = useMemo(() => {
@@ -196,9 +196,8 @@ export function OptimizedImage({
         style={imgStyle}
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
-        fetchPriority={priority ? 'high' : 'auto'}
+        fetchPriority={priority ? 'high' : 'low'}
         onError={handleError}
-        onLoad={() => setIsLoaded(true)}
         onClick={onClick}
       />
     </picture>
@@ -260,7 +259,7 @@ export function SimpleOptimizedImage({
       className={className}
       loading={priority ? 'eager' : 'lazy'}
       decoding={priority ? 'sync' : 'async'}
-      fetchPriority={priority ? 'high' : 'auto'}
+      fetchPriority={priority ? 'high' : 'low'}
       onError={() => {
         setHasError(true);
         onError?.();
@@ -367,28 +366,27 @@ export function ResponsiveCardImage({
     : undefined;
 
   return (
-    <picture>
-      {canOptimize && srcSet && <source type='image/webp' srcSet={srcSet} sizes={sizes} />}
-      <img
-        src={finalSrc}
-        alt={alt}
-        className={className}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-        }}
-        loading={priority ? 'eager' : 'lazy'}
-        decoding={priority ? 'sync' : 'async'}
-        fetchPriority={priority ? 'high' : 'auto'}
-        onError={() => {
-          setHasError(true);
-          onError?.();
-        }}
-      />
-    </picture>
+    <NearViewportImage
+      srcSet={srcSet}
+      sizes={sizes}
+      src={finalSrc}
+      alt={alt}
+      className={className}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+      }}
+      loading={priority ? 'eager' : 'lazy'}
+      decoding={priority ? 'sync' : 'async'}
+      fetchPriority={priority ? 'high' : 'low'}
+      onError={() => {
+        setHasError(true);
+        onError?.();
+      }}
+    />
   );
 }
 
@@ -401,12 +399,16 @@ export function HeroImage({
   className = '',
   priority = true,
   aspectRatio,
+  sizes = '100vw',
+  mobileMaxWidth,
   onError,
 }: {
   src: string;
   alt: string;
   className?: string;
   priority?: boolean;
+  sizes?: string;
+  mobileMaxWidth?: number;
   aspectRatio?: number; // height/width, e.g., 0.5625 for 16:9
   onError?: () => void;
 }) {
@@ -457,7 +459,19 @@ export function HeroImage({
 
   return (
     <picture>
-      {canOptimize && srcSet && <source type='image/webp' srcSet={srcSet} sizes='100vw' />}
+      {canOptimize && mobileMaxWidth && (
+        <source
+          media='(max-width: 440px)'
+          srcSet={generateSrcSet(normalizedSrc, {
+            widths: [480, mobileMaxWidth],
+            quality: QUALITY_PRESETS.hero,
+            aspectRatio,
+            fit: 'crop',
+          })}
+          sizes={sizes}
+        />
+      )}
+      {canOptimize && srcSet && <source type='image/webp' srcSet={srcSet} sizes={sizes} />}
       <img
         src={finalSrc}
         alt={alt}
@@ -471,7 +485,7 @@ export function HeroImage({
         }}
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
-        fetchPriority={priority ? 'high' : 'auto'}
+        fetchPriority={priority ? 'high' : 'low'}
         onError={() => {
           setHasError(true);
           onError?.();
@@ -567,7 +581,7 @@ export function VideoThumbnailImage({
         }}
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
-        fetchPriority={priority ? 'high' : 'auto'}
+        fetchPriority={priority ? 'high' : 'low'}
         onError={() => {
           setHasError(true);
           onError?.();

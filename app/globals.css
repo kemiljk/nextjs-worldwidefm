@@ -3,6 +3,17 @@
 
 @source '../*.{js,ts,jsx,tsxmdx}';
 
+/* Founders Mono advances are 614/1000 em; Courier's are 600/1000.
+   Match them while the web font loads so filter rows do not rewrap. */
+@font-face {
+  font-family: 'WWFM Mono Fallback';
+  src: local('Courier New'), local('Liberation Mono'), local('Courier');
+  size-adjust: 102.3333%;
+  ascent-override: 86.4821%;
+  descent-override: 24.42997%;
+  line-gap-override: 0%;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {

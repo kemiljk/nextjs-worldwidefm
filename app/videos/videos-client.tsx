@@ -15,11 +15,6 @@ interface VideoCategory {
   id: string;
   title: string;
   slug: string;
-  type: string;
-  content: string;
-  status: string;
-  created_at: string;
-  metadata: null;
 }
 
 interface VideosClientProps {

@@ -1,128 +1,25 @@
 'use server';
 
-import { FilterItem } from '../search/unified-types';
-import { cosmic } from '../cosmic-config';
-import { deduplicateFilters } from '../filter-types';
+import { getPublicFacet } from '../public-facets';
 import { getTags } from '../radiocult-service';
 
-export async function getAllFilters() {
-  try {
-    // Cosmic returns 404 when a type has zero objects — isolate each find so one
-    // empty type (e.g. series) cannot wipe out hosts and everything else.
-    const safeFind = async (type: string) => {
-      try {
-        return await cosmic.objects.find({
-          type,
-          props: 'id,slug,title,type,metadata',
-          depth: 1,
-          limit: 1000,
-        });
-      } catch (error) {
-        console.warn(`Failed to fetch ${type}:`, error);
-        return { objects: [] };
-      }
-    };
-
-    const [genresRes, hostsRes, takeoversRes, locationsRes, featuredShowsRes, seriesRes] =
-      await Promise.all([
-        safeFind('genres'),
-        safeFind('regular-hosts'),
-        safeFind('takeovers'),
-        safeFind('locations'),
-        safeFind('featured-shows'),
-        safeFind('series'),
-      ]);
-
-    const toFilterItems = (objects: any[] = [], type: string): FilterItem[] =>
-      objects.map(obj => ({ id: obj.id, slug: obj.slug, title: obj.title, type }));
-
-    const genres = toFilterItems(genresRes.objects || [], 'genres');
-    const hosts = toFilterItems(hostsRes.objects || [], 'hosts');
-    const takeovers = toFilterItems(takeoversRes.objects || [], 'takeovers');
-    const locations = toFilterItems(locationsRes.objects || [], 'locations');
-    const featuredShows = toFilterItems(featuredShowsRes.objects || [], 'featured-shows');
-    const series = toFilterItems(seriesRes.objects || [], 'series');
-
-    return { genres, hosts, takeovers, locations, featuredShows, series };
-  } catch (error) {
-    console.error('Error getting filters:', error);
-    return {
-      genres: [],
-      hosts: [],
-      takeovers: [],
-      locations: [],
-      featuredShows: [],
-      series: [],
-    };
-  }
+export async function getShowsFilters() {
+  const [genres, hosts, takeovers, locations] = await Promise.all([
+    getPublicFacet('genres'),
+    getPublicFacet('regular-hosts'),
+    getPublicFacet('takeovers'),
+    getPublicFacet('locations'),
+  ]);
+  return { genres, hosts, takeovers, locations, featuredShows: [], series: [] };
 }
 
-export async function getShowsFilters() {
-  try {
-    const safeFind = async (type: string) => {
-      try {
-        return await cosmic.objects.find({
-          type,
-          props: 'id,slug,title,type,metadata',
-          depth: 1,
-          limit: 1000,
-        });
-      } catch (error) {
-        console.warn(`Failed to fetch ${type}:`, error);
-        return { objects: [] };
-      }
-    };
-
-    const [genresRes, hostsRes, takeoversRes, locationsRes] = await Promise.all([
-      safeFind('genres'),
-      safeFind('regular-hosts'),
-      safeFind('takeovers'),
-      safeFind('locations'),
-    ]);
-
-    const toShowsFilterItems = (objects: any[] = [], type: string) => {
-      const items = objects.map(obj => ({
-        id: obj.id,
-        slug: obj.slug,
-        title: obj.title,
-        type: type,
-        content: obj.content || '',
-        status: obj.status || 'published',
-        metadata: obj.metadata || null,
-        created_at: obj.created_at,
-        modified_at: obj.modified_at,
-        published_at: obj.published_at,
-      }));
-
-      const deduplicated = deduplicateFilters(items);
-      if (items.length !== deduplicated.length) {
-        console.log(
-          `${type}: Removed ${items.length - deduplicated.length} duplicates (${items.length} → ${deduplicated.length})`
-        );
-      }
-
-      return deduplicated;
-    };
-
-    return {
-      genres: toShowsFilterItems(genresRes.objects || [], 'genres'),
-      hosts: toShowsFilterItems(hostsRes.objects || [], 'hosts'),
-      takeovers: toShowsFilterItems(takeoversRes.objects || [], 'takeovers'),
-      locations: toShowsFilterItems(locationsRes.objects || [], 'locations'),
-      featuredShows: [],
-      series: [],
-    };
-  } catch (error) {
-    console.error('Error getting shows filters:', error);
-    return {
-      genres: [],
-      hosts: [],
-      takeovers: [],
-      locations: [],
-      featuredShows: [],
-      series: [],
-    };
-  }
+export async function getAllFilters() {
+  const [filters, featuredShows, series] = await Promise.all([
+    getShowsFilters(),
+    getPublicFacet('featured-shows'),
+    getPublicFacet('series'),
+  ]);
+  return { ...filters, featuredShows, series };
 }
 
 export async function fetchTags() {
@@ -137,22 +34,9 @@ export async function fetchTags() {
 
 export async function fetchGenres() {
   try {
-    const response = await cosmic.objects.find({
-      type: 'genres',
-      status: 'published',
-      props: 'id,slug,title,type,metadata',
-      depth: 1,
-      limit: 1000,
-    });
-    return {
-      success: true,
-      genres: response.objects || [],
-    };
+    return { success: true, genres: await getPublicFacet('genres') };
   } catch (error) {
     console.error('Error fetching genres:', error);
-    return {
-      success: false,
-      genres: [],
-    };
+    return { success: false, genres: [] };
   }
 }

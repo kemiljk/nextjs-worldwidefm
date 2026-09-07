@@ -1,0 +1,20 @@
+{
+  "/shows": {
+    "status": 200,
+    "wireBytes": 47528,
+    "decodedBytes": 261566,
+    "ms": 26.07
+  },
+  "/editorial": {
+    "status": 200,
+    "wireBytes": 74868,
+    "decodedBytes": 269824,
+    "ms": 16.39
+  },
+  "/schedule": {
+    "status": 200,
+    "wireBytes": 24538,
+    "decodedBytes": 97580,
+    "ms": 12.23
+  }
+}

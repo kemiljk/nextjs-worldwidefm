@@ -67,7 +67,7 @@ async function fetchEpisodesFromCosmic(
     const { fetchEpisodesFromCosmic: fetchEpisodesCached } = await import(
       './episode-service.server'
     );
-    return fetchEpisodesCached(query, baseLimit, offset);
+    return fetchEpisodesCached(query, baseLimit, offset, sort);
   }
 
   const response = await cosmic.objects
@@ -267,6 +267,7 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       hasNext,
     };
   } catch (error: unknown) {
+    if (typeof window === 'undefined') throw error;
     // Don't log 404s as errors - they're expected when no episodes match the query
     const is404 =
       (error &&
@@ -568,15 +569,18 @@ export async function getEpisodeBySlug(
   options: { includeDrafts?: boolean } = {}
 ): Promise<EpisodeObject | null> {
   if (typeof window === 'undefined') {
-    const { fetchEpisodeBySlugFromCosmic } = await import('./episode-service.server');
-    const episode = await fetchEpisodeBySlugFromCosmic(slug, Boolean(options.includeDrafts));
+    if (options.includeDrafts) return fetchEpisodeBySlugFromCosmic(slug, options);
+    const { fetchEpisodeBySlugFromCosmic: fetchPublishedEpisode } = await import(
+      './episode-service.server'
+    );
+    const episode = await fetchPublishedEpisode(slug, false);
     if (episode) {
       return episode;
     }
 
     const normalizedSlug = normalizeSlug(slug);
     if (normalizedSlug !== slug) {
-      return fetchEpisodeBySlugFromCosmic(normalizedSlug, Boolean(options.includeDrafts));
+      return fetchPublishedEpisode(normalizedSlug, false);
     }
 
     return null;

@@ -303,7 +303,7 @@ export async function updateUserProfile(userId: string, formData: FormData) {
       // Send new verification email
       const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify?code=${verificationCode}`;
       try {
-        const result = await resend.emails.send({
+        const result = await getResendClient().emails.send({
           from: `${process.env.NEXT_PUBLIC_APP_NAME} Support <${process.env.SUPPORT_EMAIL}>`,
           to: email,
           subject: 'Verify your new email address',
@@ -427,7 +427,7 @@ export async function forgotPassword(formData: FormData) {
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${resetToken}`;
 
     try {
-      const result = await resend.emails.send({
+      const result = await getResendClient().emails.send({
         from: `${process.env.NEXT_PUBLIC_APP_NAME} Support <${process.env.SUPPORT_EMAIL}>`,
         to: email,
         subject: 'Reset your password',

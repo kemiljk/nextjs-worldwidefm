@@ -1,3 +1,4 @@
+import { getPublicObject } from '@/lib/cosmic-public';
 import { Metadata } from 'next';
 import ContactForm from './contact-form';
 import { generateContactMetadata } from '@/lib/metadata-utils';
@@ -10,11 +11,12 @@ async function getContactInfo() {
   try {
     const { cosmic } = await import('@/cosmic/client');
 
-    const response = await cosmic.objects
-      .findOne({
+    const response = await getPublicObject(
+      {
         id: '67e7a9d799cf79c29934d8bc',
-      })
-      .props('slug,title,metadata,type');
+      },
+      { props: 'slug,title,metadata,type' }
+    );
 
     return response?.object || null;
   } catch (error) {

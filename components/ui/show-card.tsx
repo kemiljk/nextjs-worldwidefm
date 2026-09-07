@@ -18,6 +18,8 @@ interface ShowCardProps {
   variant?: 'default' | 'light';
   canonicalGenres?: CanonicalGenre[];
   isSaved?: boolean;
+  sizes?: string;
+  priority?: boolean;
 }
 
 export const ShowCard: React.FC<ShowCardProps> = ({
@@ -28,6 +30,8 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   variant = 'default',
   canonicalGenres = [],
   isSaved = false,
+  priority = false,
+  sizes = '(max-width: 767px) calc((100vw - 72px) / 2), (max-width: 1023px) 50vw, 25vw',
 }) => {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
@@ -221,8 +225,8 @@ export const ShowCard: React.FC<ShowCardProps> = ({
             src={showImage}
             alt={showName}
             className={`object-cover border ${imageBorderClass} hover:cursor-pointer`}
-            sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw'
-            priority={false}
+            sizes={sizes}
+            priority={priority}
             aspectRatio='square'
           />
           {isSaved && (

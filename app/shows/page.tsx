@@ -5,7 +5,7 @@ import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { getShowsFilters } from '@/lib/actions';
 import { generateShowsMetadata } from '@/lib/metadata-utils';
 import { getEpisodesForShows } from '@/lib/episode-service';
-import { transformShowToViewData } from '@/lib/cosmic-service';
+import { toShowCardData as transformShowToViewData } from '@/lib/show-card-data';
 import { ShowsPageHeader } from '@/components/shows/shows-page-header';
 
 export const generateMetadata = async (): Promise<Metadata> => {

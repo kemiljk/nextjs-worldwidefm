@@ -1,3 +1,4 @@
+import { toShowCardData } from '@/lib/show-card-data';
 import { getEpisodesForShows } from '@/lib/episode-service';
 import { ShowCard } from './ui/show-card';
 
@@ -31,7 +32,7 @@ export default async function LatestEpisodes({
           <ShowCard
             key={episode.key || episode.id || episode.slug}
             show={{
-              ...episode,
+              ...toShowCardData(episode),
               url: episode.metadata?.player
                 ? episode.metadata.player.startsWith('http')
                   ? episode.metadata.player

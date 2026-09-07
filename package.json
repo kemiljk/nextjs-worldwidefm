@@ -19,8 +19,8 @@
     "verify-recurring-hosts": "bun run scripts/verify-recurring-hosts.ts",
     "export-shows": "bun run scripts/export-shows.ts",
     "retry-radiocult-upload": "bun run scripts/retry-radiocult-upload.ts",
-    "test": "bun test test/*.test.ts",
-    "test:unit": "bun test test/*.test.ts",
+    "test": "bun run scripts/test-unit.ts",
+    "test:unit": "bun run scripts/test-unit.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

@@ -46,6 +46,7 @@ interface ScheduleShowInfo {
   name: string;
   url: string;
   slug: string | null;
+  endsAt?: string;
 }
 
 const LIVE_CURRENT_POLL_MS = Number(process.env.NEXT_PUBLIC_LIVE_CURRENT_POLL_MS) || 2 * 60 * 1000;
@@ -80,16 +81,21 @@ export default function LivePlayer() {
 
   // Fetch current show from schedule (preferred) and RadioCult (fallback)
   useEffect(() => {
+    let boundaryTimeout: ReturnType<typeof setTimeout> | undefined;
+    let inFlight = false;
+    const controller = new AbortController();
     const fetchCurrentShow = async () => {
+      if (inFlight || controller.signal.aborted) return;
+      inFlight = true;
       try {
         const response = await fetch('/api/live/current', {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-          },
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
         });
+        if (!response.ok) return;
         const data = await response.json();
+        if (!data.success || controller.signal.aborted) return;
 
+        clearTimeout(boundaryTimeout);
         if (data.scheduleShow) {
           setScheduleShow(data.scheduleShow);
           scheduleShowRef.current = data.scheduleShow;
@@ -107,19 +113,46 @@ export default function LivePlayer() {
             },
           });
 
-          if (data.matchingShowSlug) {
-            setMatchingShowSlug(data.matchingShowSlug);
-          }
+          setMatchingShowSlug(data.matchingShowSlug || null);
+        } else if (!data.scheduleShow) {
+          setLiveMetadata({});
+          setMatchingShowSlug(null);
+        }
+        const endsAt = Date.parse(data.scheduleShow?.endsAt || data.currentEvent?.endTime || '');
+        if (Number.isFinite(endsAt)) {
+          boundaryTimeout = setTimeout(
+            () => {
+              setScheduleShow(null);
+              scheduleShowRef.current = null;
+              setMatchingShowSlug(null);
+              setLiveMetadata({});
+              void fetchCurrentShow();
+            },
+            Math.max(1000, Math.min(endsAt - Date.now(), 2147483647))
+          );
         }
       } catch (error) {
-        // Silently fail - WebSocket will provide fallback data
+        // Preserve the last valid label; audio and WebSocket remain independent.
+      } finally {
+        inFlight = false;
       }
     };
 
     fetchCurrentShow();
-    const intervalId = setInterval(fetchCurrentShow, LIVE_CURRENT_POLL_MS);
+    const intervalId = setInterval(() => {
+      if (document.visibilityState === 'visible') void fetchCurrentShow();
+    }, LIVE_CURRENT_POLL_MS);
 
-    return () => clearInterval(intervalId);
+    const refreshVisible = () => {
+      if (document.visibilityState === 'visible') void fetchCurrentShow();
+    };
+    document.addEventListener('visibilitychange', refreshVisible);
+    return () => {
+      controller.abort();
+      clearTimeout(boundaryTimeout);
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', refreshVisible);
+    };
   }, []);
 
   // Keep a ref to pauseLive for cleanup without triggering re-runs
@@ -283,6 +316,7 @@ export default function LivePlayer() {
               metadata.content?.name || metadata.content?.title || metadata.metadata?.title;
             const contentArtist = metadata.content?.artist || metadata.metadata?.artist;
 
+            setMatchingShowSlug(null);
             // Always update immediately with latest metadata - this is the current live show
             setLiveMetadata({
               content: {

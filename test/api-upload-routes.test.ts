@@ -77,14 +77,16 @@ beforeAll(() => {
 
   radioCultServer = Bun.serve({
     port: 0,
-    fetch() {
+    async fetch(request) {
+      await request.arrayBuffer();
       return Response.json({ track: { id: 'route-rc-1' } });
     },
   });
 
   mixcloudServer = Bun.serve({
     port: 0,
-    fetch() {
+    async fetch(request) {
+      await request.arrayBuffer();
       return Response.json({
         result: {
           success: true,

@@ -1,3 +1,4 @@
+import { toShowCardData } from '@/lib/show-card-data';
 import { getEpisodesForShows } from '@/lib/episode-service';
 import { ShowCard } from './ui/show-card';
 import {
@@ -43,7 +44,7 @@ export default async function UpcomingEpisodes({ config }: UpcomingEpisodesProps
               >
                 <ShowCard
                   show={{
-                    ...episode,
+                    ...toShowCardData(episode),
                     url: episode.metadata?.player
                       ? episode.metadata.player.startsWith('http')
                         ? episode.metadata.player
@@ -53,6 +54,7 @@ export default async function UpcomingEpisodes({ config }: UpcomingEpisodesProps
                   }}
                   slug={`/episode/${episode.slug}`}
                   playable={false}
+                  sizes='(max-width: 639px) 80vw, (max-width: 767px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, 20vw'
                 />
               </CarouselItem>
             ))}

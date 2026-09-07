@@ -1,3 +1,4 @@
+import { revalidateContent } from '@/lib/content-revalidation';
 import { NextRequest, NextResponse } from 'next/server';
 import { createWeeklyRecurringShows } from '@/lib/create-weekly-shows';
 
@@ -21,6 +22,7 @@ export async function GET(request: NextRequest) {
     }
 
     const result = await createWeeklyRecurringShows();
+    if (result.created.length) revalidateContent('episode');
     return NextResponse.json(result);
   } catch (error) {
     console.error('[CRON create-weekly-shows] Unexpected error:', error);

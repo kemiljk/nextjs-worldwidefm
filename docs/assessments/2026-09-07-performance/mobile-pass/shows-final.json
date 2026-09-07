@@ -1,0 +1,377 @@
+[
+  {
+    "largestResources": [
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 100258
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/14dmb1b7_-o-h.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/14dmb1b7_-o-h.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 72457
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/f7bce000-a2ca-11f1-87a3-f9dd0c124e3c-20260903-MELLOW-MADNESS-Clementine--honeymel-kaffe-creme-leo-M-bass-saint-james.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/f7bce000-a2ca-11f1-87a3-f9dd0c124e3c-20260903-MELLOW-MADNESS-Clementine--honeymel-kaffe-creme-leo-M-bass-saint-james.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 66289
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/AirCompressed_Black_WWFM-s.p.3vlvqlx6sbdiy.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/AirCompressed_Black_WWFM-s.p.3vlvqlx6sbdiy.woff2",
+        "priority": "High",
+        "status": 200,
+        "bytes": 60442
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/shows",
+        "type": "Document",
+        "url": "http://127.0.0.1:3102/shows",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 50544
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "High",
+        "status": 200,
+        "bytes": 48837
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/aef6d9d0-a625-11f1-aa75-d7f9555b4c6e-shai.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/aef6d9d0-a625-11f1-aa75-d7f9555b4c6e-shai.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 35372
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1wuytkji7dsm_.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1wuytkji7dsm_.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 30458
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1uo85rd8xm109.css",
+        "type": "Stylesheet",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1uo85rd8xm109.css",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 26328
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/Founders%20Grotesk%20Mono%20Regular%20Regular.p.1vg4do_808cff.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/Founders%20Grotesk%20Mono%20Regular%20Regular.p.1vg4do_808cff.woff2",
+        "priority": "High",
+        "status": 200,
+        "bytes": 25638
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/Nimbus_Sans_D_OT_32758-s.p.1ndear6stid_5.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/Nimbus_Sans_D_OT_32758-s.p.1ndear6stid_5.woff2",
+        "priority": "High",
+        "status": 200,
+        "bytes": 19994
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/3n9uvmd58yua5.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/3n9uvmd58yua5.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 19381
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1iv1-a5419qg7.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1iv1-a5419qg7.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 16555
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/b1344ab0-a5f9-11f1-aa75-d7f9555b4c6e-shedding-histories-one.webp",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/b1344ab0-a5f9-11f1-aa75-d7f9555b4c6e-shedding-histories-one.webp?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "High",
+        "status": 200,
+        "bytes": 15528
+      },
+      {
+        "host": "cdn.socket.io",
+        "path": "/4.7.2/socket.io.min.js",
+        "type": "Script",
+        "url": "https://cdn.socket.io/4.7.2/socket.io.min.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 15497
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/16o4y6y4ryjbf.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/16o4y6y4ryjbf.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 15282
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/3ds_r7_idju-7.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/3ds_r7_idju-7.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 13958
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/35568720-a6c4-11f1-aa75-d7f9555b4c6e-WOH-Polaroids-16-2.jpeg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/35568720-a6c4-11f1-aa75-d7f9555b4c6e-WOH-Polaroids-16-2.jpeg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 13225
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/3fgka0ihjwavk.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/3fgka0ihjwavk.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 12733
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/0q-h2eiche10t.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/0q-h2eiche10t.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 12078
+      }
+    ],
+    "mode": "mobile-simulated-4xCPU-1.6Mbps-150ms",
+    "metrics": {
+      "lcp": 1448,
+      "cls": 0,
+      "shiftSum": 0,
+      "shifts": [],
+      "longTasks": 2,
+      "longTaskMs": 177,
+      "lcpDetail": {
+        "url": "data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n",
+        "loadTime": 1411.699999988079,
+        "renderTime": 1448,
+        "tag": "DIV",
+        "html": "<div class=\"absolute inset-0\" style=\"background-image:url(&quot;data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='1"
+      },
+      "navigation": [
+        {
+          "ttfb": 71.09999999403954,
+          "dcl": 1330.9000000059605,
+          "load": 3030.9000000059605,
+          "encodedBody": 48192,
+          "decodedBody": 269587
+        }
+      ],
+      "domNodes": 598,
+      "images": 20,
+      "loadedImages": 20,
+      "criticalResourceTiming": [],
+      "imageSamples": [
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "eager"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/b1344ab0-a5f9-11f1-aa75-d7f9555b4c6e-shedding-histories-one.webp?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "eager"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/aef6d9d0-a625-11f1-aa75-d7f9555b4c6e-shai.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/35568720-a6c4-11f1-aa75-d7f9555b4c6e-WOH-Polaroids-16-2.jpeg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/f7bce000-a2ca-11f1-87a3-f9dd0c124e3c-20260903-MELLOW-MADNESS-Clementine--honeymel-kaffe-creme-leo-M-bass-saint-james.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 1,
+          "url": "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 1,
+          "url": "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
+          "loading": "lazy"
+        }
+      ],
+      "buttons": [
+        {
+          "label": "Open search",
+          "text": ""
+        },
+        {
+          "label": "Open search",
+          "text": ""
+        },
+        {
+          "label": null,
+          "text": "Open menu"
+        },
+        {
+          "label": "Play live stream",
+          "text": ""
+        },
+        {
+          "label": null,
+          "text": "Episodes"
+        },
+        {
+          "label": null,
+          "text": "Genres"
+        },
+        {
+          "label": null,
+          "text": "Locations"
+        },
+        {
+          "label": null,
+          "text": "Hosts & Series"
+        },
+        {
+          "label": null,
+          "text": "Takeovers"
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        }
+      ]
+    },
+    "grouped": {
+      "127.0.0.1": {
+        "requests": 56,
+        "bytes": 531826
+      },
+      "plausible.io": {
+        "requests": 1,
+        "bytes": 0
+      },
+      "imgix.cosmicjs.com": {
+        "requests": 6,
+        "bytes": 279509
+      },
+      "": {
+        "requests": 2,
+        "bytes": 26
+      },
+      "cdn.socket.io": {
+        "requests": 1,
+        "bytes": 15497
+      }
+    },
+    "cosmicRequests": [],
+    "errors": [],
+    "resourceTypes": {
+      "Document": {
+        "count": 1,
+        "bytes": 50544
+      },
+      "Font": {
+        "count": 3,
+        "bytes": 106074
+      },
+      "Stylesheet": {
+        "count": 2,
+        "bytes": 28536
+      },
+      "Script": {
+        "count": 24,
+        "bytes": 300071
+      },
+      "Image": {
+        "count": 8,
+        "bytes": 279535
+      },
+      "Fetch": {
+        "count": 28,
+        "bytes": 62098
+      }
+    }
+  }
+]

@@ -1,4 +1,5 @@
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidateContent } from './content-revalidation';
+import { revalidatePath } from 'next/cache';
 import { cosmic } from '@/lib/cosmic-config';
 
 /** Metafields the upload-master flow writes back to an episode after archiving. */
@@ -10,9 +11,8 @@ export type EpisodeArchiveUpdates = {
 };
 
 export function revalidateEpisodeCaches(slug?: string) {
-  revalidateTag('episodes', { expire: 0 });
+  revalidateContent('episode', slug);
   if (slug) {
-    revalidateTag(`episode-${slug}`, { expire: 0 });
     revalidatePath(`/episode/${slug}`);
   }
 }

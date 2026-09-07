@@ -1,3 +1,4 @@
+import { revalidateEpisodeCaches } from '@/lib/episode-archive';
 import { cosmic } from '@/lib/cosmic-config';
 import { completeAudioRecoveryAfterCreate } from '@/lib/audio-recovery-after-create';
 import { RADIOCULT_FAILURE_CODES } from '@/lib/radiocult-failure';
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
       storedWithSubmission: boolean,
       details: Record<string, unknown> = {}
     ) => {
+      revalidateEpisodeCaches(object.slug);
       const audioRecovery = await completeAudioRecoveryAfterCreate({
         episode: object,
         showTitle: validatedData.title,

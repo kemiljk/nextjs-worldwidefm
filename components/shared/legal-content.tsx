@@ -1,3 +1,4 @@
+import { cacheLife } from 'next/cache';
 import { sanitizeHtml } from '@/lib/sanitize-html';
 
 interface LegalContentProps {
@@ -6,7 +7,9 @@ interface LegalContentProps {
   lastUpdated?: string;
 }
 
-export default function LegalContent({ title, content, lastUpdated }: LegalContentProps) {
+export default async function LegalContent({ title, content, lastUpdated }: LegalContentProps) {
+  'use cache';
+  cacheLife('hours');
   const sanitizedContent = sanitizeHtml(content);
 
   return (

@@ -1,9 +1,14 @@
 'use server';
 
+import { getPublicObjects, getPublicObject } from '@/lib/cosmic-public';
+
 import { getPosts, getEditorialHomepage } from '../cosmic-service';
 import { PostObject } from '../cosmic-config';
 import { cosmic } from '../cosmic-config';
 import { applySearchToQuery } from '../search-query';
+
+const POST_LIST_PROPS =
+  'id,slug,title,type,created_at,thumbnail,metadata.type,metadata.date,metadata.excerpt,metadata.is_featured,metadata.text_focus,metadata.featured_size,metadata.image_aspect_ratio,metadata.image,metadata.external_image_url,metadata.categories.id,metadata.categories.slug,metadata.categories.title,metadata.author,metadata.video_url,metadata.youtube_video,metadata.video,metadata.video_thumbnail,metadata.youtube_video_thumbnail';
 
 /**
  * Fetch for posts with filters
@@ -13,12 +18,13 @@ async function fetchPostsWithFiltersFromCosmic(
   limit: number,
   offset: number
 ): Promise<{ objects: PostObject[]; total: number }> {
-  const response = await cosmic.objects
-    .find(query)
-    .limit(limit)
-    .skip(offset)
-    .sort('-metadata.date')
-    .depth(2);
+  const response = await getPublicObjects(query, {
+    props: POST_LIST_PROPS,
+    limit: limit,
+    skip: offset,
+    sort: '-metadata.date',
+    depth: 2,
+  });
 
   return {
     objects: response.objects || [],
@@ -73,7 +79,7 @@ export async function getPostsWithFilters({
     return { posts, hasNext, total };
   } catch (error) {
     console.error('Error in getPostsWithFilters:', error);
-    return { posts: [], hasNext: false, total: 0 };
+    throw error;
   }
 }
 
@@ -98,13 +104,13 @@ export async function getAllPosts({
 
     applySearchToQuery(query, searchTerm);
 
-    const response = await cosmic.objects
-      .find(query)
-      .props('id,slug,title,metadata,type,created_at')
-      .limit(limit)
-      .skip(offset)
-      .sort('-metadata.date')
-      .depth(1);
+    const response = await getPublicObjects(query, {
+      props: POST_LIST_PROPS,
+      limit: limit,
+      skip: offset,
+      sort: '-metadata.date',
+      depth: 1,
+    });
 
     const posts = response.objects || [];
     const hasNext = posts.length === limit;
@@ -113,7 +119,7 @@ export async function getAllPosts({
     if (process.env.NODE_ENV === 'development' && error instanceof Error && error.message) {
       console.debug('getAllPosts: No posts found or error occurred:', error.message);
     }
-    return { posts: [], hasNext: false };
+    throw error;
   }
 }
 
@@ -124,27 +130,10 @@ async function fetchPostBySlugFromCosmic(
   slug: string,
   options: { includeDrafts?: boolean } = {}
 ): Promise<{ object: PostObject } | null> {
-  try {
-    let query = cosmic.objects
-      .findOne({
-        type: 'posts',
-        slug,
-      })
-      .depth(2);
-
-    if (options.includeDrafts) {
-      query = query.status('any');
-    } else {
-      query = query.status('published');
-    }
-
-    const response = await query;
-
-    return response || null;
-  } catch (error) {
-    console.error('Error fetching post by slug:', error);
-    return null;
+  if (options.includeDrafts) {
+    return await cosmic.objects.findOne({ type: 'posts', slug }).status('any').depth(2);
   }
+  return getPublicObject({ type: 'posts', slug }, { depth: 2 });
 }
 
 export async function getPostBySlug(
@@ -207,7 +196,7 @@ export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
       query['metadata.categories.slug'] = { $in: searchTerms };
     }
 
-    const relatedPosts = await cosmic.objects.find(query).limit(5).depth(2);
+    const relatedPosts = await getPublicObjects(query, { limit: 5, depth: 2 });
 
     const filteredPosts = (relatedPosts.objects || [])
       .filter((relatedPost: PostObject) => relatedPost.slug !== post.slug)
@@ -232,10 +221,13 @@ export async function getRelatedPosts(post: PostObject): Promise<PostObject[]> {
 
 export async function getPostCategories(): Promise<unknown[]> {
   try {
-    const response = await cosmic.objects.find({
-      type: 'categories',
-      status: 'published',
-    });
+    const response = await getPublicObjects(
+      {
+        type: 'categories',
+        status: 'published',
+      },
+      {}
+    );
 
     return response.objects || [];
   } catch (error) {

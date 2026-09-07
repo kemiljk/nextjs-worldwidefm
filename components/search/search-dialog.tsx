@@ -22,8 +22,6 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getShowsFilters } from '@/lib/actions';
-import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useInView } from 'react-intersection-observer';
 import { Combobox } from '@/components/ui/combobox';
@@ -57,7 +55,9 @@ async function fetchSearchPage(
   for (const [name, values] of Object.entries({ genre, location, host })) {
     for (const value of values as string[]) params.append(name, value);
   }
-  const response = await fetch(`/api/search?${params}`, { signal });
+  const response = await fetch(`/api/search?${params}`, {
+    signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
+  });
   if (!response.ok) throw new Error('Search is temporarily unavailable. Please try again.');
   return response.json() as Promise<{
     results: any[];
@@ -111,7 +111,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     }
     onOpenChange(isOpen);
   };
-  const [filtersLoaded, setFiltersLoaded] = useState(false);
+  const filtersLoadedAt = useRef(0);
+  const [filterError, setFilterError] = useState<string | null>(null);
+  const [filterRetry, setFilterRetry] = useState(0);
   // On mobile: showFilters = false means show results, true means show filters overlay.
   const [showFilters, setShowFilters] = useState(false);
   const { ref: observerTarget, inView } = useInView({
@@ -155,24 +157,27 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     };
   }, [open]);
 
-  // Lazy load filter data only when dialog opens (optimized - no type checking)
+  // One cancellable application request, refreshed on reopen after a minute.
   useEffect(() => {
-    if (!open || filtersLoaded) return;
-    async function fetchFilters() {
-      try {
-        const [filtersData, genresData] = await Promise.all([
-          getShowsFilters(),
-          getCanonicalGenres(),
-        ]);
-        setAvailableFilters(filtersData);
-        setCanonicalGenres(genresData);
-        setFiltersLoaded(true);
-      } catch (error) {
-        console.warn('Error fetching filters:', error);
-      }
-    }
-    fetchFilters();
-  }, [open, filtersLoaded]);
+    if (!open || Date.now() - filtersLoadedAt.current < 60_000) return;
+    const controller = new AbortController();
+    setFilterError(null);
+    void fetch('/api/search/filters', {
+      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
+    })
+      .then(async response => {
+        if (!response.ok) throw new Error('Filters are temporarily unavailable.');
+        const filters = await response.json();
+        if (controller.signal.aborted) return;
+        setAvailableFilters(filters);
+        setCanonicalGenres(filters.genres);
+        filtersLoadedAt.current = Date.now();
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setFilterError('Filters are temporarily unavailable.');
+      });
+    return () => controller.abort();
+  }, [open, filterRetry]);
 
   // Determine selected content type
   const selectedType = activeFilters.find(f => Object.keys(typeLabels).includes(f)) || 'episodes';
@@ -481,6 +486,17 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         })}
                       </div>
                     </div>
+                    {filterError && (
+                      <div role='alert' className='space-y-2 text-sm'>
+                        <p>{filterError}</p>
+                        <Button
+                          variant='outline'
+                          onClick={() => setFilterRetry(value => value + 1)}
+                        >
+                          Retry filters
+                        </Button>
+                      </div>
+                    )}
                     {/* Filter Dropdowns */}
                     {(selectedType === 'episodes' ||
                       selectedType === 'takeovers' ||

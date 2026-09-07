@@ -17,7 +17,15 @@ interface HomepageHeroProps {
   heroItems: any[];
 }
 
-const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
+const HeroItem = ({
+  item,
+  isPriority,
+  sizes,
+}: {
+  item: any;
+  isPriority: boolean;
+  sizes: string;
+}) => {
   const { playShow, pauseShow, selectedShow, isArchivePlaying } = useMediaPlayer();
 
   const hrefByType: Record<string, string> = {
@@ -79,6 +87,9 @@ const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
               alt={item.title || 'Hero item'}
               className='object-cover'
               priority={isPriority}
+              sizes={sizes}
+              aspectRatio={1}
+              mobileMaxWidth={800}
             />
             {/* Play button for episodes */}
             {shouldShowPlayButton && (
@@ -142,8 +153,8 @@ const HeroItem = ({ item, isPriority }: { item: any; isPriority: boolean }) => {
   );
 };
 
-const renderHeroItem = (item: any, isPriority: boolean) => {
-  return <HeroItem item={item} isPriority={isPriority} />;
+const renderHeroItem = (item: any, isPriority: boolean, sizes = '100vw') => {
+  return <HeroItem item={item} isPriority={isPriority} sizes={sizes} />;
 };
 
 const HomepageHero: React.FC<HomepageHeroProps> = ({ heroLayout, heroItems }) => {
@@ -157,9 +168,23 @@ const HomepageHero: React.FC<HomepageHeroProps> = ({ heroLayout, heroItems }) =>
 
     return (
       <div className='grid grid-cols-1 md:grid-cols-2 gap-3 pt-5 px-5 relative z-10'>
-        <div className='flex flex-col h-full'>{item1 && renderHeroItem(item1, true)}</div>
+        <div className='flex flex-col h-full'>
+          {item1 &&
+            renderHeroItem(
+              item1,
+              true,
+              '(max-width: 767px) calc(100vw - 40px), calc((100vw - 52px) / 2)'
+            )}
+        </div>
         <div className='h-full'>
-          <div className='flex flex-col h-full'>{item2 && renderHeroItem(item2, false)}</div>
+          <div className='flex flex-col h-full'>
+            {item2 &&
+              renderHeroItem(
+                item2,
+                true,
+                '(max-width: 767px) calc(100vw - 40px), calc((100vw - 52px) / 2)'
+              )}
+          </div>
         </div>
       </div>
     );
@@ -219,11 +244,14 @@ export const EpisodeHero = ({
           }}
         />
       </div>
-      <HeroImage
+      {/* Reuse the foreground artwork request for the blurred backdrop. */}
+      <ResponsiveCardImage
         src={displayImage}
-        alt={displayName}
+        alt=''
         className='object-cover object-center w-full h-full select-none pointer-events-none'
         priority
+        aspectRatio='square'
+        sizes='(max-width: 640px) 80vw, (max-width: 768px) 400px, (max-width: 1024px) 450px, 600px'
       />
       {/* Overlay: Play Button and Text - Always show artwork and title */}
       <div className='relative inset-0 flex justify-center pt-5 z-30'>

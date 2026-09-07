@@ -26,7 +26,9 @@ async function main() {
       continue;
     }
 
-    const host = hosts.find(entry => entry.slug === show.hostSlug);
+    const host = hosts.find(
+      (entry: { slug: string; title: string }) => entry.slug === show.hostSlug
+    );
     if (host) {
       console.log(`✓ ${show.title}: ${show.hostSlug} (${host.title})`);
     } else {

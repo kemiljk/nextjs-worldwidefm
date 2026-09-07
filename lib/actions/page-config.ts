@@ -1,6 +1,6 @@
 'use server';
 
-import { cosmic } from '../cosmic-config';
+import { getPublicObject } from '@/lib/cosmic-public';
 
 export interface CategoryOrder {
   id: string;
@@ -14,12 +14,13 @@ export interface PageConfig {
 
 export async function getEditorialPageConfig(): Promise<PageConfig | null> {
   try {
-    const response = await cosmic.objects
-      .findOne({
+    const response = await getPublicObject(
+      {
         type: 'editorial-page-config',
         status: 'published',
-      })
-      .depth(2);
+      },
+      { depth: 2 }
+    );
 
     if (!response?.object) {
       return null;
@@ -36,18 +37,19 @@ export async function getEditorialPageConfig(): Promise<PageConfig | null> {
     };
   } catch (error) {
     console.error('Error fetching editorial page config:', error);
-    return null;
+    throw error;
   }
 }
 
 export async function getVideosPageConfig(): Promise<PageConfig | null> {
   try {
-    const response = await cosmic.objects
-      .findOne({
+    const response = await getPublicObject(
+      {
         type: 'videos-page-config',
         status: 'published',
-      })
-      .depth(2);
+      },
+      { depth: 2 }
+    );
 
     if (!response?.object) {
       return null;
@@ -64,6 +66,6 @@ export async function getVideosPageConfig(): Promise<PageConfig | null> {
     };
   } catch (error) {
     console.error('Error fetching videos page config:', error);
-    return null;
+    throw error;
   }
 }

@@ -1,0 +1,839 @@
+[
+  {
+    "largestResources": [
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/4061a1f0-9fc5-11f1-b691-bd1cbd6f174f-IMG_8363.jpeg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/4061a1f0-9fc5-11f1-b691-bd1cbd6f174f-IMG_8363.jpeg?w=768&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+        "priority": "High",
+        "status": 200,
+        "bytes": 115678
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/",
+        "type": "Document",
+        "url": "http://127.0.0.1:3102/",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 105094
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/32c535f0-689f-11f1-a067-03cace1c76cf-20260619-No-More-Radio-Silence.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/32c535f0-689f-11f1-a067-03cace1c76cf-20260619-No-More-Radio-Silence.jpg?w=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg&w=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 93770
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/14dmb1b7_-o-h.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/14dmb1b7_-o-h.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 72457
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/19159800-6a8b-11f1-97d7-f9a02eae5bd7-IMG_1278.jpeg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/19159800-6a8b-11f1-97d7-f9a02eae5bd7-IMG_1278.jpeg?w=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg&w=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 69637
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/AirCompressed_Black_WWFM-s.p.3vlvqlx6sbdiy.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/AirCompressed_Black_WWFM-s.p.3vlvqlx6sbdiy.woff2",
+        "priority": "High",
+        "status": 200,
+        "bytes": 60442
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/dae4c320-9998-11f1-840f-f3d6107fb5e0-20260818-NEW-VOICES---MAYU-AMANO.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/dae4c320-9998-11f1-840f-f3d6107fb5e0-20260818-NEW-VOICES---MAYU-AMANO.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 52682
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 49179
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=768&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+        "priority": "High",
+        "status": 200,
+        "bytes": 47456
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/416225e0-a603-11f1-a024-e19b092dfa6b-20260902-Let-The-Sunshine-In-Poly-Ritmo.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/416225e0-a603-11f1-a024-e19b092dfa6b-20260902-Let-The-Sunshine-In-Poly-Ritmo.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 46612
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/",
+        "type": "Fetch",
+        "url": "http://127.0.0.1:3102/?_rsc=8nTjltbQWvg6NcbE",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 44042
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/daaa1d00-a7ef-11f1-b019-0b1f647f397d-20260908-2026-09-08-New-Voices-Giovanna-Boffa.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/daaa1d00-a7ef-11f1-b019-0b1f647f397d-20260908-2026-09-08-New-Voices-Giovanna-Boffa.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 34085
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/382efb60-a84c-11f1-b019-0b1f647f397d-20260908-Degrees-Melting-Part-w-BuyThat5-Mr--Kloud.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/382efb60-a84c-11f1-b019-0b1f647f397d-20260908-Degrees-Melting-Part-w-BuyThat5-Mr--Kloud.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 33987
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/44d58830-07f6-11f1-8409-3bb9a408734d-Coco-Maria-Placeholder.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/44d58830-07f6-11f1-8409-3bb9a408734d-Coco-Maria-Placeholder.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 33659
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/f7bce000-a2ca-11f1-87a3-f9dd0c124e3c-20260903-MELLOW-MADNESS-Clementine--honeymel-kaffe-creme-leo-M-bass-saint-james.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/f7bce000-a2ca-11f1-87a3-f9dd0c124e3c-20260903-MELLOW-MADNESS-Clementine--honeymel-kaffe-creme-leo-M-bass-saint-james.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 31908
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1wuytkji7dsm_.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1wuytkji7dsm_.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 30458
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/1fa42980-a3ac-11f0-936e-dbe343b25d95-Gilles.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/1fa42980-a3ac-11f0-936e-dbe343b25d95-Gilles.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 28531
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 26738
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/d3d33a10-a6ab-11f1-aa75-d7f9555b4c6e-breakfast-club-coco-1sep.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/d3d33a10-a6ab-11f1-aa75-d7f9555b4c6e-breakfast-club-coco-1sep.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 26225
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1-0onuexy11wa.css",
+        "type": "Stylesheet",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1-0onuexy11wa.css",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 26207
+      }
+    ],
+    "mode": "desktop-unthrottled",
+    "metrics": {
+      "lcp": 236,
+      "cls": 0,
+      "shiftSum": 0,
+      "shifts": [],
+      "longTasks": 1,
+      "longTaskMs": 101,
+      "navigation": [
+        {
+          "ttfb": 7.699999988079071,
+          "dcl": 77.19999998807907,
+          "load": 282,
+          "encodedBody": 102365,
+          "decodedBody": 647297
+        }
+      ],
+      "domNodes": 2051,
+      "images": 93,
+      "loadedImages": 37,
+      "imageSamples": [
+        {
+          "width": 694,
+          "naturalWidth": 694,
+          "url": "https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=768&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "loading": "eager"
+        },
+        {
+          "width": 694,
+          "naturalWidth": 694,
+          "url": "https://imgix.cosmicjs.com/4061a1f0-9fc5-11f1-b691-bd1cbd6f174f-IMG_8363.jpeg?w=768&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "loading": "eager"
+        },
+        {
+          "width": 252.390625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.40625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/b1344ab0-a5f9-11f1-aa75-d7f9555b4c6e-shedding-histories-one.webp?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.390625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/aef6d9d0-a625-11f1-aa75-d7f9555b4c6e-shai.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.40625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/35568720-a6c4-11f1-aa75-d7f9555b4c6e-WOH-Polaroids-16-2.jpeg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.390625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.390625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/f7bce000-a2ca-11f1-87a3-f9dd0c124e3c-20260903-MELLOW-MADNESS-Clementine--honeymel-kaffe-creme-leo-M-bass-saint-james.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        }
+      ],
+      "buttons": [
+        {
+          "label": "Open search",
+          "text": ""
+        },
+        {
+          "label": "Open search",
+          "text": ""
+        },
+        {
+          "label": null,
+          "text": "Open menu"
+        },
+        {
+          "label": "Play live stream",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        }
+      ]
+    },
+    "grouped": {
+      "127.0.0.1": {
+        "requests": 94,
+        "bytes": 785405
+      },
+      "plausible.io": {
+        "requests": 1,
+        "bytes": 0
+      },
+      "imgix.cosmicjs.com": {
+        "requests": 34,
+        "bytes": 995447
+      },
+      "cdn.socket.io": {
+        "requests": 1,
+        "bytes": 15498
+      },
+      "": {
+        "requests": 1,
+        "bytes": 0
+      }
+    },
+    "cosmicRequests": [],
+    "errors": [],
+    "resourceTypes": {
+      "Document": {
+        "count": 1,
+        "bytes": 105094
+      },
+      "Font": {
+        "count": 3,
+        "bytes": 106074
+      },
+      "Stylesheet": {
+        "count": 2,
+        "bytes": 28423
+      },
+      "Script": {
+        "count": 30,
+        "bytes": 352269
+      },
+      "Image": {
+        "count": 36,
+        "bytes": 1019881
+      },
+      "Fetch": {
+        "count": 59,
+        "bytes": 184609
+      }
+    }
+  },
+  {
+    "largestResources": [
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/4061a1f0-9fc5-11f1-b691-bd1cbd6f174f-IMG_8363.jpeg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/4061a1f0-9fc5-11f1-b691-bd1cbd6f174f-IMG_8363.jpeg?w=1200&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+        "priority": "High",
+        "status": 200,
+        "bytes": 222485
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=1200&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+        "priority": "High",
+        "status": 200,
+        "bytes": 121708
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/dae4c320-9998-11f1-840f-f3d6107fb5e0-20260818-NEW-VOICES---MAYU-AMANO.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/dae4c320-9998-11f1-840f-f3d6107fb5e0-20260818-NEW-VOICES---MAYU-AMANO.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 110223
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/",
+        "type": "Document",
+        "url": "http://127.0.0.1:3102/",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 105094
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 100258
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/416225e0-a603-11f1-a024-e19b092dfa6b-20260902-Let-The-Sunshine-In-Poly-Ritmo.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/416225e0-a603-11f1-a024-e19b092dfa6b-20260902-Let-The-Sunshine-In-Poly-Ritmo.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 95436
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/14dmb1b7_-o-h.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/14dmb1b7_-o-h.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 72457
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/f7bce000-a2ca-11f1-87a3-f9dd0c124e3c-20260903-MELLOW-MADNESS-Clementine--honeymel-kaffe-creme-leo-M-bass-saint-james.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/f7bce000-a2ca-11f1-87a3-f9dd0c124e3c-20260903-MELLOW-MADNESS-Clementine--honeymel-kaffe-creme-leo-M-bass-saint-james.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 66290
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/AirCompressed_Black_WWFM-s.p.3vlvqlx6sbdiy.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/AirCompressed_Black_WWFM-s.p.3vlvqlx6sbdiy.woff2",
+        "priority": "High",
+        "status": 200,
+        "bytes": 60442
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 48836
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/d3d33a10-a6ab-11f1-aa75-d7f9555b4c6e-breakfast-club-coco-1sep.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/d3d33a10-a6ab-11f1-aa75-d7f9555b4c6e-breakfast-club-coco-1sep.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 47218
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/dc2d5800-a154-11f1-b0a0-15904a455c00-20260828-Juancy--Agua-dulce-ft--santo-w-masisi-radio.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/dc2d5800-a154-11f1-b0a0-15904a455c00-20260828-Juancy--Agua-dulce-ft--santo-w-masisi-radio.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 44946
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/19fde160-9cad-11f1-b808-2563a0e22776-20260828-Neighbourhood-watch-notes-from-belfast-with-A-cUe--phil-kieran.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/19fde160-9cad-11f1-b808-2563a0e22776-20260828-Neighbourhood-watch-notes-from-belfast-with-A-cUe--phil-kieran.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 44250
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/",
+        "type": "Fetch",
+        "url": "http://127.0.0.1:3102/?_rsc=8nTjltbQWvg6NcbE",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 44042
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/aef6d9d0-a625-11f1-aa75-d7f9555b4c6e-shai.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/aef6d9d0-a625-11f1-aa75-d7f9555b4c6e-shai.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 35371
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1wuytkji7dsm_.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1wuytkji7dsm_.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 30458
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/71528a70-4aef-11f1-8eeb-5b616f6bd683-alfie-placeholder.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/71528a70-4aef-11f1-8eeb-5b616f6bd683-alfie-placeholder.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 30190
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/53a10830-a6c0-11f1-aa75-d7f9555b4c6e-GayancebyMassimo08.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/53a10830-a6c0-11f1-aa75-d7f9555b4c6e-GayancebyMassimo08.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 28799
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1-0onuexy11wa.css",
+        "type": "Stylesheet",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1-0onuexy11wa.css",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 26207
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/Founders%20Grotesk%20Mono%20Regular%20Regular-s.p.1vg4do_808cff.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/Founders%20Grotesk%20Mono%20Regular%20Regular-s.p.1vg4do_808cff.woff2",
+        "priority": "High",
+        "status": 200,
+        "bytes": 25638
+      }
+    ],
+    "mode": "mobile-simulated-4xCPU-1.6Mbps-150ms",
+    "metrics": {
+      "lcp": 8008,
+      "cls": 0.014039758823119483,
+      "shiftSum": 0.014039758823119483,
+      "shifts": [
+        {
+          "at": 4362.700000017881,
+          "value": 0.014039758823119483,
+          "sources": [
+            {
+              "tag": "H3",
+              "cls": "text-h7 max-w-2xl leading-none font-display w-fit",
+              "previous": {
+                "x": 35,
+                "y": 239.609375,
+                "width": 319,
+                "height": 162,
+                "top": 239.609375,
+                "right": 354,
+                "bottom": 401.609375,
+                "left": 35
+              },
+              "current": {
+                "x": 35,
+                "y": 279.609375,
+                "width": 323,
+                "height": 122,
+                "top": 279.609375,
+                "right": 358,
+                "bottom": 401.609375,
+                "left": 35
+              }
+            },
+            {
+              "tag": "H3",
+              "cls": "text-h7 max-w-2xl leading-none font-display w-fit",
+              "previous": {
+                "x": 35,
+                "y": 641.609375,
+                "width": 319,
+                "height": 122,
+                "top": 641.609375,
+                "right": 354,
+                "bottom": 763.609375,
+                "left": 35
+              },
+              "current": {
+                "x": 35,
+                "y": 681.609375,
+                "width": 319,
+                "height": 82,
+                "top": 681.609375,
+                "right": 354,
+                "bottom": 763.609375,
+                "left": 35
+              }
+            },
+            {
+              "tag": "DIV",
+              "cls": "bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-1 px-1 text-left",
+              "previous": {
+                "x": 36,
+                "y": 212.609375,
+                "width": 119.328125,
+                "height": 28,
+                "top": 212.609375,
+                "right": 155.328125,
+                "bottom": 240.609375,
+                "left": 36
+              },
+              "current": {
+                "x": 36,
+                "y": 252.609375,
+                "width": 115.578125,
+                "height": 28,
+                "top": 252.609375,
+                "right": 151.578125,
+                "bottom": 280.609375,
+                "left": 36
+              }
+            },
+            {
+              "tag": "DIV",
+              "cls": "bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-1 px-1 text-left",
+              "previous": {
+                "x": 36,
+                "y": 614.609375,
+                "width": 119.328125,
+                "height": 28,
+                "top": 614.609375,
+                "right": 155.328125,
+                "bottom": 642.609375,
+                "left": 36
+              },
+              "current": {
+                "x": 36,
+                "y": 654.609375,
+                "width": 115.578125,
+                "height": 28,
+                "top": 654.609375,
+                "right": 151.578125,
+                "bottom": 682.609375,
+                "left": 36
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": 4,
+      "longTaskMs": 541,
+      "navigation": [
+        {
+          "ttfb": 4.800000011920929,
+          "dcl": 5254.5999999940395,
+          "load": 9498.700000017881,
+          "encodedBody": 102365,
+          "decodedBody": 647297
+        }
+      ],
+      "domNodes": 2045,
+      "images": 93,
+      "loadedImages": 22,
+      "imageSamples": [
+        {
+          "width": 350,
+          "naturalWidth": 350,
+          "url": "https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=1200&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "loading": "eager"
+        },
+        {
+          "width": 350,
+          "naturalWidth": 350,
+          "url": "https://imgix.cosmicjs.com/4061a1f0-9fc5-11f1-b691-bd1cbd6f174f-IMG_8363.jpeg?w=1200&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "loading": "eager"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/b1344ab0-a5f9-11f1-aa75-d7f9555b4c6e-shedding-histories-one.webp?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/aef6d9d0-a625-11f1-aa75-d7f9555b4c6e-shai.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/35568720-a6c4-11f1-aa75-d7f9555b4c6e-WOH-Polaroids-16-2.jpeg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/f7bce000-a2ca-11f1-87a3-f9dd0c124e3c-20260903-MELLOW-MADNESS-Clementine--honeymel-kaffe-creme-leo-M-bass-saint-james.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        }
+      ],
+      "buttons": [
+        {
+          "label": "Open search",
+          "text": ""
+        },
+        {
+          "label": "Open search",
+          "text": ""
+        },
+        {
+          "label": null,
+          "text": "Open menu"
+        },
+        {
+          "label": "Play live stream",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        }
+      ]
+    },
+    "grouped": {
+      "127.0.0.1": {
+        "requests": 49,
+        "bytes": 616530
+      },
+      "plausible.io": {
+        "requests": 1,
+        "bytes": 0
+      },
+      "imgix.cosmicjs.com": {
+        "requests": 21,
+        "bytes": 1136981
+      },
+      "": {
+        "requests": 1,
+        "bytes": 0
+      },
+      "cdn.socket.io": {
+        "requests": 1,
+        "bytes": 15496
+      }
+    },
+    "cosmicRequests": [],
+    "errors": [],
+    "resourceTypes": {
+      "Document": {
+        "count": 1,
+        "bytes": 105094
+      },
+      "Font": {
+        "count": 3,
+        "bytes": 106074
+      },
+      "Stylesheet": {
+        "count": 2,
+        "bytes": 28423
+      },
+      "Script": {
+        "count": 23,
+        "bytes": 300174
+      },
+      "Image": {
+        "count": 22,
+        "bytes": 1136981
+      },
+      "Fetch": {
+        "count": 22,
+        "bytes": 92261
+      }
+    }
+  }
+]

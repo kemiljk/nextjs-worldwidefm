@@ -1,0 +1,871 @@
+[
+  {
+    "largestResources": [
+      {
+        "host": "127.0.0.1",
+        "path": "/",
+        "type": "Document",
+        "url": "http://127.0.0.1:3102/",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 107010
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/32c535f0-689f-11f1-a067-03cace1c76cf-20260619-No-More-Radio-Silence.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/32c535f0-689f-11f1-a067-03cace1c76cf-20260619-No-More-Radio-Silence.jpg?w=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg&w=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 93770
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/4061a1f0-9fc5-11f1-b691-bd1cbd6f174f-IMG_8363.jpeg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/4061a1f0-9fc5-11f1-b691-bd1cbd6f174f-IMG_8363.jpeg?w=768&h=768&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+        "priority": "High",
+        "status": 200,
+        "bytes": 88968
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/14dmb1b7_-o-h.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/14dmb1b7_-o-h.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 72457
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/19159800-6a8b-11f1-97d7-f9a02eae5bd7-IMG_1278.jpeg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/19159800-6a8b-11f1-97d7-f9a02eae5bd7-IMG_1278.jpeg?w=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg&w=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 69637
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/AirCompressed_Black_WWFM-s.p.3vlvqlx6sbdiy.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/AirCompressed_Black_WWFM-s.p.3vlvqlx6sbdiy.woff2",
+        "priority": "High",
+        "status": 200,
+        "bytes": 60442
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 49180
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=768&h=768&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+        "priority": "High",
+        "status": 200,
+        "bytes": 42024
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1wuytkji7dsm_.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1wuytkji7dsm_.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 30458
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 26748
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1-0onuexy11wa.css",
+        "type": "Stylesheet",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1-0onuexy11wa.css",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 26207
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/dc3c24a0-6736-11f1-ba01-e3d46882e5be-alex_final_001.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/dc3c24a0-6736-11f1-ba01-e3d46882e5be-alex_final_001.jpg?w=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg&w=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 26117
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/Founders%20Grotesk%20Mono%20Regular%20Regular-s.p.1vg4do_808cff.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/Founders%20Grotesk%20Mono%20Regular%20Regular-s.p.1vg4do_808cff.woff2",
+        "priority": "High",
+        "status": 200,
+        "bytes": 25638
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/Nimbus_Sans_D_OT_32758-s.p.1ndear6stid_5.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/Nimbus_Sans_D_OT_32758-s.p.1ndear6stid_5.woff2",
+        "priority": "High",
+        "status": 200,
+        "bytes": 19994
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/3n9uvmd58yua5.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/3n9uvmd58yua5.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 19381
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1iv1-a5419qg7.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1iv1-a5419qg7.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 16555
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/aef6d9d0-a625-11f1-aa75-d7f9555b4c6e-shai.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/aef6d9d0-a625-11f1-aa75-d7f9555b4c6e-shai.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 16241
+      },
+      {
+        "host": "cdn.socket.io",
+        "path": "/4.7.2/socket.io.min.js",
+        "type": "Script",
+        "url": "https://cdn.socket.io/4.7.2/socket.io.min.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 15495
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/16o4y6y4ryjbf.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/16o4y6y4ryjbf.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 15282
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/200ci4v5t2x1p.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/200ci4v5t2x1p.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 14024
+      }
+    ],
+    "mode": "desktop-unthrottled",
+    "metrics": {
+      "lcp": 240,
+      "cls": 0,
+      "shiftSum": 0,
+      "shifts": [],
+      "longTasks": 1,
+      "longTaskMs": 83,
+      "lcpDetail": {
+        "url": "https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=768&h=768&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+        "loadTime": 200.2999999821186,
+        "renderTime": 240,
+        "tag": "IMG",
+        "html": "<img alt=\"First Light: Rohan Rakhit (We Out Here Reflections)\" class=\"object-cover\" loading=\"eager\" decoding=\"sync\" fetchpriority=\"high\" src=\"https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=1920&amp;h=1920&amp;fit=crop&amp;auto=format%2Ccomp"
+      },
+      "navigation": [
+        {
+          "ttfb": 6.5,
+          "dcl": 93.59999999403954,
+          "load": 297.5,
+          "encodedBody": 104257,
+          "decodedBody": 679172
+        }
+      ],
+      "domNodes": 1980,
+      "images": 93,
+      "loadedImages": 36,
+      "criticalResourceTiming": [
+        {
+          "name": "https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=768&h=768&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "start": 41.599999994039536,
+          "end": 126,
+          "duration": 84.40000000596046,
+          "transfer": 41764
+        }
+      ],
+      "imageSamples": [
+        {
+          "width": 694,
+          "naturalWidth": 694,
+          "url": "https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=768&h=768&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "loading": "eager"
+        },
+        {
+          "width": 694,
+          "naturalWidth": 694,
+          "url": "https://imgix.cosmicjs.com/4061a1f0-9fc5-11f1-b691-bd1cbd6f174f-IMG_8363.jpeg?w=768&h=768&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "loading": "eager"
+        },
+        {
+          "width": 252.390625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.40625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/b1344ab0-a5f9-11f1-aa75-d7f9555b4c6e-shedding-histories-one.webp?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.390625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/aef6d9d0-a625-11f1-aa75-d7f9555b4c6e-shai.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.40625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/35568720-a6c4-11f1-aa75-d7f9555b4c6e-WOH-Polaroids-16-2.jpeg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.390625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.390625,
+          "naturalWidth": 1,
+          "url": "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
+          "loading": "lazy"
+        }
+      ],
+      "buttons": [
+        {
+          "label": "Open search",
+          "text": ""
+        },
+        {
+          "label": "Open search",
+          "text": ""
+        },
+        {
+          "label": null,
+          "text": "Open menu"
+        },
+        {
+          "label": "Play live stream",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        }
+      ]
+    },
+    "grouped": {
+      "127.0.0.1": {
+        "requests": 91,
+        "bytes": 716283
+      },
+      "plausible.io": {
+        "requests": 1,
+        "bytes": 0
+      },
+      "imgix.cosmicjs.com": {
+        "requests": 10,
+        "bytes": 431362
+      },
+      "cdn.socket.io": {
+        "requests": 1,
+        "bytes": 15495
+      },
+      "": {
+        "requests": 2,
+        "bytes": 26
+      }
+    },
+    "cosmicRequests": [],
+    "errors": [],
+    "resourceTypes": {
+      "Document": {
+        "count": 1,
+        "bytes": 107010
+      },
+      "Font": {
+        "count": 3,
+        "bytes": 106074
+      },
+      "Stylesheet": {
+        "count": 2,
+        "bytes": 28423
+      },
+      "Script": {
+        "count": 30,
+        "bytes": 352379
+      },
+      "Image": {
+        "count": 12,
+        "bytes": 431388
+      },
+      "Fetch": {
+        "count": 57,
+        "bytes": 137892
+      }
+    }
+  },
+  {
+    "largestResources": [
+      {
+        "host": "127.0.0.1",
+        "path": "/",
+        "type": "Document",
+        "url": "http://127.0.0.1:3102/",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 106483
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/4061a1f0-9fc5-11f1-b691-bd1cbd6f174f-IMG_8363.jpeg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/4061a1f0-9fc5-11f1-b691-bd1cbd6f174f-IMG_8363.jpeg?w=800&h=800&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+        "priority": "High",
+        "status": 200,
+        "bytes": 94322
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/14dmb1b7_-o-h.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/14dmb1b7_-o-h.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 72457
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/AirCompressed_Black_WWFM-s.p.3vlvqlx6sbdiy.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/AirCompressed_Black_WWFM-s.p.3vlvqlx6sbdiy.woff2",
+        "priority": "High",
+        "status": 200,
+        "bytes": 60442
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 48834
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=800&h=800&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+        "priority": "High",
+        "status": 200,
+        "bytes": 45708
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1wuytkji7dsm_.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1wuytkji7dsm_.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 30458
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1-0onuexy11wa.css",
+        "type": "Stylesheet",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1-0onuexy11wa.css",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 26207
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/Founders%20Grotesk%20Mono%20Regular%20Regular-s.p.1vg4do_808cff.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/Founders%20Grotesk%20Mono%20Regular%20Regular-s.p.1vg4do_808cff.woff2",
+        "priority": "High",
+        "status": 200,
+        "bytes": 25638
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/Nimbus_Sans_D_OT_32758-s.p.1ndear6stid_5.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/Nimbus_Sans_D_OT_32758-s.p.1ndear6stid_5.woff2",
+        "priority": "High",
+        "status": 200,
+        "bytes": 19994
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/3n9uvmd58yua5.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/3n9uvmd58yua5.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 19381
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1iv1-a5419qg7.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1iv1-a5419qg7.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 16555
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/b1344ab0-a5f9-11f1-aa75-d7f9555b4c6e-shedding-histories-one.webp",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/b1344ab0-a5f9-11f1-aa75-d7f9555b4c6e-shedding-histories-one.webp?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 15526
+      },
+      {
+        "host": "cdn.socket.io",
+        "path": "/4.7.2/socket.io.min.js",
+        "type": "Script",
+        "url": "https://cdn.socket.io/4.7.2/socket.io.min.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 15495
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/16o4y6y4ryjbf.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/16o4y6y4ryjbf.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 15282
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/200ci4v5t2x1p.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/200ci4v5t2x1p.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 14024
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/3fgka0ihjwavk.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/3fgka0ihjwavk.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 12733
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/0dt8i-kqhunjz.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/0dt8i-kqhunjz.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 12388
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/0wrzggiulrok1.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/0wrzggiulrok1.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 12345
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/0q-h2eiche10t.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/0q-h2eiche10t.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 12078
+      }
+    ],
+    "mode": "mobile-simulated-4xCPU-1.6Mbps-150ms",
+    "metrics": {
+      "lcp": 2080,
+      "cls": 0.014039758823119483,
+      "shiftSum": 0.014039758823119483,
+      "shifts": [
+        {
+          "at": 2466.5,
+          "value": 0.014039758823119483,
+          "sources": [
+            {
+              "tag": "H3",
+              "cls": "text-h7 max-w-2xl leading-none font-display w-fit",
+              "previous": {
+                "x": 35,
+                "y": 239.609375,
+                "width": 319,
+                "height": 162,
+                "top": 239.609375,
+                "right": 354,
+                "bottom": 401.609375,
+                "left": 35
+              },
+              "current": {
+                "x": 35,
+                "y": 279.609375,
+                "width": 323,
+                "height": 122,
+                "top": 279.609375,
+                "right": 358,
+                "bottom": 401.609375,
+                "left": 35
+              }
+            },
+            {
+              "tag": "H3",
+              "cls": "text-h7 max-w-2xl leading-none font-display w-fit",
+              "previous": {
+                "x": 35,
+                "y": 641.609375,
+                "width": 319,
+                "height": 122,
+                "top": 641.609375,
+                "right": 354,
+                "bottom": 763.609375,
+                "left": 35
+              },
+              "current": {
+                "x": 35,
+                "y": 681.609375,
+                "width": 319,
+                "height": 82,
+                "top": 681.609375,
+                "right": 354,
+                "bottom": 763.609375,
+                "left": 35
+              }
+            },
+            {
+              "tag": "DIV",
+              "cls": "bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-1 px-1 text-left",
+              "previous": {
+                "x": 36,
+                "y": 212.609375,
+                "width": 119.328125,
+                "height": 28,
+                "top": 212.609375,
+                "right": 155.328125,
+                "bottom": 240.609375,
+                "left": 36
+              },
+              "current": {
+                "x": 36,
+                "y": 252.609375,
+                "width": 115.578125,
+                "height": 28,
+                "top": 252.609375,
+                "right": 151.578125,
+                "bottom": 280.609375,
+                "left": 36
+              }
+            },
+            {
+              "tag": "DIV",
+              "cls": "bg-almostblack uppercase text-white w-fit text-h8 leading-none font-display pt-1 px-1 text-left",
+              "previous": {
+                "x": 36,
+                "y": 614.609375,
+                "width": 119.328125,
+                "height": 28,
+                "top": 614.609375,
+                "right": 155.328125,
+                "bottom": 642.609375,
+                "left": 36
+              },
+              "current": {
+                "x": 36,
+                "y": 654.609375,
+                "width": 115.578125,
+                "height": 28,
+                "top": 654.609375,
+                "right": 151.578125,
+                "bottom": 682.609375,
+                "left": 36
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": 4,
+      "longTaskMs": 516,
+      "lcpDetail": {
+        "url": "https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=800&h=800&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+        "loadTime": 2067,
+        "renderTime": 2080,
+        "tag": "IMG",
+        "html": "<img src=\"https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=1920&amp;h=1920&amp;fit=crop&amp;auto=format%2Ccompress&amp;q=75&amp;cs=strip&amp;fm=jpg\" alt=\"First Light: Rohan Rakhit (We Out Here Reflections)\" class=\"object-cover\" style=\"positio"
+      },
+      "navigation": [
+        {
+          "ttfb": 6.5999999940395355,
+          "dcl": 2710.0999999940395,
+          "load": 3658.5,
+          "encodedBody": 103755,
+          "decodedBody": 677997
+        }
+      ],
+      "domNodes": 1974,
+      "images": 93,
+      "loadedImages": 22,
+      "criticalResourceTiming": [
+        {
+          "name": "https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=800&h=800&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "start": 222,
+          "end": 2066.199999988079,
+          "duration": 1844.199999988079,
+          "transfer": 45449
+        }
+      ],
+      "imageSamples": [
+        {
+          "width": 350,
+          "naturalWidth": 349,
+          "url": "https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=800&h=800&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "loading": "eager"
+        },
+        {
+          "width": 350,
+          "naturalWidth": 349,
+          "url": "https://imgix.cosmicjs.com/4061a1f0-9fc5-11f1-b691-bd1cbd6f174f-IMG_8363.jpeg?w=800&h=800&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "loading": "eager"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 159,
+          "url": "https://imgix.cosmicjs.com/b1344ab0-a5f9-11f1-aa75-d7f9555b4c6e-shedding-histories-one.webp?w=600&h=600&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 1,
+          "url": "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 1,
+          "url": "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 1,
+          "url": "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 1,
+          "url": "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
+          "loading": "lazy"
+        }
+      ],
+      "buttons": [
+        {
+          "label": "Open search",
+          "text": ""
+        },
+        {
+          "label": "Open search",
+          "text": ""
+        },
+        {
+          "label": null,
+          "text": "Open menu"
+        },
+        {
+          "label": "Play live stream",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        }
+      ]
+    },
+    "grouped": {
+      "127.0.0.1": {
+        "requests": 48,
+        "bytes": 581590
+      },
+      "plausible.io": {
+        "requests": 1,
+        "bytes": 0
+      },
+      "imgix.cosmicjs.com": {
+        "requests": 4,
+        "bytes": 204390
+      },
+      "": {
+        "requests": 2,
+        "bytes": 26
+      },
+      "cdn.socket.io": {
+        "requests": 1,
+        "bytes": 15495
+      }
+    },
+    "cosmicRequests": [],
+    "errors": [],
+    "resourceTypes": {
+      "Document": {
+        "count": 1,
+        "bytes": 106483
+      },
+      "Font": {
+        "count": 3,
+        "bytes": 106074
+      },
+      "Stylesheet": {
+        "count": 2,
+        "bytes": 28423
+      },
+      "Script": {
+        "count": 24,
+        "bytes": 310638
+      },
+      "Image": {
+        "count": 6,
+        "bytes": 204416
+      },
+      "Fetch": {
+        "count": 20,
+        "bytes": 45467
+      }
+    }
+  }
+]

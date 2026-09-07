@@ -1,4 +1,5 @@
-import React from 'react';
+import { toShowCardData } from '@/lib/show-card-data';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { connection } from 'next/server';
@@ -15,11 +16,10 @@ import {
   parseBroadcastDateTime,
   parseDurationToMinutes,
 } from '@/lib/date-utils';
-import { transformShowToViewData } from '@/lib/cosmic-service';
-import { getCanonicalGenres } from '@/lib/get-canonical-genres';
+import { getCachedGenres as getCanonicalGenres } from '@/lib/cached-data';
 import { PreviewBanner } from '@/components/ui/preview-banner';
 import { ListenBackButton } from '@/components/listen-back-button';
-import { getEpisodeImageUrl } from '@/lib/cosmic-types';
+import { getEpisodeImageUrl, type EpisodeObject } from '@/lib/cosmic-types';
 import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
 import { SaveShowButton } from '@/components/save-show-button';
 import { FavoriteButton } from '@/components/favorite-button';
@@ -108,7 +108,7 @@ export default async function EpisodePage({
   }
 
   // Transform the episode data to the expected format
-  const show = transformShowToViewData(episode);
+  const show = toShowCardData(episode);
 
   const broadcastInstant = parseBroadcastDateTime(
     episode.metadata.broadcast_date,
@@ -116,35 +116,6 @@ export default async function EpisodePage({
     episode.metadata.broadcast_date_old
   );
   const startTime = broadcastInstant || new Date(episode.created_at);
-
-  // Get related episodes based on genres, hosts and takeovers
-  const hostIds = episode.metadata.regular_hosts?.map((host: any) => host.id).filter(Boolean) || [];
-  const genreIds = episode.metadata.genres?.map((genre: any) => genre.id).filter(Boolean) || [];
-  const takeoverIds =
-    episode.metadata.takeovers?.map((takeover: any) => takeover.id).filter(Boolean) || [];
-
-  const [{ episodes: relatedEpisodesRaw, matchType }, canonicalGenres, user] = await Promise.all([
-    getRelatedEpisodes(episode.id, 3, hostIds, genreIds, takeoverIds),
-    getCanonicalGenres(),
-    getAuthUser(),
-  ]);
-  const relatedEpisodes = relatedEpisodesRaw.map(ep => transformShowToViewData(ep));
-
-  // Pick a heading that honestly reflects how episodes were matched
-  let relatedHeading = 'Related Episodes';
-  if (matchType === 'genre' && episode.metadata.genres?.length > 0) {
-    const genreName = episode.metadata.genres[0].title;
-    relatedHeading = `More in ${genreName}`;
-  } else if (matchType === 'recent') {
-    relatedHeading = 'Recent Episodes';
-  }
-
-  // Helper function to get genre link
-  const getGenreLink = (genreId: string): string | undefined => {
-    if (!canonicalGenres.length) return undefined;
-    const canonicalGenre = canonicalGenres.find(genre => genre.id === genreId);
-    return canonicalGenre ? `/genre/${canonicalGenre.slug}` : undefined;
-  };
 
   const displayName = episode.title || 'Untitled Episode';
   const displayImage = getEpisodeImageUrl(episode);
@@ -166,6 +137,67 @@ export default async function EpisodePage({
     .replace(/\//g, '.')
     .concat(yearSuffix)
     .toUpperCase();
+
+  return (
+    <div className='pb-50'>
+      {isDraft && <PreviewBanner />}
+      <EpisodeHero
+        displayName={displayName}
+        displayImage={displayImage}
+        showDate={showDate}
+        show={show}
+      />
+      <Suspense
+        fallback={
+          <div className='min-h-64 px-5 pt-8' role='status'>
+            Loading episode details…
+          </div>
+        }
+      >
+        <EpisodeDetails episode={episode} />
+      </Suspense>
+    </div>
+  );
+}
+
+async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
+  // Transform the episode data to the expected format
+  const show = toShowCardData(episode);
+
+  const broadcastInstant = parseBroadcastDateTime(
+    episode.metadata.broadcast_date,
+    episode.metadata.broadcast_time,
+    episode.metadata.broadcast_date_old
+  );
+
+  // Get related episodes based on genres, hosts and takeovers
+  const hostIds = episode.metadata.regular_hosts?.map((host: any) => host.id).filter(Boolean) || [];
+  const genreIds = episode.metadata.genres?.map((genre: any) => genre.id).filter(Boolean) || [];
+  const takeoverIds =
+    episode.metadata.takeovers?.map((takeover: any) => takeover.id).filter(Boolean) || [];
+
+  const [{ episodes: relatedEpisodesRaw, matchType }, canonicalGenres, user] = await Promise.all([
+    getRelatedEpisodes(episode.id, 3, hostIds, genreIds, takeoverIds),
+    getCanonicalGenres(),
+    getAuthUser(),
+  ]);
+  const relatedEpisodes = relatedEpisodesRaw.map(ep => toShowCardData(ep));
+
+  // Pick a heading that honestly reflects how episodes were matched
+  let relatedHeading = 'Related Episodes';
+  if (matchType === 'genre' && episode.metadata.genres?.length > 0) {
+    const genreName = episode.metadata.genres[0].title;
+    relatedHeading = `More in ${genreName}`;
+  } else if (matchType === 'recent') {
+    relatedHeading = 'Recent Episodes';
+  }
+
+  // Helper function to get genre link
+  const getGenreLink = (genreId: string): string | undefined => {
+    if (!canonicalGenres.length) return undefined;
+    const canonicalGenre = canonicalGenres.find(genre => genre.id === genreId);
+    return canonicalGenre ? `/genre/${canonicalGenre.slug}` : undefined;
+  };
 
   let isSaved = false;
   let isHostFavorited = false;
@@ -192,17 +224,7 @@ export default async function EpisodePage({
   }
 
   return (
-    <div className='pb-50'>
-      {/* Preview Banner - show when episode is a draft */}
-      {isDraft && <PreviewBanner />}
-
-      <EpisodeHero
-        displayName={displayName}
-        displayImage={displayImage}
-        showDate={showDate}
-        show={show}
-      />
-
+    <div>
       {/* Action Buttons */}
       <div className='px-5 mt-4 flex items-center gap-3'>
         {show?.metadata?.player && <ListenBackButton show={show} />}

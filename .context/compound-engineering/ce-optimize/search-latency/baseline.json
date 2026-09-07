@@ -1,0 +1,580 @@
+[
+  {
+    "term": "Gilles Peterson",
+    "name": "baseline",
+    "ms": 1635,
+    "bytes": 54390,
+    "ids": [
+      "6a95b1283d494ca06b9be946",
+      "6a82a3b0e27a8596b54ff036",
+      "6a86c42ff234aa885b777566",
+      "6a702e748012abaa67aeb4a4",
+      "6a5db9c4b369a9b968b7a4f9",
+      "6a4b449217d4365db82da51d",
+      "6a3baa331657680850361ab5",
+      "6a3bb1981cb6e88b74abf8a6",
+      "6a2fc2106d809bc170e37203",
+      "6a269244ce890493c7b98d79",
+      "6a2983aeffa7d774497eeb07",
+      "6a1d8e68ebf42ceaaf385347",
+      "6a12f989f2c683f5f2b30063",
+      "6a0b2ecba6022ba888909415",
+      "69fdfc5aa963c4f5f0d9d683",
+      "69f87ac328e1bd1510594e5a",
+      "69e5f2581e803e708f6ad5ed",
+      "69dcaa56927620232a57725f",
+      "69d3e8b71d87ba155187cfab",
+      "69ca333cf9808e52fa7dc520"
+    ],
+    "sample": {
+      "id": "6a95b1283d494ca06b9be946",
+      "slug": "gilles-peterson-2026-03-09",
+      "title": "Gilles Peterson w/ Jonny Nash, Tomo Katsurada & Carlos Icaza",
+      "created_at": "2026-08-31T16:51:52.376Z",
+      "type": "episode",
+      "metadata": {
+        "image": {
+          "url": "https://cdn.cosmicjs.com/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg",
+          "imgix_url": "https://imgix.cosmicjs.com/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg"
+        },
+        "external_image_url": null,
+        "broadcast_date": "2026-09-03",
+        "broadcast_time": "08:00",
+        "description": null,
+        "subtitle": null,
+        "player": "https://www.mixcloud.com/worldwidefm/gilles-peterson-w-jonny-nash-tomo-katsurada-carlos-icaza-03-09-26/",
+        "duration": "4:00",
+        "genres": [
+          {
+            "id": "68668186414583e1cff6adf6",
+            "slug": "jazz",
+            "title": "jazz",
+            "content": "",
+            "bucket": "67d299639d39f0511c308611",
+            "created_at": "2025-07-03T13:11:34.061Z",
+            "modified_at": "2025-07-03T13:11:34.061Z",
+            "status": "published",
+            "published_at": "2025-07-03T13:11:34.061Z",
+            "type": "genres",
+            "metadata": {
+              "description": null,
+              "image": null,
+              "external_image_url": null
+            }
+          },
+          {
+            "id": "68668172414583e1cff6add7",
+            "slug": "soul",
+            "title": "soul",
+            "content": "",
+            "bucket": "67d299639d39f0511c308611",
+            "created_at": "2025-07-03T13:11:14.937Z",
+            "modified_at": "2025-07-03T13:11:14.937Z",
+            "status": "published",
+            "published_at": "2025-07-03T13:11:14.937Z",
+            "type": "genres",
+            "metadata": {
+              "description": null,
+              "image": null,
+              "external_image_url": null
+            }
+          }
+        ],
+        "regular_hosts": [
+          {
+            "id": "68794cd9d734651042fa6935",
+            "slug": "gilles-peterson",
+            "title": "Gilles Peterson",
+            "content": "",
+            "bucket": "67d299639d39f0511c308611",
+            "created_at": "2025-08-15T10:14:11.019Z",
+            "modified_at": "2026-03-23T14:33:49.534Z",
+            "status": "published",
+            "published_at": "2026-03-23T14:33:49.534Z",
+            "modified_by": "68b8074166cccb5104c6fde6",
+            "publish_at": null,
+            "thumbnail": "https://imgix.cosmicjs.com/3a6925e0-787d-11f0-82ea-a531f5836781-image.png",
+            "type": "regular-hosts",
+            "metadata": {
+              "type": "68794a33d5e8b76ec441b65d",
+              "description": null,
+              "image": {
+                "url": "https://cdn.cosmicjs.com/3a6925e0-787d-11f0-82ea-a531f5836781-image.png",
+                "imgix_url": "https://imgix.cosmicjs.com/3a6925e0-787d-11f0-82ea-a531f5836781-image.png"
+              },
+              "location": "68b1f28d663081c679850f7b",
+              "external_image_url": "https://ad8dxpajksubmmnm.public.blob.vercel-storage.com/cosmic-archive/3a6925e0-787d-11f0-82ea-a531f5836781-image.png",
+              "mixcloud_username": null
+            }
+          }
+        ],
+        "locations": [
+          {
+            "id": "68b1f28d663081c679850f7b",
+            "slug": "london",
+            "title": "London",
+            "content": "",
+            "bucket": "67d299639d39f0511c308611",
+            "created_at": "2025-08-29T18:33:49.473Z",
+            "modified_at": "2025-08-29T18:33:49.473Z",
+            "status": "published",
+            "published_at": "2025-08-29T18:33:49.473Z",
+            "type": "locations",
+            "metadata": {
+              "description": null,
+              "image": null,
+              "external_image_url": null
+            }
+          }
+        ],
+        "takeovers": [],
+        "featured_on_homepage": false
+      }
+    }
+  },
+  {
+    "term": "Gilles Peterson",
+    "name": "lean-20",
+    "ms": 1252,
+    "bytes": 6507,
+    "ids": [
+      "6a95b1283d494ca06b9be946",
+      "6a82a3b0e27a8596b54ff036",
+      "6a86c42ff234aa885b777566",
+      "6a702e748012abaa67aeb4a4",
+      "6a5db9c4b369a9b968b7a4f9",
+      "6a4b449217d4365db82da51d",
+      "6a3baa331657680850361ab5",
+      "6a3bb1981cb6e88b74abf8a6",
+      "6a2fc2106d809bc170e37203",
+      "6a269244ce890493c7b98d79",
+      "6a2983aeffa7d774497eeb07",
+      "6a1d8e68ebf42ceaaf385347",
+      "6a12f989f2c683f5f2b30063",
+      "6a0b2ecba6022ba888909415",
+      "69fdfc5aa963c4f5f0d9d683",
+      "69f87ac328e1bd1510594e5a",
+      "69e5f2581e803e708f6ad5ed",
+      "69dcaa56927620232a57725f",
+      "69d3e8b71d87ba155187cfab",
+      "69ca333cf9808e52fa7dc520"
+    ],
+    "sample": {
+      "id": "6a95b1283d494ca06b9be946",
+      "slug": "gilles-peterson-2026-03-09",
+      "title": "Gilles Peterson w/ Jonny Nash, Tomo Katsurada & Carlos Icaza",
+      "created_at": "2026-08-31T16:51:52.376Z",
+      "metadata": {
+        "broadcast_date": "2026-09-03",
+        "genres": [
+          {
+            "id": "68668186414583e1cff6adf6",
+            "title": "jazz"
+          },
+          {
+            "id": "68668172414583e1cff6add7",
+            "title": "soul"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "term": "Gilles Peterson",
+    "name": "lean-5",
+    "ms": 1235,
+    "bytes": 1763,
+    "ids": [
+      "6a95b1283d494ca06b9be946",
+      "6a82a3b0e27a8596b54ff036",
+      "6a86c42ff234aa885b777566",
+      "6a702e748012abaa67aeb4a4",
+      "6a5db9c4b369a9b968b7a4f9"
+    ],
+    "sample": {
+      "id": "6a95b1283d494ca06b9be946",
+      "slug": "gilles-peterson-2026-03-09",
+      "title": "Gilles Peterson w/ Jonny Nash, Tomo Katsurada & Carlos Icaza",
+      "created_at": "2026-08-31T16:51:52.376Z",
+      "metadata": {
+        "broadcast_date": "2026-09-03",
+        "genres": [
+          {
+            "id": "68668186414583e1cff6adf6",
+            "title": "jazz"
+          },
+          {
+            "id": "68668172414583e1cff6add7",
+            "title": "soul"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "term": "Clementine",
+    "name": "baseline",
+    "ms": 739,
+    "bytes": 54170,
+    "ids": [
+      "6a9162adf19a02346cdfe82c",
+      "6a6ba0d9e1d4abe65f275bdb",
+      "6a420a105c68adc7cc2b3cb5",
+      "6a3dac75292df19dd1b8fdfa",
+      "6a18817e1d15daa924d9982d",
+      "69f334ddf79a7dd1917f0fe4",
+      "69c585f98b1700b7483d73a6",
+      "69a0c97cdb4bbfdb62825857",
+      "697b96757d26b0b9dff8ee6a",
+      "695bb3c56d538c4d2c719558",
+      "692e7ad3f4a841e6d2612a1e",
+      "68820c2add32ef1752b0b4ce",
+      "68820224dd32ef1752b0b1f7",
+      "68816d8f2aea0c2df913fa17",
+      "688168dd2aea0c2df913f88c",
+      "6881603d2f11d7264fdb41eb",
+      "690c4090fb7423bbdde4ba9d"
+    ],
+    "sample": {
+      "id": "6a9162adf19a02346cdfe82c",
+      "slug": "mellow-madness-clementine-03-09-2026",
+      "title": "MELLOW MADNESS: Clémentine & honeymel, kaffe crème, léo, M.bass, saint-james",
+      "created_at": "2026-08-28T10:27:57.920Z",
+      "type": "episode",
+      "metadata": {
+        "image": {
+          "url": "https://cdn.cosmicjs.com/f7bce000-a2ca-11f1-87a3-f9dd0c124e3c-20260903-MELLOW-MADNESS-Clementine--honeymel-kaffe-creme-leo-M-bass-saint-james.jpg",
+          "imgix_url": "https://imgix.cosmicjs.com/f7bce000-a2ca-11f1-87a3-f9dd0c124e3c-20260903-MELLOW-MADNESS-Clementine--honeymel-kaffe-creme-leo-M-bass-saint-james.jpg"
+        },
+        "external_image_url": null,
+        "broadcast_date": "2026-09-03",
+        "broadcast_time": "12:00",
+        "description": "Following another unforgettable edition of We Out Here, Clémentine invites her friends HoneyMel, Kaffe Crème, Léo, M.Bass and Saint-James for a little post-festival group therapy session, sharing their memories, highlights or a track that blew their minds and made We Out Here 2026 so special!",
+        "subtitle": null,
+        "player": "https://www.mixcloud.com/worldwidefm/mellow-madness-cl%C3%A9mentine-honeymel-kaffe-cr%C3%A8me-l%C3%A9o-mbass-saint-james-03-09-26/",
+        "duration": "1:00",
+        "genres": [
+          {
+            "id": "686681a0414583e1cff6ae22",
+            "slug": "boogie",
+            "title": "boogie",
+            "content": "",
+            "bucket": "67d299639d39f0511c308611",
+            "created_at": "2025-07-03T13:12:00.281Z",
+            "modified_at": "2025-07-03T13:12:00.281Z",
+            "status": "published",
+            "published_at": "2025-07-03T13:12:00.281Z",
+            "type": "genres",
+            "metadata": {
+              "description": null,
+              "image": null,
+              "external_image_url": null
+            }
+          },
+          {
+            "id": "6866818e414583e1cff6ae04",
+            "slug": "funk",
+            "title": "funk",
+            "content": "",
+            "bucket": "67d299639d39f0511c308611",
+            "created_at": "2025-07-03T13:11:42.602Z",
+            "modified_at": "2025-07-03T13:11:42.602Z",
+            "status": "published",
+            "published_at": "2025-07-03T13:11:42.602Z",
+            "type": "genres",
+            "metadata": {
+              "description": null,
+              "image": null,
+              "external_image_url": null
+            }
+          }
+        ],
+        "regular_hosts": [
+          {
+            "id": "6936d88d3584465d0a2fc566",
+            "slug": "clementine",
+            "title": "Clémentine",
+            "content": "",
+            "bucket": "67d299639d39f0511c308611",
+            "created_at": "2025-12-08T13:54:21.746Z",
+            "modified_at": "2026-04-12T02:03:11.650Z",
+            "status": "published",
+            "published_at": "2026-04-12T02:03:11.670Z",
+            "modified_by": "68b8074166cccb5104c6fde6",
+            "created_by": "68b8074166cccb5104c6fde6",
+            "publish_at": null,
+            "thumbnail": "https://imgix.cosmicjs.com/0cd6ddb0-cf40-11f0-8f69-6fd7eec3187d-20251204-Mellow-Madness--Clmentine.jpg",
+            "type": "regular-hosts",
+            "metadata": {
+              "type": "68794a80d5e8b76ec441b663",
+              "description": "Parisian DJ and co-founder of Chuwanaga Records, Clémentine is known for her heartfelt selections with crossover influences from soul to house and anything in between.",
+              "image": {
+                "url": "https://cdn.cosmicjs.com/0cd6ddb0-cf40-11f0-8f69-6fd7eec3187d-20251204-Mellow-Madness--Clmentine.jpg",
+                "imgix_url": "https://imgix.cosmicjs.com/0cd6ddb0-cf40-11f0-8f69-6fd7eec3187d-20251204-Mellow-Madness--Clmentine.jpg"
+              },
+              "location": null,
+              "external_image_url": "https://ad8dxpajksubmmnm.public.blob.vercel-storage.com/cosmic-archive/0cd6ddb0-cf40-11f0-8f69-6fd7eec3187d-20251204-Mellow-Madness--Clmentine.jpg",
+              "mixcloud_username": null
+            }
+          }
+        ],
+        "locations": [
+          {
+            "id": "68b1f284663081c679850f6c",
+            "slug": "paris",
+            "title": "Paris",
+            "content": "",
+            "bucket": "67d299639d39f0511c308611",
+            "created_at": "2025-08-29T18:33:40.753Z",
+            "modified_at": "2025-08-29T18:33:40.753Z",
+            "status": "published",
+            "published_at": "2025-08-29T18:33:40.753Z",
+            "type": "locations",
+            "metadata": {
+              "description": null,
+              "image": null,
+              "external_image_url": null
+            }
+          }
+        ],
+        "takeovers": [],
+        "featured_on_homepage": false
+      }
+    }
+  },
+  {
+    "term": "Clementine",
+    "name": "lean-20",
+    "ms": 457,
+    "bytes": 6733,
+    "ids": [
+      "6a9162adf19a02346cdfe82c",
+      "6a6ba0d9e1d4abe65f275bdb",
+      "6a420a105c68adc7cc2b3cb5",
+      "6a3dac75292df19dd1b8fdfa",
+      "6a18817e1d15daa924d9982d",
+      "69f334ddf79a7dd1917f0fe4",
+      "69c585f98b1700b7483d73a6",
+      "69a0c97cdb4bbfdb62825857",
+      "697b96757d26b0b9dff8ee6a",
+      "695bb3c56d538c4d2c719558",
+      "692e7ad3f4a841e6d2612a1e",
+      "68820c2add32ef1752b0b4ce",
+      "68820224dd32ef1752b0b1f7",
+      "68816d8f2aea0c2df913fa17",
+      "688168dd2aea0c2df913f88c",
+      "6881603d2f11d7264fdb41eb",
+      "690c4090fb7423bbdde4ba9d"
+    ],
+    "sample": {
+      "id": "6a9162adf19a02346cdfe82c",
+      "slug": "mellow-madness-clementine-03-09-2026",
+      "title": "MELLOW MADNESS: Clémentine & honeymel, kaffe crème, léo, M.bass, saint-james",
+      "created_at": "2026-08-28T10:27:57.920Z",
+      "metadata": {
+        "broadcast_date": "2026-09-03",
+        "genres": [
+          {
+            "id": "686681a0414583e1cff6ae22",
+            "title": "boogie"
+          },
+          {
+            "id": "6866818e414583e1cff6ae04",
+            "title": "funk"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "term": "Clementine",
+    "name": "lean-5",
+    "ms": 323,
+    "bytes": 1956,
+    "ids": [
+      "6a9162adf19a02346cdfe82c",
+      "6a6ba0d9e1d4abe65f275bdb",
+      "6a420a105c68adc7cc2b3cb5",
+      "6a3dac75292df19dd1b8fdfa",
+      "6a18817e1d15daa924d9982d"
+    ],
+    "sample": {
+      "id": "6a9162adf19a02346cdfe82c",
+      "slug": "mellow-madness-clementine-03-09-2026",
+      "title": "MELLOW MADNESS: Clémentine & honeymel, kaffe crème, léo, M.bass, saint-james",
+      "created_at": "2026-08-28T10:27:57.920Z",
+      "metadata": {
+        "broadcast_date": "2026-09-03",
+        "genres": [
+          {
+            "id": "686681a0414583e1cff6ae22",
+            "title": "boogie"
+          },
+          {
+            "id": "6866818e414583e1cff6ae04",
+            "title": "funk"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "term": "Sam Bhok",
+    "name": "baseline",
+    "ms": 1385,
+    "bytes": 53546,
+    "ids": [
+      "6a79693c151ff74c861d2854",
+      "6a54aea067f2f6a3f805f2b3",
+      "6a2fc3916d809bc170e37226",
+      "6a01ee56a963c4f5f0da3606",
+      "69b7e5ac3704c8f1904cd807",
+      "699c26832441b78ff02b5e12",
+      "6992f179b866d7fd0e7f0fb6",
+      "695bb09d6d538c4d2c7191c8",
+      "6933319e3584465d0a2f8e29",
+      "69117221fb7423bbdde4fccb",
+      "68e55cd2ad574c75d6dd8204",
+      "68e55dd2ad574c75d6dd824a",
+      "68e55dc8ad574c75d6dd8246",
+      "68820ef6c5047d6a522597ab",
+      "68820d2fdd32ef1752b0b50d",
+      "688204addd32ef1752b0b2a9",
+      "688203dcdd32ef1752b0b272",
+      "6882010fdd32ef1752b0b19f",
+      "6881ffc2dd32ef1752b0b134",
+      "6881febbdd32ef1752b0b0e1"
+    ],
+    "sample": {
+      "id": "6a79693c151ff74c861d2854",
+      "slug": "worldwide-breakfast-2026-08-19",
+      "title": "Worldwide Breakfast: Sam Bhok",
+      "created_at": "2026-08-10T06:01:32.458Z",
+      "type": "episode",
+      "metadata": {
+        "image": {
+          "url": "https://cdn.cosmicjs.com/f6fc4fa0-2509-11f1-8e38-f5dc12cfac40-Sam-Bhok-Press-2025-square.jpg",
+          "imgix_url": "https://imgix.cosmicjs.com/f6fc4fa0-2509-11f1-8e38-f5dc12cfac40-Sam-Bhok-Press-2025-square.jpg"
+        },
+        "external_image_url": "\n",
+        "broadcast_date": "2026-08-19",
+        "broadcast_time": "08:00",
+        "description": null,
+        "subtitle": null,
+        "player": "https://www.mixcloud.com/worldwidefm/worldwide-breakfast-sam-bhok-19-08-26/",
+        "duration": "2:00",
+        "genres": [],
+        "regular_hosts": [
+          {
+            "id": "6881262e3305100b7c998772",
+            "slug": "valentine-comar",
+            "title": "Valentine Comar",
+            "content": "",
+            "bucket": "67d299639d39f0511c308611",
+            "created_at": "2025-08-15T09:12:27.473Z",
+            "modified_at": "2026-02-24T11:50:11.688Z",
+            "status": "published",
+            "published_at": "2026-02-24T11:50:11.688Z",
+            "modified_by": "68b8074166cccb5104c6fde6",
+            "publish_at": null,
+            "thumbnail": "https://imgix.cosmicjs.com/89a0fe80-787d-11f0-82ea-a531f5836781-image.png",
+            "type": "regular-hosts",
+            "metadata": {
+              "type": "68794a33d5e8b76ec441b65d",
+              "description": "Every Wednesday from 8-10 AM GMT, kick off your day with Valentine Comar on the Worldwide Breakfast show for a musical adventure that spans the globe! \n\nWhether you’re easing into the day or looking for an energy boost, let Valentine guide you through a journey around the world, exploring new sounds, rhythms and cultures: one breakfast at a time.",
+              "image": {
+                "url": "https://cdn.cosmicjs.com/89a0fe80-787d-11f0-82ea-a531f5836781-image.png",
+                "imgix_url": "https://imgix.cosmicjs.com/89a0fe80-787d-11f0-82ea-a531f5836781-image.png"
+              },
+              "location": "68b1f28d663081c679850f7b",
+              "external_image_url": "https://ad8dxpajksubmmnm.public.blob.vercel-storage.com/cosmic-archive/89a0fe80-787d-11f0-82ea-a531f5836781-image.png",
+              "mixcloud_username": null
+            }
+          }
+        ],
+        "locations": [
+          {
+            "id": "68b1f28d663081c679850f7b",
+            "slug": "london",
+            "title": "London",
+            "content": "",
+            "bucket": "67d299639d39f0511c308611",
+            "created_at": "2025-08-29T18:33:49.473Z",
+            "modified_at": "2025-08-29T18:33:49.473Z",
+            "status": "published",
+            "published_at": "2025-08-29T18:33:49.473Z",
+            "type": "locations",
+            "metadata": {
+              "description": null,
+              "image": null,
+              "external_image_url": null
+            }
+          }
+        ],
+        "takeovers": [],
+        "featured_on_homepage": false
+      }
+    }
+  },
+  {
+    "term": "Sam Bhok",
+    "name": "lean-20",
+    "ms": 1182,
+    "bytes": 5596,
+    "ids": [
+      "6a79693c151ff74c861d2854",
+      "6a54aea067f2f6a3f805f2b3",
+      "6a2fc3916d809bc170e37226",
+      "6a01ee56a963c4f5f0da3606",
+      "69b7e5ac3704c8f1904cd807",
+      "699c26832441b78ff02b5e12",
+      "6992f179b866d7fd0e7f0fb6",
+      "695bb09d6d538c4d2c7191c8",
+      "6933319e3584465d0a2f8e29",
+      "69117221fb7423bbdde4fccb",
+      "68e55cd2ad574c75d6dd8204",
+      "68e55dd2ad574c75d6dd824a",
+      "68e55dc8ad574c75d6dd8246",
+      "68820ef6c5047d6a522597ab",
+      "68820d2fdd32ef1752b0b50d",
+      "688204addd32ef1752b0b2a9",
+      "688203dcdd32ef1752b0b272",
+      "6882010fdd32ef1752b0b19f",
+      "6881ffc2dd32ef1752b0b134",
+      "6881febbdd32ef1752b0b0e1"
+    ],
+    "sample": {
+      "id": "6a79693c151ff74c861d2854",
+      "slug": "worldwide-breakfast-2026-08-19",
+      "title": "Worldwide Breakfast: Sam Bhok",
+      "created_at": "2026-08-10T06:01:32.458Z",
+      "metadata": {
+        "broadcast_date": "2026-08-19",
+        "genres": []
+      }
+    }
+  },
+  {
+    "term": "Sam Bhok",
+    "name": "lean-5",
+    "ms": 1075,
+    "bytes": 1433,
+    "ids": [
+      "6a79693c151ff74c861d2854",
+      "6a54aea067f2f6a3f805f2b3",
+      "6a2fc3916d809bc170e37226",
+      "6a01ee56a963c4f5f0da3606",
+      "69b7e5ac3704c8f1904cd807"
+    ],
+    "sample": {
+      "id": "6a79693c151ff74c861d2854",
+      "slug": "worldwide-breakfast-2026-08-19",
+      "title": "Worldwide Breakfast: Sam Bhok",
+      "created_at": "2026-08-10T06:01:32.458Z",
+      "metadata": {
+        "broadcast_date": "2026-08-19",
+        "genres": []
+      }
+    }
+  }
+]

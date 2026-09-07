@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import MembershipSignupClient from '@/cosmic/blocks/user-management/MembershipSignupClient';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
-import { getMembershipPage } from '@/lib/cosmic-service';
+import { getCachedMembershipPage as getMembershipPage } from '@/lib/cached-data';
 
 export const generateMetadata = async (): Promise<Metadata> => {
   try {

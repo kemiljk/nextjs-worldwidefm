@@ -1,8 +1,12 @@
 import { z } from 'zod';
-import { cosmic } from './cosmic-config';
+import { getPublicObjects } from './cosmic-public';
 import { applySearchToQuery, SEARCH_INITIAL_SIZE, SEARCH_PAGE_SIZE } from './search-query';
 
-const filters = z.array(z.string().min(1).max(100)).max(20).default([]);
+const filters = z
+  .array(z.string().min(1).max(100))
+  .max(20)
+  .default([])
+  .transform(values => [...new Set(values)].sort());
 export const searchPageSchema = z.object({
   type: z.enum(['episodes', 'posts', 'videos', 'takeovers', 'hosts-series']).default('episodes'),
   searchTerm: z.string().trim().max(200).default(''),
@@ -47,30 +51,23 @@ export function buildSearchPageQuery(params: SearchPageParams, yesterday: string
 }
 
 export async function getSearchPage(params: SearchPageParams, yesterday: string) {
-  let request = cosmic.objects
-    .find(buildSearchPageQuery(params, yesterday))
-    .props(SEARCH_RESULT_PROPS)
-    .limit(params.limit)
-    .depth(1);
-  request = params.after ? request.after(params.after) : request.skip(params.offset);
-  if (params.type === 'episodes') request = request.sort('-metadata.broadcast_date');
-  if (params.type === 'posts') request = request.sort('-metadata.date');
-  // Videos often have no metadata.date; sorting null dates makes pagination unstable.
-  if (params.type === 'videos') request = request.sort('-created_at');
-  try {
-    const response = await request;
-    const results = response.objects || [];
-    return {
-      results,
-      nextCursor: results.at(-1)?.id ?? null,
-      hasNext:
-        results.length === params.limit &&
-        (response.total === undefined || params.offset + results.length < response.total),
-    };
-  } catch (error) {
-    if (error && typeof error === 'object' && 'status' in error && error.status === 404) {
-      return { results: [], hasNext: false, nextCursor: null };
-    }
-    throw error;
-  }
+  const sort =
+    params.type === 'episodes'
+      ? '-metadata.broadcast_date'
+      : params.type === 'posts'
+        ? '-metadata.date'
+        : '-created_at';
+  const response = await getPublicObjects(buildSearchPageQuery(params, yesterday), {
+    props: SEARCH_RESULT_PROPS,
+    limit: params.limit,
+    depth: 1,
+    ...(params.after ? { after: params.after } : { skip: params.offset }),
+    sort,
+  });
+  const results = response.objects;
+  return {
+    results,
+    nextCursor: results.at(-1)?.id ?? null,
+    hasNext: results.length === params.limit && params.offset + results.length < response.total,
+  };
 }

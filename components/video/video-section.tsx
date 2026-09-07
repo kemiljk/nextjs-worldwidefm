@@ -12,6 +12,10 @@ interface Video extends VideoObject {}
 interface VideoSectionProps {
   videos: Video[];
   className?: string;
+  title?: string;
+  // When true, render the videos exactly as provided (hand-picked/curated)
+  // rather than auto-selecting the latest ones.
+  curated?: boolean;
 }
 
 // Helper function to extract YouTube video ID from URL
@@ -38,8 +42,16 @@ function getVimeoThumbnail(url: string) {
   return null;
 }
 
-export default function VideoSection({ videos, className }: VideoSectionProps) {
-  const latestVideos = videos.slice(-3);
+export default function VideoSection({
+  videos,
+  className,
+  title = 'VIDEO',
+  curated: _curated = false,
+}: VideoSectionProps) {
+  // Curated lists preserve the editor's chosen order (capped to the 3-up
+  // layout); the default homepage section auto-shows the latest videos.
+  // Both the API and curated input are already ordered for display.
+  const latestVideos = videos.slice(0, 3);
   const isTwoVideos = latestVideos.length === 2;
   const firstVideo = latestVideos[0];
   const otherVideos = latestVideos.slice(1);
@@ -47,7 +59,7 @@ export default function VideoSection({ videos, className }: VideoSectionProps) {
   return (
     <section className={cn('', 'bg-black mt-30 h-auto px-5 text-white pb-30', className)}>
       <div className='flex items-end justify-between pt-10 pb-4'>
-        <h2 className='text-h8 md:text-h7 font-bold'>VIDEO</h2>
+        <h2 className='text-h8 md:text-h7 font-bold'>{title}</h2>
         <Link
           href='/videos'
           className='inline-flex items-center font-mono text-m8 sm:text-m7 uppercase whitespace-nowrap hover:underline transition-all'

@@ -166,13 +166,24 @@ export async function getRadioShows(
       };
     }
 
-    const response = await cosmic.objects
-      .find(query)
-      .props('id,slug,title,metadata,type')
-      .limit(params.limit || 10)
-      .skip(params.skip || 0)
-      .sort(params.sort || '-metadata.broadcast_date')
-      .depth(2);
+    const response =
+      typeof window === 'undefined' && (!params.status || params.status === 'published')
+        ? await (
+            await import('./public-content.server')
+          ).fetchPublicContent(query, {
+            props: 'id,slug,title,metadata,type',
+            limit: params.limit || 10,
+            skip: params.skip || 0,
+            sort: params.sort || '-metadata.broadcast_date',
+            depth: 2,
+          })
+        : await cosmic.objects
+            .find(query)
+            .props('id,slug,title,metadata,type')
+            .limit(params.limit || 10)
+            .skip(params.skip || 0)
+            .sort(params.sort || '-metadata.broadcast_date')
+            .depth(2);
 
     return {
       objects: response.objects || [],

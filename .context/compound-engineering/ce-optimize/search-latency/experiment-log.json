@@ -1,0 +1,40 @@
+{
+  "status": "verified locally; not pushed",
+  "scope": [
+    "components/search/search-dialog.tsx",
+    "lib/search-query.ts",
+    "lib/search-page.ts",
+    "app/api/search/route.ts",
+    "test/search-page.test.ts"
+  ],
+  "first_pass_cms_median_ms": {
+    "baseline": 1372,
+    "final": 946
+  },
+  "first_response_mean_bytes": {
+    "baseline": 54035,
+    "final": 1932
+  },
+  "caveat": "Network and cache variability; repeated samples became warm despite useCache=false. These are CMS response times, not production end-to-end UI timings.",
+  "checks": [
+    "25 search unit tests pass",
+    "targeted lint has no errors",
+    "API browser search returns matching results",
+    "cursor video pagination returns 17 unique results identical to a full request",
+    "all five types return results",
+    "cursor query total verified constant across pages"
+  ],
+  "changes": [
+    "five initial results; subsequent pages of 20",
+    "search-only projection of card fields",
+    "GET avoids Next server-action queue",
+    "abort superseded requests and ignore stale responses",
+    "150ms debounce instead of 300ms",
+    "remove 1000ms pagination delay",
+    "bounded 60-second client cache",
+    "Next latest server cache",
+    "search error and retry state",
+    "cursor pagination; stable creation-date sort for videos"
+  ],
+  "stopping_reason": "targeted payload reduction and progressive delivery implemented and checked; further latency dominated by variable CMS response"
+}

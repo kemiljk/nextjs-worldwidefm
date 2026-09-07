@@ -1,4 +1,4 @@
-import { getNavigation } from '@/lib/cosmic-service';
+import { getCachedNavigation } from '@/lib/cached-data';
 import { getUserFromCookie } from '@/cosmic/blocks/user-management/actions';
 import Navbar from './navbar';
 
@@ -7,7 +7,7 @@ export default async function NavWrapper() {
   let user = null;
 
   try {
-    const response = await getNavigation();
+    const response = await getCachedNavigation();
     if (response.object?.metadata?.item && Array.isArray(response.object.metadata.item)) {
       navItems = response.object.metadata.item;
     }

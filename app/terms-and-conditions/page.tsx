@@ -1,3 +1,4 @@
+import { getPublicObject } from '@/lib/cosmic-public';
 import { Metadata } from 'next';
 import LegalContent from '@/components/shared/legal-content';
 import { generateTermsMetadata } from '@/lib/metadata-utils';
@@ -10,11 +11,12 @@ async function getTermsAndConditionsContent() {
   try {
     const { cosmic } = await import('@/cosmic/client');
 
-    const response = await cosmic.objects
-      .findOne({
+    const response = await getPublicObject(
+      {
         id: '68b2caf1dea361e2db6caf84',
-      })
-      .props('slug,title,metadata,type');
+      },
+      { props: 'slug,title,metadata,type' }
+    );
 
     return response?.object || null;
   } catch (error) {

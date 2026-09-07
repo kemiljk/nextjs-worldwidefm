@@ -16,7 +16,7 @@ export interface EditorialLandingData {
 
 export async function getEditorialLandingData(): Promise<EditorialLandingData> {
   cacheLife('editorial');
-  cacheTag('editorial', 'posts', 'categories');
+  cacheTag('editorial', 'posts', 'categories', 'content-relationships');
 
   const [categories, pageConfig, featuredResult, postsResult] = await Promise.all([
     getPostCategories(),

@@ -1,4 +1,5 @@
-import { RadioShowObject, CosmicImage, GenreObject, HostObject, cosmic } from './cosmic-config';
+import { isCurrentRadioEvent } from './radio-event-time';
+import { RadioShowObject, CosmicImage, GenreObject, HostObject } from './cosmic-config';
 import { extractDatePart, extractTimePart } from './date-utils';
 
 function normalizeTitle(str: string): string {
@@ -184,6 +185,7 @@ async function fetchFromRadioCult<T>(
     const response = await fetch(url, {
       ...options,
       headers,
+      signal: options.signal || AbortSignal.timeout(6000),
       next: {
         revalidate: noCache ? 0 : 900, // No caching for live data, 15 min for others
         tags: ['radiocult'],
@@ -436,6 +438,7 @@ export async function getEvents(
     return result;
   } catch (error) {
     console.error('Error fetching RadioCult events:', error);
+    if (forceRefresh) throw error;
     return { events: [], total: 0 };
   }
 }
@@ -543,20 +546,19 @@ export async function getScheduleData(): Promise<{
     // Get events for the next week, including events that may have started recently
     const now = new Date();
     const startDate = new Date(now);
-    startDate.setHours(startDate.getHours() - 3); // Look back 3 hours to catch events that just started
+    startDate.setUTCHours(0, 0, 0, 0);
+    startDate.setUTCDate(startDate.getUTCDate() - 1); // Include programmes crossing midnight
     const endDate = new Date(now);
-    endDate.setDate(endDate.getDate() + 7); // Look ahead 7 days for more upcoming content
+    endDate.setUTCHours(0, 0, 0, 0);
+    endDate.setUTCDate(endDate.getUTCDate() + 8); // Stable keys across visitors during the same UTC day
 
-    // Direct fetch to schedule endpoint
-    // Force refresh to bypass cache for live data
-    const { events = [] } = await getEvents(
-      {
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
-        limit: 25, // Increased limit to get more upcoming shows
-      },
-      true // forceRefresh = true to bypass cache
-    );
+    // Share schedule reads; choose the current event using the request clock.
+    const { getLiveScheduleEvents } = await import('./radiocult-live.server');
+    const { events = [] } = await getLiveScheduleEvents({
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      limit: 200, // Cover the bounded schedule window without truncating the current event
+    });
 
     // Check if we have events
     if (!events || events.length === 0) {
@@ -573,39 +575,9 @@ export async function getScheduleData(): Promise<{
       return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
     });
 
-    // Find the current event - be very lenient since there's always a show online
-    // If an event has started (or is starting soon), consider it current
+    // Keep programme selection outside the cached schedule and respect exact boundaries.
     const currentEvent =
-      sortedEvents.find(event => {
-        if (!event.startTime) {
-          return false;
-        }
-
-        const startTime = new Date(event.startTime);
-        const endTime = event.endTime ? new Date(event.endTime) : null;
-
-        // If event has started and hasn't ended, it's current
-        if (now >= startTime) {
-          if (endTime && !isNaN(endTime.getTime())) {
-            return now <= endTime;
-          }
-          // No endTime or invalid - if it started within last 12 hours, consider it current
-          const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
-          return startTime >= twelveHoursAgo;
-        }
-
-        // Event hasn't started yet, but if it's starting within the next hour, consider it current
-        // (RadioCult might be playing pre-show content)
-        const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
-        if (startTime <= oneHourFromNow) {
-          return true;
-        }
-
-        return false;
-      }) ||
-      // Fallback: if no event matches, just use the first upcoming event
-      // (since there's always a show online, this is better than nothing)
-      (sortedEvents.length > 0 ? sortedEvents[0] : null);
+      sortedEvents.find(event => isCurrentRadioEvent(event, now.getTime())) || null;
 
     // Debug logging
     if (process.env.NODE_ENV === 'development') {
@@ -637,11 +609,7 @@ export async function getScheduleData(): Promise<{
     };
   } catch (error) {
     console.error('Error getting schedule data:', error);
-    return {
-      currentEvent: null,
-      upcomingEvent: null,
-      upcomingEvents: [],
-    };
+    throw error;
   }
 }
 
@@ -790,15 +758,15 @@ export async function findMatchingShow(
     }
 
     // Fetch recent episodes to match against
-    const response = await cosmic.objects
-      .find({
+    const response = await (
+      await import('./public-content.server')
+    ).fetchPublicContent(
+      {
         type: 'episode',
         status: 'published',
-      })
-      .props('id,slug,title,metadata')
-      .depth(1)
-      .sort('-metadata.broadcast_date')
-      .limit(50);
+      },
+      { props: 'id,slug,title', depth: 0, sort: '-metadata.broadcast_date', limit: 50 }
+    );
 
     if (!response.objects || response.objects.length === 0) {
       dataCache.set(cacheKey, { data: null, timestamp: Date.now() });

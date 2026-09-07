@@ -275,6 +275,9 @@ export interface PostObject {
     external_image_url?: string | null;
     featured_link?: string;
     display_order?: number;
+    // Shows/episodes linked to this editorial piece (e.g. special projects,
+    // brand partnerships). Populated from the `related_shows` relationship.
+    related_shows?: RadioShowObject[];
   };
 }
 

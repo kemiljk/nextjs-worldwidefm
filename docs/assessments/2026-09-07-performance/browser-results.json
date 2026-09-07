@@ -1,0 +1,467 @@
+[
+  {
+    "mode": "desktop-unthrottled",
+    "metrics": {
+      "lcp": 1052,
+      "cls": 0.343,
+      "shiftSum": 0.343,
+      "shifts": [
+        {
+          "at": 999.2000000178814,
+          "value": 0.343,
+          "sources": [
+            {
+              "tag": "FOOTER",
+              "cls": "bg-white dark:bg-gray-900 text-almostblack dark:text-white pt-8 border-t border-almostblack w-full",
+              "previous": {
+                "x": 0,
+                "y": 56,
+                "width": 1440,
+                "height": 343.28125,
+                "top": 56,
+                "right": 1440,
+                "bottom": 399.28125,
+                "left": 0
+              },
+              "current": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "navigation": [
+        {
+          "ttfb": 81.2000000178814,
+          "dcl": 966.4000000059605,
+          "load": 1007.2000000178814,
+          "encodedBody": 121713,
+          "decodedBody": 1158617
+        }
+      ],
+      "domNodes": 2099,
+      "images": 90,
+      "loadedImages": 65,
+      "imageSamples": [
+        {
+          "width": 694,
+          "naturalWidth": 1440,
+          "url": "https://imgix.cosmicjs.com/1ba022a0-a232-11f1-aa75-d7f9555b4c6e-0de87d14-83af-48a4-9088-50d738649b98.JPG?w=1920&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "loading": "eager"
+        },
+        {
+          "width": 694,
+          "naturalWidth": 1440,
+          "url": "https://imgix.cosmicjs.com/4061a1f0-9fc5-11f1-b691-bd1cbd6f174f-IMG_8363.jpeg?w=1920&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.390625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/539abf20-a84b-11f1-8f01-4d44f7b569d4-SerenaFredWWFM.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.40625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/b1344ab0-a5f9-11f1-aa75-d7f9555b4c6e-shedding-histories-one.webp?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.390625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/aef6d9d0-a625-11f1-aa75-d7f9555b4c6e-shai.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.40625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/35568720-a6c4-11f1-aa75-d7f9555b4c6e-WOH-Polaroids-16-2.jpeg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.390625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/e0fc0280-a7b4-11f1-afc9-570ab34c9521-IMG_2438.jpeg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        },
+        {
+          "width": 252.390625,
+          "naturalWidth": 360,
+          "url": "https://imgix.cosmicjs.com/f7bce000-a2ca-11f1-87a3-f9dd0c124e3c-20260903-MELLOW-MADNESS-Clementine--honeymel-kaffe-creme-leo-M-bass-saint-james.jpg?w=400&h=400&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "lazy"
+        }
+      ],
+      "buttons": [
+        {
+          "label": null,
+          "text": "Open menu"
+        },
+        {
+          "label": "Play live stream",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        },
+        {
+          "label": "Play show",
+          "text": ""
+        }
+      ]
+    },
+    "grouped": {
+      "www.worldwidefm.net": {
+        "requests": 103,
+        "bytes": 772460
+      },
+      "plausible.io": {
+        "requests": 1,
+        "bytes": 0
+      },
+      "cdn.socket.io": {
+        "requests": 1,
+        "bytes": 15497
+      },
+      "imgix.cosmicjs.com": {
+        "requests": 58,
+        "bytes": 2004250
+      },
+      "": {
+        "requests": 1,
+        "bytes": 0
+      }
+    },
+    "cosmicRequests": [],
+    "errors": [],
+    "resourceTypes": {
+      "Document": {
+        "count": 1,
+        "bytes": 123657
+      },
+      "Font": {
+        "count": 3,
+        "bytes": 136805
+      },
+      "Stylesheet": {
+        "count": 2,
+        "bytes": 25872
+      },
+      "Script": {
+        "count": 29,
+        "bytes": 378166
+      },
+      "Fetch": {
+        "count": 69,
+        "bytes": 99434
+      },
+      "Image": {
+        "count": 60,
+        "bytes": 2028273
+      }
+    },
+    "searchRequests": [
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/",
+        "type": "Fetch",
+        "status": 200,
+        "bytes": 62822
+      },
+      {
+        "host": "api.cosmicjs.com",
+        "path": "/v3/buckets/worldwide-fm-production/objects",
+        "type": "XHR",
+        "status": 200,
+        "bytes": 3217
+      },
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/",
+        "type": "Fetch",
+        "status": 200
+      },
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/episode/let-the-sunshine-in-poly-ritmo-2026-09-03",
+        "type": "Fetch",
+        "status": 200,
+        "bytes": 1140
+      },
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/episode/space-grapes-hour-kuriosa-03-09-2026",
+        "type": "Fetch",
+        "status": 200,
+        "bytes": 489
+      },
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/episode/mellow-madness-clementine-03-09-2026",
+        "type": "Fetch",
+        "status": 200,
+        "bytes": 1456
+      },
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/episode/let-the-sunshine-in-poly-ritmo-2026-09-03",
+        "type": "Fetch",
+        "status": 200,
+        "bytes": 616
+      },
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/episode/let-the-sunshine-in-poly-ritmo-2026-09-03",
+        "type": "Fetch",
+        "status": 200,
+        "bytes": 589
+      },
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/episode/let-the-sunshine-in-poly-ritmo-2026-09-03",
+        "type": "Fetch",
+        "status": 200,
+        "bytes": 554
+      },
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/episode/space-grapes-hour-kuriosa-03-09-2026",
+        "type": "Fetch",
+        "status": 200,
+        "bytes": 553
+      },
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/episode/space-grapes-hour-kuriosa-03-09-2026",
+        "type": "Fetch",
+        "status": 200,
+        "bytes": 555
+      },
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/episode/space-grapes-hour-kuriosa-03-09-2026",
+        "type": "Fetch",
+        "status": 200,
+        "bytes": 513
+      },
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/episode/mellow-madness-clementine-03-09-2026",
+        "type": "Fetch",
+        "status": 200,
+        "bytes": 1034
+      },
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/episode/mellow-madness-clementine-03-09-2026",
+        "type": "Fetch",
+        "status": 200,
+        "bytes": 596
+      },
+      {
+        "host": "www.worldwidefm.net",
+        "path": "/episode/mellow-madness-clementine-03-09-2026",
+        "type": "Fetch",
+        "status": 200,
+        "bytes": 1457
+      }
+    ]
+  },
+  {
+    "mode": "mobile-simulated-4xCPU-1.6Mbps-150ms",
+    "metrics": {
+      "lcp": 2596,
+      "cls": 0.8329383886255924,
+      "shiftSum": 0.8329383886255924,
+      "shifts": [
+        {
+          "at": 7417.9000000059605,
+          "value": 0.8329383886255924,
+          "sources": [
+            {
+              "tag": "FOOTER",
+              "cls": "bg-white dark:bg-gray-900 text-almostblack dark:text-white pt-8 border-t border-almostblack w-full",
+              "previous": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              },
+              "current": {
+                "x": 0,
+                "y": 56,
+                "width": 390,
+                "height": 703.078125,
+                "top": 56,
+                "right": 390,
+                "bottom": 759.078125,
+                "left": 0
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": 2,
+      "longTaskMs": 170,
+      "navigation": [
+        {
+          "ttfb": 41.19999998807907,
+          "dcl": 10765.90000000596,
+          "load": 14917,
+          "encodedBody": 120141,
+          "decodedBody": 1145995
+        }
+      ],
+      "domNodes": 1933,
+      "images": 90,
+      "loadedImages": 33,
+      "imageSamples": [],
+      "buttons": [
+        {
+          "label": null,
+          "text": "Open menu"
+        },
+        {
+          "label": "Play live stream",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": "Play",
+          "text": ""
+        },
+        {
+          "label": null,
+          "text": "Previous slide"
+        },
+        {
+          "label": null,
+          "text": "Next slide"
+        },
+        {
+          "label": null,
+          "text": "Learn More"
+        },
+        {
+          "label": null,
+          "text": "■"
+        },
+        {
+          "label": "Play",
+          "text": ""
+        }
+      ]
+    },
+    "grouped": {
+      "www.worldwidefm.net": {
+        "requests": 35,
+        "bytes": 618039
+      },
+      "plausible.io": {
+        "requests": 1,
+        "bytes": 0
+      },
+      "imgix.cosmicjs.com": {
+        "requests": 30,
+        "bytes": 2239019
+      },
+      "": {
+        "requests": 1,
+        "bytes": 0
+      },
+      "cdn.socket.io": {
+        "requests": 1,
+        "bytes": 15495
+      }
+    },
+    "cosmicRequests": [],
+    "errors": [],
+    "resourceTypes": {
+      "Document": {
+        "count": 1,
+        "bytes": 122092
+      },
+      "Font": {
+        "count": 3,
+        "bytes": 135837
+      },
+      "Stylesheet": {
+        "count": 2,
+        "bytes": 26829
+      },
+      "Script": {
+        "count": 22,
+        "bytes": 338689
+      },
+      "Image": {
+        "count": 31,
+        "bytes": 2239019
+      },
+      "Fetch": {
+        "count": 9,
+        "bytes": 10087
+      }
+    }
+  }
+]

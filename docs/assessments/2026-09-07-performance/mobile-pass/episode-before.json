@@ -1,0 +1,366 @@
+[
+  {
+    "largestResources": [
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/14dmb1b7_-o-h.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/14dmb1b7_-o-h.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 72457
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/AirCompressed_Black_WWFM-s.p.3vlvqlx6sbdiy.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/AirCompressed_Black_WWFM-s.p.3vlvqlx6sbdiy.woff2",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 60442
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/20fab060-9d84-11f1-b962-89fd8b6e6d6a-20260821-Emma-Warren-Sounds-Like-Unity.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/20fab060-9d84-11f1-b962-89fd8b6e6d6a-20260821-Emma-Warren-Sounds-Like-Unity.jpg?w=1200&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+        "priority": "High",
+        "status": 200,
+        "bytes": 58245
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/episode/emma-warren-sounds-like-unity-21-08-2026",
+        "type": "Document",
+        "url": "http://127.0.0.1:3102/episode/emma-warren-sounds-like-unity-21-08-2026",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 34984
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1wuytkji7dsm_.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1wuytkji7dsm_.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 30458
+      },
+      {
+        "host": "imgix.cosmicjs.com",
+        "path": "/20fab060-9d84-11f1-b962-89fd8b6e6d6a-20260821-Emma-Warren-Sounds-Like-Unity.jpg",
+        "type": "Image",
+        "url": "https://imgix.cosmicjs.com/20fab060-9d84-11f1-b962-89fd8b6e6d6a-20260821-Emma-Warren-Sounds-Like-Unity.jpg?w=800&h=800&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+        "priority": "High",
+        "status": 200,
+        "bytes": 30280
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1-0onuexy11wa.css",
+        "type": "Stylesheet",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1-0onuexy11wa.css",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 26207
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/Founders%20Grotesk%20Mono%20Regular%20Regular-s.p.1vg4do_808cff.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/Founders%20Grotesk%20Mono%20Regular%20Regular-s.p.1vg4do_808cff.woff2",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 25638
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/media/Nimbus_Sans_D_OT_32758-s.p.1ndear6stid_5.woff2",
+        "type": "Font",
+        "url": "http://127.0.0.1:3102/_next/static/media/Nimbus_Sans_D_OT_32758-s.p.1ndear6stid_5.woff2",
+        "priority": "VeryHigh",
+        "status": 200,
+        "bytes": 19994
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/3n9uvmd58yua5.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/3n9uvmd58yua5.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 19381
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/1iv1-a5419qg7.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/1iv1-a5419qg7.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 16555
+      },
+      {
+        "host": "cdn.socket.io",
+        "path": "/4.7.2/socket.io.min.js",
+        "type": "Script",
+        "url": "https://cdn.socket.io/4.7.2/socket.io.min.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 15494
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/16o4y6y4ryjbf.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/16o4y6y4ryjbf.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 15282
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/3fgka0ihjwavk.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/3fgka0ihjwavk.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 12733
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/0q-h2eiche10t.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/0q-h2eiche10t.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 12078
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/2amqf1dmllp-w.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/2amqf1dmllp-w.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 10701
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/0ha4m18glnjqn.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/0ha4m18glnjqn.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 10499
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/41i_5upw2mw2x.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/41i_5upw2mw2x.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 10404
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/0vk3nqty20h_-.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/0vk3nqty20h_-.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 9761
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/_next/static/chunks/2or833i_g6ncs.js",
+        "type": "Script",
+        "url": "http://127.0.0.1:3102/_next/static/chunks/2or833i_g6ncs.js",
+        "priority": "Low",
+        "status": 200,
+        "bytes": 9356
+      }
+    ],
+    "mode": "mobile-simulated-4xCPU-1.6Mbps-150ms",
+    "metrics": {
+      "lcp": 5852,
+      "cls": 0.0016701280121913084,
+      "shiftSum": 0.0016701280121913084,
+      "shifts": [
+        {
+          "at": 1567.300000011921,
+          "value": 0.0016701280121913084,
+          "sources": [
+            {
+              "tag": "A",
+              "cls": "fixed top-0 right-0 z-50 flex items-center gap-2 shadow-lg hover:shadow-2xl transition-all duration-200 bg-almostblack dark:black hover:bg-neutral-700 h-11 text-[10px] font-mono uppercase text-white dark:text-white border-l p-2 pt-2.5 px-2",
+              "previous": {
+                "x": 199.890625,
+                "y": 0,
+                "width": 190.109375,
+                "height": 74,
+                "top": 0,
+                "right": 390,
+                "bottom": 74,
+                "left": 199.890625
+              },
+              "current": {
+                "x": 232.890625,
+                "y": 0,
+                "width": 157.109375,
+                "height": 74,
+                "top": 0,
+                "right": 390,
+                "bottom": 74,
+                "left": 232.890625
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": 1,
+      "longTaskMs": 69,
+      "lcpDetail": {
+        "url": "https://imgix.cosmicjs.com/20fab060-9d84-11f1-b962-89fd8b6e6d6a-20260821-Emma-Warren-Sounds-Like-Unity.jpg?w=1200&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+        "loadTime": 5838.0999999940395,
+        "renderTime": 5852,
+        "tag": "IMG",
+        "html": "<img alt=\"Emma Warren: Sounds Like Unity\" class=\"object-cover object-center w-full h-full select-none pointer-events-none\" loading=\"eager\" decoding=\"sync\" fetchpriority=\"high\" src=\"https://imgix.cosmicjs.com/20fab060-9d84-11f1-b962-89fd8b6e6d6a-20260821-Emma-Warren-Sounds-Like-Unity.jpg?w=1920&amp;f"
+      },
+      "navigation": [
+        {
+          "ttfb": 4,
+          "dcl": 5226.300000011921,
+          "load": 5838.700000017881,
+          "encodedBody": 33018,
+          "decodedBody": 109941
+        }
+      ],
+      "domNodes": 323,
+      "images": 5,
+      "loadedImages": 5,
+      "criticalResourceTiming": [
+        {
+          "name": "https://imgix.cosmicjs.com/20fab060-9d84-11f1-b962-89fd8b6e6d6a-20260821-Emma-Warren-Sounds-Like-Unity.jpg?w=1200&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "start": 5186,
+          "end": 5837.5999999940395,
+          "duration": 651.5999999940395,
+          "transfer": 57948
+        }
+      ],
+      "imageSamples": [
+        {
+          "width": 390,
+          "naturalWidth": 390,
+          "url": "https://imgix.cosmicjs.com/20fab060-9d84-11f1-b962-89fd8b6e6d6a-20260821-Emma-Warren-Sounds-Like-Unity.jpg?w=1200&fit=crop&auto=format%2Ccompress&q=75&cs=strip&fm=jpg",
+          "loading": "eager"
+        },
+        {
+          "width": 310,
+          "naturalWidth": 312,
+          "url": "https://imgix.cosmicjs.com/20fab060-9d84-11f1-b962-89fd8b6e6d6a-20260821-Emma-Warren-Sounds-Like-Unity.jpg?w=800&h=800&fit=crop&auto=format%2Ccompress&q=60&cs=strip&fm=jpg",
+          "loading": "eager"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 1,
+          "url": "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 1,
+          "url": "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
+          "loading": "lazy"
+        },
+        {
+          "width": 151,
+          "naturalWidth": 1,
+          "url": "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=",
+          "loading": "lazy"
+        }
+      ],
+      "buttons": [
+        {
+          "label": "Open search",
+          "text": ""
+        },
+        {
+          "label": "Open search",
+          "text": ""
+        },
+        {
+          "label": null,
+          "text": "Open menu"
+        },
+        {
+          "label": "Play live stream",
+          "text": ""
+        },
+        {
+          "label": "Add to listen later",
+          "text": "Listen Later"
+        },
+        {
+          "label": "Add host to favourites",
+          "text": ""
+        },
+        {
+          "label": null,
+          "text": "Tracklist"
+        }
+      ]
+    },
+    "grouped": {
+      "127.0.0.1": {
+        "requests": 26,
+        "bytes": 417419
+      },
+      "plausible.io": {
+        "requests": 1,
+        "bytes": 0
+      },
+      "cdn.socket.io": {
+        "requests": 1,
+        "bytes": 15494
+      },
+      "imgix.cosmicjs.com": {
+        "requests": 2,
+        "bytes": 88525
+      },
+      "": {
+        "requests": 2,
+        "bytes": 26
+      }
+    },
+    "cosmicRequests": [],
+    "errors": [],
+    "resourceTypes": {
+      "Document": {
+        "count": 1,
+        "bytes": 34984
+      },
+      "Stylesheet": {
+        "count": 2,
+        "bytes": 28423
+      },
+      "Script": {
+        "count": 20,
+        "bytes": 259804
+      },
+      "Font": {
+        "count": 3,
+        "bytes": 106074
+      },
+      "Fetch": {
+        "count": 2,
+        "bytes": 3628
+      },
+      "Image": {
+        "count": 4,
+        "bytes": 88551
+      }
+    }
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "scope": "one local production process; shared Vercel cache remains deployment verification",
+  "facets": {
+    "counts": {
+      "genres": 147,
+      "hosts": 376,
+      "locations": 155
+    },
+    "ms": 11.27,
+    "bytes": 37937
+  },
+  "firstSearch": {
+    "count": 5,
+    "ms": 69.85,
+    "bytes": 2096
+  },
+  "nextPage": {
+    "count": 20,
+    "overlappingIds": 0,
+    "ms": 14.44,
+    "bytes": 7322
+  },
+  "warmRequests": 4,
+  "additionalCosmicReads": 0
+}

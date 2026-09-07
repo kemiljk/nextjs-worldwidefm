@@ -1,3 +1,6 @@
+import { unstable_rethrow } from 'next/navigation';
+import { timingSafeEqual } from 'node:crypto';
+import { revalidateContent } from '@/lib/content-revalidation';
 import { revalidateTag, revalidatePath } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -33,8 +36,16 @@ import { NextRequest, NextResponse } from 'next/server';
 
 async function handleRevalidation(request: NextRequest) {
   try {
-    const secret = request.nextUrl.searchParams.get('secret');
-    if (secret !== process.env.REVALIDATION_SECRET) {
+    const secret =
+      request.headers.get('authorization')?.replace(/^Bearer /, '') ||
+      request.nextUrl.searchParams.get('secret');
+    const expected = process.env.REVALIDATION_SECRET;
+    if (
+      !secret ||
+      !expected ||
+      Buffer.byteLength(secret) !== Buffer.byteLength(expected) ||
+      !timingSafeEqual(Buffer.from(secret), Buffer.from(expected))
+    ) {
       console.warn('Invalid revalidation secret received');
       return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
     }
@@ -53,6 +64,18 @@ async function handleRevalidation(request: NextRequest) {
     }
 
     const revalidatedItems: string[] = [];
+    const payload = (body.object || body.data || body) as Record<string, unknown>;
+    const objectType =
+      typeof payload.type === 'string' && payload.type !== 'page' && payload.type !== 'layout'
+        ? payload.type
+        : undefined;
+    if (objectType && !tag && !path && !body.tag && !body.path) {
+      const slug = typeof payload.slug === 'string' ? payload.slug : undefined;
+      if (objectType.length > 100 || (slug && slug.length > 150)) {
+        return NextResponse.json({ message: 'Invalid content identity' }, { status: 400 });
+      }
+      revalidatedItems.push(...revalidateContent(objectType, slug).map(t => `tag:${t}`));
+    }
 
     // Revalidate by tag if specified
     if (tag || body.tag) {
@@ -80,8 +103,14 @@ async function handleRevalidation(request: NextRequest) {
     }
 
     // If no specific tag or path, revalidate all major content tags
-    if (!tag && !path && !body.tag && !body.path) {
+    if (!objectType && !tag && !path && !body.tag && !body.path) {
       const allTags = [
+        'public-content',
+        'content-relationships',
+        'videos',
+        'locations',
+        'about',
+        'membership',
         'homepage',
         'hero',
         'episodes',
@@ -124,6 +153,7 @@ async function handleRevalidation(request: NextRequest) {
       message: `Successfully revalidated: ${revalidatedItems.join(', ')}`,
     });
   } catch (error) {
+    unstable_rethrow(error);
     console.error('Error revalidating content:', error);
     return NextResponse.json(
       {

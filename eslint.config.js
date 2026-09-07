@@ -25,6 +25,13 @@ export default [
       'types/**',
     ],
   },
+  // Benchmark artifacts also contain TypeScript, but are not application modules.
+  {
+    files: ['docs/assessments/**/*.ts', '.context/**/*.ts'],
+    languageOptions: {
+      parser: typescriptParser,
+    },
+  },
   // Source files configuration
   {
     files: [

@@ -8,6 +8,7 @@ try {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  turbopack: { root: import.meta.dirname },
   cacheComponents: true,
   cacheLife: {
     // Hero changes weekly - 15min revalidate ensures updates show within reasonable time
@@ -24,7 +25,7 @@ const nextConfig = {
     homepage: { stale: 60, revalidate: 600, expire: 3600 },
   },
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   images: {
     remotePatterns: [

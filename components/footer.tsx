@@ -1,29 +1,41 @@
+import { cacheLife, cacheTag } from 'next/cache';
+import { connection } from 'next/server';
+
+import { getPublicObject } from '@/lib/cosmic-public';
 import Link from 'next/link';
 import * as SimpleIcons from 'simple-icons';
 import { Button } from '@/components/ui/button';
-import { cosmic } from '@/cosmic/client';
 
 // Helper function to get icon by name
 const getIcon = (iconName: string) => {
   return (SimpleIcons as any)[iconName];
 };
 
+type SocialLink = { icon: string; link: string };
+
+async function CachedFooter() {
+  'use cache';
+  cacheLife('hours');
+  cacheTag('navigation', 'content-relationships');
+  const response = await getPublicObject(
+    { type: 'social-links', slug: 'social-links' },
+    { props: 'slug,title,metadata,type', depth: 1 }
+  );
+  return <FooterContent socialLinks={response.object?.metadata?.social_link || []} />;
+}
+
 export default async function Footer() {
-  let socialLinks: Array<{ icon: string; link: string }> = [];
-
+  await connection();
   try {
-    const response = await cosmic.objects
-      .findOne({
-        type: 'social-links',
-        slug: 'social-links',
-      })
-      .props('slug,title,metadata,type')
-      .depth(1);
-    socialLinks = response.object?.metadata?.social_link || [];
+    return await CachedFooter();
   } catch (error) {
-    console.error('Error fetching footer social links:', error);
+    // Keep navigation usable on a cold CMS failure without caching an empty refresh.
+    console.error('Footer social links unavailable:', error);
+    return <FooterContent socialLinks={[]} />;
   }
+}
 
+function FooterContent({ socialLinks }: { socialLinks: SocialLink[] }) {
   return (
     <footer className='bg-white dark:bg-gray-900 text-almostblack dark:text-white pt-8 border-t border-almostblack w-full'>
       <div className='mx-auto px-5'>

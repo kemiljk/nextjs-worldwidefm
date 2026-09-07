@@ -1,4 +1,5 @@
-import { cosmic, type GenreObject, type HostObject } from './cosmic-config';
+import { getPublicObject, getPublicObjects } from '@/lib/cosmic-public';
+import { type GenreObject, type HostObject } from './cosmic-config';
 import type { EpisodeObject } from './cosmic-types';
 import {
   getCurrentUkWeek,
@@ -18,6 +19,7 @@ export interface CurrentScheduleShow {
   name: string;
   url: string;
   slug: string | null;
+  endsAt?: string;
 }
 
 export interface WeeklyScheduleResult {
@@ -25,23 +27,6 @@ export interface WeeklyScheduleResult {
   dayDates: ScheduleDayMap;
   isActive: boolean;
   error?: string;
-}
-
-const episodeCache = new Map<string, { episode: EpisodeObject; expiresAt: number }>();
-const EPISODE_CACHE_TTL_MS = 5 * 60 * 1000;
-
-function getEpisodeFromCache(id: string): EpisodeObject | null {
-  const cached = episodeCache.get(id);
-  if (!cached) return null;
-  if (Date.now() > cached.expiresAt) {
-    episodeCache.delete(id);
-    return null;
-  }
-  return cached.episode;
-}
-
-function setEpisodeCache(id: string, episode: EpisodeObject): void {
-  episodeCache.set(id, { episode, expiresAt: Date.now() + EPISODE_CACHE_TTL_MS });
 }
 
 export function parseDurationToSeconds(duration: string | null | undefined): number {
@@ -59,41 +44,37 @@ function isEpisodeObject(value: unknown): value is EpisodeObject {
 }
 
 async function fetchEpisodeById(id: string): Promise<EpisodeObject | null> {
-  const cached = getEpisodeFromCache(id);
-  if (cached) {
-    return cached;
-  }
   try {
-    const response = await cosmic.objects
-      .findOne({
+    const response = await getPublicObject(
+      {
         type: 'episode',
         id,
-      })
-      .depth(2);
+        status: 'published',
+      },
+      { depth: 2 }
+    );
     const episode = (response?.object as EpisodeObject) || null;
-    if (episode) {
-      setEpisodeCache(id, episode);
-    }
     return episode;
   } catch (error) {
     console.warn(`[Schedule] Unable to fetch episode by ID ${id}`, error);
-    return null;
+    throw error;
   }
 }
 
 async function fetchEpisodeBySlug(slug: string): Promise<EpisodeObject | null> {
   try {
-    const response = await cosmic.objects
-      .findOne({
+    const response = await getPublicObject(
+      {
         type: 'episode',
         slug,
         status: 'published',
-      })
-      .depth(2);
+      },
+      { depth: 2 }
+    );
     return (response?.object as EpisodeObject) || null;
   } catch (error) {
     console.warn(`[Schedule] Unable to fetch episode by slug ${slug}`, error);
-    return null;
+    throw error;
   }
 }
 
@@ -219,24 +200,20 @@ function buildScheduleShow(params: {
  */
 async function fetchAllSchedules(): Promise<{ metadata: Record<string, unknown>; id: string }[]> {
   try {
-    const response = await cosmic.objects
-      .find({
-        type: 'schedule',
-        // Optional: you could filter by slug: 'this-week' if you only want those,
-        // but if the user provided a specific ID, we should ensure it's included.
-      })
-      .props('id,metadata')
-      .depth(3);
-
-    return ((response?.objects as { id: string; metadata: Record<string, unknown> }[]) || []).map(
-      obj => ({
-        metadata: obj.metadata,
-        id: obj.id,
-      })
-    );
+    const schedules: { id: string; metadata: Record<string, unknown> }[] = [];
+    const limit = 100;
+    for (let skip = 0; ; skip += limit) {
+      const response = await getPublicObjects(
+        { type: 'schedule' },
+        { props: 'id,metadata', depth: 3, limit, skip, sort: 'created_at' }
+      );
+      schedules.push(...response.objects);
+      if (response.objects.length < limit || schedules.length >= response.total) break;
+    }
+    return schedules;
   } catch (error) {
     console.warn('[Schedule] Failed to fetch schedule metadata', error);
-    return [];
+    throw error;
   }
 }
 
@@ -321,35 +298,37 @@ async function fetchManualOverrides(dayDates: Partial<ScheduleDayMap>): Promise<
     return overrides;
   } catch (error) {
     console.warn('[Schedule] Failed to fetch manual overrides', error);
-    return [];
+    throw error;
   }
 }
 
 /**
  * Fetch for episodes by date
  */
-async function fetchEpisodesByDate(date: string): Promise<EpisodeObject[]> {
-  try {
-    const response = await cosmic.objects
-      .find({
-        type: 'episode',
-        status: 'published',
-        'metadata.broadcast_date': date,
-      })
-      .props('id,slug,title,metadata,created_at,modified_at')
-      .limit(50)
-      .sort('metadata.broadcast_time')
-      .depth(2);
+const SCHEDULE_EPISODE_PROPS =
+  'id,slug,title,created_at,modified_at,metadata.broadcast_date,metadata.broadcast_time,metadata.duration,metadata.image,metadata.external_image_url,metadata.genres,metadata.regular_hosts';
 
-    return (response?.objects as EpisodeObject[] | undefined) || [];
-  } catch (error: unknown) {
-    const typedError = error as { status?: number };
-    if (typedError?.status === 404) {
-      return [];
-    }
-    console.warn(`[Schedule] Failed to fetch episodes for date ${date}:`, error);
-    return [];
+async function fetchEpisodesForWeek(dates: string[]): Promise<EpisodeObject[]> {
+  const episodes: EpisodeObject[] = [];
+  const limit = 100;
+  for (let skip = 0; ; skip += limit) {
+    const response = await getPublicObjects(
+      {
+        type: 'episode',
+        'metadata.broadcast_date': { $in: dates },
+      },
+      {
+        props: SCHEDULE_EPISODE_PROPS,
+        depth: 1,
+        limit,
+        skip,
+        sort: 'metadata.broadcast_date,metadata.broadcast_time',
+      }
+    );
+    episodes.push(...response.objects);
+    if (response.objects.length < limit || episodes.length >= response.total) break;
   }
+  return episodes;
 }
 
 async function fetchAutomaticEpisodes(dayDates: Partial<ScheduleDayMap>): Promise<ScheduleShow[]> {
@@ -359,14 +338,7 @@ async function fetchAutomaticEpisodes(dayDates: Partial<ScheduleDayMap>): Promis
   }
 
   try {
-    console.log('[Schedule] Fetching automatic episodes for dates:', targetDates);
-
-    // Fetch episodes for all dates in parallel (each call is cached)
-    const episodeArrays = await Promise.all(targetDates.map(date => fetchEpisodesByDate(date)));
-
-    const allEpisodes = episodeArrays.flat();
-
-    console.log(`[Schedule] Found ${allEpisodes.length} automatic episodes total`);
+    const allEpisodes = await fetchEpisodesForWeek(targetDates);
 
     if (allEpisodes.length === 0) {
       return [];
@@ -404,7 +376,7 @@ async function fetchAutomaticEpisodes(dayDates: Partial<ScheduleDayMap>): Promis
       error: errorMessage,
       targetDates,
     });
-    return [];
+    throw error;
   }
 }
 
@@ -467,9 +439,15 @@ function extractEpisodeSlugFromUrl(url: string): string | null {
 }
 
 export async function getCurrentScheduleShow(): Promise<CurrentScheduleShow | null> {
-  const { scheduleItems } = await getWeeklySchedule();
-  const now = Date.now();
+  const { scheduleItems, error } = await getWeeklySchedule();
+  if (error) throw new Error(error);
+  return selectCurrentScheduleShow(scheduleItems, Date.now());
+}
 
+export function selectCurrentScheduleShow(
+  scheduleItems: ScheduleShow[],
+  now: number
+): CurrentScheduleShow | null {
   for (const item of scheduleItems) {
     const start = parseLondonDateTime(item.date, item.show_time);
     if (!start) {
@@ -482,6 +460,7 @@ export async function getCurrentScheduleShow(): Promise<CurrentScheduleShow | nu
         name: item.name,
         url: item.url || '/schedule',
         slug: extractEpisodeSlugFromUrl(item.url),
+        endsAt: new Date(endMs).toISOString(),
       };
     }
   }
