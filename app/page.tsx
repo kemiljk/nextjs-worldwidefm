@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { Metadata } from 'next';
-import { cacheLife, cacheTag } from 'next/cache';
+import { connection } from 'next/server';
 import {
   getCosmicHomepageData,
   getVideos,
@@ -177,11 +177,9 @@ function renderPageOrderItem(item: PageOrderItem, ctx: HomepageRenderContext): R
 }
 
 export default async function Home() {
-  'use cache';
-  cacheLife('latest');
-  cacheTag('homepage', 'hero', 'episodes', 'content-relationships');
+  await connection();
 
-  // Public data is shared across requests; this rendered page refreshes after five minutes.
+  // Public data remains shared; each response renders its own streaming boundaries.
   // Content updates via revalidation or manual trigger at /api/revalidate
 
   // Parallel fetch all initial data in a single Promise.all

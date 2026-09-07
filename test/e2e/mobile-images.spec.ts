@@ -30,7 +30,7 @@ test('mobile hero requests a suitably sized image and off-screen cards load on a
   expect(source.searchParams.get('h')).toBe('800');
   expect(imageRequests.filter(url => new URL(url).pathname === source.pathname)).toHaveLength(1);
 
-  const distant = page.locator('main img[src^="data:image/gif"]').first();
+  const distant = page.locator('main img[data-deferred-image="true"]').first();
   await expect(distant).toBeAttached();
   const element = await distant.elementHandle();
   const alt = await element!.getAttribute('alt');

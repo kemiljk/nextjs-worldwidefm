@@ -1,0 +1,150 @@
+[
+  {
+    "engine": "webkit",
+    "mobile": true,
+    "section": "LATEST SHOWS",
+    "checked": 20,
+    "failures": []
+  },
+  {
+    "engine": "webkit",
+    "mobile": true,
+    "section": "FROM THE ARCHIVE",
+    "checked": 3,
+    "failures": []
+  },
+  {
+    "engine": "webkit",
+    "mobile": true,
+    "section": "LISTEN BY GENRE",
+    "checked": 4,
+    "failures": []
+  },
+  {
+    "engine": "webkit",
+    "mobile": true,
+    "section": "HOSTS & SERIES",
+    "checked": 18,
+    "failures": [
+      {
+        "alt": "Parijita",
+        "src": "http://127.0.0.1:3102/image-placeholder.png"
+      },
+      {
+        "alt": "Gayance",
+        "src": "http://127.0.0.1:3102/image-placeholder.png"
+      }
+    ]
+  },
+  {
+    "engine": "webkit",
+    "mobile": false,
+    "section": "LATEST SHOWS",
+    "checked": 20,
+    "failures": []
+  },
+  {
+    "engine": "webkit",
+    "mobile": false,
+    "section": "FROM THE ARCHIVE",
+    "checked": 5,
+    "failures": []
+  },
+  {
+    "engine": "webkit",
+    "mobile": false,
+    "section": "LISTEN BY GENRE",
+    "checked": 10,
+    "failures": []
+  },
+  {
+    "engine": "webkit",
+    "mobile": false,
+    "section": "HOSTS & SERIES",
+    "checked": 18,
+    "failures": [
+      {
+        "alt": "Parijita",
+        "src": "http://127.0.0.1:3102/image-placeholder.png"
+      },
+      {
+        "alt": "Gayance",
+        "src": "http://127.0.0.1:3102/image-placeholder.png"
+      }
+    ]
+  },
+  {
+    "engine": "chromium",
+    "mobile": true,
+    "section": "LATEST SHOWS",
+    "checked": 20,
+    "failures": []
+  },
+  {
+    "engine": "chromium",
+    "mobile": true,
+    "section": "FROM THE ARCHIVE",
+    "checked": 3,
+    "failures": []
+  },
+  {
+    "engine": "chromium",
+    "mobile": true,
+    "section": "LISTEN BY GENRE",
+    "checked": 4,
+    "failures": []
+  },
+  {
+    "engine": "chromium",
+    "mobile": true,
+    "section": "HOSTS & SERIES",
+    "checked": 18,
+    "failures": [
+      {
+        "alt": "Parijita",
+        "src": "http://127.0.0.1:3102/image-placeholder.png"
+      },
+      {
+        "alt": "Gayance",
+        "src": "http://127.0.0.1:3102/image-placeholder.png"
+      }
+    ]
+  },
+  {
+    "engine": "chromium",
+    "mobile": false,
+    "section": "LATEST SHOWS",
+    "checked": 20,
+    "failures": []
+  },
+  {
+    "engine": "chromium",
+    "mobile": false,
+    "section": "FROM THE ARCHIVE",
+    "checked": 5,
+    "failures": []
+  },
+  {
+    "engine": "chromium",
+    "mobile": false,
+    "section": "LISTEN BY GENRE",
+    "checked": 10,
+    "failures": []
+  },
+  {
+    "engine": "chromium",
+    "mobile": false,
+    "section": "HOSTS & SERIES",
+    "checked": 18,
+    "failures": [
+      {
+        "alt": "Parijita",
+        "src": "http://127.0.0.1:3102/image-placeholder.png"
+      },
+      {
+        "alt": "Gayance",
+        "src": "http://127.0.0.1:3102/image-placeholder.png"
+      }
+    ]
+  }
+]

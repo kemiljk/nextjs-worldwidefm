@@ -1,4 +1,3 @@
-import { cacheLife, cacheTag } from 'next/cache';
 import { connection } from 'next/server';
 
 import { getPublicObject } from '@/lib/cosmic-public';
@@ -13,26 +12,20 @@ const getIcon = (iconName: string) => {
 
 type SocialLink = { icon: string; link: string };
 
-async function CachedFooter() {
-  'use cache';
-  cacheLife('hours');
-  cacheTag('navigation', 'content-relationships');
-  const response = await getPublicObject(
-    { type: 'social-links', slug: 'social-links' },
-    { props: 'slug,title,metadata,type', depth: 1 }
-  );
-  return <FooterContent socialLinks={response.object?.metadata?.social_link || []} />;
-}
-
 export default async function Footer() {
   await connection();
+  let socialLinks: SocialLink[] = [];
   try {
-    return await CachedFooter();
+    // The transport caches data; render this boundary separately for each response.
+    const response = await getPublicObject(
+      { type: 'social-links', slug: 'social-links' },
+      { props: 'slug,title,metadata,type', depth: 1 }
+    );
+    socialLinks = response.object?.metadata?.social_link || [];
   } catch (error) {
-    // Keep navigation usable on a cold CMS failure without caching an empty refresh.
     console.error('Footer social links unavailable:', error);
-    return <FooterContent socialLinks={[]} />;
   }
+  return <FooterContent socialLinks={socialLinks} />;
 }
 
 function FooterContent({ socialLinks }: { socialLinks: SocialLink[] }) {

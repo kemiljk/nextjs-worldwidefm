@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, type ImgHTMLAttributes } from 'react';
 
-const placeholder = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+export const DEFERRED_IMAGE_PLACEHOLDER =
+  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/%3E';
 
 /** Reserve the image box, but let visible artwork finish before distant cards download. */
 export function NearViewportImage(props: ImgHTMLAttributes<HTMLImageElement>) {
@@ -34,9 +35,11 @@ export function NearViewportImage(props: ImgHTMLAttributes<HTMLImageElement>) {
       <img
         {...props}
         ref={ref}
-        src={near ? props.src : placeholder}
+        src={near ? props.src : DEFERRED_IMAGE_PLACEHOLDER}
         srcSet={near ? props.srcSet : undefined}
+        data-deferred-image={near ? undefined : 'true'}
         onLoad={near ? props.onLoad : undefined}
+        onError={near ? props.onError : undefined}
       />
       <noscript>
         <img {...props} />
