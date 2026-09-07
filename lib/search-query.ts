@@ -10,6 +10,7 @@
 
 export const SEARCH_MIN_TOKEN_LENGTH = 2;
 export const SEARCH_PAGE_SIZE = 20;
+export const SEARCH_INITIAL_SIZE = 5;
 
 export interface CosmicRegexCondition {
   $regex: string;

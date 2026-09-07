@@ -22,20 +22,13 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  getAllPosts,
-  getVideos,
-  getTakeovers,
-  getRegularHosts,
-  searchEpisodes,
-  getShowsFilters,
-} from '@/lib/actions';
+import { getShowsFilters } from '@/lib/actions';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useInView } from 'react-intersection-observer';
 import { Combobox } from '@/components/ui/combobox';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SEARCH_PAGE_SIZE } from '@/lib/search-query';
+import { SEARCH_INITIAL_SIZE, SEARCH_PAGE_SIZE } from '@/lib/search-query';
 import styles from './search-dialog.module.css';
 
 interface SearchDialogProps {
@@ -51,13 +44,37 @@ const typeLabels: Record<string, { label: string; icon: React.ElementType; color
   'hosts-series': { label: 'Hosts & Series', icon: Users, color: 'text-foreground' },
 };
 
+async function fetchSearchPage(
+  key: string,
+  offset: number,
+  limit: number,
+  signal: AbortSignal,
+  after?: string | null
+) {
+  const { type, q, genre, location, host } = JSON.parse(key);
+  const params = new URLSearchParams({ type, q, offset: String(offset), limit: String(limit) });
+  if (after) params.set('after', after);
+  for (const [name, values] of Object.entries({ genre, location, host })) {
+    for (const value of values as string[]) params.append(name, value);
+  }
+  const response = await fetch(`/api/search?${params}`, { signal });
+  if (!response.ok) throw new Error('Search is temporarily unavailable. Please try again.');
+  return response.json() as Promise<{
+    results: any[];
+    hasNext: boolean;
+    nextCursor: string | null;
+  }>;
+}
+
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 300); // Reduced from 500ms for snappier feel
+  const debouncedSearchTerm = useDebounce(searchTerm, 150);
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [page, setPage] = useState(1);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasNext, setHasNext] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [availableTypes, setAvailableTypes] = useState<string[]>([
@@ -86,12 +103,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       setSelectedHosts([]);
       setActiveFilters([]);
       setResults([]);
-      setPage(1);
       setHasNext(true);
       setShowFilters(false);
     } else {
       // Ensure a clean fetch when reopening
-      setPage(1);
       setHasNext(true);
     }
     onOpenChange(isOpen);
@@ -108,7 +123,13 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const desktopSearchInputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const requestIdRef = useRef<number>(0);
-  const resultsCacheRef = useRef<Map<string, { results: any[]; hasNext: boolean }>>(new Map());
+  const resultsCacheRef = useRef<
+    Map<string, { results: any[]; hasNext: boolean; nextCursor: string | null; cachedAt: number }>
+  >(new Map());
+  const controllerRef = useRef<AbortController | null>(null);
+  const loadingMoreRef = useRef(false);
+  const initialPendingRef = useRef(false);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const PAGE_SIZE = SEARCH_PAGE_SIZE;
 
   // iOS keeps the layout viewport tall when the keyboard opens. Fit the dialog
@@ -156,316 +177,123 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   // Determine selected content type
   const selectedType = activeFilters.find(f => Object.keys(typeLabels).includes(f)) || 'episodes';
 
-  // Fetch results for the selected type, filters, and search
+  const requestKey = JSON.stringify({
+    type: selectedType,
+    q: debouncedSearchTerm.trim(),
+    genre: selectedGenres,
+    location: selectedLocations,
+    host: selectedHosts,
+  });
+
+  // Each query owns one controller, including all of its subsequent pages.
+  // GET requests run independently of the server-action queue and can be cancelled.
   useEffect(() => {
     if (!open) return;
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    const requestId = ++requestIdRef.current;
+    loadingMoreRef.current = false;
+    initialPendingRef.current = true;
+    setIsLoadingMore(false);
+    setSearchError(null);
+    const query = JSON.parse(requestKey);
+    const cached = resultsCacheRef.current.get(requestKey);
+    const hasFilters = query.genre.length || query.location.length || query.host.length;
 
-    let isMounted = true;
-    requestIdRef.current += 1;
-    const currentRequestId = requestIdRef.current;
-
-    const cacheKey = JSON.stringify({
-      selectedType,
-      searchTerm: debouncedSearchTerm.trim(),
-      selectedGenres,
-      selectedLocations,
-      selectedHosts,
-    });
-    const cached = resultsCacheRef.current.get(cacheKey);
-
-    setPage(1);
-    if (cached) {
-      setResults(cached.results);
-      setHasNext(cached.hasNext);
-      setIsLoading(false);
-    } else {
-      setIsLoading(true);
-      setResults([]);
-      setHasNext(true);
-    }
-
-    async function fetchResults() {
-      // If search term is cleared (empty) and no filters, fetch default content immediately
-      const hasSearchTerm = debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2;
-      const hasFilters =
-        selectedGenres.length > 0 || selectedLocations.length > 0 || selectedHosts.length > 0;
-
-      // If search term is too short (1 char) and no filters, wait for more input
-      if (
-        debouncedSearchTerm &&
-        debouncedSearchTerm.trim().length > 0 &&
-        debouncedSearchTerm.trim().length < 2 &&
-        !hasFilters
-      ) {
-        if (isMounted && currentRequestId === requestIdRef.current) {
-          setResults([]);
-          setIsLoading(false);
-        }
+    async function search() {
+      if (query.q.length === 1 && !hasFilters) {
+        initialPendingRef.current = false;
+        setResults([]);
+        setHasNext(false);
+        setIsLoading(false);
         return;
       }
-
+      if (cached && Date.now() - cached.cachedAt < 60_000) {
+        initialPendingRef.current = false;
+        setLoadedKey(requestKey);
+        setResults(cached.results);
+        setHasNext(cached.hasNext);
+        setNextCursor(cached.nextCursor);
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      setResults([]);
+      setHasNext(false);
       try {
-        let res: any;
-        let allResults: any[] = [];
-        let apiHasNext = false;
-
-        if (selectedType === 'episodes') {
-          const searchParams: any = {
-            limit: PAGE_SIZE,
-            offset: 0,
-          };
-
-          if (hasSearchTerm) {
-            searchParams.searchTerm = debouncedSearchTerm.trim();
-          }
-
-          if (selectedGenres.length > 0) {
-            searchParams.genre = selectedGenres;
-          }
-
-          if (selectedLocations.length > 0) {
-            searchParams.location = selectedLocations;
-          }
-
-          if (selectedHosts.length > 0) {
-            searchParams.host = selectedHosts;
-          }
-
-          res = await searchEpisodes(searchParams);
-          allResults = res?.shows || [];
-          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
-        } else if (selectedType === 'posts') {
-          const searchParams: any = { limit: PAGE_SIZE, offset: 0 };
-          if (hasSearchTerm) {
-            searchParams.searchTerm = debouncedSearchTerm.trim();
-          }
-          res = await getAllPosts(searchParams);
-          allResults = res?.posts || [];
-          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
-        } else if (selectedType === 'videos') {
-          const searchParams: any = { limit: PAGE_SIZE, offset: 0 };
-          if (hasSearchTerm) {
-            searchParams.searchTerm = debouncedSearchTerm.trim();
-          }
-          res = await getVideos(searchParams);
-          allResults = res?.videos || [];
-          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
-        } else if (selectedType === 'takeovers') {
-          const searchParams: any = {
-            limit: PAGE_SIZE,
-            offset: 0,
-          };
-          if (hasSearchTerm) {
-            searchParams.searchTerm = debouncedSearchTerm.trim();
-          }
-          if (selectedGenres.length > 0) {
-            searchParams.genre = selectedGenres;
-          }
-          if (selectedLocations.length > 0) {
-            searchParams.location = selectedLocations;
-          }
-          if (selectedHosts.length > 0) {
-            searchParams.host = selectedHosts;
-          }
-          res = await getTakeovers(searchParams);
-          allResults = res?.shows || [];
-          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
-        } else if (selectedType === 'hosts-series') {
-          const searchParams: any = {
-            limit: PAGE_SIZE,
-            offset: 0,
-          };
-          if (hasSearchTerm) {
-            searchParams.searchTerm = debouncedSearchTerm.trim();
-          }
-          if (selectedGenres.length > 0) {
-            searchParams.genre = selectedGenres;
-          }
-          if (selectedLocations.length > 0) {
-            searchParams.location = selectedLocations;
-          }
-          res = await getRegularHosts(searchParams);
-          allResults = res?.shows || [];
-          apiHasNext = res?.hasNext ?? allResults.length === PAGE_SIZE;
+        const page = await fetchSearchPage(requestKey, 0, SEARCH_INITIAL_SIZE, controller.signal);
+        if (controller.signal.aborted || requestId !== requestIdRef.current) return;
+        if (resultsCacheRef.current.size >= 30) {
+          const oldest = resultsCacheRef.current.keys().next().value;
+          if (oldest !== undefined) resultsCacheRef.current.delete(oldest);
         }
-
-        resultsCacheRef.current.set(cacheKey, { results: allResults, hasNext: apiHasNext });
-
-        // Only update results if this is still the latest request
-        if (isMounted && currentRequestId === requestIdRef.current) {
-          setResults(allResults);
-          setHasNext(apiHasNext);
-        }
+        resultsCacheRef.current.set(requestKey, { ...page, cachedAt: Date.now() });
+        setLoadedKey(requestKey);
+        setResults(page.results);
+        setHasNext(page.hasNext);
+        setNextCursor(page.nextCursor);
       } catch (error) {
-        // Only log and update if this is still the latest request
-        if (isMounted && currentRequestId === requestIdRef.current) {
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('Error fetching search results:', error);
-          }
-
-          // If search was cleared and there's an error, still reset to empty results
-          // This prevents getting stuck in loading state
-          setResults([]);
-          setHasNext(false);
-          setIsLoading(false);
+        if (!controller.signal.aborted && requestId === requestIdRef.current) {
+          setSearchError(
+            error instanceof Error ? error.message : 'Search is temporarily unavailable.'
+          );
         }
       } finally {
-        // Always ensure loading state is reset, even if there was an error
-        if (isMounted && currentRequestId === requestIdRef.current) {
+        if (!controller.signal.aborted && requestId === requestIdRef.current) {
+          initialPendingRef.current = false;
           setIsLoading(false);
         }
       }
     }
+    void search();
+    return () => controller.abort();
+  }, [open, requestKey, retryVersion]);
 
-    // Always fetch results - either default episodes or filtered/search results
-    fetchResults();
-
-    return () => {
-      isMounted = false;
-      requestIdRef.current += 1;
-    };
+  useEffect(() => {
+    const controller = controllerRef.current;
+    if (
+      !open ||
+      !inView ||
+      !hasNext ||
+      isLoading ||
+      loadingMoreRef.current ||
+      initialPendingRef.current ||
+      loadedKey !== requestKey ||
+      !controller ||
+      controller.signal.aborted
+    )
+      return;
+    const requestId = requestIdRef.current;
+    loadingMoreRef.current = true;
+    setIsLoadingMore(true);
+    // Continue after the last result so equal broadcast dates cannot shift page boundaries.
+    void fetchSearchPage(requestKey, results.length, PAGE_SIZE, controller.signal, nextCursor)
+      .then(page => {
+        if (controller.signal.aborted || requestId !== requestIdRef.current) return;
+        setResults(previous => [...previous, ...page.results]);
+        setHasNext(page.hasNext);
+        setNextCursor(page.nextCursor);
+      })
+      .catch(error => {
+        if (controller.signal.aborted || requestId !== requestIdRef.current) return;
+        setSearchError(error instanceof Error ? error.message : 'Could not load more results.');
+        setHasNext(false);
+      })
+      .finally(() => {
+        if (controller.signal.aborted || requestId !== requestIdRef.current) return;
+        loadingMoreRef.current = false;
+        setIsLoadingMore(false);
+      });
   }, [
     open,
-    selectedType,
-    selectedGenres.join('|'),
-    selectedLocations.join('|'),
-    selectedHosts.join('|'),
-    debouncedSearchTerm,
-  ]);
-
-  // Debug: Log when debouncedSearchTerm changes
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && open) {
-      console.log('[SearchDialog] debouncedSearchTerm changed:', debouncedSearchTerm);
-    }
-  }, [debouncedSearchTerm, open]);
-
-  // Infinite scroll: load more when sentinel is in view
-  useEffect(() => {
-    if (inView && hasNext && !isLoadingMore) {
-      // Add a small delay to prevent rapid API calls
-      const timeoutId = setTimeout(() => {
-        setIsLoadingMore(true);
-        const nextOffset = page * PAGE_SIZE;
-        const fetchRequestId = requestIdRef.current;
-
-        async function fetchMore() {
-          try {
-            let res: any;
-            if (selectedType === 'episodes') {
-              const searchParams: any = {
-                limit: PAGE_SIZE,
-                offset: nextOffset,
-              };
-              if (debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2) {
-                searchParams.searchTerm = debouncedSearchTerm.trim();
-              }
-              if (selectedGenres.length > 0) {
-                searchParams.genre = selectedGenres;
-              }
-              if (selectedLocations.length > 0) {
-                searchParams.location = selectedLocations;
-              }
-              if (selectedHosts.length > 0) {
-                searchParams.host = selectedHosts;
-              }
-              res = await searchEpisodes(searchParams);
-              if (fetchRequestId !== requestIdRef.current) return;
-              setResults(prev => [...prev, ...(res?.shows || [])]);
-              setHasNext(res?.hasNext || false);
-            } else if (selectedType === 'posts') {
-              const searchParams = debouncedSearchTerm
-                ? { searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset }
-                : { limit: PAGE_SIZE, offset: nextOffset };
-              res = await getAllPosts(searchParams);
-              if (fetchRequestId !== requestIdRef.current) return;
-              setResults(prev => [...prev, ...(res?.posts || [])]);
-              setHasNext(res?.hasNext || false);
-            } else if (selectedType === 'videos') {
-              const searchParams = debouncedSearchTerm
-                ? { searchTerm: debouncedSearchTerm, limit: PAGE_SIZE, offset: nextOffset }
-                : { limit: PAGE_SIZE, offset: nextOffset };
-              res = await getVideos(searchParams);
-              if (fetchRequestId !== requestIdRef.current) return;
-              setResults(prev => [...prev, ...(res?.videos || [])]);
-              setHasNext(res?.hasNext || false);
-            } else if (selectedType === 'takeovers') {
-              const searchParams: any = {
-                limit: PAGE_SIZE,
-                offset: nextOffset,
-              };
-              if (debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2) {
-                searchParams.searchTerm = debouncedSearchTerm.trim();
-              }
-              if (selectedGenres.length > 0) {
-                searchParams.genre = selectedGenres;
-              }
-              if (selectedLocations.length > 0) {
-                searchParams.location = selectedLocations;
-              }
-              if (selectedHosts.length > 0) {
-                searchParams.host = selectedHosts;
-              }
-              res = await getTakeovers(searchParams);
-              if (fetchRequestId !== requestIdRef.current) return;
-              setResults(prev => [...prev, ...(res?.shows || [])]);
-              setHasNext(res?.hasNext || false);
-            } else if (selectedType === 'hosts-series') {
-              const searchParams: any = {
-                limit: PAGE_SIZE,
-                offset: nextOffset,
-              };
-              if (debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2) {
-                searchParams.searchTerm = debouncedSearchTerm.trim();
-              }
-              if (selectedGenres.length > 0) {
-                searchParams.genre = selectedGenres;
-              }
-              if (selectedLocations.length > 0) {
-                searchParams.location = selectedLocations;
-              }
-              res = await getRegularHosts(searchParams);
-              if (fetchRequestId !== requestIdRef.current) return;
-              const hosts = res?.shows || [];
-              setResults(prev => [...prev, ...hosts]);
-              setHasNext(res?.hasNext || false);
-            }
-
-            if (fetchRequestId !== requestIdRef.current) {
-              return;
-            }
-
-            setPage(prev => prev + 1);
-          } catch (error) {
-            if (fetchRequestId !== requestIdRef.current) {
-              return;
-            }
-            console.warn('Error loading more results:', error);
-            setHasNext(false);
-          } finally {
-            if (fetchRequestId === requestIdRef.current) {
-              setIsLoadingMore(false);
-            }
-          }
-        }
-
-        fetchMore();
-      }, 1000);
-
-      return () => {
-        clearTimeout(timeoutId);
-      };
-    }
-  }, [
     inView,
     hasNext,
-    isLoadingMore,
-    page,
-    selectedType,
-    selectedGenres.join('|'),
-    selectedLocations.join('|'),
-    selectedHosts.join('|'),
-    debouncedSearchTerm,
+    isLoading,
+    requestKey,
+    loadedKey,
+    results.length,
+    nextCursor,
+    PAGE_SIZE,
   ]);
 
   // Filter toggle logic (content type only)
@@ -486,7 +314,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     setSelectedLocations([]);
     setSelectedHosts([]);
     setSearchTerm('');
-    setPage(1);
     setResults([]);
     setHasNext(true);
   };
@@ -802,7 +629,21 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 className='flex-1 w-full hide-scrollbar min-h-0 h-full'
                 ref={scrollAreaRef}
               >
-                <div className='p-4 sm:p-8 space-y-4 sm:space-y-6 min-h-0'>
+                <div className='p-4 sm:p-8 space-y-4 sm:space-y-6 min-h-0' aria-busy={isLoading}>
+                  {searchError && (
+                    <div role='alert' className='space-y-3 text-sm'>
+                      <p>{searchError}</p>
+                      <Button
+                        variant='outline'
+                        onClick={() => {
+                          resultsCacheRef.current.delete(requestKey);
+                          setRetryVersion(value => value + 1);
+                        }}
+                      >
+                        Try again
+                      </Button>
+                    </div>
+                  )}
                   {results.length > 0 ? (
                     <>
                       {results.map((result, idx) => {
@@ -983,7 +824,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                       })}
                       {/* Sentinel for Intersection Observer infinite scroll */}
                       <div
-                        ref={observerTarget}
+                        ref={hasNext ? observerTarget : undefined}
                         className='h-8 w-full flex items-center justify-center py-4'
                       >
                         {isLoadingMore && <Loader className='h-4 w-4 animate-spin' />}
@@ -1005,7 +846,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         </div>
                       ))}
                     </div>
-                  ) : (
+                  ) : searchError ? null : (
                     <div className='flex flex-col items-center justify-center uppercase py-12 text-center'>
                       <AlertCircle className='h-6 w-6 mb-4 text-muted-foreground' />
                       <p className='text-muted-foreground font-mono text-m8'>No results found</p>
