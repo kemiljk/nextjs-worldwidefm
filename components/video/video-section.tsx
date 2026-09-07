@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Play } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { VideoObject } from '@/lib/cosmic-config';
@@ -110,9 +110,8 @@ export default function VideoSection({
                     <h3 className='text-[25px] font-bold line-clamp-1 group-hover:text-almostblack'>
                       {firstVideo.title}
                     </h3>
-                    <div className='border-l border-white text-[25px] px-3 pt-2 group-hover:border-almostblack group-hover:text-almostblack'>
-                      {' '}
-                      ▶{' '}
+                    <div className='border-l border-white shrink-0 self-stretch flex items-center px-3 py-2 group-hover:border-almostblack group-hover:text-almostblack'>
+                      <Play className='h-6 w-6' aria-hidden='true' />
                     </div>
                   </div>
                 </CardContent>
@@ -157,9 +156,8 @@ export default function VideoSection({
                       <h3 className='text-[25px] font-bold line-clamp-1 group-hover:text-almostblack'>
                         {video.title}
                       </h3>
-                      <div className='border-l border-white text-[25px] px-3 pt-2 group-hover:border-almostblack group-hover:text-almostblack'>
-                        {' '}
-                        ▶{' '}
+                      <div className='border-l border-white shrink-0 self-stretch flex items-center px-3 py-2 group-hover:border-almostblack group-hover:text-almostblack'>
+                        <Play className='h-6 w-6' aria-hidden='true' />
                       </div>
                     </div>
                   </CardContent>
