@@ -23,7 +23,7 @@ describe('buildMixcloudDescription', () => {
     expect(description).not.toContain('Full show');
   });
 
-  it('keeps the link above the tracklist so it survives truncation', () => {
+  it('includes the tracklist link without appending the episode tracklist', () => {
     const description = buildMixcloudDescription(
       makeEpisode({
         body_text: '<p>Show copy</p>',
@@ -32,10 +32,7 @@ describe('buildMixcloudDescription', () => {
       SHOW_PAGE_URL
     );
 
-    expect(description).toBe(
-      `Show copy\n\nTracklist: ${SHOW_PAGE_URL}\n\n1. Artist - Track\n2. Other Artist - Other Track`
-    );
-    expect(description.indexOf(SHOW_PAGE_URL)).toBeLessThan(description.indexOf('1. Artist'));
+    expect(description).toBe(`Show copy\n\nTracklist: ${SHOW_PAGE_URL}`);
   });
 
   it('uses the label once, not once per section', () => {
@@ -48,7 +45,10 @@ describe('buildMixcloudDescription', () => {
   });
 
   it('omits the link line when there is no show page URL', () => {
-    const description = buildMixcloudDescription(makeEpisode({ description: 'Copy' }), '');
+    const description = buildMixcloudDescription(
+      makeEpisode({ description: 'Copy', tracklist: '1. Artist - Track' }),
+      ''
+    );
 
     expect(description).toBe('Copy');
   });

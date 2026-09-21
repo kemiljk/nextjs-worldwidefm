@@ -28,21 +28,16 @@ export function htmlToPlainText(value: string): string {
 }
 
 /**
- * Mixcloud descriptions are capped at 1,000 characters, so the show page link goes
- * above the tracklist — a long tracklist would otherwise push it past the cap.
+ * Keep the tracklist on the show page and include only its link alongside the show copy.
  */
 export function buildMixcloudDescription(episode: EpisodeObject, showPageUrl: string): string {
   const showCopy = htmlToPlainText(
     episode.metadata?.body_text || episode.metadata?.description || ''
   );
-  const tracklist = htmlToPlainText(episode.metadata?.tracklist || '');
 
   const sections = [showCopy];
   if (showPageUrl) {
     sections.push(`Tracklist: ${showPageUrl}`);
-  }
-  if (tracklist) {
-    sections.push(tracklist);
   }
 
   return sections.filter(Boolean).join('\n\n');
