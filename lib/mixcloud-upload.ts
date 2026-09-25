@@ -1,8 +1,15 @@
 import axios from 'axios';
 import FormData from 'form-data';
 import { parseBroadcastDateTime, parseDurationToMinutes } from '@/lib/date-utils';
-import { fetchWithRetry } from '@/lib/upload-fetch';
 import {
+  uploadAttemptLogger,
+  fetchWithBody,
+  fetchWithBodyRetry,
+  remainingUploadTime,
+  withUploadTimeout,
+} from '@/lib/upload-fetch';
+import {
+  UPLOAD_PROVIDER_TIMEOUT_MS,
   UPLOAD_BLOB_FETCH_TIMEOUT_MS,
   UPLOAD_EXTERNAL_TIMEOUT_MS,
   getMixcloudApiBaseUrl,
@@ -25,6 +32,7 @@ export type MixcloudUploadInput = {
   apiBaseUrl?: string;
   blobFetchTimeoutMs?: number;
   externalUploadTimeoutMs?: number;
+  deadline?: number;
 };
 
 export type MixcloudUploadSuccess = {
@@ -134,6 +142,20 @@ export function isMixcloudDescriptionLengthError(message: string, details?: unkn
 export async function uploadMediaToMixcloud(
   input: MixcloudUploadInput
 ): Promise<MixcloudUploadResult> {
+  const deadline = input.deadline ?? performance.now() + UPLOAD_PROVIDER_TIMEOUT_MS;
+  try {
+    return await withUploadTimeout(
+      () => performMixcloudUpload({ ...input, deadline }),
+      remainingUploadTime(deadline)
+    );
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Upload failed' };
+  }
+}
+
+async function performMixcloudUpload(
+  input: MixcloudUploadInput & { deadline: number }
+): Promise<MixcloudUploadResult> {
   const {
     audioFile,
     mediaUrl,
@@ -156,11 +178,13 @@ export async function uploadMediaToMixcloud(
     return { success: false, error: 'Missing audio file or title' };
   }
 
+  const { deadline } = input;
   const preparedAudio = await prepareMixcloudAudio({
     audioFile,
     mediaUrl,
     requestedFileName,
     blobFetchTimeoutMs,
+    deadline,
   });
   if ('success' in preparedAudio && preparedAudio.success === false) {
     return preparedAudio;
@@ -170,6 +194,8 @@ export async function uploadMediaToMixcloud(
   const publishDate = buildMixcloudPublishDate(broadcastDate, broadcastTime, duration);
   const mixcloudDescription = truncateMixcloudDescription(description?.trim() || '');
 
+  const logAttempt = uploadAttemptLogger('Mixcloud', 'upload', audio.buffer.length);
+  logAttempt(1);
   let result = await submitMixcloudUpload({
     preparedAudio: audio,
     title,
@@ -181,9 +207,11 @@ export async function uploadMediaToMixcloud(
     accessToken,
     apiBaseUrl,
     externalUploadTimeoutMs,
+    deadline,
   });
 
   if (!result.success && publishDate && isMixcloudSchedulingError(result.error, result.details)) {
+    logAttempt(2);
     const unscheduledResult = await submitMixcloudUpload({
       preparedAudio: audio,
       title,
@@ -195,6 +223,7 @@ export async function uploadMediaToMixcloud(
       accessToken,
       apiBaseUrl,
       externalUploadTimeoutMs,
+      deadline,
     });
 
     if (unscheduledResult.success) {
@@ -214,6 +243,7 @@ export async function uploadMediaToMixcloud(
     isMixcloudDescriptionLengthError(result.error, result.details)
   ) {
     const shortenedDescription = truncateMixcloudDescription(mixcloudDescription, 900);
+    logAttempt(2);
     result = await submitMixcloudUpload({
       preparedAudio: audio,
       title,
@@ -225,6 +255,7 @@ export async function uploadMediaToMixcloud(
       accessToken,
       apiBaseUrl,
       externalUploadTimeoutMs,
+      deadline,
     });
 
     if (result.success) {
@@ -243,33 +274,44 @@ async function prepareMixcloudAudio({
   mediaUrl,
   requestedFileName,
   blobFetchTimeoutMs,
+  deadline,
 }: {
   audioFile?: File | null;
   mediaUrl?: string | null;
   requestedFileName?: string | null;
   blobFetchTimeoutMs: number;
+  deadline: number;
 }): Promise<PreparedMixcloudAudio | MixcloudUploadFailure> {
   if (mediaUrl) {
     try {
-      const mediaRes = await fetchWithRetry(mediaUrl, { timeoutMs: blobFetchTimeoutMs });
-      if (!mediaRes.ok) {
-        return {
-          success: false,
-          error: `Failed to fetch media from URL: ${mediaRes.statusText}`,
-        };
-      }
+      return await fetchWithBodyRetry(
+        mediaUrl,
+        async mediaRes => {
+          if (!mediaRes.ok) {
+            return {
+              success: false,
+              error: `Failed to fetch media from URL: ${mediaRes.statusText}`,
+            };
+          }
 
-      const fileName = requestedFileName?.trim() || mediaUrl.split('/').pop() || 'audio.mp3';
-      const contentType = normalizeAudioMimeType(
-        fileName,
-        mediaRes.headers.get('content-type') || 'audio/mpeg'
+          const fileName = requestedFileName?.trim() || mediaUrl.split('/').pop() || 'audio.mp3';
+          const contentType = normalizeAudioMimeType(
+            fileName,
+            mediaRes.headers.get('content-type') || 'audio/mpeg'
+          );
+
+          return {
+            buffer: Buffer.from(await mediaRes.arrayBuffer()),
+            fileName,
+            contentType,
+          };
+        },
+        {
+          timeoutMs: blobFetchTimeoutMs,
+          deadline,
+          onAttempt: uploadAttemptLogger('Mixcloud', 'download'),
+        }
       );
-
-      return {
-        buffer: Buffer.from(await mediaRes.arrayBuffer()),
-        fileName,
-        contentType,
-      };
     } catch (fetchError) {
       return {
         success: false,
@@ -301,6 +343,7 @@ async function submitMixcloudUpload({
   accessToken,
   apiBaseUrl,
   externalUploadTimeoutMs,
+  deadline,
 }: {
   preparedAudio: PreparedMixcloudAudio;
   title: string;
@@ -312,6 +355,7 @@ async function submitMixcloudUpload({
   accessToken: string;
   apiBaseUrl: string;
   externalUploadTimeoutMs: number;
+  deadline: number;
 }): Promise<MixcloudUploadResult> {
   const { buffer, fileName, contentType } = preparedAudio;
 
@@ -344,15 +388,20 @@ async function submitMixcloudUpload({
 
   if (imageUrl?.trim()) {
     try {
-      const imgRes = await fetch(imageUrl.trim());
-      if (imgRes.ok) {
-        const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-        const ext = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
-        mcForm.append('picture', imgBuffer, {
-          filename: `cover.${ext}`,
-          contentType: imgRes.headers.get('content-type') || 'image/jpeg',
-        });
-      }
+      await fetchWithBody(
+        imageUrl.trim(),
+        async imgRes => {
+          if (imgRes.ok) {
+            const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+            const ext = imageUrl.split('.').pop()?.split('?')[0] || 'jpg';
+            mcForm.append('picture', imgBuffer, {
+              filename: `cover.${ext}`,
+              contentType: imgRes.headers.get('content-type') || 'image/jpeg',
+            });
+          }
+        },
+        { deadline, timeoutMs: 15_000 }
+      );
     } catch {
       // Image attachment is optional.
     }
@@ -362,18 +411,23 @@ async function submitMixcloudUpload({
   uploadUrl.searchParams.set('access_token', accessToken);
 
   try {
-    const response = await axios.post<MixcloudUploadResponse | MixcloudErrorResponse | string>(
-      uploadUrl.toString(),
-      mcForm,
-      {
-        headers: {
-          ...mcForm.getHeaders(),
-        },
-        maxBodyLength: Infinity,
-        maxContentLength: Infinity,
-        timeout: externalUploadTimeoutMs,
-        validateStatus: () => true,
-      }
+    const response = await withUploadTimeout(
+      signal =>
+        axios.post<MixcloudUploadResponse | MixcloudErrorResponse | string>(
+          uploadUrl.toString(),
+          mcForm,
+          {
+            headers: {
+              ...mcForm.getHeaders(),
+            },
+            maxBodyLength: Infinity,
+            maxContentLength: Infinity,
+            signal,
+            timeout: remainingUploadTime(deadline, externalUploadTimeoutMs),
+            validateStatus: () => true,
+          }
+        ),
+      remainingUploadTime(deadline, externalUploadTimeoutMs)
     );
 
     const mcStatus = response.status;
@@ -405,7 +459,7 @@ async function submitMixcloudUpload({
     const resolvedUrl =
       url ||
       (key ? buildMixcloudUrlFromKey(key) : undefined) ||
-      (await lookupMixcloudCloudcastUrl(accessToken, title, apiBaseUrl)) ||
+      (await lookupMixcloudCloudcastUrl(accessToken, title, apiBaseUrl, deadline)) ||
       buildFallbackMixcloudUrl(title);
 
     if (!resolvedUrl) {
@@ -506,31 +560,38 @@ function buildFallbackMixcloudUrl(title: string): string | undefined {
 async function lookupMixcloudCloudcastUrl(
   accessToken: string,
   title: string,
-  apiBaseUrl: string
+  apiBaseUrl: string,
+  deadline: number
 ): Promise<string | undefined> {
   try {
     const listUrl = new URL(`${apiBaseUrl}/me/cloudcasts/`);
     listUrl.searchParams.set('access_token', accessToken);
     listUrl.searchParams.set('limit', '10');
 
-    const response = await fetch(listUrl.toString());
-    if (!response.ok) {
-      return undefined;
-    }
+    return await fetchWithBody(
+      listUrl.toString(),
+      async response => {
+        if (!response.ok) {
+          return undefined;
+        }
 
-    const data = (await response.json()) as { data?: MixcloudCloudcast[] };
-    const cloudcasts = data.data ?? [];
-    const normalizedTitle = title.trim().toLowerCase();
+        const data = (await response.json()) as { data?: MixcloudCloudcast[] };
+        const cloudcasts = data.data ?? [];
+        const normalizedTitle = title.trim().toLowerCase();
 
-    const exactMatch = cloudcasts.find(
-      cloudcast => cloudcast.name?.trim().toLowerCase() === normalizedTitle
+        const exactMatch = cloudcasts.find(
+          cloudcast => cloudcast.name?.trim().toLowerCase() === normalizedTitle
+        );
+        if (exactMatch) {
+          return cloudcastToUrl(exactMatch);
+        }
+
+        const newest = cloudcasts[0];
+        return newest ? cloudcastToUrl(newest) : undefined;
+      },
+      // Leave time to resolve the existing fallback and return an accepted upload.
+      { deadline: deadline - 1_000, timeoutMs: 15_000 }
     );
-    if (exactMatch) {
-      return cloudcastToUrl(exactMatch);
-    }
-
-    const newest = cloudcasts[0];
-    return newest ? cloudcastToUrl(newest) : undefined;
   } catch {
     return undefined;
   }

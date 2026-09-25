@@ -17,10 +17,13 @@ import {
 } from '@/components/ui/command';
 import { Check, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { upload } from '@vercel/blob/client';
 import { buildMediaMetadataTitle, buildTemporaryMediaBlobPath } from '@/lib/upload-filename-utils';
 import { getMaxMediaUploadMb } from '@/lib/upload-config';
-import { runUploadMasterFlow, buildUploadResultSummary } from '@/lib/upload-master-flow';
+import {
+  runUploadMasterFlow,
+  buildUploadResultSummary,
+  type UploadDestinationResult,
+} from '@/lib/upload-master-flow';
 import {
   buildMixcloudDescription,
   buildMixcloudTags,
@@ -47,6 +50,7 @@ export function UploadMasterForm() {
   const [isLoadingEpisodes, setIsLoadingEpisodes] = useState(false);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [phase, setPhase] = useState<SubmissionPhase>('idle');
+  const [destinationResults, setDestinationResults] = useState<UploadDestinationResult[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hosts, setHosts] = useState<CosmicHost[]>([]);
   const [selectedCoHostIds, setSelectedCoHostIds] = useState<string[]>([]);
@@ -138,6 +142,11 @@ export function UploadMasterForm() {
     setSelectedCoHostIds(prev => prev.filter(id => id !== hostId));
   };
 
+  const resetUploadResults = () => {
+    setDestinationResults([]);
+    setPhase('idle');
+  };
+
   const handleSubmit = async () => {
     if (!selectedEpisode || !mediaFile) {
       toast.error('Please select a show and add mastered audio');
@@ -159,6 +168,7 @@ export function UploadMasterForm() {
       return;
     }
 
+    setDestinationResults([]);
     setIsSubmitting(true);
     setPhase('uploadingBlob');
 
@@ -173,7 +183,9 @@ export function UploadMasterForm() {
       const blobUrl =
         e2eBlobUrl ||
         (
-          await upload(buildTemporaryMediaBlobPath(mediaFile.name), mediaFile, {
+          await (
+            await import('@vercel/blob/client')
+          ).upload(buildTemporaryMediaBlobPath(mediaFile.name), mediaFile, {
             access: 'public',
             handleUploadUrl: '/api/upload-media/token',
             multipart: true,
@@ -205,6 +217,7 @@ export function UploadMasterForm() {
         },
         regularHostIds: combinedHostIds,
         onPhaseChange: setPhase,
+        onDestinationResult: result => setDestinationResults(previous => [...previous, result]),
         clientTimeoutMs: process.env.NEXT_PUBLIC_E2E_UPLOAD_CLIENT_TIMEOUT_MS
           ? Number(process.env.NEXT_PUBLIC_E2E_UPLOAD_CLIENT_TIMEOUT_MS)
           : undefined,
@@ -252,7 +265,10 @@ export function UploadMasterForm() {
           id='broadcast-date'
           type='date'
           value={broadcastDate}
-          onChange={e => setBroadcastDate(e.target.value)}
+          onChange={e => {
+            resetUploadResults();
+            setBroadcastDate(e.target.value);
+          }}
           disabled={isSubmitting}
         />
       </div>
@@ -284,6 +300,7 @@ export function UploadMasterForm() {
                       key={ep.id}
                       value={ep.id}
                       onSelect={() => {
+                        resetUploadResults();
                         setSelectedEpisode(ep);
                         setEpisodeInput(ep.title);
                         setIsEpisodesOpen(false);
@@ -398,7 +415,10 @@ export function UploadMasterForm() {
         <Label>Mastered audio</Label>
         <Dropzone
           accept='audio/mpeg,audio/mp3,audio/wav,audio/m4a,audio/aac,audio/flac,audio/ogg'
-          onFileSelect={setMediaFile}
+          onFileSelect={file => {
+            resetUploadResults();
+            setMediaFile(file);
+          }}
           selectedFile={mediaFile}
           maxSize={MAX_MEDIA_MB * 1024 * 1024}
           placeholder='Drag and drop mastered MP3 here'
@@ -406,7 +426,18 @@ export function UploadMasterForm() {
         />
       </div>
 
-      {selectedEpisode && mediaFile && <UploadProgressPanel phase={phase} />}
+      {selectedEpisode && mediaFile && (
+        <UploadProgressPanel phase={phase} results={destinationResults} />
+      )}
+
+      <div role='status' aria-live='polite' className='space-y-1 text-sm'>
+        {destinationResults.map(result => (
+          <p key={result.destination}>
+            {result.destination}:{' '}
+            {result.success ? 'uploaded' : `failed (${result.error || 'Upload failed'})`}
+          </p>
+        ))}
+      </div>
 
       <div className='flex justify-end'>
         <Button
@@ -431,7 +462,13 @@ export function UploadMasterForm() {
   );
 }
 
-function UploadProgressPanel({ phase }: { phase: SubmissionPhase }) {
+function UploadProgressPanel({
+  phase,
+  results,
+}: {
+  phase: SubmissionPhase;
+  results: UploadDestinationResult[];
+}) {
   const steps: { phase: SubmissionPhase; label: string; description: string }[] = [
     {
       phase: 'uploadingBlob',
@@ -468,7 +505,16 @@ function UploadProgressPanel({ phase }: { phase: SubmissionPhase }) {
       </p>
       <div className='mt-3 space-y-3'>
         {steps.map((step, index) => {
-          const isDone = currentIndex > index || phase === 'success';
+          const destination =
+            step.phase === 'uploadingMixcloud'
+              ? 'Mixcloud'
+              : step.phase === 'uploadingRadioCult'
+                ? 'RadioCult'
+                : undefined;
+          const result = results.find(item => item.destination === destination);
+          const isDone = destination
+            ? result?.success === true
+            : currentIndex > index || phase === 'success';
           const isActive = currentIndex === index;
 
           return (
@@ -483,7 +529,9 @@ function UploadProgressPanel({ phase }: { phase: SubmissionPhase }) {
                       : 'border-muted-foreground/40 text-muted-foreground',
                 ].join(' ')}
               >
-                {isDone ? (
+                {result && !result.success ? (
+                  <X aria-hidden='true' className='size-3.5' />
+                ) : isDone ? (
                   <Check aria-hidden='true' className='size-3.5 stroke-[2.5]' />
                 ) : (
                   <span className='absolute left-1/2 top-1/2 block -translate-x-1/2 -translate-y-1/2 leading-[0]'>

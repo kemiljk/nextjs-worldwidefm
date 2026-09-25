@@ -1,3 +1,9 @@
+import { withUploadTimeout, remainingUploadTime } from '@/lib/upload-fetch';
+import {
+  UPLOAD_PROVIDER_TIMEOUT_MS,
+  UPLOAD_PERSIST_TIMEOUT_MS,
+  UPLOAD_CLEANUP_TIMEOUT_MS,
+} from '@/lib/upload-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { del, isVercelBlobUrl } from '@/lib/blob-client';
 import { uploadMediaToMixcloud } from '@/lib/mixcloud-upload';
@@ -7,12 +13,17 @@ import { saveMixcloudLinkToEpisode } from '@/lib/episode-archive';
 export const maxDuration = 800;
 
 export async function POST(request: NextRequest) {
+  const started = performance.now();
+  const deadline = started + UPLOAD_PROVIDER_TIMEOUT_MS;
   let mediaUrlForCleanup: string | undefined;
   let shouldCleanupMediaUrl = false;
 
   try {
     const accessToken = process.env.MIXCLOUD_ACCESS_TOKEN;
-    const formData = await request.formData();
+    const formData = await withUploadTimeout(
+      () => request.formData(),
+      remainingUploadTime(deadline)
+    );
 
     const audioFile = formData.get('audio') as File | null;
     const mediaUrl = formData.get('mediaUrl') as string | null;
@@ -39,6 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await uploadMediaToMixcloud({
+      deadline,
       audioFile,
       mediaUrl,
       fileName: requestedFileName,
@@ -51,6 +63,13 @@ export async function POST(request: NextRequest) {
       broadcastTime,
       duration,
       accessToken,
+    });
+
+    console.info('[upload] completed', {
+      destination: 'Mixcloud',
+      stage: 'provider',
+      elapsedMs: Math.round(performance.now() - started),
+      success: result.success,
     });
 
     if (!result.success) {
@@ -79,7 +98,10 @@ export async function POST(request: NextRequest) {
 
     if (episodeId) {
       try {
-        await saveMixcloudLinkToEpisode(episodeId, result.url, episodeSlug || undefined);
+        await withUploadTimeout(
+          () => saveMixcloudLinkToEpisode(episodeId, result.url, episodeSlug || undefined),
+          UPLOAD_PERSIST_TIMEOUT_MS
+        );
         episodeUpdated = true;
       } catch (updateError) {
         episodeUpdateError =
@@ -106,7 +128,10 @@ export async function POST(request: NextRequest) {
   } finally {
     if (shouldCleanupMediaUrl && mediaUrlForCleanup && isVercelBlobUrl(mediaUrlForCleanup)) {
       try {
-        await del(mediaUrlForCleanup);
+        await withUploadTimeout(
+          signal => del(mediaUrlForCleanup!, { abortSignal: signal }),
+          UPLOAD_CLEANUP_TIMEOUT_MS
+        );
       } catch (cleanupError) {
         console.error('Failed to delete temporary Mixcloud upload blob:', cleanupError);
       }

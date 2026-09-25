@@ -4,8 +4,14 @@ import {
   inspectMp3Structure,
   readId3v2TagLength,
 } from '@/lib/mp3-utils';
-import { fetchWithRetry } from '@/lib/upload-fetch';
 import {
+  uploadAttemptLogger,
+  fetchWithBodyRetry,
+  withUploadTimeout,
+  remainingUploadTime,
+} from '@/lib/upload-fetch';
+import {
+  UPLOAD_PROVIDER_TIMEOUT_MS,
   UPLOAD_BLOB_FETCH_TIMEOUT_MS,
   UPLOAD_EXTERNAL_TIMEOUT_MS,
   getRadioCultApiBaseUrl,
@@ -22,6 +28,7 @@ export type RadioCultUploadInput = {
   apiBaseUrl?: string;
   blobFetchTimeoutMs?: number;
   externalUploadTimeoutMs?: number;
+  deadline?: number;
 };
 
 export type RadioCultUploadSuccess = {
@@ -64,6 +71,24 @@ export function normalizeAudioMimeType(fileName: string, originalType: string): 
 export async function uploadMediaToRadioCult(
   input: RadioCultUploadInput
 ): Promise<RadioCultUploadResult> {
+  const deadline = input.deadline ?? performance.now() + UPLOAD_PROVIDER_TIMEOUT_MS;
+  try {
+    return await withUploadTimeout(
+      () => performRadioCultUpload({ ...input, deadline }),
+      remainingUploadTime(deadline)
+    );
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Upload failed',
+      mediaUrl: input.mediaUrl,
+    };
+  }
+}
+
+async function performRadioCultUpload(
+  input: RadioCultUploadInput & { deadline: number }
+): Promise<RadioCultUploadResult> {
   const {
     mediaUrl,
     file,
@@ -76,6 +101,8 @@ export async function uploadMediaToRadioCult(
     externalUploadTimeoutMs = UPLOAD_EXTERNAL_TIMEOUT_MS,
   } = input;
 
+  const { deadline } = input;
+
   if (!file && !mediaUrl) {
     return { success: false, error: 'No file or mediaUrl provided' };
   }
@@ -86,16 +113,28 @@ export async function uploadMediaToRadioCult(
 
   if (mediaUrl) {
     try {
-      const res = await fetchWithRetry(mediaUrl, { timeoutMs: blobFetchTimeoutMs });
-      if (!res.ok) {
+      const downloaded = await fetchWithBodyRetry(
+        mediaUrl,
+        async res => ({
+          ok: res.ok,
+          statusText: res.statusText,
+          blob: res.ok ? await res.blob() : undefined,
+        }),
+        {
+          timeoutMs: blobFetchTimeoutMs,
+          deadline,
+          onAttempt: uploadAttemptLogger('RadioCult', 'download'),
+        }
+      );
+      if (!downloaded.ok) {
         return {
           success: false,
-          error: `Failed to fetch media from URL: ${res.statusText}`,
+          error: `Failed to fetch media from URL: ${downloaded.statusText}`,
           mediaUrl,
         };
       }
 
-      const blob = await res.blob();
+      const blob = downloaded.blob!;
       finalFile = blob;
       finalFileType = blob.type || 'audio/mpeg';
       finalFileName = resolveFileName(mediaUrl, requestedFileName);
@@ -151,15 +190,21 @@ export async function uploadMediaToRadioCult(
   rcForm.append('metadata', JSON.stringify(metadata));
 
   try {
-    const rcRes = await fetchWithRetry(`${apiBaseUrl}/api/station/${stationId}/media/track`, {
-      method: 'POST',
-      headers: { 'x-api-key': secretKey },
-      body: rcForm,
-      timeoutMs: externalUploadTimeoutMs,
-    });
+    const rcRes = await fetchWithBodyRetry(
+      `${apiBaseUrl}/api/station/${stationId}/media/track`,
+      async response => ({ ok: response.ok, status: response.status, text: await response.text() }),
+      {
+        deadline,
+        onAttempt: uploadAttemptLogger('RadioCult', 'upload', fileBlob.size),
+        method: 'POST',
+        headers: { 'x-api-key': secretKey },
+        body: rcForm,
+        timeoutMs: externalUploadTimeoutMs,
+      }
+    );
 
     if (!rcRes.ok) {
-      const rcErrorText = await rcRes.text();
+      const rcErrorText = rcRes.text;
       return {
         success: false,
         error: `RadioCult upload failed: ${rcErrorText}`,
@@ -170,7 +215,7 @@ export async function uploadMediaToRadioCult(
       };
     }
 
-    const rcJson = (await rcRes.json()) as { track?: { id?: string } };
+    const rcJson = JSON.parse(rcRes.text) as { track?: { id?: string } };
     const radiocultMediaId = rcJson.track?.id;
 
     if (!radiocultMediaId) {

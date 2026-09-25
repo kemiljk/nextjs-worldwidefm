@@ -51,6 +51,7 @@ export function isRetryableUploadError(error: unknown, status?: number): boolean
     const message = error.message.toLowerCase();
     return (
       error.name === 'AbortError' ||
+      error.name === 'TimeoutError' ||
       message.includes('network') ||
       message.includes('fetch failed') ||
       message.includes('econnreset') ||
@@ -95,4 +96,129 @@ export async function fetchWithRetry(
 
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/** Bounds an entire operation, including response consumption, with cancellation. */
+export async function withUploadTimeout<T>(
+  operation: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number,
+  externalSignal?: AbortSignal | null
+): Promise<T> {
+  const controller = new AbortController();
+  const timeoutError = new Error('Upload timeout: request timed out');
+  timeoutError.name = 'TimeoutError';
+  let rejectAbort: (reason: unknown) => void = () => {};
+  const aborted = new Promise<never>((_, reject) => {
+    rejectAbort = reject;
+  });
+  const abort = (reason: unknown) => {
+    rejectAbort(reason);
+    controller.abort();
+  };
+  const abortExternal = () => abort(new DOMException('Upload aborted', 'AbortError'));
+  if (externalSignal?.aborted) throw new DOMException('Upload aborted', 'AbortError');
+  if (timeoutMs <= 0) throw timeoutError;
+  const timer = setTimeout(() => abort(timeoutError), timeoutMs);
+  externalSignal?.addEventListener('abort', abortExternal, { once: true });
+  try {
+    return await Promise.race([aborted, operation(controller.signal)]);
+  } finally {
+    clearTimeout(timer);
+    externalSignal?.removeEventListener('abort', abortExternal);
+  }
+}
+
+export function remainingUploadTime(deadline: number, capMs = Infinity): number {
+  return Math.max(0, Math.min(capMs, deadline - performance.now()));
+}
+
+type BodyFetchOptions = FetchWithTimeoutOptions & {
+  deadline?: number;
+  onAttempt?: (attempt: number) => void;
+};
+
+export async function fetchWithBody<T>(
+  input: RequestInfo | URL,
+  consume: (response: Response) => Promise<T>,
+  options: BodyFetchOptions = {}
+): Promise<T> {
+  const {
+    timeoutMs = UPLOAD_CLIENT_TIMEOUT_MS,
+    deadline = Infinity,
+    onAttempt,
+    signal,
+    fetchFn = fetch,
+    ...init
+  } = options;
+  onAttempt?.(1);
+  return withUploadTimeout(
+    async abortSignal => {
+      const response = await fetchFn(input, { ...init, signal: abortSignal });
+      try {
+        return await consume(response);
+      } finally {
+        // A rejected response may not have been consumed. Release its connection.
+        if (response.body && !response.body.locked)
+          void Promise.resolve(response.body.cancel()).catch(() => undefined);
+      }
+    },
+    remainingUploadTime(deadline, timeoutMs),
+    signal
+  );
+}
+
+export async function fetchWithBodyRetry<T>(
+  input: RequestInfo | URL,
+  consume: (response: Response) => Promise<T>,
+  options: BodyFetchOptions = {}
+): Promise<T> {
+  const deadline =
+    options.deadline ?? performance.now() + (options.timeoutMs ?? UPLOAD_CLIENT_TIMEOUT_MS);
+  for (let attempt = 0; ; attempt++) {
+    let responseStatus: number | undefined;
+    try {
+      options.onAttempt?.(attempt + 1);
+      return await fetchWithBody(
+        input,
+        async response => {
+          responseStatus = response.status;
+          if (isRetryableUploadError(undefined, response.status) && attempt < UPLOAD_MAX_RETRIES)
+            throw new Error('Upload network service unavailable');
+          return consume(response);
+        },
+        { ...options, deadline, onAttempt: undefined }
+      );
+    } catch (error) {
+      if (
+        attempt >= UPLOAD_MAX_RETRIES ||
+        // Once a mutation has a non-retryable response, a body timeout must not replay it.
+        (options.method?.toUpperCase() === 'POST' &&
+          responseStatus !== undefined &&
+          !isRetryableUploadError(undefined, responseStatus)) ||
+        options.signal?.aborted ||
+        !isRetryableUploadError(error)
+      )
+        throw error;
+      if (remainingUploadTime(deadline) <= UPLOAD_RETRY_DELAY_MS)
+        throw new Error('Upload timed out before retry');
+      await withUploadTimeout(
+        () => delay(UPLOAD_RETRY_DELAY_MS),
+        remainingUploadTime(deadline),
+        options.signal
+      );
+    }
+  }
+}
+
+/** Metadata-only telemetry: never pass source URLs or provider credentials. */
+export function uploadAttemptLogger(destination: string, stage: string, bytes?: number) {
+  const started = performance.now();
+  return (attempt: number) =>
+    console.info('[upload] attempt', {
+      destination,
+      stage,
+      attempt,
+      elapsedMs: Math.round(performance.now() - started),
+      ...(bytes === undefined ? {} : { bytes }),
+    });
 }

@@ -1,3 +1,5 @@
+import { withUploadTimeout, remainingUploadTime } from '@/lib/upload-fetch';
+import { UPLOAD_PROVIDER_TIMEOUT_MS, UPLOAD_CLEANUP_TIMEOUT_MS } from '@/lib/upload-config';
 import { NextRequest, NextResponse } from 'next/server';
 import { del, isVercelBlobUrl } from '@/lib/blob-client';
 import { uploadMediaToRadioCult } from '@/lib/radiocult-upload';
@@ -7,8 +9,13 @@ import { describeRadioCultFailure } from '@/lib/radiocult-failure';
 export const maxDuration = 800;
 
 export async function POST(request: NextRequest) {
+  const started = performance.now();
+  const deadline = started + UPLOAD_PROVIDER_TIMEOUT_MS;
   try {
-    const formData = await request.formData();
+    const formData = await withUploadTimeout(
+      () => request.formData(),
+      remainingUploadTime(deadline)
+    );
     const cleanupOnly = formData.get('cleanupOnly') === 'true';
     const mediaUrl = formData.get('mediaUrl') as string | null;
 
@@ -21,7 +28,10 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        await del(mediaUrl);
+        await withUploadTimeout(
+          signal => del(mediaUrl, { abortSignal: signal }),
+          UPLOAD_CLEANUP_TIMEOUT_MS
+        );
         return NextResponse.json({ success: true, cleaned: true });
       } catch (cleanupError) {
         console.error('Failed to delete temporary blob:', cleanupError);
@@ -58,7 +68,10 @@ export async function POST(request: NextRequest) {
 
     if (!stationId || !secretKey) {
       if (cleanup && mediaUrl && isVercelBlobUrl(mediaUrl)) {
-        await del(mediaUrl).catch(() => undefined);
+        await withUploadTimeout(
+          signal => del(mediaUrl, { abortSignal: signal }),
+          UPLOAD_CLEANUP_TIMEOUT_MS
+        ).catch(() => undefined);
       }
 
       return NextResponse.json(
@@ -72,12 +85,20 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await uploadMediaToRadioCult({
+      deadline,
       mediaUrl: mediaUrl || undefined,
       file: file || undefined,
       fileName: requestedFileName || undefined,
       metadata: parsedMetadata,
       stationId,
       secretKey,
+    });
+
+    console.info('[upload] completed', {
+      destination: 'RadioCult',
+      stage: 'provider',
+      elapsedMs: Math.round(performance.now() - started),
+      success: result.success,
     });
 
     if (!result.success) {
@@ -106,7 +127,10 @@ export async function POST(request: NextRequest) {
 
     if (cleanup && mediaUrl && isVercelBlobUrl(mediaUrl)) {
       try {
-        await del(mediaUrl);
+        await withUploadTimeout(
+          signal => del(mediaUrl, { abortSignal: signal }),
+          UPLOAD_CLEANUP_TIMEOUT_MS
+        );
       } catch (cleanupError) {
         console.error('Failed to delete temporary blob after successful upload:', cleanupError);
       }

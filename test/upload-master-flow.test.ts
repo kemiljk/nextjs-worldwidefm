@@ -218,3 +218,28 @@ function createMockFetch(options: {
     return new Response('not found', { status: 404 });
   };
 }
+
+it('reports Mixcloud failure before RadioCult completes, including stalled JSON bodies', async () => {
+  const events: string[] = [];
+  const result = await runUploadMasterFlow({
+    ...baseInput,
+    clientTimeoutMs: 25,
+    onDestinationResult: result => events.push(`${result.destination}:${result.success}`),
+    fetchFn: async url => {
+      if (String(url).includes('upload-mixcloud'))
+        return Response.json({ error: 'Mixcloud unavailable' }, { status: 502 });
+      expect(events).toEqual(['Mixcloud:false']);
+      return new Response(
+        new ReadableStream({
+          start() {
+            /* body never finishes */
+          },
+        })
+      );
+    },
+  });
+  expect(events).toEqual(['Mixcloud:false', 'RadioCult:false']);
+  expect(result.shouldCleanupBlob).toBe(false);
+  expect(result.archiveUpdated).toBe(false);
+  expect(result.radioCultError).toMatch(/timeout/i);
+});

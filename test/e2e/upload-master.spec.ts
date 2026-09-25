@@ -82,7 +82,7 @@ test.describe('upload master reliability', () => {
 
     await page.getByRole('button', { name: 'Upload mastered audio' }).click();
 
-    await expect(page.getByText(/mixcloud: failed/i)).toBeVisible({
+    await expect(page.getByRole('status').getByText(/mixcloud: failed/i)).toBeVisible({
       timeout: 15_000,
     });
   });
@@ -143,6 +143,8 @@ test.describe('upload master reliability', () => {
     await expect(page.getByText(/mastered audio uploaded and episode updated/i)).toBeVisible({
       timeout: 15_000,
     });
+    await expect(page.getByRole('status').getByText('Mixcloud: uploaded')).toBeVisible();
+    await expect(page.getByRole('status').getByText('RadioCult: uploaded')).toBeVisible();
   });
 
   test('keeps the selected show and file visible when both destinations fail', async ({ page }) => {
@@ -193,5 +195,41 @@ test.describe('upload master reliability', () => {
     await expect(page.getByText('master.mp3', { exact: true })).toBeVisible();
     await expect(page).toHaveURL(/\/upload-master$/);
     expect(archivePatchCalled).toBe(false);
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'replacement.mp3',
+      mimeType: 'audio/mpeg',
+      buffer: Buffer.from([0xff, 0xfb, 0xe0, 0x40]),
+    });
+    await expect(page.getByRole('status')).toBeEmpty();
+    await expect(page.getByText('Ready to upload')).toBeVisible();
+  });
+  test('shows Mixcloud failure while RadioCult is still uploading', async ({ page }) => {
+    await mockEpisodeSelection(page);
+    await page.route('**/api/upload-mixcloud', route =>
+      route.fulfill({
+        status: 502,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Mixcloud unavailable' }),
+      })
+    );
+    await page.route('**/api/upload-media', async () => {
+      await new Promise(() => {});
+    });
+    await openHydratedUploadMaster(page);
+    await page.locator('#broadcast-date').fill('2099-01-01');
+    await page.getByPlaceholder('Search shows on this date').fill('Test Episode');
+    await page.getByText('Test Episode').click();
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'master.mp3',
+      mimeType: 'audio/mpeg',
+      buffer: Buffer.from([0xff, 0xfb, 0xe0, 0x40]),
+    });
+    await page.getByRole('button', { name: 'Upload mastered audio' }).click();
+    await expect(
+      page.getByRole('status').getByText('Mixcloud: failed (Mixcloud unavailable)')
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Uploading to RadioCult...' })).toBeDisabled();
+    await expect(page.getByRole('status').getByText(/RadioCult: failed/)).toBeVisible();
+    await expect(page.getByText('master.mp3', { exact: true })).toBeVisible();
   });
 });

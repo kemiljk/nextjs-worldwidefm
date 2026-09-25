@@ -1,6 +1,11 @@
 /** Vercel serverless route max duration (seconds). */
 export const UPLOAD_ROUTE_MAX_DURATION_SEC = 800;
 
+/** Shared budget for provider work, reserving time for persistence and cleanup. */
+export const UPLOAD_PROVIDER_TIMEOUT_MS = 740_000;
+export const UPLOAD_PERSIST_TIMEOUT_MS = 40_000;
+export const UPLOAD_CLEANUP_TIMEOUT_MS = 10_000;
+
 /** Client abort must exceed server max duration so the server can return JSON. */
 export const UPLOAD_CLIENT_TIMEOUT_MS = UPLOAD_ROUTE_MAX_DURATION_SEC * 1000 + 40_000;
 
