@@ -91,7 +91,10 @@ export async function runUploadMasterFlow(
 
     if (!mixcloudRes.ok || !mixcloudData.url) {
       const detailText = mixcloudData.details ? ` ${JSON.stringify(mixcloudData.details)}` : '';
-      mixcloudError = `${mixcloudData.error || 'Mixcloud upload failed'}${detailText}`;
+      mixcloudError = safeErrorMessage(
+        `${mixcloudData.error || 'Mixcloud upload failed'}${detailText}`,
+        mixcloudRes.status
+      );
     } else {
       mixcloudUrl = mixcloudData.url;
       mixcloudWarning = mixcloudData.warning;
@@ -246,11 +249,36 @@ function buildCleanupFormData(blobUrl: string): FormData {
 
 async function parseJsonResponse(response: Response): Promise<JsonResponse> {
   const text = await response.text();
+  let data: unknown;
   try {
-    return JSON.parse(text) as JsonResponse;
+    data = JSON.parse(text);
   } catch {
-    return { error: text || `Request failed (HTTP ${response.status})` };
+    // Gateways and Next.js can return entire HTML pages when a function fails.
+    // A non-JSON 2xx response is not confirmation that an archive was saved.
+    throw new Error(
+      response.ok ? unexpectedResponse(response.status) : safeErrorMessage(text, response.status)
+    );
   }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new Error(unexpectedResponse(response.status));
+  }
+  const result = data as JsonResponse;
+  if (result.error !== undefined) {
+    result.error = safeErrorMessage(result.error, response.status);
+  }
+  return result;
+}
+
+function unexpectedResponse(status: number): string {
+  return `The server returned an unexpected response (HTTP ${status}). Check the destination before retrying.`;
+}
+
+function safeErrorMessage(value: unknown, status: number): string {
+  if (typeof value !== 'string' || !value.trim() || /<!doctype|<[a-z][^>]*>/i.test(value)) {
+    return unexpectedResponse(status);
+  }
+  const message = value.trim();
+  return message.length > 500 ? `${message.slice(0, 497)}...` : message;
 }
 
 export function buildUploadResultSummary(result: UploadMasterFlowResult): string {

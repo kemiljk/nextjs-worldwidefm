@@ -1,10 +1,11 @@
+import type { Readable } from 'node:stream';
+import { openUploadAudio } from '@/lib/upload-audio-stream';
 import axios from 'axios';
 import FormData from 'form-data';
 import { parseBroadcastDateTime, parseDurationToMinutes } from '@/lib/date-utils';
 import {
   uploadAttemptLogger,
   fetchWithBody,
-  fetchWithBodyRetry,
   remainingUploadTime,
   withUploadTimeout,
 } from '@/lib/upload-fetch';
@@ -83,7 +84,9 @@ type MixcloudCloudcast = {
 export const MIXCLOUD_MAX_DESCRIPTION_LENGTH = 1000;
 
 type PreparedMixcloudAudio = {
-  buffer: Buffer;
+  stream: Readable;
+  size?: number;
+  signal: AbortSignal;
   fileName: string;
   contentType: string;
 };
@@ -145,7 +148,7 @@ export async function uploadMediaToMixcloud(
   const deadline = input.deadline ?? performance.now() + UPLOAD_PROVIDER_TIMEOUT_MS;
   try {
     return await withUploadTimeout(
-      () => performMixcloudUpload({ ...input, deadline }),
+      signal => performMixcloudUpload({ ...input, deadline, signal }),
       remainingUploadTime(deadline)
     );
   } catch (error) {
@@ -154,7 +157,7 @@ export async function uploadMediaToMixcloud(
 }
 
 async function performMixcloudUpload(
-  input: MixcloudUploadInput & { deadline: number }
+  input: MixcloudUploadInput & { deadline: number; signal: AbortSignal }
 ): Promise<MixcloudUploadResult> {
   const {
     audioFile,
@@ -179,22 +182,20 @@ async function performMixcloudUpload(
   }
 
   const { deadline } = input;
-  const preparedAudio = await prepareMixcloudAudio({
+  const audio: MixcloudAudioSource = {
     audioFile,
     mediaUrl,
-    requestedFileName,
+    fileName:
+      requestedFileName?.trim() ||
+      (mediaUrl ? new URL(mediaUrl).pathname.split('/').pop() : audioFile?.name) ||
+      'audio.mp3',
     blobFetchTimeoutMs,
-    deadline,
-  });
-  if ('success' in preparedAudio && preparedAudio.success === false) {
-    return preparedAudio;
-  }
-
-  const audio = preparedAudio as PreparedMixcloudAudio;
+    signal: input.signal,
+  };
   const publishDate = buildMixcloudPublishDate(broadcastDate, broadcastTime, duration);
   const mixcloudDescription = truncateMixcloudDescription(description?.trim() || '');
 
-  const logAttempt = uploadAttemptLogger('Mixcloud', 'upload', audio.buffer.length);
+  const logAttempt = uploadAttemptLogger('Mixcloud', 'upload', audioFile?.size);
   logAttempt(1);
   let result = await submitMixcloudUpload({
     preparedAudio: audio,
@@ -269,70 +270,50 @@ async function performMixcloudUpload(
   return result;
 }
 
-async function prepareMixcloudAudio({
-  audioFile,
-  mediaUrl,
-  requestedFileName,
-  blobFetchTimeoutMs,
-  deadline,
-}: {
+type MixcloudAudioSource = {
   audioFile?: File | null;
   mediaUrl?: string | null;
-  requestedFileName?: string | null;
+  fileName: string;
   blobFetchTimeoutMs: number;
-  deadline: number;
-}): Promise<PreparedMixcloudAudio | MixcloudUploadFailure> {
-  if (mediaUrl) {
-    try {
-      return await fetchWithBodyRetry(
-        mediaUrl,
-        async mediaRes => {
-          if (!mediaRes.ok) {
-            return {
-              success: false,
-              error: `Failed to fetch media from URL: ${mediaRes.statusText}`,
-            };
-          }
+  signal: AbortSignal;
+};
 
-          const fileName = requestedFileName?.trim() || mediaUrl.split('/').pop() || 'audio.mp3';
-          const contentType = normalizeAudioMimeType(
-            fileName,
-            mediaRes.headers.get('content-type') || 'audio/mpeg'
-          );
-
-          return {
-            buffer: Buffer.from(await mediaRes.arrayBuffer()),
-            fileName,
-            contentType,
-          };
-        },
-        {
-          timeoutMs: blobFetchTimeoutMs,
-          deadline,
-          onAttempt: uploadAttemptLogger('Mixcloud', 'download'),
-        }
-      );
-    } catch (fetchError) {
-      return {
-        success: false,
-        error: `Failed to fetch media: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`,
-      };
-    }
+async function submitMixcloudUpload(
+  input: Omit<Parameters<typeof postMixcloudUpload>[0], 'preparedAudio'> & {
+    preparedAudio: MixcloudAudioSource;
   }
-
-  if (audioFile) {
-    const fileName = requestedFileName?.trim() || audioFile.name || 'audio.mp3';
-    return {
-      buffer: Buffer.from(await audioFile.arrayBuffer()),
-      fileName,
-      contentType: normalizeAudioMimeType(fileName, audioFile.type || 'audio/mpeg'),
-    };
+): Promise<MixcloudUploadResult> {
+  const audio = input.preparedAudio;
+  const deadline = Math.min(input.deadline, performance.now() + input.externalUploadTimeoutMs);
+  const source = await openUploadAudio({
+    mediaUrl: audio.mediaUrl,
+    file: audio.audioFile,
+    deadline,
+    readTimeoutMs: audio.blobFetchTimeoutMs,
+    signal: audio.signal,
+  });
+  let stream: Readable | undefined;
+  try {
+    const prefix = await source.read(64);
+    stream = source.stream([prefix]);
+    return await postMixcloudUpload({
+      ...input,
+      deadline,
+      preparedAudio: {
+        stream,
+        size: source.size,
+        fileName: audio.fileName,
+        contentType: normalizeAudioMimeType(audio.fileName, source.contentType),
+        signal: audio.signal,
+      },
+    });
+  } finally {
+    stream?.destroy();
+    await source.close();
   }
-
-  return { success: false, error: 'Missing audio file' };
 }
 
-async function submitMixcloudUpload({
+async function postMixcloudUpload({
   preparedAudio,
   title,
   description,
@@ -357,13 +338,13 @@ async function submitMixcloudUpload({
   externalUploadTimeoutMs: number;
   deadline: number;
 }): Promise<MixcloudUploadResult> {
-  const { buffer, fileName, contentType } = preparedAudio;
+  const { stream, size, fileName, contentType } = preparedAudio;
 
   const mcForm = new FormData();
-  mcForm.append('mp3', buffer, {
+  mcForm.append('mp3', stream, {
     filename: fileName,
     contentType,
-    knownLength: buffer.length,
+    ...(size === undefined ? {} : { knownLength: size }),
   });
   mcForm.append('name', title);
 
@@ -419,15 +400,22 @@ async function submitMixcloudUpload({
           {
             headers: {
               ...mcForm.getHeaders(),
+              ...(mcForm.hasKnownLength()
+                ? { 'Content-Length': String(mcForm.getLengthSync()) }
+                : {}),
             },
+            // Disable redirect replay buffering for multi-hundred-MB streams.
+            adapter: 'http',
+            maxRedirects: 0,
             maxBodyLength: Infinity,
-            maxContentLength: Infinity,
+            maxContentLength: 1024 * 1024,
             signal,
             timeout: remainingUploadTime(deadline, externalUploadTimeoutMs),
             validateStatus: () => true,
           }
         ),
-      remainingUploadTime(deadline, externalUploadTimeoutMs)
+      remainingUploadTime(deadline, externalUploadTimeoutMs),
+      preparedAudio.signal
     );
 
     const mcStatus = response.status;

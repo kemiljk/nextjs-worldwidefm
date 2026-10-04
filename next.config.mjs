@@ -75,7 +75,9 @@ const nextConfig = {
       static: 180,
     },
   },
-  serverExternalPackages: ['prettier', '@react-email/render'],
+  // Blob's OIDC dependency loads CLI path discovery. Bundling it changes
+  // require.main and can crash upload routes before they can return JSON.
+  serverExternalPackages: ['prettier', '@react-email/render', '@vercel/blob'],
   async headers() {
     return [
       {

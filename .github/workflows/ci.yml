@@ -18,6 +18,11 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -32,6 +37,11 @@ jobs:
 
       - name: Unit and integration tests
         run: bun run test
+
+      - name: Node upload streaming regressions
+        env:
+          WWFM_SLOW_UPLOAD: '1'
+        run: bun run test:uploads
 
   e2e:
     runs-on: ubuntu-latest

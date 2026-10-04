@@ -30,6 +30,17 @@ async function openHydratedUploadMaster(page: Page) {
 }
 
 test.describe('upload master reliability', () => {
+  for (const endpoint of ['upload-mixcloud', 'upload-media']) {
+    test(`${endpoint} loads and returns JSON for an invalid request`, async ({ request }) => {
+      // Exercise the actual Next route: browser interception hides import-time crashes.
+      // An empty form cannot upload audio, save an episode, or delete a Blob.
+      const response = await request.post(`/api/${endpoint}`, { multipart: {} });
+      expect(response.status()).toBeGreaterThanOrEqual(400);
+      expect(response.headers()['content-type']).toContain('application/json');
+      expect((await response.json()).error).toEqual(expect.any(String));
+    });
+  }
+
   test.beforeEach(async ({ page }) => {
     await page.route('**/api/live/current**', async route => {
       await route.fulfill({
@@ -203,6 +214,35 @@ test.describe('upload master reliability', () => {
     await expect(page.getByRole('status')).toBeEmpty();
     await expect(page.getByText('Ready to upload')).toBeVisible();
   });
+  test('shows readable failures when both routes return server HTML', async ({ page }) => {
+    await mockEpisodeSelection(page);
+    for (const endpoint of ['upload-mixcloud', 'upload-media']) {
+      await page.route(`**/api/${endpoint}`, route =>
+        route.fulfill({
+          status: 500,
+          contentType: 'text/html',
+          body: '<!DOCTYPE html><html><body>Internal deployment details</body></html>',
+        })
+      );
+    }
+    await openHydratedUploadMaster(page);
+    await page.locator('#broadcast-date').fill('2099-01-01');
+    await page.getByPlaceholder('Search shows on this date').fill('Test Episode');
+    await page.getByText('Test Episode').click();
+    await page.locator('input[type="file"]').setInputFiles({
+      name: 'master.mp3',
+      mimeType: 'audio/mpeg',
+      buffer: Buffer.from([0xff, 0xfb, 0xe0, 0x40]),
+    });
+    await page.getByRole('button', { name: 'Upload mastered audio' }).click();
+    const status = page.getByRole('status');
+    await expect(status.getByText(/Mixcloud: failed.*HTTP 500/)).toBeVisible();
+    await expect(status.getByText(/RadioCult: failed.*HTTP 500/)).toBeVisible();
+    await expect(page.locator('body')).not.toContainText('DOCTYPE');
+    await expect(page.locator('body')).not.toContainText('Internal deployment details');
+    await expect(page.getByText('master.mp3', { exact: true })).toBeVisible();
+  });
+
   test('shows Mixcloud failure while RadioCult is still uploading', async ({ page }) => {
     await mockEpisodeSelection(page);
     await page.route('**/api/upload-mixcloud', route =>

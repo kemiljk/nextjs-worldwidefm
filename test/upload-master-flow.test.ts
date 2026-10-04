@@ -23,6 +23,69 @@ const baseInput = {
 };
 
 describe('runUploadMasterFlow', () => {
+  it.each([500, 502, 504])(
+    'hides an HTML error page (HTTP %s) and still tries both destinations',
+    async status => {
+      const calls: string[] = [];
+      const result = await runUploadMasterFlow({
+        ...baseInput,
+        fetchFn: async url => {
+          calls.push(String(url));
+          return new Response(
+            '<!DOCTYPE html><html><script>internal deployment details</script></html>',
+            {
+              status,
+              headers: { 'Content-Type': 'text/html' },
+            }
+          );
+        },
+      });
+      expect(result.mixcloudError).toContain(`HTTP ${status}`);
+      expect(result.radioCultError).toContain(`HTTP ${status}`);
+      expect(buildUploadResultSummary(result)).not.toContain('<');
+      expect(buildUploadResultSummary(result)).not.toContain('internal deployment details');
+      expect(result.shouldCleanupBlob).toBe(false);
+      expect(calls).toEqual(['/api/upload-mixcloud', '/api/upload-media']);
+    }
+  );
+
+  it.each(['null', '[]', '"bad response"', '<html>login page</html>'])(
+    'rejects an invalid archive response: %s',
+    async body => {
+      const normalFetch = createMockFetch({
+        mixcloudUrl: 'https://www.mixcloud.com/worldwidefm/test-show/',
+        radiocultMediaId: 'rc-1',
+      });
+      const result = await runUploadMasterFlow({
+        ...baseInput,
+        fetchFn: async (url, init) =>
+          String(url).includes('/archive')
+            ? new Response(body, { status: 200 })
+            : normalFetch(url, init),
+      });
+      expect(result.archiveUpdated).toBe(false);
+      expect(result.shouldCleanupBlob).toBe(false);
+      expect(result.archiveError).toContain('unexpected response');
+    }
+  );
+
+  it('hides provider HTML nested inside a JSON error and bounds long details', async () => {
+    const result = await runUploadMasterFlow({
+      ...baseInput,
+      fetchFn: async () =>
+        Response.json(
+          {
+            error: 'Provider failed: <!DOCTYPE html><html>internal deployment details</html>',
+            details: { message: 'x'.repeat(10000) },
+          },
+          { status: 502 }
+        ),
+    });
+    expect(result.mixcloudError!.length).toBeLessThanOrEqual(500);
+    expect(result.radioCultError).not.toContain('<');
+    expect(buildUploadResultSummary(result)).not.toContain('internal deployment details');
+  });
+
   it('completes the happy path and cleans up the blob', async () => {
     const calls: string[] = [];
     const phases: string[] = [];

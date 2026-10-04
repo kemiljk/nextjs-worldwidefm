@@ -1,16 +1,17 @@
+import { setTimeout as delay } from 'node:timers/promises';
+import axios from 'axios';
+import FormData from 'form-data';
+import { openUploadAudio } from '@/lib/upload-audio-stream';
 import {
   buildId3v23Tag,
   ID3V2_HEADER_LENGTH,
   inspectMp3Structure,
   readId3v2TagLength,
 } from '@/lib/mp3-utils';
+import { uploadAttemptLogger, withUploadTimeout, remainingUploadTime } from '@/lib/upload-fetch';
 import {
-  uploadAttemptLogger,
-  fetchWithBodyRetry,
-  withUploadTimeout,
-  remainingUploadTime,
-} from '@/lib/upload-fetch';
-import {
+  UPLOAD_MAX_RETRIES,
+  UPLOAD_RETRY_DELAY_MS,
   UPLOAD_PROVIDER_TIMEOUT_MS,
   UPLOAD_BLOB_FETCH_TIMEOUT_MS,
   UPLOAD_EXTERNAL_TIMEOUT_MS,
@@ -74,7 +75,7 @@ export async function uploadMediaToRadioCult(
   const deadline = input.deadline ?? performance.now() + UPLOAD_PROVIDER_TIMEOUT_MS;
   try {
     return await withUploadTimeout(
-      () => performRadioCultUpload({ ...input, deadline }),
+      signal => performRadioCultUpload({ ...input, deadline, signal }),
       remainingUploadTime(deadline)
     );
   } catch (error) {
@@ -87,181 +88,128 @@ export async function uploadMediaToRadioCult(
 }
 
 async function performRadioCultUpload(
-  input: RadioCultUploadInput & { deadline: number }
+  input: RadioCultUploadInput & { deadline: number; signal: AbortSignal }
 ): Promise<RadioCultUploadResult> {
   const {
     mediaUrl,
     file,
-    fileName: requestedFileName,
     metadata = {},
     stationId,
     secretKey,
+    deadline,
+    signal,
     apiBaseUrl = getRadioCultApiBaseUrl(),
     blobFetchTimeoutMs = UPLOAD_BLOB_FETCH_TIMEOUT_MS,
     externalUploadTimeoutMs = UPLOAD_EXTERNAL_TIMEOUT_MS,
   } = input;
-
-  const { deadline } = input;
-
-  if (!file && !mediaUrl) {
-    return { success: false, error: 'No file or mediaUrl provided' };
-  }
-
-  let finalFile: Blob;
-  let finalFileName: string;
-  let finalFileType: string;
-
-  if (mediaUrl) {
-    try {
-      const downloaded = await fetchWithBodyRetry(
-        mediaUrl,
-        async res => ({
-          ok: res.ok,
-          statusText: res.statusText,
-          blob: res.ok ? await res.blob() : undefined,
-        }),
-        {
-          timeoutMs: blobFetchTimeoutMs,
-          deadline,
-          onAttempt: uploadAttemptLogger('RadioCult', 'download'),
-        }
-      );
-      if (!downloaded.ok) {
-        return {
-          success: false,
-          error: `Failed to fetch media from URL: ${downloaded.statusText}`,
-          mediaUrl,
-        };
-      }
-
-      const blob = downloaded.blob!;
-      finalFile = blob;
-      finalFileType = blob.type || 'audio/mpeg';
-      finalFileName = resolveFileName(mediaUrl, requestedFileName);
-    } catch (fetchError) {
-      return {
-        success: false,
-        error: `Failed to fetch media: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`,
-        mediaUrl,
-      };
-    }
-  } else if (file) {
-    finalFile = file;
-    finalFileName = requestedFileName?.trim() || (file instanceof File ? file.name : 'media-file');
-    finalFileType = file.type || 'audio/mpeg';
-  } else {
-    return { success: false, error: 'No file or mediaUrl provided' };
-  }
-
-  const ext = finalFileName.split('.').pop()?.toLowerCase();
-  finalFileType = normalizeAudioMimeType(finalFileName, finalFileType);
-
-  let fileBlob: Blob = finalFile;
-  let mp3Diagnostics: ReturnType<typeof inspectMp3Structure> | undefined;
-
-  if (ext === 'mp3' || finalFileName.toLowerCase().endsWith('.mp3')) {
-    const head = await readId3Head(fileBlob);
-
-    try {
-      mp3Diagnostics = inspectMp3Structure(head, fileBlob.size);
-    } catch {
-      // Non-blocking diagnostics only.
-    }
-
-    const tag = buildId3v23Tag({
-      title: metadata.title?.trim() || buildMediaMetadataTitle(finalFileName),
-      artist: metadata.artist,
+  if (!file && !mediaUrl) return { success: false, error: 'No file or mediaUrl provided' };
+  const fileName = mediaUrl
+    ? resolveFileName(mediaUrl, input.fileName)
+    : input.fileName?.trim() || (file instanceof File ? file.name : 'media-file');
+  const logAttempt = uploadAttemptLogger('RadioCult', 'upload');
+  // One budget covers every attempt, including fetching and streaming the source.
+  const uploadDeadline = Math.min(deadline, performance.now() + externalUploadTimeoutMs);
+  for (let attempt = 0; ; attempt++) {
+    logAttempt(attempt + 1);
+    const source = await openUploadAudio({
+      mediaUrl,
+      file,
+      deadline: uploadDeadline,
+      readTimeoutMs: blobFetchTimeoutMs,
+      signal,
     });
-
-    if (tag) {
-      // Slicing keeps the audio as a view onto the original blob, so a
-      // multi-hundred-MB master is never duplicated in memory.
-      const audio = fileBlob.slice(readId3v2TagLength(head, fileBlob.size));
-      fileBlob = new Blob([new Uint8Array(tag), audio], { type: finalFileType });
-    }
-  }
-
-  if (fileBlob.type !== finalFileType) {
-    fileBlob = fileBlob.slice(0, fileBlob.size, finalFileType);
-  }
-
-  const rcForm = new FormData();
-  rcForm.append('stationMedia', fileBlob, finalFileName);
-  rcForm.append('metadata', JSON.stringify(metadata));
-
-  try {
-    const rcRes = await fetchWithBodyRetry(
-      `${apiBaseUrl}/api/station/${stationId}/media/track`,
-      async response => ({ ok: response.ok, status: response.status, text: await response.text() }),
-      {
-        deadline,
-        onAttempt: uploadAttemptLogger('RadioCult', 'upload', fileBlob.size),
-        method: 'POST',
-        headers: { 'x-api-key': secretKey },
-        body: rcForm,
-        timeoutMs: externalUploadTimeoutMs,
+    let stream: ReturnType<typeof source.stream> | undefined;
+    let mp3Diagnostics: ReturnType<typeof inspectMp3Structure> | undefined;
+    let response;
+    try {
+      const prefix = await source.read(ID3V2_HEADER_LENGTH);
+      const parts: Uint8Array[] = [prefix];
+      let length = source.size;
+      if (fileName.toLowerCase().endsWith('.mp3')) {
+        const tag = buildId3v23Tag({
+          title: metadata.title?.trim() || buildMediaMetadataTitle(fileName),
+          artist: metadata.artist,
+        });
+        if (tag) {
+          const skip = readId3v2TagLength(prefix, source.size ?? Infinity);
+          if (skip) await source.skip(skip - prefix.length);
+          const audioHead = await source.read(64);
+          // Inspect the original header and audio separately without buffering the old tag.
+          if (source.size !== undefined) {
+            mp3Diagnostics = {
+              ...inspectMp3Structure(Buffer.concat([prefix, audioHead]), source.size),
+              hasMpegFrameSync: inspectMp3Structure(
+                skip ? audioHead : Buffer.concat([prefix, audioHead])
+              ).hasMpegFrameSync,
+            };
+          }
+          parts.splice(0, parts.length, tag, ...(skip ? [] : [prefix]), audioHead);
+          if (length !== undefined) length += tag.length - skip;
+        }
       }
-    );
-
-    if (!rcRes.ok) {
-      const rcErrorText = rcRes.text;
+      stream = source.stream(parts);
+      const form = new FormData();
+      form.append('stationMedia', stream, {
+        filename: fileName,
+        contentType: normalizeAudioMimeType(fileName, source.contentType),
+        ...(length === undefined ? {} : { knownLength: length }),
+      });
+      form.append('metadata', JSON.stringify(metadata));
+      response = await withUploadTimeout(
+        timeoutSignal =>
+          axios.post<string>(`${apiBaseUrl}/api/station/${stationId}/media/track`, form, {
+            headers: {
+              ...form.getHeaders(),
+              ...(form.hasKnownLength() ? { 'Content-Length': String(form.getLengthSync()) } : {}),
+              'x-api-key': secretKey,
+            },
+            // Redirect replay retains the whole upload. Provider endpoints must be direct.
+            adapter: 'http',
+            maxRedirects: 0,
+            maxBodyLength: Infinity,
+            maxContentLength: 1024 * 1024,
+            responseType: 'text',
+            transformResponse: [data => data],
+            signal: timeoutSignal,
+            timeout: remainingUploadTime(uploadDeadline),
+            validateStatus: () => true,
+          }),
+        remainingUploadTime(uploadDeadline),
+        signal
+      );
+    } finally {
+      stream?.destroy();
+      await source.close();
+    }
+    const status = response.status;
+    if (status >= 500 && attempt < UPLOAD_MAX_RETRIES) {
+      await withUploadTimeout(
+        () => delay(UPLOAD_RETRY_DELAY_MS),
+        remainingUploadTime(uploadDeadline),
+        signal
+      );
+      continue;
+    }
+    if (status < 200 || status >= 300)
       return {
         success: false,
-        error: `RadioCult upload failed: ${rcErrorText}`,
-        radiocultError: rcErrorText,
+        error: `RadioCult upload failed: ${response.data}`,
+        radiocultError: response.data,
         mediaUrl,
         mp3Diagnostics,
-        status: rcRes.status,
+        status,
       };
-    }
-
-    const rcJson = JSON.parse(rcRes.text) as { track?: { id?: string } };
-    const radiocultMediaId = rcJson.track?.id;
-
-    if (!radiocultMediaId) {
+    const data = JSON.parse(response.data) as { track?: { id?: string } };
+    if (!data.track?.id)
       return {
         success: false,
         error: 'RadioCult did not return a media ID',
         mediaUrl,
         mp3Diagnostics,
-        status: rcRes.status,
+        status,
       };
-    }
-
-    return {
-      success: true,
-      radiocultMediaId,
-      mp3Diagnostics,
-    };
-  } catch (rcError) {
-    return {
-      success: false,
-      error: rcError instanceof Error ? rcError.message : 'Unknown upload error',
-      mediaUrl,
-      mp3Diagnostics,
-    };
+    return { success: true, radiocultMediaId: data.track.id, mp3Diagnostics };
   }
-}
-
-/** Extra bytes past the ID3 tag needed for the MPEG frame-sync diagnostic. */
-const ID3_HEAD_PROBE_BYTES = 64;
-
-/**
- * Read just enough of the file to parse its ID3v2 tag and run diagnostics.
- * Two small reads instead of pulling the whole master into a Buffer.
- */
-async function readId3Head(blob: Blob): Promise<Buffer> {
-  const prefix = Buffer.from(
-    await blob.slice(0, Math.min(ID3V2_HEADER_LENGTH, blob.size)).arrayBuffer()
-  );
-  const tagLength = readId3v2TagLength(prefix, blob.size);
-  const headLength = Math.min(tagLength + ID3_HEAD_PROBE_BYTES, blob.size);
-
-  if (headLength <= prefix.length) {
-    return prefix;
-  }
-
-  return Buffer.from(await blob.slice(0, headLength).arrayBuffer());
 }
 
 function resolveFileName(mediaUrl: string, requestedFileName?: string | null): string {
