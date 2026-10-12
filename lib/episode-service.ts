@@ -18,6 +18,7 @@ export interface EpisodeParams {
   upcoming?: boolean;
   sort?: string;
   exclude_ids?: string[];
+  listenBackOnly?: boolean;
 }
 
 export interface EpisodeResponse {
@@ -184,6 +185,11 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
 
     if (params.exclude_ids && params.exclude_ids.length > 0) {
       query.id = { $nin: params.exclude_ids };
+    }
+
+    // Opt-in for Latest Shows; filter before pagination to keep its slots filled.
+    if (params.listenBackOnly) {
+      query['metadata.player'] = { $regex: '\\S' };
     }
 
     // Add filters

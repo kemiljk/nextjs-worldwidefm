@@ -17,7 +17,7 @@ export default async function LatestEpisodes({
   const limit = hasHeroItems ? 20 : baseLimit;
   const offset = hasHeroItems ? 0 : 2;
 
-  const response = await getEpisodesForShows({ limit, offset });
+  const response = await getEpisodesForShows({ limit, offset, listenBackOnly: true });
   const episodes = response.shows || [];
 
   if (episodes.length === 0) {
