@@ -139,10 +139,12 @@ export default function VideoCategorySection({
               );
             })}
           </CarouselContent>
-          {sortedVideos.length > 3 && (
+          {/* Card widths change per breakpoint, so let the carousel decide: an arrow
+              shows only while there is more to scroll in its direction. */}
+          {sortedVideos.length > 1 && (
             <>
-              <CarouselPrevious className='hidden sm:flex -left-4 bg-white dark:bg-almostblack border-almostblack dark:border-white' />
-              <CarouselNext className='hidden sm:flex -right-4 bg-white dark:bg-almostblack border-almostblack dark:border-white' />
+              <CarouselPrevious className='left-2 sm:-left-4 disabled:hidden bg-white dark:bg-almostblack border-almostblack dark:border-white' />
+              <CarouselNext className='right-2 sm:-right-4 disabled:hidden bg-white dark:bg-almostblack border-almostblack dark:border-white' />
             </>
           )}
         </Carousel>

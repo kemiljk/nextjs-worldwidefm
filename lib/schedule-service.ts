@@ -1,4 +1,5 @@
 import { getPublicObject, getPublicObjects } from '@/lib/cosmic-public';
+import { resolveEpisodeImage } from './episode-image';
 import { type GenreObject, type HostObject } from './cosmic-config';
 import type { EpisodeObject } from './cosmic-types';
 import {
@@ -161,11 +162,7 @@ function buildScheduleShow(params: {
 
   const title = fallbackTitle || episode?.title || 'Untitled';
   const slug = episode?.slug;
-  const imageUrl =
-    episode?.metadata?.external_image_url ||
-    episode?.metadata?.image?.imgix_url ||
-    episode?.metadata?.image?.url ||
-    PLACEHOLDER_IMAGE;
+  const imageUrl = resolveEpisodeImage(episode?.metadata) || PLACEHOLDER_IMAGE;
 
   const url =
     urlOverride ||

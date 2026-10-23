@@ -92,6 +92,12 @@ CRON_SECRET=your-secure-random-string
 
 # For manual revalidation
 REVALIDATION_SECRET=your-secure-random-string
+
+# For draft previews from Cosmic (/api/preview). Set the posts and episode
+# object types' Preview Link in Cosmic to:
+#   https://www.worldwidefm.net/api/preview?secret=<PREVIEW_SECRET>&type=posts&slug=[object_slug]
+#   https://www.worldwidefm.net/api/preview?secret=<PREVIEW_SECRET>&type=episode&slug=[object_slug]
+PREVIEW_SECRET=your-secure-random-string
 ```
 
 **How to generate:**

@@ -27,12 +27,49 @@ export function htmlToPlainText(value: string): string {
     .trim();
 }
 
+const TRACKLIST_HEADING = /^\s*track\s*-?\s*list(ing)?\b/i;
+// "Artist - Title", optionally numbered. Sentences ("Live from Lisbon - a special one.") end in punctuation.
+const TRACK_LINE = /^\s*(\d+[.)]\s*)?\S.{0,100}\s[-–—]\s\S.{0,100}(?<![.!?])$/;
+const MIN_TRACK_RUN = 3;
+
+/**
+ * Submitters often paste the tracklist into the show copy. Cut everything from a
+ * "Tracklist" heading on, and drop runs of 3+ consecutive "Artist - Title" lines.
+ */
+export function stripTracklistFromCopy(copy: string): string {
+  const lines = copy.split('\n');
+  const headingIndex = lines.findIndex(line => TRACKLIST_HEADING.test(line));
+  const kept = headingIndex === -1 ? lines : lines.slice(0, headingIndex);
+
+  const result: string[] = [];
+  let run: string[] = [];
+  const flushRun = () => {
+    if (run.length < MIN_TRACK_RUN) result.push(...run);
+    run = [];
+  };
+
+  for (const line of kept) {
+    if (TRACK_LINE.test(line)) {
+      run.push(line);
+    } else {
+      flushRun();
+      result.push(line);
+    }
+  }
+  flushRun();
+
+  return result
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 /**
  * Keep the tracklist on the show page and include only its link alongside the show copy.
  */
 export function buildMixcloudDescription(episode: EpisodeObject, showPageUrl: string): string {
-  const showCopy = htmlToPlainText(
-    episode.metadata?.body_text || episode.metadata?.description || ''
+  const showCopy = stripTracklistFromCopy(
+    htmlToPlainText(episode.metadata?.body_text || episode.metadata?.description || '')
   );
 
   const sections = [showCopy];

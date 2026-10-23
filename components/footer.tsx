@@ -1,30 +1,13 @@
 import { connection } from 'next/server';
 
-import { getPublicObject } from '@/lib/cosmic-public';
 import Link from 'next/link';
-import * as SimpleIcons from 'simple-icons';
 import { Button } from '@/components/ui/button';
-
-// Helper function to get icon by name
-const getIcon = (iconName: string) => {
-  return (SimpleIcons as any)[iconName];
-};
-
-type SocialLink = { icon: string; link: string };
+import { getSocialIcon, getSocialLinks, type SocialLink } from '@/lib/social-links';
 
 export default async function Footer() {
   await connection();
-  let socialLinks: SocialLink[] = [];
-  try {
-    // The transport caches data; render this boundary separately for each response.
-    const response = await getPublicObject(
-      { type: 'social-links', slug: 'social-links' },
-      { props: 'slug,title,metadata,type', depth: 1 }
-    );
-    socialLinks = response.object?.metadata?.social_link || [];
-  } catch (error) {
-    console.error('Footer social links unavailable:', error);
-  }
+  // The transport caches data; render this boundary separately for each response.
+  const socialLinks = await getSocialLinks();
   return <FooterContent socialLinks={socialLinks} />;
 }
 
@@ -48,7 +31,7 @@ function FooterContent({ socialLinks }: { socialLinks: SocialLink[] }) {
               </h3>
               <div className='flex gap-4'>
                 {socialLinks.map((link, index) => {
-                  const icon = getIcon(link.icon);
+                  const icon = getSocialIcon(link.icon);
 
                   if (!icon) {
                     return (

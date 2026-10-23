@@ -298,6 +298,25 @@ export default function EditorialClient({
       }
     }
 
+    // Categories missing from Category Order still get their own row (A–Z) rather
+    // than disappearing into "Other", which is kept for posts with no category.
+    const extraGroups = new Map<string, { category: CategoryOrder; posts: PostObject[] }>();
+    for (const post of posts) {
+      if (usedPostIds.has(post.id)) continue;
+      const category = (post.metadata?.categories || []).find(
+        (cat: { id?: string; title?: string }) => cat?.id && cat?.title
+      ) as CategoryOrder | undefined;
+      if (!category) continue;
+
+      const group = extraGroups.get(category.id) ?? { category, posts: [] };
+      group.posts.push(post);
+      extraGroups.set(category.id, group);
+      usedPostIds.add(post.id);
+    }
+    groups.push(
+      ...[...extraGroups.values()].sort((a, b) => a.category.title.localeCompare(b.category.title))
+    );
+
     const uncategorizedPosts = posts.filter(post => !usedPostIds.has(post.id));
     if (uncategorizedPosts.length > 0) {
       groups.push({

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { VideoCaption } from '@/components/video/video-caption';
 import { VideoObject } from '@/lib/cosmic-config';
 import { GenreTag } from '@/components/ui/genre-tag';
 import { Card, CardContent } from '@/components/ui/card';
@@ -118,11 +119,7 @@ export default function FeaturedVideoContent({
             </CardContent>
           </Card>
         </Link>
-        {featuredVideo.metadata?.description && (
-          <p className='text-base text-muted-foreground mt-4'>
-            {featuredVideo.metadata.description}
-          </p>
-        )}
+        <VideoCaption description={featuredVideo.metadata?.description} className='mt-4' />
       </div>
     </div>
   );

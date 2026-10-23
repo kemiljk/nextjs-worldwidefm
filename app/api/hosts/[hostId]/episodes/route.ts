@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRadioShows } from '@/lib/cosmic-service';
 import { transformShowToViewData } from '@/lib/cosmic-service';
+import { EPISODE_PROPS } from '@/lib/episode-service';
 
 export async function GET(
   request: NextRequest,
@@ -17,6 +18,8 @@ export async function GET(
       limit,
       skip: offset,
       sort: '-metadata.broadcast_date',
+      props: EPISODE_PROPS,
+      depth: 1,
     });
 
     // Transform episodes to show format for ShowCard compatibility

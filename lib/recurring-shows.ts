@@ -1,6 +1,5 @@
 import type { UkWeekday } from './date-utils';
-
-export const RECURRING_SHOW_PLACEHOLDER_IMAGE = '/image-placeholder.png';
+import { plainTextToHtml } from './text-to-html';
 
 /**
  * Host slugs follow Cosmic regular-hosts slug conventions (lowercase, hyphenated).
@@ -14,7 +13,6 @@ export interface RecurringShowTemplate {
   startTime: string;
   durationHours: number;
   description: string;
-  placeholderImageUrl: string;
 }
 
 export interface RecurringHostMetadata {
@@ -23,18 +21,21 @@ export interface RecurringHostMetadata {
   external_image_url?: string | null;
 }
 
-export function getRecurringEpisodeContent(
-  template: Pick<RecurringShowTemplate, 'description' | 'placeholderImageUrl'>,
+/** Episode main text (`body_text`) from the host's Cosmic description, else the template copy. */
+export function getRecurringEpisodeBody(
+  template: Pick<RecurringShowTemplate, 'description'>,
   hostMetadata?: RecurringHostMetadata | null
-): { description: string; imageUrl: string } {
-  const description = hostMetadata?.description?.trim() || template.description;
-  const imageUrl =
-    hostMetadata?.external_image_url ||
-    hostMetadata?.image?.imgix_url ||
-    hostMetadata?.image?.url ||
-    template.placeholderImageUrl;
+): string {
+  return plainTextToHtml(hostMetadata?.description?.trim() || template.description);
+}
 
-  return { description, imageUrl };
+/** Image URLs the old weekly job copied from the host into `external_image_url`. */
+export function hostImageUrls(hostMetadata?: RecurringHostMetadata | null): string[] {
+  return [
+    hostMetadata?.external_image_url,
+    hostMetadata?.image?.imgix_url,
+    hostMetadata?.image?.url,
+  ].filter((url): url is string => Boolean(url));
 }
 
 export const RECURRING_SHOWS: RecurringShowTemplate[] = [
@@ -46,7 +47,6 @@ export const RECURRING_SHOWS: RecurringShowTemplate[] = [
     durationHours: 2,
     description:
       'Coco Maria hosts Breakfast Club on Worldwide FM — morning grooves, global sounds, and conversation to start your Tuesday.',
-    placeholderImageUrl: RECURRING_SHOW_PLACEHOLDER_IMAGE,
   },
   {
     title: 'First Light',
@@ -56,7 +56,6 @@ export const RECURRING_SHOWS: RecurringShowTemplate[] = [
     durationHours: 2,
     description:
       'Rohan Rakhit presents First Light — a mid-morning journey through soul, jazz, and beyond on Worldwide FM.',
-    placeholderImageUrl: RECURRING_SHOW_PLACEHOLDER_IMAGE,
   },
   {
     title: 'Worldwide Breakfast',
@@ -66,7 +65,6 @@ export const RECURRING_SHOWS: RecurringShowTemplate[] = [
     durationHours: 2,
     description:
       'Valentine Comar presents Worldwide Breakfast on Worldwide FM — your Wednesday morning soundtrack. Audio, genres, and tracklist to be added after the live show.',
-    placeholderImageUrl: RECURRING_SHOW_PLACEHOLDER_IMAGE,
   },
   {
     title: 'Alfie Panaiotis',
@@ -76,7 +74,6 @@ export const RECURRING_SHOWS: RecurringShowTemplate[] = [
     durationHours: 2,
     description:
       'Alfie Panaiotis on Worldwide FM — mid-morning selections. Audio, genres, and tracklist to be added after the live show.',
-    placeholderImageUrl: RECURRING_SHOW_PLACEHOLDER_IMAGE,
   },
   {
     title: 'Gilles Peterson',
@@ -86,7 +83,6 @@ export const RECURRING_SHOWS: RecurringShowTemplate[] = [
     durationHours: 4,
     description:
       'Gilles Peterson on Worldwide FM — four hours of music discovery every Thursday morning.',
-    placeholderImageUrl: RECURRING_SHOW_PLACEHOLDER_IMAGE,
   },
   {
     title: 'Shai Space',
@@ -96,7 +92,6 @@ export const RECURRING_SHOWS: RecurringShowTemplate[] = [
     durationHours: 2,
     description:
       'Shai Space on Worldwide FM — Friday morning vibes. Audio, genres, and tracklist to be added after the live show.',
-    placeholderImageUrl: RECURRING_SHOW_PLACEHOLDER_IMAGE,
   },
 ];
 

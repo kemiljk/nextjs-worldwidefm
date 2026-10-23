@@ -16,10 +16,15 @@ export function PreviewBanner({ className }: PreviewBannerProps) {
         className
       )}
     >
-      <div className='flex items-center gap-2'>
-        <span className='animate-pulse'>●</span>
-        <span>Preview Mode - Viewing Draft Content</span>
-        <span className='animate-pulse'>●</span>
+      <div className='flex flex-col items-center gap-1'>
+        <div className='flex items-center gap-2'>
+          <span className='animate-pulse'>●</span>
+          <span>Preview Mode - Viewing Draft Content</span>
+          <span className='animate-pulse'>●</span>
+        </div>
+        <span className='font-normal normal-case tracking-normal'>
+          Share this page&apos;s address to let others review this draft before it&apos;s published.
+        </span>
       </div>
     </div>
   );

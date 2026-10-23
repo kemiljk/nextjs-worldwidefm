@@ -11,7 +11,8 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-import { Download, X } from 'lucide-react';
+import { Download, List, X } from 'lucide-react';
+import type { ShowListItem } from '@/lib/export-shows-service';
 import { toast } from 'sonner';
 
 export interface HostOrSeriesOption {
@@ -30,12 +31,35 @@ export function ExportShowsForm({ options }: ExportShowsFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [includeDrafts, setIncludeDrafts] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [shows, setShows] = useState<ShowListItem[] | null>(null);
+  const [isLoadingShows, setIsLoadingShows] = useState(false);
 
   const filteredOptions = useMemo(() => {
     if (!search.trim()) return options.slice(0, 50);
     const term = search.trim().toLowerCase();
     return options.filter(option => option.title.toLowerCase().includes(term)).slice(0, 50);
   }, [options, search]);
+
+  const handleViewShows = async () => {
+    if (!selected) return;
+
+    setIsLoadingShows(true);
+    try {
+      const params = new URLSearchParams({
+        slug: selected.slug,
+        includeDrafts: String(includeDrafts),
+        format: 'json',
+      });
+      const response = await fetch(`/api/export-shows?${params.toString()}`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not load shows');
+      setShows(data.shows || []);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not load shows');
+    } finally {
+      setIsLoadingShows(false);
+    }
+  };
 
   const handleDownload = async () => {
     if (!selected) {
@@ -105,6 +129,7 @@ export function ExportShowsForm({ options }: ExportShowsFormProps) {
                 aria-label='Clear selection'
                 onClick={() => {
                   setSelected(null);
+                  setShows(null);
                   setSearch('');
                   setIsOpen(true);
                 }}
@@ -122,6 +147,7 @@ export function ExportShowsForm({ options }: ExportShowsFormProps) {
                   value={option.slug}
                   onSelect={() => {
                     setSelected(option);
+                    setShows(null);
                     setSearch(option.title);
                     setIsOpen(false);
                   }}
@@ -157,15 +183,75 @@ export function ExportShowsForm({ options }: ExportShowsFormProps) {
         </Label>
       </div>
 
-      <Button
-        type='button'
-        onClick={handleDownload}
-        disabled={!selected || isDownloading}
-        className='gap-2'
-      >
-        <Download className='w-4 h-4' />
-        {isDownloading ? 'Preparing download...' : 'Download CSV'}
-      </Button>
+      <div className='flex flex-wrap gap-3'>
+        <Button
+          type='button'
+          onClick={handleDownload}
+          disabled={!selected || isDownloading}
+          className='gap-2'
+        >
+          <Download className='w-4 h-4' />
+          {isDownloading ? 'Preparing download...' : 'Download CSV'}
+        </Button>
+        <Button
+          type='button'
+          variant='outline'
+          onClick={handleViewShows}
+          disabled={!selected || isLoadingShows}
+          className='gap-2'
+        >
+          <List className='w-4 h-4' />
+          {isLoadingShows ? 'Loading shows...' : 'View shows'}
+        </Button>
+      </div>
+
+      {shows && (
+        <div className='space-y-2'>
+          <p className='text-sm text-muted-foreground'>
+            {shows.length} show{shows.length === 1 ? '' : 's'}, newest first. Search Cosmic by slug
+            to open one.
+          </p>
+          {shows.length > 0 && (
+            <div className='overflow-x-auto border'>
+              <table className='w-full text-sm'>
+                <thead className='bg-muted text-left'>
+                  <tr>
+                    <th className='px-3 py-2 font-medium'>Date</th>
+                    <th className='px-3 py-2 font-medium'>Title</th>
+                    <th className='px-3 py-2 font-medium'>Slug</th>
+                    <th className='px-3 py-2 font-medium'>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shows.map(show => (
+                    <tr key={show.id} className='border-t align-top'>
+                      <td className='px-3 py-2 whitespace-nowrap font-mono'>
+                        {show.broadcastDate.split('-').reverse().join('/')}
+                      </td>
+                      <td className='px-3 py-2'>
+                        {show.episodeUrl ? (
+                          <a
+                            href={show.episodeUrl}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='underline underline-offset-2'
+                          >
+                            {show.title}
+                          </a>
+                        ) : (
+                          show.title
+                        )}
+                      </td>
+                      <td className='px-3 py-2 font-mono text-xs break-all'>{show.slug}</td>
+                      <td className='px-3 py-2 capitalize'>{show.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

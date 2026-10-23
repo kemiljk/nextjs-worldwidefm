@@ -18,6 +18,7 @@ import {
 } from '@/lib/date-utils';
 import { getCachedGenres as getCanonicalGenres } from '@/lib/cached-data';
 import { PreviewBanner } from '@/components/ui/preview-banner';
+import { isValidPreviewToken } from '@/lib/preview-token';
 import { ListenBackButton } from '@/components/listen-back-button';
 import { getEpisodeImageUrl, type EpisodeObject } from '@/lib/cosmic-types';
 import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
@@ -27,11 +28,16 @@ import { generateShowMetadata } from '@/lib/metadata-utils';
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ preview?: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const episode = await getEpisodeBySlug(slug);
+  const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
+  const episode = await getEpisodeBySlug(slug, {
+    includeDrafts: isValidPreviewToken('episode', slug, preview),
+  });
 
   if (!episode) {
     return generateShowMetadata(null);
@@ -86,9 +92,12 @@ export default async function EpisodePage({
 }) {
   await connection();
   const { slug: showSlug } = await params;
+  const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
 
-  // First try to get episode from Cosmic
-  const episode = await getEpisodeBySlug(showSlug);
+  // A valid token (from /api/preview) unlocks this episode's draft.
+  const episode = await getEpisodeBySlug(showSlug, {
+    includeDrafts: isValidPreviewToken('episode', showSlug, preview),
+  });
 
   if (!episode) {
     return (

@@ -41,6 +41,8 @@ type SubmissionPhase =
   | 'success'
   | 'error';
 
+const MAX_MIXCLOUD_HOST_TAGS = 2;
+
 export function UploadMasterForm() {
   const [broadcastDate, setBroadcastDate] = useState('');
   const [episodes, setEpisodes] = useState<EpisodeObject[]>([]);
@@ -127,6 +129,15 @@ export function UploadMasterForm() {
         .filter((host): host is CosmicHost => Boolean(host)),
     [hosts, selectedCoHostIds]
   );
+
+  // Mixcloud only tags hosts with a username, and at most two per upload.
+  const { untaggableHosts, overLimitHosts } = useMemo(() => {
+    const withUsername = selectedCoHosts.filter(host => host.metadata?.mixcloud_username?.trim());
+    return {
+      untaggableHosts: selectedCoHosts.filter(host => !host.metadata?.mixcloud_username?.trim()),
+      overLimitHosts: withUsername.slice(MAX_MIXCLOUD_HOST_TAGS),
+    };
+  }, [selectedCoHosts]);
 
   const showPageUrl = selectedEpisode
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/episode/${selectedEpisode.slug}`
@@ -405,9 +416,29 @@ export function UploadMasterForm() {
             </div>
           )}
           <p className='text-sm text-muted-foreground'>
-            Hosts with a Mixcloud username will be tagged on the Mixcloud upload (max 2). All
-            selected hosts are saved to the episode page.
+            Hosts with a Mixcloud username will be tagged on the Mixcloud upload (max{' '}
+            {MAX_MIXCLOUD_HOST_TAGS}). All selected hosts are saved to the episode page.
           </p>
+          {(untaggableHosts.length > 0 || overLimitHosts.length > 0) && (
+            <div
+              role='alert'
+              className='border border-amber-500 bg-amber-50 p-3 text-sm space-y-1 dark:bg-amber-950'
+            >
+              {untaggableHosts.length > 0 && (
+                <p>
+                  Won&apos;t be tagged on Mixcloud — no Mixcloud username in Cosmic:{' '}
+                  {untaggableHosts.map(host => host.title).join(', ')}. Add one on the host in
+                  Cosmic, then reload this page.
+                </p>
+              )}
+              {overLimitHosts.length > 0 && (
+                <p>
+                  Won&apos;t be tagged — Mixcloud allows {MAX_MIXCLOUD_HOST_TAGS} hosts per upload:{' '}
+                  {overLimitHosts.map(host => host.title).join(', ')}.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 

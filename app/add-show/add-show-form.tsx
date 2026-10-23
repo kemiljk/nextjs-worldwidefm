@@ -50,6 +50,7 @@ import { UPLOAD_CLIENT_TIMEOUT_MS } from '@/lib/upload-config';
 import { fetchWithTimeout } from '@/lib/upload-fetch';
 import { getAudioRecoveryCopy, type AudioRecoveryState } from '@/lib/audio-recovery-copy';
 import type { RadioCultFailureCode } from '@/lib/radiocult-failure';
+import { tracklistTextToHtml } from '@/lib/tracklist-format';
 import { AddNewHost, AddNewHostTrigger } from './add-new-host';
 
 // Form schema using zod
@@ -530,9 +531,8 @@ export function AddShowForm() {
         }
       }
 
-      // Convert tracklist newlines to <br /> for rich text storage
       const processedTracklist = values.tracklist
-        ? values.tracklist.replace(/\n/g, '<br />')
+        ? tracklistTextToHtml(values.tracklist) || undefined
         : undefined;
 
       // Create the show in Cosmic

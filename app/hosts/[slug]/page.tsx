@@ -3,6 +3,7 @@ import { connection } from 'next/server';
 import React from 'react';
 import { notFound } from 'next/navigation';
 import { getRadioShows } from '@/lib/cosmic-service';
+import { EPISODE_PROPS } from '@/lib/episode-service';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
 import { toShowCardData as transformShowToViewData } from '@/lib/show-card-data';
 import { getCachedHostBySlug } from '@/lib/cached-data';
@@ -13,6 +14,7 @@ import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/action
 import { FavoriteButton } from '@/components/favorite-button';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
 import { MapPin } from 'lucide-react';
+import { ShowCard } from '@/components/ui/show-card';
 import HostClient from './host-client';
 
 interface Props {
@@ -60,16 +62,31 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
   }
 
   const PAGE_SIZE = 20;
-  const [initialHostShows, canonicalGenres, user] = await Promise.all([
+  // Card fields only, and a failed read shows an empty list rather than an error page.
+  const noShows = (error: unknown) => {
+    console.error(`Host page shows unavailable for ${slug}:`, error);
+    return { objects: [], total: 0 };
+  };
+  const [initialHostShows, upcomingHostShows, canonicalGenres, user] = await Promise.all([
     getRadioShows({
       filters: { host: host.id },
       limit: PAGE_SIZE,
       sort: '-metadata.broadcast_date',
-    }),
+      props: EPISODE_PROPS,
+      depth: 1,
+    }).catch(noShows),
+    getRadioShows({
+      filters: { host: host.id, upcoming: true },
+      limit: 8,
+      sort: 'metadata.broadcast_date',
+      props: EPISODE_PROPS,
+      depth: 1,
+    }).catch(noShows),
     getCanonicalGenres(),
     getAuthUser(),
   ]);
   const initialShows = (initialHostShows.objects || []).map(transformShowToViewData);
+  const upcomingShows = (upcomingHostShows.objects || []).map(transformShowToViewData);
   const initialHasNext =
     initialShows.length === PAGE_SIZE && initialShows.length < (initialHostShows.total || 0);
 
@@ -175,6 +192,22 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
           )}
         </div>
       </div>
+
+      {upcomingShows.length > 0 && (
+        <section className='w-full px-5 pt-8 space-y-3'>
+          <h2 className='text-h8 md:text-h7 font-bold tracking-tight leading-none'>UPCOMING</h2>
+          <div className='grid grid-cols-2 lg:grid-cols-4 md:grid-cols-3 gap-3'>
+            {upcomingShows.map(upcomingShow => (
+              <ShowCard
+                key={upcomingShow.id || upcomingShow.slug}
+                show={upcomingShow}
+                slug={`/episode/${upcomingShow.slug}`}
+                playable={false}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className='w-full px-5 pt-8'>
         <HostClient

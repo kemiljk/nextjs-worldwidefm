@@ -1,4 +1,5 @@
 import { broadcastToISOString } from './date-utils';
+import { resolveEpisodeImage } from './episode-image';
 
 interface CardRelation {
   id?: string;
@@ -12,12 +13,7 @@ const relations = (items: CardRelation[] = []) =>
 /** Public card/player data only. Detail pages keep their full body and tracklist separately. */
 export function toShowCardData(show: any) {
   const source = show.metadata || {};
-  const image =
-    source.external_image_url ||
-    source.image?.imgix_url ||
-    source.image?.url ||
-    show.image ||
-    '/image-placeholder.png';
+  const image = resolveEpisodeImage(source) || show.image || '/image-placeholder.png';
   const player = source.player || show.player || show.url || '';
   const genres = relations(source.genres || show.genres || []);
   const hosts = relations(source.regular_hosts || show.regular_hosts || []);

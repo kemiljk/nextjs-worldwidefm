@@ -3,7 +3,7 @@ import { getCurrentUkWeek } from '@/lib/date-utils';
 import {
   buildRecurringEpisodeSlug,
   RECURRING_SHOWS,
-  getRecurringEpisodeContent,
+  getRecurringEpisodeBody,
   type RecurringShowTemplate,
 } from '@/lib/recurring-shows';
 
@@ -88,31 +88,75 @@ async function findHostBySlug(slug: string): Promise<{
   }
 }
 
+type SiblingTaxonomy = { type?: string; locations?: string[]; genres?: string[] };
+
+function relationIds(value: unknown): string[] {
+  const items = Array.isArray(value) ? value : value ? [value] : [];
+  return items
+    .map(item => (typeof item === 'string' ? item : (item as { id?: string })?.id))
+    .filter((id): id is string => Boolean(id));
+}
+
+/**
+ * Show category, locations and genres from the host's latest published episode,
+ * so new weekly pages don't need them added by hand.
+ */
+export async function findHostTaxonomy(
+  hostId: string,
+  client: Pick<typeof cosmic, 'objects'> = cosmic
+): Promise<SiblingTaxonomy> {
+  try {
+    const response = await client.objects
+      .find({ type: 'episode', 'metadata.regular_hosts': hostId })
+      .props('id,metadata.type,metadata.locations,metadata.genres')
+      .sort('-metadata.broadcast_date')
+      .depth(0)
+      .limit(1)
+      .status('published');
+
+    const metadata = response.objects?.[0]?.metadata as Record<string, unknown> | undefined;
+    if (!metadata) return {};
+
+    const [type] = relationIds(metadata.type);
+    const locations = relationIds(metadata.locations);
+    const genres = relationIds(metadata.genres);
+    return {
+      ...(type ? { type } : {}),
+      ...(locations.length ? { locations } : {}),
+      ...(genres.length ? { genres } : {}),
+    };
+  } catch (error) {
+    if ((error as { status?: number })?.status === 404) return {};
+    throw error;
+  }
+}
+
 async function createRecurringEpisode(params: {
   template: RecurringShowTemplate;
   broadcastDate: string;
   host: Awaited<ReturnType<typeof findHostBySlug>>;
 }): Promise<void> {
   const { template, broadcastDate, host } = params;
-  const { description, imageUrl } = getRecurringEpisodeContent(template, host?.metadata);
   const broadcastDay = new Date(`${broadcastDate}T12:00:00Z`).toLocaleDateString('en-GB', {
     weekday: 'long',
     timeZone: 'Europe/London',
   });
 
+  // Copy goes in the main text field. No image is written: the site shows the
+  // host's image until staff upload one, so an upload is never overridden.
   const metadata: Record<string, unknown> = {
     broadcast_date: broadcastDate,
     broadcast_time: template.startTime,
     broadcast_day: broadcastDay,
     duration: `${template.durationHours}:00`,
-    description,
-    external_image_url: imageUrl,
+    body_text: getRecurringEpisodeBody(template, host?.metadata),
     is_live: true,
     source: 'recurring-auto',
   };
 
   if (host) {
     metadata.regular_hosts = [host.id];
+    Object.assign(metadata, await findHostTaxonomy(host.id));
   }
 
   const objectData = {

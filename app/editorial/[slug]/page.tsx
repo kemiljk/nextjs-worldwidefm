@@ -14,6 +14,8 @@ import {
   MinimalLayout,
 } from '@/components/editorial/editorial-layouts';
 import { PreviewBanner } from '@/components/ui/preview-banner';
+import { isValidPreviewToken } from '@/lib/preview-token';
+import { getPostKind } from '@/lib/post-kind';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -22,9 +24,11 @@ interface Props {
 
 export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug } = await params;
-  await (searchParams || Promise.resolve({ preview: undefined }));
+  const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
   try {
-    const response = await getPostBySlug(slug);
+    const response = await getPostBySlug(slug, {
+      includeDrafts: isValidPreviewToken('posts', slug, preview),
+    });
 
     if (response?.object) {
       return generatePostMetadata({
@@ -48,14 +52,12 @@ export default async function EditorialArticlePage({
   searchParams?: Promise<{ preview?: string }>;
 }) {
   const resolvedParams = await params;
-  const resolvedSearchParams = await (searchParams || Promise.resolve({ preview: undefined }));
-  const preview = resolvedSearchParams.preview;
+  const { preview } = await (searchParams || Promise.resolve({ preview: undefined }));
 
-  if (preview) {
-    console.log('[Editorial Preview] Preview mode enabled for slug:', resolvedParams.slug);
-  }
-
-  const response = await getPostBySlug(resolvedParams.slug);
+  // A valid token (from /api/preview) unlocks this post's draft; anything else sees published only.
+  const response = await getPostBySlug(resolvedParams.slug, {
+    includeDrafts: isValidPreviewToken('posts', resolvedParams.slug, preview),
+  });
 
   if (!response?.object) {
     notFound();
@@ -78,7 +80,7 @@ export default async function EditorialArticlePage({
   const imageGallery = post.metadata?.image_gallery || [];
 
   // Smart props for layout control
-  const postType = post.metadata?.type?.key || 'article';
+  const postType = getPostKind(post);
   const isFeatured = post.metadata?.is_featured || false;
   const featuredSize = post.metadata?.featured_size?.key || 'small';
   const imageAspectRatio = post.metadata?.image_aspect_ratio?.key || '1_1';

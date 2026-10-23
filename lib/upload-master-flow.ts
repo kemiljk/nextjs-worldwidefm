@@ -151,7 +151,7 @@ export async function runUploadMasterFlow(
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...(radiocultMediaId ? { radiocult_media_id: radiocultMediaId } : {}),
-            ...(mixcloudUrl ? { player: mixcloudUrl, page_link: mixcloudUrl } : {}),
+            ...(mixcloudUrl ? { mixcloud_pending_url: mixcloudUrl } : {}),
             regular_hosts: input.regularHostIds,
             slug: input.episodeSlug,
           }),
@@ -296,6 +296,8 @@ export function buildUploadResultSummary(result: UploadMasterFlowResult): string
 
   if (result.mixcloudUrl && !result.mixcloudLinkSaved) {
     parts.push(`Mixcloud link NOT saved to the show page — add it manually: ${result.mixcloudUrl}`);
+  } else if (result.mixcloudUrl) {
+    parts.push('Listen Back goes live on the show page once Mixcloud publishes the upload');
   }
 
   if (result.radiocultMediaId) {

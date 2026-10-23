@@ -7,6 +7,7 @@ export type EpisodeArchiveUpdates = {
   radiocult_media_id?: string;
   player?: string | null;
   page_link?: string | null;
+  mixcloud_pending_url?: string | null;
   regular_hosts?: string[];
 };
 
@@ -34,17 +35,31 @@ export async function updateEpisodeArchive(
 }
 
 /**
- * Save a Mixcloud cloudcast URL onto an episode. Both metafields carry the same
- * URL: `player` drives the site's archive player, `page_link` the outbound link.
+ * Queue a Mixcloud cloudcast URL on an episode. Uploads are scheduled to publish
+ * at the end of the broadcast, so the URL is held in `mixcloud_pending_url` until
+ * the publish cron confirms the cloudcast is live. Writing `player` straight away
+ * shows Listen Back for a cloudcast Mixcloud can't serve yet.
  */
 export async function saveMixcloudLinkToEpisode(
   episodeId: string,
   mixcloudUrl: string,
   episodeSlug?: string
 ): Promise<void> {
+  await updateEpisodeArchive(episodeId, { mixcloud_pending_url: mixcloudUrl }, episodeSlug);
+}
+
+/**
+ * Promote a live cloudcast onto an episode. Both metafields carry the same URL:
+ * `player` drives the site's archive player, `page_link` the outbound link.
+ */
+export async function publishMixcloudLinkToEpisode(
+  episodeId: string,
+  mixcloudUrl: string,
+  episodeSlug?: string
+): Promise<void> {
   await updateEpisodeArchive(
     episodeId,
-    { player: mixcloudUrl, page_link: mixcloudUrl },
+    { player: mixcloudUrl, page_link: mixcloudUrl, mixcloud_pending_url: '' },
     episodeSlug
   );
 }

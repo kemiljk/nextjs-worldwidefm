@@ -254,7 +254,7 @@ describe('upload API routes', () => {
     expect(json.url).toContain('mixcloud.com');
   });
 
-  it('saves the resolved Mixcloud URL onto the episode when an episodeId is sent', async () => {
+  it('queues the resolved Mixcloud URL on the episode when an episodeId is sent', async () => {
     cosmicUpdates.length = 0;
     const { POST } = await import('@/app/api/upload-mixcloud/route');
     const formData = new FormData();
@@ -276,9 +276,9 @@ describe('upload API routes', () => {
     expect(json.episodeUpdated).toBe(true);
     expect(cosmicUpdates).toHaveLength(1);
     expect(cosmicUpdates[0].id).toBe('episode-1');
+    // Held as pending until the cloudcast is live, so Listen Back can't show early.
     expect(cosmicUpdates[0].data.metadata).toEqual({
-      player: 'https://www.mixcloud.com/worldwidefm/route-test/',
-      page_link: 'https://www.mixcloud.com/worldwidefm/route-test/',
+      mixcloud_pending_url: 'https://www.mixcloud.com/worldwidefm/route-test/',
     });
   });
 

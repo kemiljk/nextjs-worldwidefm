@@ -1,10 +1,12 @@
 import { getCachedNavigation } from '@/lib/cached-data';
 import { getUserFromCookie } from '@/cosmic/blocks/user-management/actions';
+import { getSocialLinks, resolveSocialLinks } from '@/lib/social-links';
 import Navbar from './navbar';
 
 export default async function NavWrapper() {
   let navItems = [];
   let user = null;
+  const socialLinksPromise = getSocialLinks();
 
   try {
     const response = await getCachedNavigation();
@@ -16,5 +18,7 @@ export default async function NavWrapper() {
     console.error('Error fetching navigation or user:', error);
   }
 
-  return <Navbar navItems={navItems} initialUser={user} />;
+  const socialLinks = resolveSocialLinks(await socialLinksPromise);
+
+  return <Navbar navItems={navItems} initialUser={user} socialLinks={socialLinks} />;
 }

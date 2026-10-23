@@ -27,7 +27,8 @@ export interface EpisodeResponse {
   hasNext: boolean;
 }
 
-const EPISODE_PROPS =
+/** Fields episode cards need; much lighter than full episodes. */
+export const EPISODE_PROPS =
   'id,slug,title,type,created_at,metadata.image,metadata.external_image_url,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.featured_on_homepage';
 
 const EPISODE_DETAIL_PROPS =
@@ -139,6 +140,10 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
 
         // Exclude future broadcast dates and episodes from today (1-day delay)
         query['metadata.broadcast_date'] = { $lte: yesterdayStr };
+
+        if (params.listenBackOnly) {
+          query['metadata.player'] = { $regex: '\\S' };
+        }
 
         // Fetch a larger set to randomize from
         const fetchLimit = Math.min(baseLimit * 5, 200);

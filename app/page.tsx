@@ -171,6 +171,20 @@ function renderPageOrderItem(item: PageOrderItem, ctx: HomepageRenderContext): R
         <EditorialSection posts={ctx.posts} title='Editorial' className='pt-8' isHomepage={true} />
       ) : null;
 
+    // Editors can drop a single video or post straight into page_order.
+    case 'videos':
+      return <VideoSection videos={[item as any]} className='pt-8' curated />;
+
+    case 'posts':
+      return (
+        <EditorialSection
+          posts={[item as any]}
+          title='Editorial'
+          className='pt-8'
+          isHomepage={true}
+        />
+      );
+
     default:
       return null;
   }
@@ -186,10 +200,10 @@ export default async function Home() {
   const [homepageData, videosData, postsData, canonicalGenres, recentEpisodesResponse] =
     await Promise.all([
       getCosmicHomepageData(),
-      getVideos({ limit: 3 }),
+      getVideos({ limit: 3, featuredFirst: true }),
       getAllPosts({ limit: 3 }),
       getCanonicalGenres(),
-      getEpisodesForShows({ limit: 20 }),
+      getEpisodesForShows({ limit: 20, listenBackOnly: true }),
     ]);
 
   // Transform recent episodes once
@@ -339,6 +353,7 @@ export default async function Home() {
         genre: [canonicalGenre.id],
         random: true,
         limit: 1,
+        listenBackOnly: true,
       });
 
       if (response?.shows?.[0]) {
@@ -352,7 +367,11 @@ export default async function Home() {
   });
 
   // Fetch archive shows promise
-  const archivePromise = getEpisodesForShows({ limit: 5, offset: randomOffset });
+  const archivePromise = getEpisodesForShows({
+    limit: 5,
+    offset: randomOffset,
+    listenBackOnly: true,
+  });
 
   const displayHeroItems = homepageData?.metadata?.display_hero_items ?? false;
   const heroLayout = homepageData?.metadata?.heroLayout;
@@ -367,7 +386,7 @@ export default async function Home() {
     'episode',
     'episodes',
     'posts',
-    'hosts',
+    'regular-hosts',
     'takeovers',
     'videos',
   ]);

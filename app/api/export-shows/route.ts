@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { exportShows } from '@/lib/export-shows-service';
+import { exportShows, listShows } from '@/lib/export-shows-service';
 
 export const maxDuration = 60;
 
@@ -12,6 +12,11 @@ export async function GET(request: NextRequest) {
   const includeDrafts = request.nextUrl.searchParams.get('includeDrafts') === 'true';
 
   try {
+    if (request.nextUrl.searchParams.get('format') === 'json') {
+      const shows = await listShows({ hostOrSeriesSlug: slug, includeDrafts });
+      return NextResponse.json({ shows });
+    }
+
     const { csv, filename } = await exportShows({ hostOrSeriesSlug: slug, includeDrafts });
 
     return new NextResponse(csv, {

@@ -197,11 +197,7 @@ export function buildExportFilename(slug: string): string {
   return `${slug}-${timestamp}.csv`;
 }
 
-export async function exportShows(options: ExportShowsOptions): Promise<{
-  csv: string;
-  count: number;
-  filename: string;
-}> {
+async function findShows(options: ExportShowsOptions) {
   const target = await resolveHostOrSeriesBySlug(options.hostOrSeriesSlug);
 
   if (!target) {
@@ -218,6 +214,15 @@ export async function exportShows(options: ExportShowsOptions): Promise<{
   }
 
   const episodes = await fetchAllEpisodes(query, options.includeDrafts ?? false);
+  return { target, episodes };
+}
+
+export async function exportShows(options: ExportShowsOptions): Promise<{
+  csv: string;
+  count: number;
+  filename: string;
+}> {
+  const { target, episodes } = await findShows(options);
   const rows = episodes.map(mapEpisodeToRow);
 
   return {
@@ -225,6 +230,31 @@ export async function exportShows(options: ExportShowsOptions): Promise<{
     count: rows.length,
     filename: buildExportFilename(target.slug),
   };
+}
+
+export interface ShowListItem {
+  id: string;
+  title: string;
+  slug: string;
+  status: string;
+  broadcastDate: string;
+  episodeUrl: string;
+}
+
+/** Newest first, for the staff "View shows" list. */
+export async function listShows(options: ExportShowsOptions): Promise<ShowListItem[]> {
+  const { episodes } = await findShows(options);
+
+  return episodes
+    .map(episode => ({
+      id: episode.id,
+      title: episode.title || '',
+      slug: episode.slug || '',
+      status: episode.status || 'published',
+      broadcastDate: episode.metadata?.broadcast_date || '',
+      episodeUrl: episode.slug ? `${SITE_URL}/episode/${episode.slug}` : '',
+    }))
+    .reverse();
 }
 
 export function getCosmicClientForScript() {

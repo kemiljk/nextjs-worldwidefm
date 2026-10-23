@@ -1,9 +1,11 @@
+import Link from 'next/link';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getVideoBySlug } from '@/lib/actions';
 import { format } from 'date-fns';
 import { VideoPlayer } from '@/components/video/video-player';
 import { PageHeader } from '@/components/shared/page-header';
+import { VideoCaption } from '@/components/video/video-caption';
 import { generateVideoMetadata } from '@/lib/metadata-utils';
 
 interface Props {
@@ -43,9 +45,7 @@ export default async function VideoPage({ params }: { params: Promise<{ slug: st
   return (
     <article className='bg-almostblack text-white min-h-dvh px-5 pt-10 pb-20'>
       {/* Video Player Section */}
-      <div className='aspect-video'>
-        <VideoPlayer video={video} />
-      </div>
+      <VideoPlayer video={video} />
 
       {/* Header Section */}
       <div className='max-w-[80vh] h-auto'>
@@ -53,23 +53,21 @@ export default async function VideoPage({ params }: { params: Promise<{ slug: st
           <div className='font-mono uppercase text-m8 leading-none text-white mb-4'>
             {formattedDate}
           </div>
-          <PageHeader
-            title={video.title}
-            description={video.metadata?.description}
-            className='text-white'
-          />
+          <PageHeader title={video.title} className='text-white' />
+          <VideoCaption description={video.metadata?.description} className='text-white/80' />
         </div>
 
         {/* Video Categories */}
         {video.metadata?.categories && (
           <div className='flex flex-wrap gap-3 mb-8'>
             {video.metadata.categories.map((category: { slug: string; title: string }) => (
-              <span
+              <Link
                 key={category.slug + category.title}
-                className='text-m8 font-mono leading-none uppercase px-2 py-1 rounded-full border border-white dark:border-almostblack'
+                href={`/videos?categories=${encodeURIComponent(category.title)}`}
+                className='text-m8 font-mono leading-none uppercase px-2 py-1 rounded-full border border-white dark:border-almostblack hover:bg-white hover:text-almostblack dark:hover:bg-almostblack dark:hover:text-white transition-colors'
               >
                 {category.title}
-              </span>
+              </Link>
             ))}
           </div>
         )}

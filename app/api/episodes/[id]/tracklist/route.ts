@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidateEpisodeCaches } from '@/lib/episode-archive';
 import { cosmic } from '@/lib/cosmic-config';
+import { tracklistTextToHtml } from '@/lib/tracklist-format';
 
 interface UpdateLiveShowBody {
   tracklist?: unknown;
   slug?: unknown;
   genreIds?: unknown;
   imageName?: unknown;
-}
-
-function plainTextTracklistToHtml(tracklist: string): string {
-  return tracklist.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().replace(/\n/g, '<br />');
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -38,7 +35,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const slug = typeof body.slug === 'string' && body.slug.trim() ? body.slug.trim() : undefined;
-    const tracklist = plainTextTracklistToHtml(rawTracklist);
+    const tracklist = tracklistTextToHtml(rawTracklist);
     const imageName = typeof body.imageName === 'string' ? body.imageName.trim() : undefined;
     const metadata: Record<string, string | string[] | null> = {
       tracklist: tracklist || null,

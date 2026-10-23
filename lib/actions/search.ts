@@ -1,5 +1,6 @@
 'use server';
 
+import { getPostKind } from '@/lib/post-kind';
 import {
   SearchResult,
   PostSearchResult,
@@ -54,7 +55,7 @@ export async function getAllSearchableContent(limit?: number): Promise<SearchRes
             typeof post.metadata?.author === 'string'
               ? post.metadata.author
               : post.metadata?.author?.title,
-          postType: post.metadata?.type?.key as 'article' | 'video' | 'event',
+          postType: getPostKind(post),
           featured: post.metadata?.is_featured,
           metadata: post.metadata,
         };

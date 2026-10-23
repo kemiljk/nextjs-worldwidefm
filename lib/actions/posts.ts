@@ -1,6 +1,7 @@
 'use server';
 
 import { getPublicObjects, getPublicObject } from '@/lib/cosmic-public';
+import { postKindQuery } from '@/lib/post-kind';
 
 import { getPosts, getEditorialHomepage } from '../cosmic-service';
 import { PostObject } from '../cosmic-config';
@@ -64,9 +65,7 @@ export async function getPostsWithFilters({
     }
 
     if (postType) {
-      const typeValue =
-        postType === 'article' ? 'Article' : postType === 'video' ? 'Video' : postType;
-      query['metadata.type.value'] = { $eq: typeValue };
+      Object.assign(query, postKindQuery(postType));
     }
 
     if (featured !== undefined) {

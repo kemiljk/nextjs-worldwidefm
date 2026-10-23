@@ -10,6 +10,7 @@ import { PlayButton } from '@/components/play-button';
 import { HighlightedText } from '@/components/ui/highlighted-text';
 import { useMediaPlayer } from '@/components/providers/media-player-provider';
 import { HeroImage, ResponsiveCardImage } from '@/components/ui/optimized-image';
+import { getVideoThumbnailUrl } from '@/lib/video-thumbnail';
 
 // Using any for now since heroItems come from transformed show data
 interface HomepageHeroProps {
@@ -32,7 +33,7 @@ const HeroItem = ({
     episode: `/episode/${item.slug}`,
     episodes: `/episode/${item.slug}`,
     posts: `/editorial/${item.slug}`,
-    hosts: `/hosts/${item.slug}`,
+    'regular-hosts': `/hosts/${item.slug}`,
     takeovers: `/takeovers/${item.slug}`,
     videos: `/videos/${item.slug}`,
   };
@@ -78,12 +79,7 @@ const HeroItem = ({
         <CardContent className='p-0 grow flex flex-col'>
           <div className='relative w-full aspect-square flex items-center justify-center'>
             <HeroImage
-              src={
-                item.metadata?.external_image_url ||
-                item.metadata?.image?.imgix_url ||
-                item.metadata?.image?.url ||
-                '/image-placeholder.png'
-              }
+              src={getVideoThumbnailUrl(item.metadata) || '/image-placeholder.png'}
               alt={item.title || 'Hero item'}
               className='object-cover'
               priority={isPriority}

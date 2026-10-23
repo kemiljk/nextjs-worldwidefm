@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { createBucketClient } from '@cosmicjs/sdk';
-import { getRecurringEpisodeContent, RECURRING_SHOWS } from '@/lib/recurring-shows';
+import { getRecurringEpisodeBody, hostImageUrls, RECURRING_SHOWS } from '@/lib/recurring-shows';
+import { findHostTaxonomy } from '@/lib/create-weekly-shows';
 
 dotenv.config({ path: '.env.local' });
 
@@ -22,14 +23,17 @@ function requireEnvironment(name: string, value: string) {
 async function findHost(slug: string) {
   const response = await cosmic.objects
     .findOne({ type: 'regular-hosts', slug })
-    .props('id,metadata.description,metadata.image,metadata.external_image_url')
+    .props('id,title,metadata.description,metadata.image,metadata.external_image_url')
     .status('any');
 
   return response.object || null;
 }
 
 async function main() {
-  requireEnvironment('NEXT_PUBLIC_COSMIC_BUCKET_SLUG', process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || '');
+  requireEnvironment(
+    'NEXT_PUBLIC_COSMIC_BUCKET_SLUG',
+    process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || ''
+  );
   requireEnvironment('NEXT_PUBLIC_COSMIC_READ_KEY', process.env.NEXT_PUBLIC_COSMIC_READ_KEY || '');
 
   if (applyChanges) {
@@ -44,11 +48,15 @@ async function main() {
       'metadata.source': 'recurring-auto',
       'metadata.broadcast_date': { $gte: today },
     })
-    .props('id,title,metadata.broadcast_date,metadata.description,metadata.external_image_url')
+    .props(
+      'id,title,metadata.broadcast_date,metadata.description,metadata.body_text,metadata.image,metadata.external_image_url'
+    )
     .limit(1000);
 
   const episodes = response.objects || [];
-  console.log(`${applyChanges ? 'Applying' : 'Dry run:'} ${episodes.length} upcoming recurring draft(s)`);
+  console.log(
+    `${applyChanges ? 'Applying' : 'Dry run:'} ${episodes.length} upcoming recurring draft(s)`
+  );
 
   for (const episode of episodes) {
     const template = templates.get(episode.title);
@@ -58,14 +66,29 @@ async function main() {
     }
 
     const host = template.hostSlug ? await findHost(template.hostSlug) : null;
-    const content = getRecurringEpisodeContent(template, host?.metadata);
-    const updates = {
-      description: content.description,
-      external_image_url: content.imageUrl,
-      ...(host ? { regular_hosts: [host.id] } : {}),
+    // Older drafts put the copy in `description` and copied the host image into
+    // `external_image_url`, which overrides any image staff upload. Move the copy
+    // and drop the copied image (the site falls back to the host image), but never
+    // replace copy staff have already written.
+    const metadata = episode.metadata || {};
+    const updates: Record<string, unknown> = {
+      ...(host ? { regular_hosts: [host.id], ...(await findHostTaxonomy(host.id, cosmic)) } : {}),
     };
 
-    console.log(`- ${episode.title} (${episode.metadata?.broadcast_date}): ${host?.title || 'no host'}`);
+    if (!metadata.body_text?.trim()) {
+      updates.body_text = getRecurringEpisodeBody(template, host?.metadata);
+      updates.description = '';
+    }
+    if (
+      metadata.external_image_url &&
+      hostImageUrls(host?.metadata).includes(metadata.external_image_url)
+    ) {
+      updates.external_image_url = '';
+    }
+
+    console.log(
+      `- ${episode.title} (${episode.metadata?.broadcast_date}): ${host?.title || 'no host'} → ${Object.keys(updates).join(', ')}`
+    );
 
     if (applyChanges) {
       await cosmic.objects.updateOne(episode.id, { metadata: updates });

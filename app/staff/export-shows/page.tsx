@@ -27,7 +27,7 @@ export default async function ExportShowsPage() {
         Export Shows
       </h1>
       <p className='text-muted-foreground mb-6'>
-        Select a host or series, then download a CSV of its shows.
+        Select a host or series to see its shows, or download them as a CSV.
       </p>
       <div className='bg-background border rounded-none p-6'>
         <ExportShowsForm options={options} />

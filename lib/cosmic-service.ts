@@ -92,11 +92,16 @@ export async function getRadioShows(
     sort?: string;
     status?: string;
     exclude_ids?: string[];
+    /** Narrower props/depth for card lists; defaults return full episodes. */
+    props?: string;
+    depth?: number;
     filters?: {
       genre?: string;
       host?: string;
       takeover?: string;
       isNew?: boolean;
+      /** Published episodes broadcasting after today, e.g. a series announced ahead of time. */
+      upcoming?: boolean;
     };
   } = {}
 ): Promise<{ objects: RadioShowObject[]; total: number }> {
@@ -119,9 +124,14 @@ export async function getRadioShows(
     const todayStr = extractDatePart(today.toISOString());
 
     if (params.filters) {
-      const { genre, host, takeover, isNew } = params.filters;
+      const { genre, host, takeover, isNew, upcoming } = params.filters;
 
-      if (isNew) {
+      if (upcoming) {
+        query = {
+          ...query,
+          'metadata.broadcast_date': { $gt: todayStr },
+        };
+      } else if (isNew) {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         query = {
@@ -171,19 +181,19 @@ export async function getRadioShows(
         ? await (
             await import('./public-content.server')
           ).fetchPublicContent(query, {
-            props: 'id,slug,title,metadata,type',
+            props: params.props || 'id,slug,title,metadata,type',
             limit: params.limit || 10,
             skip: params.skip || 0,
             sort: params.sort || '-metadata.broadcast_date',
-            depth: 2,
+            depth: params.depth ?? 2,
           })
         : await cosmic.objects
             .find(query)
-            .props('id,slug,title,metadata,type')
+            .props(params.props || 'id,slug,title,metadata,type')
             .limit(params.limit || 10)
             .skip(params.skip || 0)
             .sort(params.sort || '-metadata.broadcast_date')
-            .depth(2);
+            .depth(params.depth ?? 2);
 
     return {
       objects: response.objects || [],

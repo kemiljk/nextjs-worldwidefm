@@ -1,3 +1,4 @@
+import { resolveEpisodeImage } from './episode-image';
 import {
   CosmicImage,
   GenreObject,
@@ -209,9 +210,10 @@ export type PostType = {
         imgix_url: string;
       };
     };
+    // Labelled Compact/Wide in Cosmic; use getPostKind() to tell video posts apart.
     type: {
-      key: 'article' | 'video' | 'event';
-      value: 'Article' | 'Video' | 'Event';
+      key: 'article' | 'video';
+      value: string;
     };
     categories: any[]; // Consider defining a more specific type if the structure of categories is known
     image: {
@@ -399,19 +401,9 @@ export interface EpisodeObject {
 }
 
 /**
- * Get the display image URL for an episode.
- * Checks external_image_url first (cold storage), then falls back to Cosmic image.
+ * Get the display image URL for an episode: its own image (cold storage first),
+ * then its host's, then the placeholder.
  */
 export function getEpisodeImageUrl(episode: EpisodeObject | null | undefined): string {
-  if (!episode) return '/image-placeholder.png';
-
-  // Check external image URL first (cold storage)
-  if (episode.metadata?.external_image_url) {
-    return episode.metadata.external_image_url;
-  }
-
-  // Fall back to Cosmic image
-  return (
-    episode.metadata?.image?.imgix_url || episode.metadata?.image?.url || '/image-placeholder.png'
-  );
+  return resolveEpisodeImage(episode?.metadata) || '/image-placeholder.png';
 }

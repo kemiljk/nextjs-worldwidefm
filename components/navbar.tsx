@@ -11,6 +11,8 @@ import { SearchButton } from './search/search-button';
 import { useAuth } from '@/cosmic/blocks/user-management/AuthContext';
 import { getUserData } from '@/cosmic/blocks/user-management/actions';
 import clsx from 'clsx';
+import { SocialIcons } from './social-icons';
+import type { ResolvedSocialLink } from '@/lib/social-links';
 
 type NavItem = {
   name?: string;
@@ -27,9 +29,10 @@ interface NavbarProps {
     email: string;
     image?: string;
   } | null;
+  socialLinks?: ResolvedSocialLink[];
 }
 
-export default function Navbar({ navItems, initialUser = null }: NavbarProps) {
+export default function Navbar({ navItems, initialUser = null, socialLinks = [] }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const { user: contextUser } = useAuth();
@@ -177,7 +180,12 @@ export default function Navbar({ navItems, initialUser = null }: NavbarProps) {
           </nav>
         </div>
 
-        <div className='flex items-center flex-wrap'>
+        <div className='flex items-center shrink-0'>
+          {/* The nav fills md widths; icons join from lg up and live in the menu below that. */}
+          <SocialIcons
+            links={socialLinks}
+            className='hidden lg:flex h-10 px-4 border-r border-almostblack dark:border-white'
+          />
           <div className='hidden md:block'>
             <SearchButton />
           </div>
@@ -239,6 +247,7 @@ export default function Navbar({ navItems, initialUser = null }: NavbarProps) {
                   ))}
                 </ul>
               </nav>
+              <SocialIcons links={socialLinks} className='px-2 py-3' />
             </SheetContent>
           </Sheet>
         </div>

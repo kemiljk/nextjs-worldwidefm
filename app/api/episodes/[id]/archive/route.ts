@@ -9,6 +9,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const radiocultMediaId = body.radiocult_media_id as string | undefined;
     const player = body.player as string | null | undefined;
     const pageLink = body.page_link as string | null | undefined;
+    const mixcloudPendingUrl = body.mixcloud_pending_url as string | null | undefined;
     const regularHosts = body.regular_hosts as string[] | undefined;
     const slug = typeof body.slug === 'string' && body.slug.trim() ? body.slug.trim() : undefined;
 
@@ -22,6 +23,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     if (pageLink !== undefined) {
       updates.page_link = pageLink;
+    }
+    if (mixcloudPendingUrl !== undefined) {
+      updates.mixcloud_pending_url = mixcloudPendingUrl;
     }
     if (regularHosts !== undefined) {
       if (

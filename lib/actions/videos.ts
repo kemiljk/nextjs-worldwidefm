@@ -29,7 +29,15 @@ export async function getVideos({
   offset = 0,
   tag,
   searchTerm,
-}: { limit?: number; offset?: number; tag?: string; searchTerm?: string } = {}): Promise<{
+  featuredFirst = false,
+}: {
+  limit?: number;
+  offset?: number;
+  tag?: string;
+  searchTerm?: string;
+  /** Lead with videos marked "Featured on homepage", then fill with the latest. */
+  featuredFirst?: boolean;
+} = {}): Promise<{
   videos: VideoObject[];
   hasNext: boolean;
 }> {
@@ -43,6 +51,23 @@ export async function getVideos({
       query['metadata.categories'] = tag;
     }
     applySearchToQuery(query, searchTerm);
+
+    if (featuredFirst) {
+      const featured = await fetchVideosFromCosmic(
+        { ...query, 'metadata.featured_on_homepage': true },
+        limit,
+        0
+      );
+      const latest =
+        featured.length < limit
+          ? await fetchVideosFromCosmic(
+              featured.length ? { ...query, id: { $nin: featured.map(video => video.id) } } : query,
+              limit - featured.length,
+              0
+            )
+          : [];
+      return { videos: [...featured, ...latest], hasNext: false };
+    }
 
     const videos = await fetchVideosFromCosmic(query, limit, offset);
     const hasNext = videos.length === limit;

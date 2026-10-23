@@ -53,6 +53,8 @@ export default function VideoSection({
   // Both the API and curated input are already ordered for display.
   const latestVideos = videos.slice(0, 3);
   const isTwoVideos = latestVideos.length === 2;
+  // A single video (e.g. one placed straight into the homepage layout) gets the full row.
+  const isSingleVideo = latestVideos.length === 1;
   const firstVideo = latestVideos[0];
   const otherVideos = latestVideos.slice(1);
 
@@ -79,7 +81,11 @@ export default function VideoSection({
         {firstVideo && (
           <div
             className={cn(
-              isTwoVideos ? 'w-full sm:w-1/2 aspect-video' : 'w-full sm:w-[65%] h-full'
+              isSingleVideo
+                ? 'w-full'
+                : isTwoVideos
+                  ? 'w-full sm:w-1/2 aspect-video'
+                  : 'w-full sm:w-[65%] h-full'
             )}
           >
             <Link href={`/videos/${firstVideo.slug}`} className='w-full h-full'>
@@ -124,7 +130,8 @@ export default function VideoSection({
             'flex gap-3 justify-between',
             isTwoVideos
               ? 'flex-row w-full sm:w-1/2 aspect-video'
-              : 'w-full sm:w-[35%] flex-col h-full'
+              : 'w-full sm:w-[35%] flex-col h-full',
+            isSingleVideo && 'hidden'
           )}
         >
           {otherVideos.map(video => {

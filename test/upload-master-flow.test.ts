@@ -115,7 +115,7 @@ describe('runUploadMasterFlow', () => {
     expect(phases).toEqual(['uploadingMixcloud', 'uploadingRadioCult', 'updatingEpisode']);
   });
 
-  it('writes the Mixcloud URL to the episode player and page link', async () => {
+  it('queues the Mixcloud URL as pending instead of writing the player', async () => {
     const bodies: Record<string, unknown>[] = [];
     const fetchFn = createMockFetch({
       mixcloudUrl: 'https://www.mixcloud.com/worldwidefm/test-show/',
@@ -127,11 +127,12 @@ describe('runUploadMasterFlow', () => {
 
     expect(bodies).toHaveLength(1);
     expect(bodies[0]).toMatchObject({
-      player: 'https://www.mixcloud.com/worldwidefm/test-show/',
-      page_link: 'https://www.mixcloud.com/worldwidefm/test-show/',
+      mixcloud_pending_url: 'https://www.mixcloud.com/worldwidefm/test-show/',
       radiocult_media_id: 'rc-1',
       slug: 'test-episode',
     });
+    expect(bodies[0]).not.toHaveProperty('player');
+    expect(bodies[0]).not.toHaveProperty('page_link');
   });
 
   it('sends the episode id and slug so the server can save the link itself', async () => {

@@ -51,6 +51,11 @@ interface ScheduleShowInfo {
 
 const LIVE_CURRENT_POLL_MS = Number(process.env.NEXT_PUBLIC_LIVE_CURRENT_POLL_MS) || 2 * 60 * 1000;
 
+// A stalled live stream gets this long to resume before we reconnect, and we
+// reconnect at most this many times in a row before showing an error.
+const STALL_RECONNECT_MS = 8000;
+const MAX_STREAM_RECONNECTS = 3;
+
 export default function LivePlayer() {
   const { isLivePlaying, playLive, pauseLive, liveVolume } = useMediaPlayer();
   const plausible = usePlausible();
@@ -161,12 +166,49 @@ export default function LivePlayer() {
     pauseLiveRef.current = pauseLive;
   }, [pauseLive]);
 
+  // Audio listeners are bound once, so they read play state through a ref.
+  const isLivePlayingRef = useRef(isLivePlaying);
+  useEffect(() => {
+    isLivePlayingRef.current = isLivePlaying;
+  }, [isLivePlaying]);
+
   // Initialize audio element once on mount
   useEffect(() => {
     const audio = new Audio();
     audio.preload = 'none';
     // Note: crossOrigin removed - not needed for audio streams and causes CORS issues
     audioRef.current = audio;
+
+    let stallTimer: ReturnType<typeof setTimeout> | undefined;
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+    let reconnectAttempts = 0;
+
+    // Rejoin the live edge after a stall or network drop, while the listener
+    // still wants to hear it. Returns false once retries are used up.
+    const scheduleReconnect = (delayMs: number): boolean => {
+      if (!isLivePlayingRef.current || !streamUrl) return false;
+      if (reconnectAttempts >= MAX_STREAM_RECONNECTS) return false;
+
+      reconnectAttempts += 1;
+      clearTimeout(reconnectTimer);
+      setStreamState(prev => ({ ...prev, loading: true, error: null }));
+      reconnectTimer = setTimeout(() => {
+        if (!isLivePlayingRef.current) return;
+        console.warn('[LivePlayer] Reconnecting stream', { attempt: reconnectAttempts });
+        audio.src = streamUrl;
+        audio.load();
+        // A failed play surfaces as an 'error' event, which schedules the next attempt.
+        audio.play().catch(() => undefined);
+      }, delayMs);
+      return true;
+    };
+
+    const handleStall = () => {
+      if (!isLivePlayingRef.current) return;
+      setStreamState(prev => ({ ...prev, loading: true }));
+      clearTimeout(stallTimer);
+      stallTimer = setTimeout(() => scheduleReconnect(0), STALL_RECONNECT_MS);
+    };
 
     const handleLoadStart = () => {
       setStreamState(prev => ({ ...prev, loading: true, error: null }));
@@ -183,6 +225,12 @@ export default function LivePlayer() {
       if (error && error.code === 4 && !audio.src) {
         return;
       }
+
+      clearTimeout(stallTimer);
+      if (scheduleReconnect(1000 * (reconnectAttempts + 1))) {
+        return;
+      }
+      reconnectAttempts = 0;
 
       let errorMessage = 'Stream connection failed';
 
@@ -229,10 +277,13 @@ export default function LivePlayer() {
     };
 
     const handlePause = () => {
+      clearTimeout(stallTimer);
       setStreamState(prev => ({ ...prev, loading: false }));
     };
 
     const handlePlaying = () => {
+      clearTimeout(stallTimer);
+      reconnectAttempts = 0;
       setStreamState(prev => ({ ...prev, loading: false, connected: true, error: null }));
     };
 
@@ -242,8 +293,14 @@ export default function LivePlayer() {
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('playing', handlePlaying);
+    audio.addEventListener('waiting', handleStall);
+    audio.addEventListener('stalled', handleStall);
 
     return () => {
+      clearTimeout(stallTimer);
+      clearTimeout(reconnectTimer);
+      audio.removeEventListener('waiting', handleStall);
+      audio.removeEventListener('stalled', handleStall);
       audio.removeEventListener('loadstart', handleLoadStart);
       audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('error', handleError);
@@ -434,8 +491,6 @@ export default function LivePlayer() {
       ...liveMetadata.content,
     };
 
-    const hadError = Boolean(streamState.error);
-
     if (streamState.error) {
       // Retry on error
       setStreamState(prev => ({ ...prev, error: null }));
@@ -451,15 +506,13 @@ export default function LivePlayer() {
       pauseLive();
     } else {
       const audio = audioRef.current;
-      const shouldReload = audio.src !== streamUrl || hadError;
 
+      // Always reconnect on play: resuming a paused live stream would replay
+      // stale buffered audio (heard as glitching after switching apps).
       if (audio.src !== streamUrl) {
         audio.src = streamUrl;
       }
-
-      if (shouldReload) {
-        audio.load();
-      }
+      audio.load();
 
       setStreamState(prev => ({ ...prev, loading: true, error: null }));
 

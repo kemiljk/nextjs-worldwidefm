@@ -21,6 +21,7 @@ import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import { compressImage } from '@/lib/image-compression';
 import { buildShowImageFilename } from '@/lib/upload-filename-utils';
+import { tracklistHtmlToText } from '@/lib/tracklist-format';
 
 interface ImageUploadResponse {
   success?: boolean;
@@ -28,21 +29,6 @@ interface ImageUploadResponse {
     name?: string;
   };
   error?: string;
-}
-
-function htmlTracklistToPlainText(value: string): string {
-  return value
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|li)>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&quot;/gi, '"')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
 }
 
 export function UpdateTracklistForm() {
@@ -153,7 +139,7 @@ export function UpdateTracklistForm() {
     setSelectedEpisode(ep);
     setEpisodeInput(ep.title);
     setIsEpisodesOpen(false);
-    setTracklist(htmlTracklistToPlainText(ep.metadata?.tracklist || ''));
+    setTracklist(tracklistHtmlToText(ep.metadata?.tracklist || ''));
     setSelectedGenreIds(ep.metadata?.genres?.map(genre => genre.id) || []);
     setGenreInput('');
     setImageFile(null);
