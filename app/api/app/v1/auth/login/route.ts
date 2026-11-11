@@ -4,7 +4,7 @@ import { toAppUser, verifyCredentials } from '@/lib/member-account';
 import { createMemberSession } from '@/lib/member-session-store';
 
 const LoginBody = z.object({
-  email: z.string().trim().email().max(320),
+  email: z.string().trim().pipe(z.email().max(320)),
   password: z.string().min(1).max(200),
 });
 

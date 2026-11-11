@@ -22,7 +22,7 @@ const createShowSchema = z.object({
   featuredOnHomepage: z.boolean().default(false),
   status: z.string().default('draft'),
   radiocult_media_id: z.string().nullable().optional(),
-  raw_media_url: z.string().url().nullable().optional(),
+  raw_media_url: z.url().nullable().optional(),
   image: z.any().nullable().optional(),
   location: z.string().optional(),
   isLive: z.boolean().default(false),
@@ -507,7 +507,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Validation error',
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       );

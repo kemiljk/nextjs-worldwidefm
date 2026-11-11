@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { forgotPassword } from '@/cosmic/blocks/user-management/actions';
 import { appError, appJson, readJson } from '@/lib/app-api';
 
-const ForgotPasswordBody = z.object({ email: z.string().trim().email().max(320) });
+const ForgotPasswordBody = z.object({ email: z.string().trim().pipe(z.email().max(320)) });
 
 export async function POST(request: Request) {
   const parsed = ForgotPasswordBody.safeParse(await readJson(request));

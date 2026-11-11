@@ -36,32 +36,32 @@ const artistFormSchema = z.object({
     .string()
     .optional()
     .refine(val => !val || !val.includes('instagram.com'), {
-      message: "Please enter just the handle (e.g., 'username'), not the full URL",
+      error: "Please enter just the handle (e.g., 'username'), not the full URL",
     }),
   twitter: z
     .string()
     .optional()
     .refine(val => !val || (!val.includes('twitter.com') && !val.includes('x.com')), {
-      message: "Please enter just the handle (e.g., 'username'), not the full URL",
+      error: "Please enter just the handle (e.g., 'username'), not the full URL",
     }),
   facebook: z
     .string()
     .optional()
     .refine(val => !val || !val.includes('facebook.com'), {
-      message: "Please enter just the handle (e.g., 'username'), not the full URL",
+      error: "Please enter just the handle (e.g., 'username'), not the full URL",
     }),
-  website: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  website: z.url({ error: 'Please enter a valid URL' }).optional().or(z.literal('')),
   mixcloud: z
     .string()
     .optional()
     .refine(val => !val || !val.includes('mixcloud.com'), {
-      message: "Please enter just the handle (e.g., 'username'), not the full URL",
+      error: "Please enter just the handle (e.g., 'username'), not the full URL",
     }),
   soundcloud: z
     .string()
     .optional()
     .refine(val => !val || !val.includes('soundcloud.com'), {
-      message: "Please enter just the handle (e.g., 'username'), not the full URL",
+      error: "Please enter just the handle (e.g., 'username'), not the full URL",
     }),
 });
 
