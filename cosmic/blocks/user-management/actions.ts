@@ -15,15 +15,18 @@ import {
 } from '@/lib/schedule-reminders';
 import { getWeeklySchedule } from '@/lib/schedule-service';
 import {
-  createMemberSessionToken,
-  memberSessionDigest,
+  hashSecret,
   MEMBER_SESSION_COOKIE,
   MEMBER_SESSION_LIFETIME_SECONDS,
   MEMBER_SESSION_RENEW_BEFORE_MS,
-  parseMemberSessionToken,
   sessionExpiry,
-  sessionIsValid,
 } from '@/lib/member-session';
+import {
+  createMemberSession,
+  deleteMemberSession,
+  resolveMemberSessionToken,
+} from '@/lib/member-session-store';
+import { isValidPassword } from '@/lib/member-account';
 
 async function setMemberSessionCookie(token: string) {
   const cookieStore = await cookies();
@@ -43,10 +46,6 @@ function getResendClient(): Resend {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error('RESEND_API_KEY is not configured');
   return new Resend(apiKey);
-}
-
-function isValidPassword(password: string): boolean {
-  return password.length >= 8 && /[A-Za-z]/.test(password) && /[0-9]/.test(password);
 }
 
 export async function signUp(formData: FormData) {
@@ -103,7 +102,7 @@ export async function signUp(formData: FormData) {
         password: hashedPassword,
         active_status: true,
         email_verified: false,
-        verification_code: verificationCode,
+        verification_code: hashSecret(verificationCode),
         verification_expiry: verificationExpiry,
       },
     });
@@ -176,14 +175,7 @@ export async function login(formData: FormData) {
       image: result.object.metadata.avatar?.imgix_url,
     };
 
-    const token = createMemberSessionToken(result.object.id);
-    await cosmic.objects.insertOne({
-      type: 'member-sessions',
-      title: 'Member session',
-      slug: memberSessionDigest(token, result.object.metadata.password),
-      status: 'published',
-      metadata: { expires_at: sessionExpiry() },
-    });
+    const token = await createMemberSession(result.object.id, result.object.metadata.password);
     await setMemberSessionCookie(token);
 
     return { user };
@@ -230,50 +222,7 @@ export async function getUserData(userId: string) {
 
 async function resolveMemberSession() {
   noStore();
-  const token = (await cookies()).get(MEMBER_SESSION_COOKIE)?.value;
-  const parsed = parseMemberSessionToken(token);
-  if (!token || !parsed) return null;
-
-  try {
-    const result = await cosmic.objects
-      .findOne({
-        type: 'users',
-        id: parsed.userId,
-        'metadata.active_status': true,
-        'metadata.email_verified': true,
-      })
-      .props(['id', 'title', 'metadata'])
-      .depth(1);
-    const account = result?.object;
-    const metadata = account?.metadata;
-    if (!account || typeof metadata?.password !== 'string' || !metadata.password) return null;
-
-    const sessionResult = await cosmic.objects
-      .findOne({ type: 'member-sessions', slug: memberSessionDigest(token, metadata.password) })
-      .props(['id', 'metadata.expires_at'])
-      .depth(0);
-    const session = sessionResult?.object;
-    if (!session || !sessionIsValid(session.metadata?.expires_at)) return null;
-
-    const name =
-      account.title ||
-      [metadata.first_name, metadata.last_name].filter(Boolean).join(' ') ||
-      metadata.name ||
-      metadata.email;
-    const image =
-      metadata.avatar?.imgix_url || metadata.image?.imgix_url || metadata.avatar || metadata.image;
-    return {
-      token,
-      sessionId: session.id as string,
-      expiresAt: session.metadata.expires_at as string,
-      user: { id: account.id, name, email: metadata.email, image },
-    };
-  } catch (error) {
-    // Missing accounts or sessions are invalid; infrastructure failures must
-    // propagate so sign-out does not report revocation when it failed.
-    if ((error as { status?: number })?.status === 404) return null;
-    throw error;
-  }
+  return resolveMemberSessionToken((await cookies()).get(MEMBER_SESSION_COOKIE)?.value);
 }
 
 export async function getUserFromCookie() {
@@ -338,7 +287,7 @@ export async function updateUserProfile(userId: string, formData: FormData) {
       const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       metadata.email_verified = false;
-      metadata.verification_code = verificationCode;
+      metadata.verification_code = hashSecret(verificationCode);
       metadata.verification_expiry = verificationExpiry;
 
       // Send new verification email
@@ -401,7 +350,7 @@ export async function verifyEmail(code: string) {
     const { object } = await cosmic.objects
       .findOne({
         type: 'users',
-        'metadata.verification_code': code,
+        'metadata.verification_code': hashSecret(code),
       })
       .props(['id', 'metadata'])
       .depth(0);
@@ -459,7 +408,7 @@ export async function forgotPassword(formData: FormData) {
     await cosmic.objects.updateOne(existingUser.object.id, {
       metadata: {
         ...existingUser.object.metadata,
-        reset_password_token: resetToken,
+        reset_password_token: hashSecret(resetToken),
         reset_password_expiry: resetExpiry,
       },
     });
@@ -516,7 +465,7 @@ export async function resetPassword(token: string, formData: FormData) {
     const existingUser = await cosmic.objects
       .findOne({
         type: 'users',
-        'metadata.reset_password_token': token,
+        'metadata.reset_password_token': hashSecret(token),
       })
       .props(['id', 'metadata'])
       .depth(0);
@@ -580,7 +529,7 @@ export async function refreshMemberSession() {
 export async function logoutUser() {
   'use server';
   const resolved = await resolveMemberSession();
-  if (resolved) await cosmic.objects.deleteOne(resolved.sessionId);
+  if (resolved) await deleteMemberSession(resolved.sessionId);
   const cookieStore = await cookies();
   cookieStore.delete(MEMBER_SESSION_COOKIE);
   cookieStore.delete('user_id');

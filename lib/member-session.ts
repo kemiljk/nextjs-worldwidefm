@@ -30,3 +30,8 @@ export function sessionIsValid(expiry: unknown, now = Date.now()): boolean {
     typeof expiry === 'string' && Number.isFinite(Date.parse(expiry)) && Date.parse(expiry) > now
   );
 }
+
+// Reset and verification codes are emailed in full and stored only as a digest.
+export function hashSecret(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
