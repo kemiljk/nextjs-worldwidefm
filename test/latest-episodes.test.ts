@@ -62,6 +62,7 @@ test('Latest Shows retains its configured limit and offset after filtering', asy
 
 test('the unfiltered request used by the hero and other sections still includes shows without archives', async () => {
   const response = await getEpisodesForShows({ limit: 20 });
-  expect(response.shows).toEqual(episodes);
+  // Fixtures are partial episodes, so compare without the EpisodeObject type.
+  expect(response.shows as unknown).toEqual(episodes);
   expect(fetchEpisodes.mock.lastCall?.[0]['metadata.player']).toBeUndefined();
 });

@@ -263,9 +263,7 @@ export function getCosmicClientForScript() {
   const readKey = getCosmicReadKey();
 
   if (!bucketSlug || !readKey) {
-    throw new Error(
-      'Missing NEXT_PUBLIC_COSMIC_BUCKET_SLUG or COSMIC_READ_KEY in .env.local'
-    );
+    throw new Error('Missing NEXT_PUBLIC_COSMIC_BUCKET_SLUG or COSMIC_READ_KEY in .env.local');
   }
 
   return createBucketClient({

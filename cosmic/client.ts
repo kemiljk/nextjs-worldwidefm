@@ -10,8 +10,7 @@ export const cosmic = createBucketClient({
   bucketSlug:
     process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG ||
     'You need to add your NEXT_PUBLIC_COSMIC_BUCKET_SLUG environment variable.',
-  readKey:
-    getCosmicReadKey() || 'You need to add your COSMIC_READ_KEY environment variable.',
+  readKey: getCosmicReadKey() || 'You need to add your COSMIC_READ_KEY environment variable.',
   writeKey:
     process.env.COSMIC_WRITE_KEY || 'You need to add your COSMIC_WRITE_KEY environment variable.',
 });
