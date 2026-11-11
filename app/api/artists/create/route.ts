@@ -6,8 +6,8 @@ import { createArtist } from '@/lib/radiocult-artist';
 const createArtistSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().optional(),
-  imageUrl: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
-  socialLinks: z.record(z.string()).optional(),
+  imageUrl: z.url({ error: 'Please enter a valid URL' }).optional().or(z.literal('')),
+  socialLinks: z.record(z.string(), z.string()).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Validation error',
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       );

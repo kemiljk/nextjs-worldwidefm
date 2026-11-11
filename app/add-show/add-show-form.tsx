@@ -56,28 +56,28 @@ import { AddNewHost, AddNewHostTrigger } from './add-new-host';
 // Form schema using zod
 const formSchema = z.object({
   title: z.string().min(3, {
-    message: 'Show title must be at least 3 characters',
+    error: 'Show title must be at least 3 characters',
   }),
   description: z.string().optional(),
   hostId: z.string({
-    required_error: 'Please select a host or series',
+    error: 'Please select a host or series',
   }),
   startDate: z.string().min(1, {
-    message: 'Please select a start date',
+    error: 'Please select a start date',
   }),
   startTime: z.string().min(1, {
-    message: 'Please enter a start time',
+    error: 'Please enter a start time',
   }),
   duration: z.string().min(1, {
-    message: 'Please enter show duration',
+    error: 'Please enter show duration',
   }),
   tracklist: z.string().optional(),
   extraDetails: z.string().optional(),
   mixcloudSubmissionNotes: z.string().max(500).optional(),
-  tags: z.array(z.string()).default([]),
-  featuredOnHomepage: z.boolean().default(false),
+  tags: z.array(z.string()),
+  featuredOnHomepage: z.boolean(),
   location: z.string().optional(),
-  isLive: z.boolean().default(false),
+  isLive: z.boolean(),
   takeover: z.string().optional(),
 });
 
