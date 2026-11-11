@@ -2,7 +2,6 @@ import 'server-only';
 import { createBucketClient } from '@cosmicjs/sdk';
 import { getCosmicReadKey } from './cosmic-server-env';
 import { CosmicResponse, RadioShowObject, CategoryObject, PostObject } from './cosmic-config';
-import { EpisodeObject } from './cosmic-types';
 import { extractDatePart } from './date-utils';
 
 const cosmic = createBucketClient({
