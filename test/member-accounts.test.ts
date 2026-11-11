@@ -133,6 +133,9 @@ const favouritesRoute = await import('@/app/api/app/v1/me/favourites/[kind]/[id]
 // --- Helpers ----------------------------------------------------------------
 
 const PASSWORD = 'correct horse 1';
+// Cosmic object ids are 24 hex characters; the app API rejects anything else.
+const ALICE = 'a1'.repeat(12);
+const BOB = 'b2'.repeat(12);
 
 async function addUser(id: string, email: string, extra: Record<string, unknown> = {}) {
   objects.set(id, {
@@ -191,40 +194,40 @@ beforeEach(async () => {
   sentEmails.length = 0;
   requestCookies.clear();
   signedInAs(null);
-  await addUser('alice', 'alice@example.test');
-  await addUser('bob', 'bob@example.test');
+  await addUser(ALICE, 'alice@example.test');
+  await addUser(BOB, 'bob@example.test');
 });
 
 // --- Sessions ---------------------------------------------------------------
 
 describe('member session store', () => {
   it('stores only a digest of the token and resolves it', async () => {
-    const token = await newSession('alice');
+    const token = await newSession(ALICE);
 
-    expect(token.startsWith('alice.')).toBe(true);
+    expect(token.startsWith(`${ALICE}.`)).toBe(true);
     expect(JSON.stringify([...objects.values()])).not.toContain(token);
-    expect(await sessionUserId(token)).toBe('alice');
+    expect(await sessionUserId(token)).toBe(ALICE);
   });
 
   it('rejects tampered tokens and tokens moved to another user', async () => {
-    const token = await newSession('alice');
-    const secret = token.slice('alice.'.length);
+    const token = await newSession(ALICE);
+    const secret = token.slice(ALICE.length + 1);
 
     expect(await sessionUserId(`${token.slice(0, -1)}x`)).toBeNull();
-    expect(await sessionUserId(`bob.${secret}`)).toBeNull();
-    expect(await sessionUserId('alice')).toBeNull();
+    expect(await sessionUserId(`${BOB}.${secret}`)).toBeNull();
+    expect(await sessionUserId(ALICE)).toBeNull();
     expect(await sessionUserId('')).toBeNull();
   });
 
   it('rejects expired sessions and sessions from before a password change', async () => {
-    const expiring = await newSession('alice');
-    const other = await newSession('alice');
+    const expiring = await newSession(ALICE);
+    const other = await newSession(ALICE);
 
     sessionObjects()[0].metadata.expires_at = '2020-01-01T00:00:00Z';
     expect(await sessionUserId(expiring)).toBeNull();
-    expect(await sessionUserId(other)).toBe('alice');
+    expect(await sessionUserId(other)).toBe(ALICE);
 
-    objects.get('alice')!.metadata.password = await bcrypt.hash('changed 2', 4);
+    objects.get(ALICE)!.metadata.password = await bcrypt.hash('changed 2', 4);
     expect(await sessionUserId(other)).toBeNull();
   });
 });
@@ -238,29 +241,34 @@ describe('app API', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(body.user).toMatchObject({ id: 'alice', email: 'alice@example.test' });
+    expect(body.user).toMatchObject({ id: ALICE, email: 'alice@example.test' });
     expect(JSON.stringify(body)).not.toContain('password');
 
     signedInAs(body.token);
     const me = await (await meRoute.GET()).json();
-    expect(me.user.id).toBe('alice');
+    expect(me.user.id).toBe(ALICE);
     expect(JSON.stringify(me)).not.toMatch(/password/);
   });
 
   it('rejects bad passwords, unverified members and missing tokens', async () => {
     expect((await appLogin('alice@example.test', 'wrong password 1')).status).toBe(401);
 
-    objects.get('alice')!.metadata.email_verified = false;
+    objects.get(ALICE)!.metadata.email_verified = false;
     expect((await appLogin('alice@example.test')).status).toBe(403);
 
     signedInAs(null);
     expect((await meRoute.GET()).status).toBe(401);
-    signedInAs('alice.not-a-real-token-but-long-enough-to-parse-000');
+    signedInAs(`${ALICE}.not-a-real-token-but-long-enough-to-parse-000`);
+    expect((await meRoute.GET()).status).toBe(401);
+  });
+
+  it('treats tokens with a non-Cosmic id as signed out', async () => {
+    signedInAs('not-an-id.abcdefghijklmnopqrstuvwxyzabcdefghijklmnopq');
     expect((await meRoute.GET()).status).toBe(401);
   });
 
   it('ignores the web cookie on app routes', async () => {
-    requestCookies.set(MEMBER_SESSION_COOKIE, await newSession('alice'));
+    requestCookies.set(MEMBER_SESSION_COOKIE, await newSession(ALICE));
     signedInAs(null);
     expect((await meRoute.GET()).status).toBe(401);
   });
@@ -274,14 +282,14 @@ describe('app API', () => {
     expect(again.favourites.genres).toEqual(['genre1']);
 
     await favourite('takeovers', 'takeover1', 'PUT');
-    expect(objects.get('alice')!.metadata.favourite_takeovers).toEqual(['takeover1']);
+    expect(objects.get(ALICE)!.metadata.favourite_takeovers).toEqual(['takeover1']);
 
     const removed = await (await favourite('genres', 'genre1', 'DELETE')).json();
     expect(removed.favourites.genres).toEqual([]);
 
     expect((await favourite('passwords', 'x', 'PUT')).status).toBe(404);
     expect((await favourite('genres', '../bob', 'PUT')).status).toBe(400);
-    expect(objects.get('bob')!.metadata.favourite_genres).toEqual([]);
+    expect(objects.get(BOB)!.metadata.favourite_genres).toEqual([]);
   });
 
   it('changes the password, ends every old session and returns a new token', async () => {
@@ -301,21 +309,21 @@ describe('app API', () => {
     expect(changed.status).toBe(200);
     expect(await sessionUserId(phone)).toBeNull();
     expect(await sessionUserId(tablet)).toBeNull();
-    expect(await sessionUserId(renewed)).toBe('alice');
+    expect(await sessionUserId(renewed)).toBe(ALICE);
     expect((await appLogin('alice@example.test', 'new password 2')).status).toBe(200);
   });
 
   it('updates only the profile fields that are sent', async () => {
     const { token } = await (await appLogin('alice@example.test')).json();
     signedInAs(token);
-    objects.get('alice')!.metadata.first_name = 'Alice';
+    objects.get(ALICE)!.metadata.first_name = 'Alice';
 
     const response = await meRoute.PATCH(
       jsonRequest({ name: 'DJ Alice', lastName: 'Smith' }, 'PATCH')
     );
     expect(response.status).toBe(200);
-    expect(objects.get('alice')!.title).toBe('DJ Alice');
-    expect(objects.get('alice')!.metadata).toMatchObject({
+    expect(objects.get(ALICE)!.title).toBe('DJ Alice');
+    expect(objects.get(ALICE)!.metadata).toMatchObject({
       first_name: 'Alice',
       last_name: 'Smith',
     });
@@ -330,7 +338,7 @@ describe('app API', () => {
     const { token: again } = await (await appLogin('alice@example.test')).json();
     signedInAs(again);
     expect((await meRoute.DELETE()).status).toBe(200);
-    expect(objects.has('alice')).toBe(false);
+    expect(objects.has(ALICE)).toBe(false);
   });
 
   it('answers forgot-password the same way for unknown emails', async () => {
@@ -354,35 +362,35 @@ describe('website server actions', () => {
   }
 
   it('uses a session token cookie instead of the user id', async () => {
-    requestCookies.set('user_id', 'alice');
+    requestCookies.set('user_id', ALICE);
     expect(await actions.getUserFromCookie()).toBeNull();
 
     await webLogin('alice@example.test');
     expect(requestCookies.has('user_id')).toBe(false);
-    expect(requestCookies.get(MEMBER_SESSION_COOKIE)).not.toBe('alice');
-    expect((await actions.getUserFromCookie())?.id).toBe('alice');
+    expect(requestCookies.get(MEMBER_SESSION_COOKIE)).not.toBe(ALICE);
+    expect((await actions.getUserFromCookie())?.id).toBe(ALICE);
   });
 
   it("refuses to read or change another member's data", async () => {
     await webLogin('alice@example.test');
 
-    expect((await actions.getUserData('bob')).error).toBe('Unauthorized');
-    expect((await actions.addFavouriteGenre('bob', { id: 'genre1' } as any)).success).toBe(false);
-    expect(objects.get('bob')!.metadata.favourite_genres).toEqual([]);
+    expect((await actions.getUserData(BOB)).error).toBe('Unauthorized');
+    expect((await actions.addFavouriteGenre(BOB, { id: 'genre1' } as any)).success).toBe(false);
+    expect(objects.get(BOB)!.metadata.favourite_genres).toEqual([]);
 
-    const own = await actions.getUserData('alice');
-    expect(own.data?.id).toBe('alice');
+    const own = await actions.getUserData(ALICE);
+    expect(own.data?.id).toBe(ALICE);
     expect(JSON.stringify(own.data)).not.toMatch(/password/);
   });
 
   it('stores reset tokens hashed and signs out everywhere after a reset', async () => {
-    const session = await newSession('alice');
+    const session = await newSession(ALICE);
     const formData = new FormData();
     formData.set('email', 'alice@example.test');
     await actions.forgotPassword(formData);
 
     const rawToken = sentEmails[0].html.match(/token=([a-f0-9]+)/)![1];
-    expect(objects.get('alice')!.metadata.reset_password_token).not.toBe(rawToken);
+    expect(objects.get(ALICE)!.metadata.reset_password_token).not.toBe(rawToken);
 
     const reset = new FormData();
     reset.set('password', 'brand new 3');

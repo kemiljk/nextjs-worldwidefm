@@ -22,9 +22,15 @@ export async function getBearerToken(): Promise<string | null> {
   return authorization.slice('Bearer '.length).trim() || null;
 }
 
+// Cosmic object ids are 24 hex characters. Cosmic answers other ids with an
+// error rather than a 404, so reject them here and keep real failures as errors.
+const COSMIC_ID_TOKEN = /^[a-f0-9]{24}\./;
+
 /** The session and member account behind the request's bearer token, or null. */
 export async function getAppSession() {
-  return resolveMemberSessionToken(await getBearerToken());
+  const token = await getBearerToken();
+  if (!token || !COSMIC_ID_TOKEN.test(token)) return null;
+  return resolveMemberSessionToken(token);
 }
 
 /** The member account behind the request's bearer token, or null. */
