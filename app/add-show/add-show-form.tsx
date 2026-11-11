@@ -73,6 +73,7 @@ const formSchema = z.object({
   }),
   tracklist: z.string().optional(),
   extraDetails: z.string().optional(),
+  mixcloudSubmissionNotes: z.string().max(500).optional(),
   tags: z.array(z.string()).default([]),
   featuredOnHomepage: z.boolean().default(false),
   location: z.string().optional(),
@@ -171,6 +172,7 @@ export function AddShowForm() {
       duration: '1',
       tracklist: '',
       extraDetails: '',
+      mixcloudSubmissionNotes: '',
       tags: [],
       featuredOnHomepage: false,
       location: undefined,
@@ -1073,6 +1075,28 @@ export function AddShowForm() {
                 </FormItem>
               );
             }}
+          />
+
+          <FormField
+            control={form.control}
+            name='mixcloudSubmissionNotes'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mixcloud usernames and co-hosts (optional)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder='Host and co-host names and Mixcloud usernames'
+                    maxLength={500}
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Add the names and Mixcloud usernames of anyone who should be tagged. They must
+                  accept an invitation to co-host from Worldwide FM on Mixcloud.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
           />
 
           <FormField

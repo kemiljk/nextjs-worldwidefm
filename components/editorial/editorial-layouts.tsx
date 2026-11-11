@@ -91,17 +91,16 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
               />
             </div>
           )}
-          {/* Main Content */}
-          <div>
-            {content && (
-              <div
-                dangerouslySetInnerHTML={{ __html: content }}
-                className='wrap-break-word font-sans text-b6 mt-10 md:mt-20 space-y-4 editorial-content'
-              />
-            )}
-          </div>
         </div>
       </div>
+      {content && (
+        <div className='max-w-4xl mx-auto px-5 md:px-20 mb-20'>
+          <div
+            dangerouslySetInnerHTML={{ __html: content }}
+            className='wrap-break-word font-sans text-b6 space-y-4 editorial-content'
+          />
+        </div>
+      )}
     </article>
   );
 }
@@ -243,7 +242,7 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
       {/* Content */}
       {content && (
         <div
-          className={`max-w-4xl mx-auto px-5 md:px-40 ${imageGallery.length > 0 ? '' : 'mb-20'}`}
+          className={`max-w-4xl mx-auto px-5 md:px-20 ${imageGallery.length > 0 ? '' : 'mb-20'}`}
         >
           <div
             dangerouslySetInnerHTML={{ __html: content }}

@@ -16,7 +16,7 @@ dotenv.config({ path: '.env.local', quiet: true });
 
 const cosmic = createBucketClient({
   bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || '',
-  readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY || '',
+  readKey: (process.env.COSMIC_READ_KEY || process.env.NEXT_PUBLIC_COSMIC_READ_KEY) || '',
 });
 
 const BATCH_SIZE = 500;
@@ -97,7 +97,7 @@ async function fetchEpisodes(since?: string): Promise<Episode[]> {
 }
 
 async function main() {
-  if (!process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || !process.env.NEXT_PUBLIC_COSMIC_READ_KEY) {
+  if (!process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || !(process.env.COSMIC_READ_KEY || process.env.NEXT_PUBLIC_COSMIC_READ_KEY)) {
     throw new Error('NEXT_PUBLIC_COSMIC_BUCKET_SLUG and NEXT_PUBLIC_COSMIC_READ_KEY are required');
   }
 

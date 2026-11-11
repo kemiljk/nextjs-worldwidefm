@@ -78,7 +78,9 @@ export async function getVideos({
   }
 }
 
-export async function getVideoCategories(): Promise<{ id: string; slug: string; title: string }[]> {
+export async function getVideoCategories(): Promise<
+  { id: string; slug: string; title: string; metadata?: { description?: string | null } | null }[]
+> {
   try {
     const response = await getPublicObjects(
       {

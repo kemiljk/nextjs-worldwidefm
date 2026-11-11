@@ -1,7 +1,7 @@
 'use server';
 
 import crypto from 'crypto';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import { unstable_noStore as noStore, revalidateTag } from 'next/cache';
 import { cosmic } from '@/lib/cosmic-config';
 import bcrypt from 'bcryptjs';
@@ -14,6 +14,30 @@ import {
   type ScheduleReminderPreference,
 } from '@/lib/schedule-reminders';
 import { getWeeklySchedule } from '@/lib/schedule-service';
+import {
+  createMemberSessionToken,
+  memberSessionDigest,
+  MEMBER_SESSION_COOKIE,
+  MEMBER_SESSION_LIFETIME_SECONDS,
+  MEMBER_SESSION_RENEW_BEFORE_MS,
+  parseMemberSessionToken,
+  sessionExpiry,
+  sessionIsValid,
+} from '@/lib/member-session';
+
+async function setMemberSessionCookie(token: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(MEMBER_SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: MEMBER_SESSION_LIFETIME_SECONDS,
+  });
+  // Discard the old, unauthenticated user-ID cookie.
+  cookieStore.delete('user_id');
+}
+import { episodeStartTime, parseEpisodeReminderIds } from '@/lib/episode-reminders';
 
 function getResendClient(): Resend {
   const apiKey = process.env.RESEND_API_KEY;
@@ -152,21 +176,15 @@ export async function login(formData: FormData) {
       image: result.object.metadata.avatar?.imgix_url,
     };
 
-    // Set the user_id cookie
-    const cookieStore = await cookies();
-    const headersList = await headers();
-    const host = headersList.get('host') || '';
-    const isLocalhost = host.includes('localhost');
-
-    // Only use secure cookies in production if NOT on localhost
-    const isSecure = process.env.NODE_ENV === 'production' && !isLocalhost;
-
-    cookieStore.set('user_id', result.object.id, {
-      httpOnly: true,
-      secure: isSecure,
-      sameSite: 'lax',
-      path: '/',
+    const token = createMemberSessionToken(result.object.id);
+    await cosmic.objects.insertOne({
+      type: 'member-sessions',
+      title: 'Member session',
+      slug: memberSessionDigest(token, result.object.metadata.password),
+      status: 'published',
+      metadata: { expires_at: sessionExpiry() },
     });
+    await setMemberSessionCookie(token);
 
     return { user };
   } catch (error) {
@@ -175,8 +193,22 @@ export async function login(formData: FormData) {
   }
 }
 
+function publicMemberRecord<T extends { metadata?: Record<string, any> }>(object: T): T {
+  const metadata = { ...(object.metadata || {}) };
+  delete metadata.password;
+  delete metadata.verification_code;
+  delete metadata.verification_expiry;
+  delete metadata.reset_password_token;
+  delete metadata.reset_password_expiry;
+  return { ...object, metadata };
+}
+
 export async function getUserData(userId: string) {
   try {
+    const authenticated = await getUserFromCookie();
+    if (!authenticated || authenticated.id !== userId) {
+      return { data: null, error: 'Unauthorized' };
+    }
     const { object } = await cosmic.objects
       .findOne({
         id: userId,
@@ -189,60 +221,65 @@ export async function getUserData(userId: string) {
       return { data: null, error: 'User not found' };
     }
 
-    return { data: object, error: null };
+    return { data: publicMemberRecord(object), error: null };
   } catch (error) {
     console.error('Error fetching user data:', error);
     return { data: null, error: 'Failed to fetch user data' };
   }
 }
 
-export async function getUserFromCookie() {
+async function resolveMemberSession() {
+  noStore();
+  const token = (await cookies()).get(MEMBER_SESSION_COOKIE)?.value;
+  const parsed = parseMemberSessionToken(token);
+  if (!token || !parsed) return null;
+
   try {
-    noStore();
-
-    let cookieStore: Awaited<ReturnType<typeof cookies>> | null = null;
-    try {
-      cookieStore = await cookies();
-    } catch {
-      return null;
-    }
-
-    const userId = cookieStore.get('user_id');
-    if (!userId) {
-      return null;
-    }
-
     const result = await cosmic.objects
       .findOne({
         type: 'users',
-        id: userId.value,
+        id: parsed.userId,
         'metadata.active_status': true,
+        'metadata.email_verified': true,
       })
       .props(['id', 'title', 'metadata'])
       .depth(1);
+    const account = result?.object;
+    const metadata = account?.metadata;
+    if (!account || typeof metadata?.password !== 'string' || !metadata.password) return null;
 
-    if (!result?.object) {
-      return null;
-    }
+    const sessionResult = await cosmic.objects
+      .findOne({ type: 'member-sessions', slug: memberSessionDigest(token, metadata.password) })
+      .props(['id', 'metadata.expires_at'])
+      .depth(0);
+    const session = sessionResult?.object;
+    if (!session || !sessionIsValid(session.metadata?.expires_at)) return null;
 
-    const metadata = result.object.metadata || {};
     const name =
-      result.object.title ||
+      account.title ||
       [metadata.first_name, metadata.last_name].filter(Boolean).join(' ') ||
       metadata.name ||
       metadata.email;
     const image =
       metadata.avatar?.imgix_url || metadata.image?.imgix_url || metadata.avatar || metadata.image;
-
     return {
-      id: result.object.id,
-      name,
-      email: metadata.email,
-      image,
+      token,
+      sessionId: session.id as string,
+      expiresAt: session.metadata.expires_at as string,
+      user: { id: account.id, name, email: metadata.email, image },
     };
   } catch (error) {
-    // Suppress errors during prerendering or if cookies() fails
-    // console.error('Error fetching user:', error);
+    // Missing accounts or sessions are invalid; infrastructure failures must
+    // propagate so sign-out does not report revocation when it failed.
+    if ((error as { status?: number })?.status === 404) return null;
+    throw error;
+  }
+}
+
+export async function getUserFromCookie() {
+  try {
+    return (await resolveMemberSession())?.user ?? null;
+  } catch {
     return null;
   }
 }
@@ -258,6 +295,10 @@ async function uploadFile(file: File) {
 
 export async function updateUserProfile(userId: string, formData: FormData) {
   try {
+    const authenticated = await getUserFromCookie();
+    if (!authenticated || authenticated.id !== userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
     const firstName = formData.get('firstName') as string;
     const lastName = formData.get('lastName') as string;
     const email = (formData.get('email') as string).toLowerCase();
@@ -347,7 +388,7 @@ export async function updateUserProfile(userId: string, formData: FormData) {
 
     const { object } = await cosmic.objects.updateOne(userId, updates);
 
-    return { success: true, data: object };
+    return { success: true, data: publicMemberRecord(object) };
   } catch (error) {
     console.error('Error updating profile:', error);
     return { success: false, error: 'Failed to update profile' };
@@ -523,9 +564,26 @@ export async function getAuthUser() {
   return await getUserFromCookie();
 }
 
+/** Renew an active session near expiry, from a client-invoked server action. */
+export async function refreshMemberSession() {
+  const resolved = await resolveMemberSession();
+  if (!resolved) return null;
+  if (Date.parse(resolved.expiresAt) - Date.now() <= MEMBER_SESSION_RENEW_BEFORE_MS) {
+    await cosmic.objects.updateOne(resolved.sessionId, {
+      metadata: { expires_at: sessionExpiry() },
+    });
+    await setMemberSessionCookie(resolved.token);
+  }
+  return resolved.user;
+}
+
 export async function logoutUser() {
   'use server';
-  (await cookies()).delete('user_id');
+  const resolved = await resolveMemberSession();
+  if (resolved) await cosmic.objects.deleteOne(resolved.sessionId);
+  const cookieStore = await cookies();
+  cookieStore.delete(MEMBER_SESSION_COOKIE);
+  cookieStore.delete('user_id');
   return { success: true };
 }
 
@@ -541,6 +599,10 @@ async function manageFavourites<T extends { id: string }>(
   action: 'add' | 'remove'
 ) {
   try {
+    const authenticated = await getUserFromCookie();
+    if (!authenticated || authenticated.id !== userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
     // Validate inputs
     if (!userId || !item?.id) {
       throw new Error('Invalid user ID or item ID');
@@ -557,7 +619,7 @@ async function manageFavourites<T extends { id: string }>(
 
     if (action === 'add') {
       const exists = current.some((existingId: string) => existingId === item.id);
-      if (exists) return { success: true, data: user };
+      if (exists) return { success: true, data: publicMemberRecord(user) };
       updated = [...current, item.id];
     } else {
       updated = current.filter((existing: any) => {
@@ -578,7 +640,7 @@ async function manageFavourites<T extends { id: string }>(
       revalidateTag('user-profile', { expire: 0 });
     }
 
-    return { success: true, data: updatedUser };
+    return { success: true, data: publicMemberRecord(updatedUser) };
   } catch (error) {
     console.error(`Error managing ${field}:`, error);
     return {
@@ -613,6 +675,10 @@ async function manageMultipleFavourites<T extends { id: string }>(
   action: 'add' | 'remove'
 ) {
   try {
+    const authenticated = await getUserFromCookie();
+    if (!authenticated || authenticated.id !== userId) {
+      return { success: false, error: 'Unauthorized' };
+    }
     if (!userId || !items?.length) {
       throw new Error('Invalid user ID or items');
     }
@@ -650,7 +716,7 @@ async function manageMultipleFavourites<T extends { id: string }>(
       revalidateTag('user-profile', { expire: 0 });
     }
 
-    return { success: true, data: updatedUser };
+    return { success: true, data: publicMemberRecord(updatedUser) };
   } catch (error) {
     console.error(`Error managing multiple ${field}:`, error);
     return {
@@ -734,6 +800,67 @@ export async function setScheduleReminder(
       success: false,
       error: error instanceof Error ? error.message : 'Unable to update reminder.',
     };
+  }
+}
+
+/** Save a reminder for one published episode, independent of the weekly schedule. */
+export async function setEpisodeReminder(episodeId: string, enabled: boolean) {
+  try {
+    const user = await getAuthUser();
+    if (!user) return { success: false, error: 'Please sign in to save a reminder.' };
+    if (!parseEpisodeReminderIds([episodeId]).length) {
+      return { success: false, error: 'Invalid show.' };
+    }
+    if (enabled) {
+      const { object: episode } = await cosmic.objects
+        .findOne({ id: episodeId, type: 'episode' })
+        .props('id,metadata.broadcast_date,metadata.broadcast_date_old,metadata.broadcast_time')
+        .status('published')
+        .depth(0);
+      const start = episode?.metadata && episodeStartTime(episode.metadata);
+      if (!start || start.getTime() <= Date.now()) {
+        return { success: false, error: 'This show is no longer upcoming.' };
+      }
+    }
+    const { object: account } = await cosmic.objects
+      .findOne({ id: user.id, type: 'users' })
+      .props('id,metadata.episode_reminders')
+      .depth(0);
+    if (!account) return { success: false, error: 'Account not found.' };
+    let current = parseEpisodeReminderIds(account.metadata?.episode_reminders);
+    if (enabled && !current.includes(episodeId) && current.length >= 100) {
+      // Retire past shows before enforcing the limit, so old reminders cannot
+      // permanently prevent a listener from saving new ones.
+      try {
+        const result = await cosmic.objects
+          .find({ type: 'episode', id: { $in: current } })
+          .props('id,metadata.broadcast_date,metadata.broadcast_date_old,metadata.broadcast_time')
+          .status('published')
+          .depth(0)
+          .limit(100);
+        current = (result.objects || [])
+          .filter((episode: { metadata?: Parameters<typeof episodeStartTime>[0] }) => {
+            const start = episodeStartTime(episode.metadata || {});
+            return start && start.getTime() > Date.now();
+          })
+          .map((episode: { id: string }) => episode.id);
+      } catch (error) {
+        if ((error as { status?: number })?.status === 404) current = [];
+        else throw error;
+      }
+    }
+    if (enabled && !current.includes(episodeId) && current.length >= 100) {
+      return { success: false, error: 'You can save up to 100 show reminders.' };
+    }
+    const updated = enabled
+      ? [...new Set([...current, episodeId])]
+      : current.filter(id => id !== episodeId);
+    await cosmic.objects.updateOne(user.id, { metadata: { episode_reminders: updated } });
+    revalidateTag('user-profile', { expire: 0 });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating show reminder:', error);
+    return { success: false, error: 'Unable to save the reminder. Please try again.' };
   }
 }
 

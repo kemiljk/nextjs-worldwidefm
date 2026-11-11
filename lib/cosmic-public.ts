@@ -1,6 +1,7 @@
 import 'server-only';
 import { cacheLife, cacheTag } from 'next/cache';
 import { createHash } from 'node:crypto';
+import { getCosmicReadKey } from './cosmic-server-env';
 import { contentLifetime, contentTags } from './content-cache-policy';
 
 export interface PublicReadOptions {
@@ -35,7 +36,7 @@ export class CosmicReadError extends Error {
 
 async function fetchObjects(queryJson: string, optionsJson: string) {
   const bucket = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG;
-  const readKey = process.env.NEXT_PUBLIC_COSMIC_READ_KEY;
+  const readKey = getCosmicReadKey();
   if (!bucket || !readKey) throw new Error('Cosmic public read configuration is missing');
   const query = JSON.parse(queryJson);
   const options = JSON.parse(optionsJson);

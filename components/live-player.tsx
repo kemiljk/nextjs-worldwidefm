@@ -652,6 +652,12 @@ export default function LivePlayer() {
         </button>
       </div>
       <div className='flex items-center mx-2 gap-2 overflow-hidden flex-1'>
+        {canPlay && (
+          <span className='flex shrink-0 items-center gap-1 text-m7 font-mono uppercase'>
+            <span aria-hidden='true' className='size-1.5 rounded-full bg-red-500' />
+            Live
+          </span>
+        )}
         {linkHref ? (
           <Link
             href={linkHref}

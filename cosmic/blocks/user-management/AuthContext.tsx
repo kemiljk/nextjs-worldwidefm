@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { getAuthUser, logoutUser } from './actions';
+import { refreshMemberSession, logoutUser } from './actions';
 import { SCHEDULE_NOTIFICATIONS_CHANGED_EVENT } from '@/lib/schedule-reminders';
 
 type User = {
@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }, 5000);
 
-    getAuthUser()
+    refreshMemberSession()
       .then(userData => {
         if (userData) {
           setUser(userData);

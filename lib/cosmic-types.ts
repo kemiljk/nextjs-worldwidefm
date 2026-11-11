@@ -385,6 +385,7 @@ export interface EpisodeObject {
     player: string | null;
     tracklist: string | null;
     body_text: string | null;
+    mixcloud_submission_notes?: string | null;
     genres: GenreObject[];
     locations: LocationObject[];
     regular_hosts: HostObject[];

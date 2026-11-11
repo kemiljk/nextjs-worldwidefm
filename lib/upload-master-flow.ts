@@ -3,10 +3,14 @@ import { fetchWithBody, type UploadFetchFn } from '@/lib/upload-fetch';
 
 export type { UploadFetchFn };
 
-export type UploadMasterFlowPhase = 'uploadingMixcloud' | 'uploadingRadioCult' | 'updatingEpisode';
+export type UploadMasterFlowPhase =
+  | 'uploadingMixcloud'
+  | 'uploadingRadioCult'
+  | 'updatingEpisode'
+  | 'uploadingDrive';
 
 export type UploadDestinationResult = {
-  destination: 'Mixcloud' | 'RadioCult';
+  destination: 'Mixcloud' | 'RadioCult' | 'Google Drive';
   success: boolean;
   error?: string;
 };
@@ -29,6 +33,7 @@ export type UploadMasterFlowInput = {
     artist?: string;
   };
   regularHostIds: string[];
+  driveAccessKey?: string;
   onDestinationResult?: (result: UploadDestinationResult) => void;
   onPhaseChange?: (phase: UploadMasterFlowPhase) => void;
   fetchFn?: UploadFetchFn;
@@ -45,6 +50,8 @@ export type UploadMasterFlowResult = {
   radioCultError?: string;
   archiveUpdated: boolean;
   archiveError?: string;
+  driveFileId?: string;
+  driveError?: string;
   blobUrl: string;
   shouldCleanupBlob: boolean;
   hasAnySuccess: boolean;
@@ -57,6 +64,7 @@ type JsonResponse = {
   episodeUpdated?: boolean;
   episodeUpdateError?: string;
   radiocultMediaId?: string;
+  fileId?: string;
   error?: string;
   details?: unknown;
 };
@@ -75,6 +83,8 @@ export async function runUploadMasterFlow(
   let radioCultError: string | undefined;
   let archiveUpdated = false;
   let archiveError: string | undefined;
+  let driveFileId: string | undefined;
+  let driveError: string | undefined;
 
   input.onPhaseChange?.('uploadingMixcloud');
   try {
@@ -173,7 +183,29 @@ export async function runUploadMasterFlow(
     }
   }
 
-  const shouldCleanupBlob = !mixcloudError && !radioCultError && !archiveError;
+  if (input.driveAccessKey) {
+    input.onPhaseChange?.('uploadingDrive');
+    try {
+      driveFileId = await uploadMasterToDrive({
+        blobUrl: input.blobUrl,
+        fileName: input.mediaFileName,
+        broadcastDate: input.broadcastDate,
+        episodeId: input.episodeId,
+        accessKey: input.driveAccessKey,
+        fetchFn: fetchImpl,
+        timeoutMs,
+      });
+    } catch (error) {
+      driveError = error instanceof Error ? error.message : 'Google Drive upload failed';
+    }
+    input.onDestinationResult?.({
+      destination: 'Google Drive',
+      success: Boolean(driveFileId),
+      error: driveError,
+    });
+  }
+
+  const shouldCleanupBlob = !mixcloudError && !radioCultError && !archiveError && !driveError;
 
   if (shouldCleanupBlob) {
     try {
@@ -188,7 +220,7 @@ export async function runUploadMasterFlow(
     }
   }
 
-  const hasAnySuccess = Boolean(mixcloudUrl || radiocultMediaId);
+  const hasAnySuccess = Boolean(mixcloudUrl || radiocultMediaId || driveFileId);
 
   return {
     mixcloudUrl,
@@ -199,10 +231,70 @@ export async function runUploadMasterFlow(
     radioCultError,
     archiveUpdated,
     archiveError,
+    driveFileId,
+    driveError,
     blobUrl: input.blobUrl,
     shouldCleanupBlob,
     hasAnySuccess,
   };
+}
+
+export async function uploadMasterToDrive(input: {
+  blobUrl: string;
+  fileName: string;
+  broadcastDate: string;
+  episodeId: string;
+  accessKey: string;
+  fetchFn?: UploadFetchFn;
+  timeoutMs?: number;
+}): Promise<string> {
+  const { response, data } = await fetchWithBody('/api/upload-drive', readResponse, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${input.accessKey}` },
+    body: JSON.stringify({
+      blobUrl: input.blobUrl,
+      fileName: input.fileName,
+      broadcastDate: input.broadcastDate,
+      episodeId: input.episodeId,
+    }),
+    timeoutMs: input.timeoutMs ?? UPLOAD_CLIENT_TIMEOUT_MS,
+    fetchFn: input.fetchFn ?? fetch,
+  });
+  if (!response.ok || !data.success || !data.fileId)
+    throw new Error(data.error || 'Google Drive upload failed');
+  return data.fileId;
+}
+
+export async function cleanupMasterBlob(
+  blobUrl: string,
+  fetchFn: UploadFetchFn = fetch
+): Promise<void> {
+  const { response, data } = await fetchWithBody('/api/upload-media', readResponse, {
+    method: 'POST',
+    body: buildCleanupFormData(blobUrl),
+    fetchFn,
+  });
+  if (!response.ok || !data.success) throw new Error('Temporary audio cleanup failed');
+}
+
+export async function retryMasterToDrive(input: {
+  blobUrl: string;
+  fileName: string;
+  broadcastDate: string;
+  episodeId: string;
+  accessKey: string;
+  canCleanup: boolean;
+  fetchFn?: UploadFetchFn;
+}): Promise<{ cleanupFailed: boolean }> {
+  await uploadMasterToDrive(input);
+  if (!input.canCleanup) return { cleanupFailed: false };
+  try {
+    await cleanupMasterBlob(input.blobUrl, input.fetchFn);
+    return { cleanupFailed: false };
+  } catch {
+    // The Drive upload was confirmed; do not report it as a failed upload.
+    return { cleanupFailed: true };
+  }
 }
 
 function buildMixcloudFormData(input: UploadMasterFlowInput): FormData {
@@ -305,6 +397,9 @@ export function buildUploadResultSummary(result: UploadMasterFlowResult): string
   } else if (result.radioCultError) {
     parts.push(`RadioCult: failed (${result.radioCultError})`);
   }
+
+  if (result.driveFileId) parts.push('Google Drive: uploaded');
+  else if (result.driveError) parts.push(`Google Drive: failed (${result.driveError})`);
 
   if (result.archiveUpdated) {
     parts.push('Website archive: updated');

@@ -1,5 +1,6 @@
 import { createBucketClient } from '@cosmicjs/sdk';
 import { cosmic } from './cosmic-config';
+import { getCosmicReadKey } from './cosmic-server-env';
 
 const SITE_URL = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://worldwidefm.net';
 const BATCH_SIZE = 100;
@@ -259,11 +260,11 @@ export async function listShows(options: ExportShowsOptions): Promise<ShowListIt
 
 export function getCosmicClientForScript() {
   const bucketSlug = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG;
-  const readKey = process.env.NEXT_PUBLIC_COSMIC_READ_KEY;
+  const readKey = getCosmicReadKey();
 
   if (!bucketSlug || !readKey) {
     throw new Error(
-      'Missing NEXT_PUBLIC_COSMIC_BUCKET_SLUG or NEXT_PUBLIC_COSMIC_READ_KEY in .env.local'
+      'Missing NEXT_PUBLIC_COSMIC_BUCKET_SLUG or COSMIC_READ_KEY in .env.local'
     );
   }
 

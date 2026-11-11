@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import { buildUploadResultSummary, runUploadMasterFlow } from '@/lib/upload-master-flow';
+import {
+  buildUploadResultSummary,
+  retryMasterToDrive,
+  runUploadMasterFlow,
+} from '@/lib/upload-master-flow';
 import type { UploadFetchFn } from '@/lib/upload-fetch';
 
 const baseInput = {
@@ -306,4 +310,88 @@ it('reports Mixcloud failure before RadioCult completes, including stalled JSON 
   expect(result.shouldCleanupBlob).toBe(false);
   expect(result.archiveUpdated).toBe(false);
   expect(result.radioCultError).toMatch(/timeout/i);
+});
+
+it('archives to Drive before cleanup when enabled', async () => {
+  const calls: string[] = [];
+  const baseFetch = createMockFetch({
+    mixcloudUrl: 'https://www.mixcloud.com/worldwidefm/show/',
+    radiocultMediaId: 'rc-1',
+    onCall: url => calls.push(url),
+  });
+  const result = await runUploadMasterFlow({
+    ...baseInput,
+    driveAccessKey: 'staff-key',
+    fetchFn: async (url, init) => {
+      if (String(url) === '/api/upload-drive') {
+        calls.push(String(url));
+        expect(new Headers(init?.headers).get('authorization')).toBe('Bearer staff-key');
+        expect(JSON.parse(String(init?.body))).toMatchObject({
+          broadcastDate: '2026-07-29',
+          blobUrl: baseInput.blobUrl,
+        });
+        return Response.json({ success: true, fileId: 'drive-file' });
+      }
+      return baseFetch(url, init);
+    },
+  });
+  expect(result.driveFileId).toBe('drive-file');
+  expect(result.shouldCleanupBlob).toBe(true);
+  expect(calls.slice(-2)).toEqual(['/api/upload-drive', '/api/upload-media']);
+});
+
+it('keeps the Blob if Drive fails after the other destinations succeed', async () => {
+  const calls: string[] = [];
+  const baseFetch = createMockFetch({
+    mixcloudUrl: 'https://www.mixcloud.com/worldwidefm/show/',
+    radiocultMediaId: 'rc-1',
+    onCall: url => calls.push(url),
+  });
+  const result = await runUploadMasterFlow({
+    ...baseInput,
+    driveAccessKey: 'staff-key',
+    fetchFn: async (url, init) =>
+      String(url) === '/api/upload-drive'
+        ? Response.json({ error: 'Check Drive before retrying' }, { status: 502 })
+        : baseFetch(url, init),
+  });
+  expect(result.driveError).toBe('Check Drive before retrying');
+  expect(result.shouldCleanupBlob).toBe(false);
+  expect(calls.filter(call => call === '/api/upload-media')).toHaveLength(1);
+  expect(buildUploadResultSummary(result)).toContain('Raw audio kept at');
+});
+
+it('reports Drive-only success when Mixcloud and RadioCult fail', async () => {
+  const baseFetch = createMockFetch({ mixcloudError: true, radiocultError: true });
+  const result = await runUploadMasterFlow({
+    ...baseInput,
+    driveAccessKey: 'staff-key',
+    fetchFn: async (url, init) =>
+      String(url) === '/api/upload-drive'
+        ? Response.json({ success: true, fileId: 'drive-only' })
+        : baseFetch(url, init),
+  });
+  expect(result.hasAnySuccess).toBe(true);
+  expect(result.driveFileId).toBe('drive-only');
+  expect(result.shouldCleanupBlob).toBe(false);
+});
+
+it('reports a confirmed Drive retry even when temporary Blob cleanup fails', async () => {
+  const calls: string[] = [];
+  const result = await retryMasterToDrive({
+    blobUrl: baseInput.blobUrl,
+    fileName: baseInput.mediaFileName,
+    broadcastDate: baseInput.broadcastDate,
+    episodeId: baseInput.episodeId,
+    accessKey: 'staff-key',
+    canCleanup: true,
+    fetchFn: async url => {
+      calls.push(String(url));
+      return String(url) === '/api/upload-drive'
+        ? Response.json({ success: true, fileId: 'drive-file' })
+        : Response.json({ error: 'cleanup failed' }, { status: 500 });
+    },
+  });
+  expect(result).toEqual({ cleanupFailed: true });
+  expect(calls).toEqual(['/api/upload-drive', '/api/upload-media']);
 });

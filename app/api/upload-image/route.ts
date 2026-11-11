@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createBucketClient } from '@cosmicjs/sdk';
+import { getCosmicReadKey } from '@/lib/cosmic-server-env';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     // Create write-enabled Cosmic client
     const cosmic = createBucketClient({
       bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG as string,
-      readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY as string,
+      readKey: getCosmicReadKey() as string,
       writeKey: process.env.COSMIC_WRITE_KEY as string,
     });
 

@@ -9,6 +9,8 @@ import { plainTextToHtml } from './text-to-html';
 export interface RecurringShowTemplate {
   title: string;
   hostSlug?: string;
+  hostId?: string;
+  useTemplateDescription?: boolean;
   day: UkWeekday;
   startTime: string;
   durationHours: number;
@@ -23,10 +25,14 @@ export interface RecurringHostMetadata {
 
 /** Episode main text (`body_text`) from the host's Cosmic description, else the template copy. */
 export function getRecurringEpisodeBody(
-  template: Pick<RecurringShowTemplate, 'description'>,
+  template: Pick<RecurringShowTemplate, 'description' | 'useTemplateDescription'>,
   hostMetadata?: RecurringHostMetadata | null
 ): string {
-  return plainTextToHtml(hostMetadata?.description?.trim() || template.description);
+  return plainTextToHtml(
+    template.useTemplateDescription
+      ? template.description
+      : hostMetadata?.description?.trim() || template.description
+  );
 }
 
 /** Image URLs the old weekly job copied from the host into `external_image_url`. */

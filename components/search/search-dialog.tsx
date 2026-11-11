@@ -78,11 +78,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const [hasNext, setHasNext] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [availableTypes, setAvailableTypes] = useState<string[]>([
+    'hosts-series',
     'episodes',
     'posts',
     'videos',
     'takeovers',
-    'hosts-series',
   ]); // Default all types available
   const [canonicalGenres, setCanonicalGenres] = useState<any[]>([]);
   const [availableFilters, setAvailableFilters] = useState<any>({
@@ -180,7 +180,8 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   }, [open, filterRetry]);
 
   // Determine selected content type
-  const selectedType = activeFilters.find(f => Object.keys(typeLabels).includes(f)) || 'episodes';
+  const selectedType =
+    activeFilters.find(f => Object.keys(typeLabels).includes(f)) || 'hosts-series';
 
   const requestKey = JSON.stringify({
     type: selectedType,

@@ -21,6 +21,23 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
+function instagramProfile(value: unknown): { url: string; handle: string } | null {
+  if (typeof value !== 'string') return null;
+  const input = value.trim();
+  let handle = input.replace(/^@/, '');
+  if (/^https?:\/\//i.test(input)) {
+    try {
+      const url = new URL(input);
+      if (!['instagram.com', 'www.instagram.com'].includes(url.hostname.toLowerCase())) return null;
+      handle = url.pathname.split('/').filter(Boolean)[0] || '';
+    } catch {
+      return null;
+    }
+  }
+  if (!/^[a-zA-Z0-9._]{1,30}$/.test(handle)) return null;
+  return { url: `https://www.instagram.com/${handle}/`, handle };
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   try {
@@ -107,6 +124,7 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
   }
 
   const displayName = host.title || 'Untitled Host';
+  const instagram = instagramProfile(host.metadata?.instagram);
   const displayImage =
     host.metadata?.external_image_url ||
     host.metadata?.image?.imgix_url ||
@@ -185,10 +203,20 @@ export default async function HostPage({ params }: { params: Promise<{ slug: str
             <div className='max-w-none'>
               <SafeHtml
                 content={host.metadata?.description || host.content || ''}
-                type='editorial'
+                type='host-biography'
                 className='text-[16px]! leading-5 text-almostblack dark:text-white'
               />
             </div>
+          )}
+          {instagram && (
+            <a
+              href={instagram.url}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-m8 font-mono underline underline-offset-2'
+            >
+              Instagram: @{instagram.handle}
+            </a>
           )}
         </div>
       </div>

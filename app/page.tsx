@@ -6,6 +6,7 @@ import {
   getVideos,
   getAllPosts,
   createColouredSections,
+  fetchCosmicObjectById,
 } from '@/lib/actions';
 import { generateHomepageMetadata } from '@/lib/metadata-utils';
 import { getEpisodesForShows, getEpisodeBySlug, getEpisodes } from '@/lib/episode-service';
@@ -239,7 +240,31 @@ export default async function Home() {
           try {
             let shows: any[] = [];
 
-            if (section.show_type) {
+            if (Array.isArray(section.episodes) && section.episodes.length > 0) {
+              // Cosmic may return object references as IDs or expanded objects.
+              const selected = await Promise.all(
+                section.episodes.map((episode: any) => {
+                  if (episode?.metadata) return episode;
+                  const id = typeof episode === 'string' ? episode : episode?.id;
+                  return id ? fetchCosmicObjectById(id) : null;
+                })
+              );
+              shows = selected.filter(Boolean).map((episode: any) => {
+                const transformed = transformShowToViewData(episode);
+                return { ...transformed, key: transformed.slug };
+              });
+            } else if (Array.isArray(section.hosts) && section.hosts.length > 0) {
+              const hostIds = section.hosts
+                .map((host: any) => (typeof host === 'string' ? host : host?.id))
+                .filter(Boolean);
+              if (hostIds.length > 0) {
+                const episodes = await getEpisodes({ host: hostIds, limit: 10 });
+                shows = episodes.episodes.map((episode: any) => {
+                  const transformed = transformShowToViewData(episode);
+                  return { ...transformed, key: transformed.slug };
+                });
+              }
+            } else if (section.show_type) {
               // Extract ID from show_type object if it's an object, otherwise use as-is
               const showTypeId =
                 typeof section.show_type === 'object' && section.show_type?.id

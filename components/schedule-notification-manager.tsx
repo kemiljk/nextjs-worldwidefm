@@ -9,6 +9,7 @@ import {
   SCHEDULE_NOTIFICATIONS_STORAGE_KEY,
 } from '@/lib/schedule-reminders';
 import type { ScheduleShow } from '@/lib/types/schedule';
+import { getEpisodeReminderDelay } from '@/lib/episode-reminders';
 
 export function ScheduleNotificationManager() {
   const scheduleNotifications = useCallback(() => {
@@ -22,6 +23,40 @@ export function ScheduleNotificationManager() {
 
     const controller = new AbortController();
     const timers: number[] = [];
+
+    fetch('/api/member/episode-reminders', { signal: controller.signal })
+      .then(response => (response.ok ? response.json() : null))
+      .then(data => {
+        if (!data || !Array.isArray(data.reminders)) return;
+        for (const reminder of data.reminders) {
+          const startMs = Date.parse(reminder.startsAt);
+          const delay = getEpisodeReminderDelay(startMs, Date.now());
+          if (delay === null) continue;
+          timers.push(
+            window.setTimeout(() => {
+              const key = `wwfm-episode-reminder-${data.userId}-${reminder.id}-${startMs}`;
+              if (localStorage.getItem(key)) return;
+              localStorage.setItem(key, 'sent');
+              const minutes = Math.max(1, Math.ceil((startMs - Date.now()) / 60_000));
+              if (startMs <= Date.now()) return;
+              const notification = new Notification(`Worldwide FM: ${reminder.title}`, {
+                body: `Starts in ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}.`,
+                icon: '/favicon.ico',
+                tag: key,
+              });
+              notification.onclick = () => {
+                window.focus();
+                window.location.href = `/episode/${encodeURIComponent(reminder.slug)}`;
+                notification.close();
+              };
+            }, delay)
+          );
+        }
+      })
+      .catch(error => {
+        if (error instanceof Error && error.name !== 'AbortError')
+          console.error('Unable to schedule show reminders:', error);
+      });
 
     fetch('/api/member/schedule-reminders', { signal: controller.signal })
       .then(response => (response.ok ? response.json() : null))

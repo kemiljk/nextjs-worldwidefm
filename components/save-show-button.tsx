@@ -111,7 +111,7 @@ export function SaveShowButton({
       aria-label={isSaved ? 'Remove from listen later' : 'Add to listen later'}
     >
       {isSaved ? <Check className='h-4 w-4 mr-2' /> : <Bookmark className='h-4 w-4 mr-2' />}
-      {isSaved ? 'Saved to Queue' : 'Listen Later'}
+      {isSaved ? 'Saved to Listen Later' : 'Listen Later'}
     </Button>
   );
 }

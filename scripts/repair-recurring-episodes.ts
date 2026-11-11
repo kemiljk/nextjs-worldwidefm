@@ -7,7 +7,7 @@ dotenv.config({ path: '.env.local' });
 
 const cosmic = createBucketClient({
   bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || '',
-  readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY || '',
+  readKey: (process.env.COSMIC_READ_KEY || process.env.NEXT_PUBLIC_COSMIC_READ_KEY) || '',
   writeKey: process.env.COSMIC_WRITE_KEY || '',
 });
 
@@ -34,7 +34,7 @@ async function main() {
     'NEXT_PUBLIC_COSMIC_BUCKET_SLUG',
     process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || ''
   );
-  requireEnvironment('NEXT_PUBLIC_COSMIC_READ_KEY', process.env.NEXT_PUBLIC_COSMIC_READ_KEY || '');
+  requireEnvironment('NEXT_PUBLIC_COSMIC_READ_KEY', (process.env.COSMIC_READ_KEY || process.env.NEXT_PUBLIC_COSMIC_READ_KEY) || '');
 
   if (applyChanges) {
     requireEnvironment('COSMIC_WRITE_KEY', process.env.COSMIC_WRITE_KEY || '');

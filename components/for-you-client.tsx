@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ShowCard } from '@/components/ui/show-card';
-import { transformShowToViewData } from '@/lib/cosmic-service';
+import { transformShowToViewData } from '@/lib/transform-show-to-view-data';
 
 interface ForYouClientProps {
   favoriteGenreIds: string[];

@@ -192,7 +192,7 @@ function slugify(value: string): string {
 
 function getCosmicClient() {
   const bucketSlug = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG;
-  const readKey = process.env.NEXT_PUBLIC_COSMIC_READ_KEY;
+  const readKey = (process.env.COSMIC_READ_KEY || process.env.NEXT_PUBLIC_COSMIC_READ_KEY);
 
   if (!bucketSlug || !readKey) {
     throw new Error(

@@ -1,0 +1,1156 @@
+{
+  "from": "687b9263d5e8b76ec441b957",
+  "to": "68794a43d5e8b76ec441b65f",
+  "items": [
+    {
+      "id": "696a168b439a2d58af1cbdca",
+      "slug": "studio-monkey-shoulder-germany-refuge-worldwide-w-richard-akingbehin-and-obelix",
+      "title": "Studio Monkey Shoulder Germany: Refuge Worldwide w/ Richard Akingbehin & Obelix",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "6969fe07e5b24d456283eab9",
+      "slug": "studio-monkey-shoulder-taiwan-flavor-hualien",
+      "title": "Studio Monkey Shoulder Taiwan: Flavor Hualien",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "69697ad39513e19514dab980",
+      "slug": "from-tehran-to-tehrangeles-160126",
+      "title": "Katayoun: From Tehran to Tehrangeles",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "6969400a40088e3d7698cff1",
+      "slug": "disco-tehran",
+      "title": "Disco Tehran x The Calling",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "6969335da3d2f21cd575f9ed",
+      "slug": "iran-eternal-160126",
+      "title": "Rangarang World: Iran, Eternal",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "696914695ff8d8e54001b6ad",
+      "slug": "neda-mohamadpour-songs-of-resistance-from-iran",
+      "title": "Neda Mohamadpour: Songs of Resistance from Iran",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "696898e206d0c95b5a997ac6",
+      "slug": "extended-scenes-from-tehrangeles-vice",
+      "title": "Discotchari: Extended Scenes From Tehrangeles Vice",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "695bc4406d538c4d2c719677",
+      "slug": "shai-space-curates-solomon-c-and-zjoso-tribqu",
+      "title": "Shai Space curates: Solomon C & Zjoso / Tribqu",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "695bb8d16d538c4d2c7195b8",
+      "slug": "shai-space-curates-neue-grafik",
+      "title": "Shai Space curates: Neue Grafik",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "695bb7e46d538c4d2c7195a9",
+      "slug": "shai-space-curates-joy-guidry",
+      "title": "Shai Space curates: Joy Guidry",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "695bb6936d538c4d2c719581",
+      "slug": "shai-space-curates-chima-isaaro",
+      "title": "Shai Space curates: Chima Isaaro",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "695bb5c16d538c4d2c719571",
+      "slug": "shai-space-moses-day-and-chantz",
+      "title": "Shai Space curates: Moses Day & Chantz",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "695bb3886d538c4d2c719550",
+      "slug": "shai-space-reuben-mckenzie-and-sami-hayes",
+      "title": "Shai Space curates: Reuben Mckenzie & Sami Hayes",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "693114e53584465d0a2f6b9d",
+      "slug": "sounds-nais-curates-neilwapangs",
+      "title": "Sounds Nais curates: Neilwapangs",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "693114643584465d0a2f6b92",
+      "slug": "sounds-nais-curates-musclecars",
+      "title": "Sounds Nais curates: musclecars",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "693113d43584465d0a2f6b4d",
+      "slug": "sounds-nais-curates-yoongying",
+      "title": "Sounds Nais curates: Yoongying",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "6931136c3584465d0a2f6b45",
+      "slug": "sounds-nais-curates-escu-b2b-emel",
+      "title": "Sounds Nais curates: Escu b2b Emel",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "693113133584465d0a2f6b43",
+      "slug": "sounds-nais-curates-gubwubs",
+      "title": "Sounds Nais curates: Gubwubs",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "693112643584465d0a2f6b0a",
+      "slug": "sounds-nais-curates-kimoji",
+      "title": "Sounds Nais curates: Kimoji",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "693112173584465d0a2f6b08",
+      "slug": "sounds-nais-curates-moe",
+      "title": "Sounds Nais curates: moe.",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "693111b93584465d0a2f6afc",
+      "slug": "sounds-nais-curates-zaereo-b2b-norsicaa",
+      "title": "Sounds Nais curates: Zaereo b2b Norsicaa",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "691e7db1b183692bb397c330",
+      "slug": "lagos-in-paris-curates-thakzin",
+      "title": "Lagos In Paris curates: Thakzin",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "691e7c3bb183692bb397c2ae",
+      "slug": "lagos-in-paris-curates-moonshine-collective",
+      "title": "Lagos In Paris curates: Moonshine Collective",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "691e7aafb183692bb397c29e",
+      "slug": "lagos-in-paris-curates-jeune-lio-from-la-sunday",
+      "title": "Lagos In Paris curates: Jeune Lio from La Sunday",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "691e7846b183692bb397c282",
+      "slug": "lagos-in-paris-curates-group-therapy",
+      "title": "Lagos In Paris curates: Group Therapy",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "691e7417b183692bb397c25f",
+      "slug": "lagos-in-paris-curates-odg-prod",
+      "title": "Lagos In Paris curates: ODG Prod",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "691e6f91b183692bb397c240",
+      "slug": "lagos-in-paris-curates-all-my-cousins",
+      "title": "Lagos In Paris curates: All My Cousins",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "691e6f18b183692bb397c237",
+      "slug": "lagos-in-paris",
+      "title": "Lagos In Paris",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68e55e1aad574c75d6dd825b",
+      "slug": "muzikawi-curates-ethio-grooves-hewan",
+      "title": "Muzikawi curates:  Ethio Grooves w/ Hewan",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68e55e18ad574c75d6dd825a",
+      "slug": "muzikawi-curates-fanuel-leul",
+      "title": "Muzikawi curates: Fanuel Leul",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68e55e15ad574c75d6dd8259",
+      "slug": "muzikawi-curates-zuret-addis",
+      "title": "Muzikawi curates: Zuret Addis",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68e55e12ad574c75d6dd8258",
+      "slug": "muzikawi-curates-sosina",
+      "title": "Muzikawi curates: Sosina",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68e55e0fad574c75d6dd8257",
+      "slug": "muzikawi-curates-yohannes-hadish",
+      "title": "Muzikawi curates: Yohannes Hadish",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68e55d7ead574c75d6dd8236",
+      "slug": "club-coco-curates-morning-modal-with-palo-santo-discos",
+      "title": "Club Coco curates: Morning Modal w/ Palo Santo Discos",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68e55d0cad574c75d6dd8218",
+      "slug": "with-love-with-miche-friends-curates-miche",
+      "title": "With love w/ miche & friends curates: miche",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68e55d09ad574c75d6dd8217",
+      "slug": "with-love-with-miche-friends-curates-kreshnik-kasheme-duyaka",
+      "title": "With love w/ miche & friends curates: Kreshnik (Kasheme/duyaka)",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68e55d06ad574c75d6dd8216",
+      "slug": "with-love-with-miche-friends-curates-sha-sha-fruityshop",
+      "title": "With love w/ miche & friends curates: Sha Sha (fRUITYSHOP)",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68e55d04ad574c75d6dd8215",
+      "slug": "with-love-with-miche-friends-curates-rainer-truby",
+      "title": "With love w/ Miche & friends curates: Rainer Trüby",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68e55cfead574c75d6dd8213",
+      "slug": "with-love-with-miche-friends-curates-jeremy-underground",
+      "title": "With love w/ miche & friends curates: Jeremy Underground",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820f4ec5047d6a522597c0",
+      "slug": "pitanga-discos-curates-meliante",
+      "title": "Pitanga Discos curates: Meliante",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820f4ac5047d6a522597bf",
+      "slug": "pitanga-discos-curates-dj-lynce-live",
+      "title": "Pitanga Discos curates: DJ Lynce (live)",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820f46c5047d6a522597be",
+      "slug": "pitanga-discos-curates-enro",
+      "title": "Pitanga Discos curates: Enro",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820f42c5047d6a522597bd",
+      "slug": "pitanga-discos-curates-nikolay-svetiev",
+      "title": "Pitanga Discos curates: Nikolay Svetiev",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820f3ec5047d6a522597bc",
+      "slug": "pitanga-discos-curates-dj-rufia",
+      "title": "Pitanga Discos curates: DJ RUFIA",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820f0ec5047d6a522597b1",
+      "slug": "squama-recordings-curates-alien-djs-markus-acher-haruka-yoshizawa",
+      "title": "Squama Recordings curates: Alien DJs (Markus Acher + Haruka Yoshizawa)",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820f0bc5047d6a522597b0",
+      "slug": "squama-recordings-curates-joana-queiroz",
+      "title": "Squama Recordings curates: Joana Queiroz",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820f07c5047d6a522597af",
+      "slug": "squama-recordings-curates-maya-keren",
+      "title": "Squama Recordings curates: Maya Keren",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820f03c5047d6a522597ae",
+      "slug": "squama-recordings-curates-enji",
+      "title": "Squama Recordings curates: Enji",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820efec5047d6a522597ad",
+      "slug": "squama-recordings-curates-taka-tobira-records",
+      "title": "Squama Recordings curates: Taka (Tobira Records)",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820efbc5047d6a522597ac",
+      "slug": "squama-recordings-curates-martin-brugger",
+      "title": "Squama Recordings curates: Martin Brugger",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820ed1c5047d6a522597a1",
+      "slug": "shush-curates-ken-okuda-live-at-shush",
+      "title": "SHUSH curates: Ken Okuda (live at SHUSH)",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820ecdc5047d6a522597a0",
+      "slug": "shush-curates-musclecars",
+      "title": "SHUSH Curates: musclecars",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820ec9c5047d6a5225979f",
+      "slug": "shush-curates-ines",
+      "title": "SHUSH curates: Inés",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820ec5c5047d6a5225979e",
+      "slug": "shush-curates-meftah",
+      "title": "SHUSH Curates: Meftah",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820ec2c5047d6a5225979d",
+      "slug": "shush-curates-orlando-rose",
+      "title": "SHUSH curates: Orlando Rosé",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820e9ac5047d6a52259792",
+      "slug": "psychic-hotline-curates-sam-wilkes",
+      "title": "Psychic Hotline curates: Sam Wilkes",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820e96c5047d6a52259791",
+      "slug": "psychic-hotline-curates-ana-frango-eletrico",
+      "title": "Psychic Hotline curates: Ana Frango Elétrico",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820e93c5047d6a52259790",
+      "slug": "psychic-hotline-curates-reyna-tropical",
+      "title": "Psychic Hotline curates: Reyna Tropical",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820e8fc5047d6a5225978f",
+      "slug": "psychic-hotline-curates-kris-chen",
+      "title": "Psychic Hotline curates: Kris Chen",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820e8bc5047d6a5225978e",
+      "slug": "psychic-hotline-curates-morgan-schaffner",
+      "title": "Psychic Hotline curates: Morgan Schaffner",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820e87c5047d6a5225978d",
+      "slug": "psychic-hotline-curates-will-hackney",
+      "title": "Psychic Hotline curates: Will Hackney",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820e83c5047d6a5225978c",
+      "slug": "psychic-hotline-curates-sylvan-esso-nick-sanborn-and-amelia-meath",
+      "title": "Psychic Hotline curates: Sylvan Esso (Nick Sanborn and Amelia Meath)",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820de7dd32ef1752b0b535",
+      "slug": "worldwide-festival-sete-curates-de-phase",
+      "title": "Worldwide Festival Sète curates: De Phase",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820ddedd32ef1752b0b534",
+      "slug": "worldwide-festival-sete-curates-susobrino",
+      "title": "Worldwide Festival Sète curates: Susobrino",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820ddadd32ef1752b0b533",
+      "slug": "worldwide-festival-sete-curates-gayance",
+      "title": "Worldwide Festival Sète curates: Gayance",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820dd7dd32ef1752b0b532",
+      "slug": "worldwide-festival-sete-curates-karen-nyame-kg",
+      "title": "Worldwide Festival Sète curates: Karen Nyame KG",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820d9fdd32ef1752b0b525",
+      "slug": "rebecca-vasmant-curates-roan-anderson",
+      "title": "Rebecca Vasmant curates: Roan Anderson",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820d9cdd32ef1752b0b524",
+      "slug": "rebecca-vasmant-curates-harry-weir",
+      "title": "Rebecca Vasmant curates: Harry Weir",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820d98dd32ef1752b0b523",
+      "slug": "rebecca-vasmant-curates-gaia-jeannot",
+      "title": "Rebecca Vasmant curates: Gaïa Jeannot",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820d94dd32ef1752b0b522",
+      "slug": "rebecca-vasmant-curates-women-in-jazz-x-new-soil",
+      "title": "Rebecca Vasmant curates: Women in Jazz x New Soil",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820d91dd32ef1752b0b521",
+      "slug": "rebecca-vasmant-curates-rebecca-vasmant",
+      "title": "Rebecca Vasmant curates: Rebecca Vasmant",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820d4fdd32ef1752b0b515",
+      "slug": "lamunai-records-curates-damo-primasuara",
+      "title": "LaMunai Records curates:  Damo (Primasuara)",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820d4add32ef1752b0b514",
+      "slug": "lamunai-records-curates-asa-kusumah",
+      "title": "LaMunai Records curates:  Asa Kusumah",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820d45dd32ef1752b0b513",
+      "slug": "lamunai-records-curates-lamunai-music-service-defashah",
+      "title": "LaMunai Records curates:  LaMunai Music Service: Defashah",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820d42dd32ef1752b0b512",
+      "slug": "lamunai-records-curates-lamunai-music-service-ernest",
+      "title": "LaMunai Records curates:  LaMunai Music Service: Ernest",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820d3fdd32ef1752b0b511",
+      "slug": "lamunai-records-curates-irama-mama",
+      "title": "LaMunai Records curates:  Irama Mama",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820d3bdd32ef1752b0b510",
+      "slug": "lamunai-records-curates-david-tarigan",
+      "title": "LaMunai Records curates:  David Tarigan",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820d38dd32ef1752b0b50f",
+      "slug": "lamunai-records-curates-selamat-pagi-w-rendi-pratama",
+      "title": "LaMunai Records curates: Selamat Pagi w/ Rendi Pratama",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820d01dd32ef1752b0b502",
+      "slug": "studio-monkey-shoulder-curates-nigeria-w-tomisin-akins",
+      "title": "Studio Monkey Shoulder 2025: Nigeria w/ Tomisin Akins",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820cfddd32ef1752b0b501",
+      "slug": "studio-monkey-shoulder-curates-india-krunk-w-sohail-arora",
+      "title": "Studio Monkey Shoulder 2025: India w/ Krunk",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820cfadd32ef1752b0b500",
+      "slug": "studio-monkey-shoulder-curates-6",
+      "title": "Studio Monkey Shoulder 2025: Taiwan w/ Melting Part",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820cf7dd32ef1752b0b4ff",
+      "slug": "studio-monkey-shoulder-curates-germany-w-leona-ojake",
+      "title": "Studio Monkey Shoulder 2025: Germany w/ Leona Ojake",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820cf3dd32ef1752b0b4fe",
+      "slug": "studio-monkey-shoulder-curates-uk",
+      "title": "Studio Monkey Shoulder 2025: UK w/ ARCCA Magazine",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820bf6dd32ef1752b0b4c0",
+      "slug": "raul-monsalve-y-los-forajidos-takeover-platano-estereo",
+      "title": "Venezuela w/ Raúl Monsalve y Los Forajidos Takeover: Plátano Estereo",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820bf0dd32ef1752b0b4be",
+      "slug": "raul-monsalve-y-los-forajidos-takeover-w-tostoni",
+      "title": "Venezuela w/ Raúl Monsalve y los Forajidos Takeover: Tostoni",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820bd5dd32ef1752b0b4b6",
+      "slug": "wewantsounds-takeover-ernesto-chahoud",
+      "title": "Wewantsounds Takeover: Ernesto Chahoud",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820b9edd32ef1752b0b4a5",
+      "slug": "sound-system-sisters-roots-daughters",
+      "title": "Sound System Sisters: Roots Daughters",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820b9bdd32ef1752b0b4a4",
+      "slug": "sound-system-sisters-dj-kat-the-kat-a-lyst",
+      "title": "Sound System Sisters: DJ Kat & The Kat - a - lyst",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820b97dd32ef1752b0b4a3",
+      "slug": "international-womens-day-renata-aguiar-mumma-powah-sound-system",
+      "title": "Sound System Sisters: Mumma Powah Sound System w/ Rude Mumma (Renata Aguiar)",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820b94dd32ef1752b0b4a2",
+      "slug": "international-womens-day-sioni-hi-fi-sound-system-w-lulu-kato",
+      "title": "Sound System Sisters: Sioni Hi-Fi Sound System w/ Lulu & Keto",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820b91dd32ef1752b0b4a1",
+      "slug": "international-womens-day-aarti-kriplani-w-tobias-s-urhaug-eugenia-seriakov",
+      "title": "Sound System Sisters: Dub and Dal w/ Aarti Kriplani",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820b8ddd32ef1752b0b4a0",
+      "slug": "international-womens-day-daniella-pimenta-feminine-hi-fi-mapa-sound-system-brasil",
+      "title": "Sound System Sisters: Mapa Sound System Brasil w/ Daniella Pimenta",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820b8add32ef1752b0b49f",
+      "slug": "international-womens-day-black-obsidian-sound-system-b-o-s-s",
+      "title": "Sound System Sisters: We Amplify Each other w/ Black Obsidian Sound System & DJ Dae",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820b86dd32ef1752b0b49e",
+      "slug": "international-womens-day-linett-kamala-bass-tone-regeneration-lin-kam-art",
+      "title": "Sound System Sisters: Bass Tone Regeneration w/ Linett Kamala",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820b82dd32ef1752b0b49d",
+      "slug": "international-womens-day-dubplate-pearl",
+      "title": "Sound System Sisters: Dubplate Pearl's Adventures in Music",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820b7cdd32ef1752b0b49b",
+      "slug": "international-womens-day-flanah-w-refugee-sound-system",
+      "title": "Sound System Sisters: Refugee Sound System w/ FLANAH & Salman",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820b75dd32ef1752b0b499",
+      "slug": "international-womens-day-soul-steppa-astrid-red-i-sound-system",
+      "title": "Sound System Sisters: Red i & Soulsteppa",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820a50dd32ef1752b0b44b",
+      "slug": "my-analog-takeover-jawa-jones",
+      "title": "My Analog Journal Takeover: Jawa Jones",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820a4cdd32ef1752b0b44a",
+      "slug": "my-analog-takeover-aloha-got-soul",
+      "title": "My Analog Journal Takeover: AlohaGotSoul",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820a48dd32ef1752b0b449",
+      "slug": "my-analog-journal-takeover-sunrise-over-continents",
+      "title": "My Analog Journal Takeover: Sunrise Over Continents",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820a41dd32ef1752b0b447",
+      "slug": "my-analog-journal-zag-erlat",
+      "title": "My Analog Journal Takeover: Zag and Ceylan w/ Distant Rhythm & Norsicaa",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820a3edd32ef1752b0b446",
+      "slug": "my-analog-takeover-katayoun",
+      "title": "My Analog Journal Takeover: Katayoun",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "688208b6dd32ef1752b0b3ca",
+      "slug": "sello-in-correcto-takeover-9th-anniversary-special-w-cheetah-latina",
+      "title": "In-Correcto Takeover: 9th Anniversary Special w/ Cheetah Latina",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "688208b2dd32ef1752b0b3c9",
+      "slug": "sello-in-correcto-takeover-9th-anniversary-special-w-sonido-in",
+      "title": "In-Correcto Takeover: 9th Anniversary Special w/ Sonido IN",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "688208addd32ef1752b0b3c8",
+      "slug": "sello-in-correcto-takeover-9th-anniversary-special",
+      "title": "In-Correcto Takeover: 9th Anniversary Special",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820801dd32ef1752b0b391",
+      "slug": "time-capsule-takeover-morning-show-w-kay-suzuki",
+      "title": "Time Capsule Takeover: Morning Show w/ Kay Suzuki",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "688207e3dd32ef1752b0b389",
+      "slug": "love-injection-takeover-musclecars-megamix",
+      "title": "Love Injection Takeover: MUSCLECARS Megamix",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820706dd32ef1752b0b34b",
+      "slug": "strut-records-edna-martinez",
+      "title": "Strut Records: Edna Martinez",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "68820701dd32ef1752b0b34a",
+      "slug": "strut-records-pouya-ehsaei",
+      "title": "Strut Records: Pouya Ehsaei",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "688206d5dd32ef1752b0b33e",
+      "slug": "worldwide-fm-takeover-mr-bongo-w-luke-una",
+      "title": "Mr Bongo Takeover: Luke Una",
+      "status": "published",
+      "type": "episode",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "6969fca818fe3a3df0f6f939",
+      "slug": "flavor-hualien",
+      "title": "Flavor Hualien",
+      "status": "published",
+      "type": "regular-hosts",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "69697aadb480fb969b1a06ab",
+      "slug": "katayoun",
+      "title": "Katayoun",
+      "status": "published",
+      "type": "regular-hosts",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "69692dd2462bfbda4e59c8e2",
+      "slug": "rangarang-world",
+      "title": "Rangarang World",
+      "status": "published",
+      "type": "regular-hosts",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "696914325ff8d8e54001b6ac",
+      "slug": "neda-mohamadpour",
+      "title": "Neda Mohamadpour",
+      "status": "published",
+      "type": "regular-hosts",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    },
+    {
+      "id": "6968980b06d0c95b5a997ac5",
+      "slug": "discotchari",
+      "title": "Discotchari",
+      "status": "published",
+      "type": "regular-hosts",
+      "metadata": {
+        "type": "687b9263d5e8b76ec441b957"
+      }
+    }
+  ]
+}

@@ -17,6 +17,7 @@ const createShowSchema = z.object({
   duration: z.string(),
   tracklist: z.string().optional(),
   extraDetails: z.string().optional(),
+  mixcloudSubmissionNotes: z.string().max(500).optional(),
   tags: z.array(z.string()).default([]),
   featuredOnHomepage: z.boolean().default(false),
   status: z.string().default('draft'),
@@ -305,6 +306,9 @@ export async function POST(request: NextRequest) {
     if (validatedData.extraDetails && validatedData.extraDetails.trim()) {
       rawMetadata.body_text = validatedData.extraDetails.trim();
     }
+    if (validatedData.mixcloudSubmissionNotes?.trim()) {
+      rawMetadata.mixcloud_submission_notes = validatedData.mixcloudSubmissionNotes.trim();
+    }
 
     // Optional booleans
     if (validatedData.featuredOnHomepage) {
@@ -387,7 +391,10 @@ export async function POST(request: NextRequest) {
         // If it's a metafield validation error, remove the offending key and retry once
         const msg: string = firstError?.message || '';
         const match = msg.match(/metafield with key: '([^']+)' is missing/i);
-        if (match && match[1]) {
+        if (match?.[1] === 'mixcloud_submission_notes') {
+          throw new Error('Mixcloud submission notes are not configured in Cosmic');
+        }
+        if (match && match[1] && !validatedData.mixcloudSubmissionNotes?.trim()) {
           const offendingKey = match[1];
           const stripped = { ...metadata } as any;
           delete stripped[offendingKey];
@@ -413,7 +420,11 @@ export async function POST(request: NextRequest) {
       console.error('Cosmic creation error:', cosmicError);
 
       // If it's a metafield validation error, try with minimal metadata
-      if (cosmicError.message && cosmicError.message.includes('metafield')) {
+      if (
+        cosmicError.message &&
+        cosmicError.message.includes('metafield') &&
+        !validatedData.mixcloudSubmissionNotes?.trim()
+      ) {
         console.log('Retrying with minimal metadata...');
 
         const rawMinimalMetadata: any = {

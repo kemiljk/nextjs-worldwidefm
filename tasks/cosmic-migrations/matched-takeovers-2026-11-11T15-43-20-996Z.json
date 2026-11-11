@@ -1,0 +1,130 @@
+[
+  {
+    "episode": {
+      "id": "6972c5cbed598bf3bfa894ef",
+      "title": "Future Bubblers: bedtime stories w/ okcandice",
+      "status": "published",
+      "metadata": {
+        "regular_hosts": [
+          "6972c17ff1a8a36c0cbe41a9"
+        ],
+        "takeovers": [
+          "697b38676c8aeb5d6cf4de44"
+        ]
+      }
+    },
+    "host": "688125f83305100b7c998726",
+    "hostsBefore": [
+      "6972c17ff1a8a36c0cbe41a9"
+    ]
+  },
+  {
+    "episode": {
+      "id": "69720afe92eefdeaf3589b69",
+      "title": "Future Bubblers: Lovellious",
+      "status": "published",
+      "metadata": {
+        "regular_hosts": [
+          "697106954524d2f786085638"
+        ],
+        "takeovers": [
+          "697b38676c8aeb5d6cf4de44"
+        ]
+      }
+    },
+    "host": "688125f83305100b7c998726",
+    "hostsBefore": [
+      "697106954524d2f786085638"
+    ]
+  },
+  {
+    "episode": {
+      "id": "695bc4406d538c4d2c719677",
+      "title": "Shai Space curates: Solomon C & Zjoso / Tribqu",
+      "status": "published",
+      "metadata": {
+        "regular_hosts": null,
+        "takeovers": [
+          "695bb34d6d538c4d2c719544"
+        ]
+      }
+    },
+    "host": "69f9af4ea963c4f5f0d95e7c",
+    "hostsBefore": []
+  },
+  {
+    "episode": {
+      "id": "695bb8d16d538c4d2c7195b8",
+      "title": "Shai Space curates: Neue Grafik",
+      "status": "published",
+      "metadata": {
+        "regular_hosts": null,
+        "takeovers": [
+          "695bb34d6d538c4d2c719544"
+        ]
+      }
+    },
+    "host": "69f9af4ea963c4f5f0d95e7c",
+    "hostsBefore": []
+  },
+  {
+    "episode": {
+      "id": "695bb7e46d538c4d2c7195a9",
+      "title": "Shai Space curates: Joy Guidry",
+      "status": "published",
+      "metadata": {
+        "regular_hosts": null,
+        "takeovers": [
+          "695bb34d6d538c4d2c719544"
+        ]
+      }
+    },
+    "host": "69f9af4ea963c4f5f0d95e7c",
+    "hostsBefore": []
+  },
+  {
+    "episode": {
+      "id": "695bb6936d538c4d2c719581",
+      "title": "Shai Space curates: Chima Isaaro",
+      "status": "published",
+      "metadata": {
+        "regular_hosts": null,
+        "takeovers": [
+          "695bb34d6d538c4d2c719544"
+        ]
+      }
+    },
+    "host": "69f9af4ea963c4f5f0d95e7c",
+    "hostsBefore": []
+  },
+  {
+    "episode": {
+      "id": "695bb5c16d538c4d2c719571",
+      "title": "Shai Space curates: Moses Day & Chantz",
+      "status": "published",
+      "metadata": {
+        "regular_hosts": null,
+        "takeovers": [
+          "695bb34d6d538c4d2c719544"
+        ]
+      }
+    },
+    "host": "69f9af4ea963c4f5f0d95e7c",
+    "hostsBefore": []
+  },
+  {
+    "episode": {
+      "id": "695bb3886d538c4d2c719550",
+      "title": "Shai Space curates: Reuben Mckenzie & Sami Hayes",
+      "status": "published",
+      "metadata": {
+        "regular_hosts": null,
+        "takeovers": [
+          "695bb34d6d538c4d2c719544"
+        ]
+      }
+    },
+    "host": "69f9af4ea963c4f5f0d95e7c",
+    "hostsBefore": []
+  }
+]

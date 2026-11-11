@@ -2,7 +2,6 @@ import { cosmic } from '@/lib/cosmic-config';
 import { getCurrentUkWeek } from '@/lib/date-utils';
 import {
   buildRecurringEpisodeSlug,
-  RECURRING_SHOWS,
   getRecurringEpisodeBody,
   type RecurringShowTemplate,
 } from '@/lib/recurring-shows';
@@ -61,7 +60,7 @@ async function findExistingEpisode(title: string, broadcastDate: string): Promis
   }
 }
 
-async function findHostBySlug(slug: string): Promise<{
+async function findHost(identifier: { id?: string; slug?: string }): Promise<{
   id: string;
   metadata?: {
     description?: string | null;
@@ -73,7 +72,7 @@ async function findHostBySlug(slug: string): Promise<{
     const response = await cosmic.objects
       .findOne({
         type: 'regular-hosts',
-        slug,
+        ...identifier,
       })
       .props('id,metadata.description,metadata.image,metadata.external_image_url')
       .status('any');
@@ -85,6 +84,79 @@ async function findHostBySlug(slug: string): Promise<{
       return null;
     }
     throw error;
+  }
+}
+
+const WEEKDAYS = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+] as const;
+
+export function parseRecurringTemplate(object: {
+  title: string;
+  metadata?: Record<string, unknown>;
+}): RecurringShowTemplate {
+  const metadata = object.metadata || {};
+  const day =
+    typeof metadata.day === 'string' ? metadata.day : (metadata.day as { value?: string })?.value;
+  const startTime = String(metadata.start_time || '').trim();
+  const durationHours = Number(metadata.duration_hours);
+  const hostId =
+    typeof metadata.host === 'string' ? metadata.host : (metadata.host as { id?: string })?.id;
+  if (
+    !object.title?.trim() ||
+    !hostId ||
+    typeof day !== 'string' ||
+    !(WEEKDAYS as readonly string[]).includes(day) ||
+    !/^([01]\d|2[0-3]):[0-5]\d$/.test(startTime) ||
+    !Number.isFinite(durationHours) ||
+    durationHours <= 0 ||
+    durationHours > 24
+  ) {
+    throw new Error(
+      `Invalid recurring show "${object.title}": check the host, day, start time (HH:MM), and duration in hours`
+    );
+  }
+  return {
+    title: object.title.trim(),
+    day: day as RecurringShowTemplate['day'],
+    startTime,
+    durationHours,
+    description: typeof metadata.description === 'string' ? metadata.description : '',
+    hostId,
+    useTemplateDescription: true,
+  };
+}
+
+/** Published templates are authoritative: unpublishing stops future episodes. */
+export async function getRecurringTemplates(
+  client: typeof cosmic = cosmic
+): Promise<RecurringShowTemplate[]> {
+  // Distinguish an empty collection from a missing schema or service outage.
+  await client.objectTypes.findOne('recurring-shows');
+  const templates: RecurringShowTemplate[] = [];
+  const pageSize = 100;
+  for (let skip = 0; ; skip += pageSize) {
+    try {
+      const response = await client.objects
+        .find({ type: 'recurring-shows' })
+        .props('title,metadata')
+        .depth(0)
+        .status('published')
+        .limit(pageSize)
+        .skip(skip);
+      const objects = response.objects || [];
+      templates.push(...objects.map(parseRecurringTemplate));
+      if (objects.length < pageSize) return templates;
+    } catch (error) {
+      if ((error as { status?: number })?.status === 404) return templates;
+      throw error;
+    }
   }
 }
 
@@ -134,7 +206,7 @@ export async function findHostTaxonomy(
 async function createRecurringEpisode(params: {
   template: RecurringShowTemplate;
   broadcastDate: string;
-  host: Awaited<ReturnType<typeof findHostBySlug>>;
+  host: Awaited<ReturnType<typeof findHost>>;
 }): Promise<void> {
   const { template, broadcastDate, host } = params;
   const broadcastDay = new Date(`${broadcastDate}T12:00:00Z`).toLocaleDateString('en-GB', {
@@ -144,11 +216,12 @@ async function createRecurringEpisode(params: {
 
   // Copy goes in the main text field. No image is written: the site shows the
   // host's image until staff upload one, so an upload is never overridden.
+  const durationMinutes = Math.round(template.durationHours * 60);
   const metadata: Record<string, unknown> = {
     broadcast_date: broadcastDate,
     broadcast_time: template.startTime,
     broadcast_day: broadcastDay,
-    duration: `${template.durationHours}:00`,
+    duration: `${Math.floor(durationMinutes / 60)}:${String(durationMinutes % 60).padStart(2, '0')}`,
     body_text: getRecurringEpisodeBody(template, host?.metadata),
     is_live: true,
     source: 'recurring-auto',
@@ -201,7 +274,8 @@ export async function createWeeklyRecurringShows(
     errors: [],
   };
 
-  for (const template of RECURRING_SHOWS) {
+  const templates = await getRecurringTemplates();
+  for (const template of templates) {
     const broadcastDate = dayDates[template.day];
 
     if (!broadcastDate) {
@@ -220,14 +294,16 @@ export async function createWeeklyRecurringShows(
         continue;
       }
 
-      let host: Awaited<ReturnType<typeof findHostBySlug>> = null;
-      if (template.hostSlug) {
-        host = await findHostBySlug(template.hostSlug);
+      let host: Awaited<ReturnType<typeof findHost>> = null;
+      if (template.hostId || template.hostSlug) {
+        host = await findHost(
+          template.hostId ? { id: template.hostId } : { slug: template.hostSlug }
+        );
         if (!host) {
           result.warnings.push({
             title: template.title,
             broadcastDate,
-            message: `Host not found for slug "${template.hostSlug}" — episode created without host link`,
+            message: `Host not found for "${template.hostId || template.hostSlug}" — episode created without host link`,
           });
         }
       }

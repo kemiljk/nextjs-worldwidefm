@@ -192,6 +192,28 @@ export function sanitizeEditorialContent(html: string): string {
   });
 }
 
+/** Open external links in host biographies in a separate tab. */
+export function sanitizeHostBiography(html: string): string {
+  const fragment = JSDOM.fragment(sanitizeEditorialContent(html));
+  for (const link of fragment.querySelectorAll('a[href]')) {
+    const href = link.getAttribute('href') || '';
+    try {
+      const url = new URL(href);
+      if (url.protocol === 'https:' || url.protocol === 'http:') {
+        if (url.hostname === 'worldwidefm.net' || url.hostname.endsWith('.worldwidefm.net'))
+          continue;
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+      }
+    } catch {
+      // Relative links remain in the current tab.
+    }
+  }
+  const container = window.document.createElement('div');
+  container.appendChild(fragment);
+  return container.innerHTML;
+}
+
 export function sanitizeEditorialWithEmbeds(html: string): string {
   if (!html || typeof html !== 'string') {
     return '';

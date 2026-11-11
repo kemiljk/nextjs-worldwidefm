@@ -3,7 +3,7 @@ import { cosmic } from '@/lib/cosmic-config';
 import { EpisodeObject } from '@/lib/cosmic-types';
 
 const BY_DATE_PROPS =
-  'id,slug,title,type,status,created_at,metadata.image,metadata.external_image_url,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.tracklist,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers';
+  'id,slug,title,type,status,created_at,metadata.image,metadata.external_image_url,metadata.broadcast_date,metadata.broadcast_time,metadata.description,metadata.subtitle,metadata.player,metadata.tracklist,metadata.duration,metadata.genres,metadata.regular_hosts,metadata.locations,metadata.takeovers,metadata.mixcloud_submission_notes';
 
 export async function GET(request: NextRequest) {
   try {

@@ -12,9 +12,11 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { VideoThumbnailImage } from '@/components/ui/optimized-image';
+import { VideoCaption } from './video-caption';
 
 interface VideoCategorySectionProps {
   title: string;
+  description?: string | null;
   videos: VideoObject[];
   availableCategories: { id: string; title: string }[];
 }
@@ -39,6 +41,7 @@ function getVimeoThumbnail(url: string): string {
 
 export default function VideoCategorySection({
   title,
+  description,
   videos,
   availableCategories,
 }: VideoCategorySectionProps) {
@@ -65,6 +68,7 @@ export default function VideoCategorySection({
       <h3 className='text-h8 md:text-[32px] tracking-tight font-display uppercase font-normal text-almostblack dark:text-white mb-4 border-b border-almostblack/20 dark:border-white/20 pb-2'>
         {title}
       </h3>
+      <VideoCaption description={description} className='mb-4' />
       <div className='relative'>
         <Carousel
           opts={{
@@ -135,6 +139,10 @@ export default function VideoCategorySection({
                       </CardContent>
                     </Card>
                   </Link>
+                  <VideoCaption
+                    description={video.metadata?.description}
+                    className='mt-2 text-sm [&_p:first-child]:line-clamp-2 [&_p:not(:first-child)]:hidden'
+                  />
                 </CarouselItem>
               );
             })}

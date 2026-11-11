@@ -1,4 +1,5 @@
 import { createBucketClient } from '@cosmicjs/sdk';
+import { getCosmicReadKey } from '@/lib/cosmic-server-env';
 
 if (!process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG)
   console.error(
@@ -10,8 +11,7 @@ export const cosmic = createBucketClient({
     process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG ||
     'You need to add your NEXT_PUBLIC_COSMIC_BUCKET_SLUG environment variable.',
   readKey:
-    process.env.NEXT_PUBLIC_COSMIC_READ_KEY ||
-    'You need to add your NEXT_PUBLIC_COSMIC_READ_KEY environment variable.',
+    getCosmicReadKey() || 'You need to add your COSMIC_READ_KEY environment variable.',
   writeKey:
     process.env.COSMIC_WRITE_KEY || 'You need to add your COSMIC_WRITE_KEY environment variable.',
 });

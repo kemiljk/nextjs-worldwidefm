@@ -4,8 +4,10 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
+const apply = process.argv.includes('--apply');
+
 const bucketSlug = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || '';
-const readKey = process.env.NEXT_PUBLIC_COSMIC_READ_KEY || '';
+const readKey = (process.env.COSMIC_READ_KEY || process.env.NEXT_PUBLIC_COSMIC_READ_KEY) || '';
 const writeKey = process.env.COSMIC_WRITE_KEY || '';
 
 const cosmic = createBucketClient({ bucketSlug, readKey, writeKey });
@@ -31,6 +33,26 @@ interface FieldTarget {
 
 // Additive, idempotent schema changes that unlock homepage/editorial curation.
 const TARGETS: FieldTarget[] = [
+  {
+    objectTypeSlug: 'regular-hosts',
+    field: {
+      title: 'Instagram',
+      key: 'instagram',
+      type: 'text',
+      required: false,
+      helptext: 'Instagram username or profile URL.',
+    },
+  },
+  {
+    objectTypeSlug: 'video-categories',
+    field: {
+      title: 'Description',
+      key: 'description',
+      type: 'textarea',
+      required: false,
+      helptext: 'Optional short caption shown beneath this category title on the videos page.',
+    },
+  },
   {
     objectTypeSlug: 'posts',
     field: {
@@ -201,6 +223,10 @@ async function addField({ objectTypeSlug, field }: FieldTarget): Promise<boolean
       sanitizeMetafieldForSchemaUpdate(field),
     ];
 
+    if (!apply) {
+      console.log(`  └─ Dry run: would add "${field.key}" to "${objectTypeSlug}"`);
+      return true;
+    }
     await updateWithRetries(objectTypeSlug, updatedMetafields);
 
     const verified = await fetchExistingMetafields(objectTypeSlug);
@@ -217,12 +243,90 @@ async function addField({ objectTypeSlug, field }: FieldTarget): Promise<boolean
   }
 }
 
+// The coloured sections are a repeater; preserve all existing nested fields.
+async function addColouredSectionEpisodes(): Promise<boolean> {
+  try {
+    const fields = await fetchExistingMetafields('coloured-sections');
+    const repeater = fields.find(field => field.key === 'coloured_section');
+    if (!repeater || repeater.type !== 'repeater' || !Array.isArray(repeater.repeater_fields)) {
+      throw new Error('Expected coloured_section repeater was not found');
+    }
+    const nested = repeater.repeater_fields as RawMetafield[];
+    const desired = [
+      {
+        title: 'Episodes',
+        key: 'episodes',
+        type: 'objects',
+        object_type: 'episode',
+        many: true,
+        required: false,
+        helptext:
+          'Choose episodes in display order. If empty, hosts and series are used, then show type.',
+      },
+      {
+        title: 'Hosts and Series',
+        key: 'hosts',
+        type: 'objects',
+        object_type: 'regular-hosts',
+        many: true,
+        required: false,
+        helptext: 'Choose hosts or series to feature their shows. Selected episodes take priority.',
+      },
+    ];
+    const additions = desired.filter(field => !nested.some(existing => existing.key === field.key));
+    const helpUpdates = desired.filter(field =>
+      nested.some(existing => existing.key === field.key && existing.helptext !== field.helptext)
+    );
+    if (!additions.length && !helpUpdates.length) return true;
+    const updated = fields.map(field =>
+      field === repeater
+        ? {
+            ...field,
+            repeater_fields: [
+              ...nested.map(existing => {
+                const change = helpUpdates.find(field => field.key === existing.key);
+                return change ? { ...existing, helptext: change.helptext } : existing;
+              }),
+              ...additions,
+            ],
+          }
+        : field
+    );
+    if (!apply) {
+      console.log(
+        `Dry run: would update ${[...additions, ...helpUpdates].map(field => field.key).join(', ')} in coloured sections`
+      );
+      return true;
+    }
+    await updateWithRetries('coloured-sections', updated);
+    const verified = await fetchExistingMetafields('coloured-sections');
+    const result = verified.find(field => field.key === 'coloured_section');
+    if (
+      !Array.isArray(result?.repeater_fields) ||
+      ![...additions, ...helpUpdates].every(addition =>
+        (result.repeater_fields as RawMetafield[]).some(
+          field => field.key === addition.key && field.helptext === addition.helptext
+        )
+      )
+    ) {
+      throw new Error('Episodes field was not found on re-fetch');
+    }
+    console.log(
+      `✅ Updated ${[...additions, ...helpUpdates].map(field => field.key).join(', ')} in coloured sections`
+    );
+    return true;
+  } catch (error) {
+    console.error('❌ Could not add coloured section episodes:', error);
+    return false;
+  }
+}
+
 async function main() {
   requireEnv('NEXT_PUBLIC_COSMIC_BUCKET_SLUG', bucketSlug);
   requireEnv('NEXT_PUBLIC_COSMIC_READ_KEY', readKey);
   requireEnv('COSMIC_WRITE_KEY', writeKey);
 
-  console.log('🚀 Adding curation fields');
+  console.log(apply ? '🚀 Adding curation fields' : '🔎 Dry run (pass --apply to update Cosmic)');
   console.log(`Bucket: ${bucketSlug}`);
 
   let failed = 0;
@@ -231,12 +335,16 @@ async function main() {
     if (!ok) failed += 1;
   }
 
+  if (!(await addColouredSectionEpisodes())) failed += 1;
+
   console.log('\n================================');
   if (failed > 0) {
     console.error(`❌ ${failed} field(s) failed.`);
     process.exit(1);
   }
-  console.log('✅ All curation fields are in place.');
+  console.log(
+    apply ? '✅ All curation fields are in place.' : '✅ Dry run complete; no changes made.'
+  );
 }
 
 main();

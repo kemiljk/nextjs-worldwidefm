@@ -22,6 +22,7 @@ import { getMaxMediaUploadMb } from '@/lib/upload-config';
 import {
   runUploadMasterFlow,
   buildUploadResultSummary,
+  retryMasterToDrive,
   type UploadDestinationResult,
 } from '@/lib/upload-master-flow';
 import {
@@ -37,13 +38,14 @@ type SubmissionPhase =
   | 'uploadingBlob'
   | 'uploadingRadioCult'
   | 'uploadingMixcloud'
+  | 'uploadingDrive'
   | 'updatingEpisode'
   | 'success'
   | 'error';
 
 const MAX_MIXCLOUD_HOST_TAGS = 2;
 
-export function UploadMasterForm() {
+export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: boolean }) {
   const [broadcastDate, setBroadcastDate] = useState('');
   const [episodes, setEpisodes] = useState<EpisodeObject[]>([]);
   const [selectedEpisode, setSelectedEpisode] = useState<EpisodeObject | null>(null);
@@ -54,6 +56,15 @@ export function UploadMasterForm() {
   const [phase, setPhase] = useState<SubmissionPhase>('idle');
   const [destinationResults, setDestinationResults] = useState<UploadDestinationResult[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [driveAccessKey, setDriveAccessKey] = useState('');
+  const [retainedBlobUrl, setRetainedBlobUrl] = useState<string | null>(null);
+  const [pendingDrive, setPendingDrive] = useState<{
+    blobUrl: string;
+    fileName: string;
+    broadcastDate: string;
+    episodeId: string;
+    canCleanup: boolean;
+  } | null>(null);
   const [hosts, setHosts] = useState<CosmicHost[]>([]);
   const [selectedCoHostIds, setSelectedCoHostIds] = useState<string[]>([]);
   const [coHostInput, setCoHostInput] = useState('');
@@ -163,6 +174,10 @@ export function UploadMasterForm() {
       toast.error('Please select a show and add mastered audio');
       return;
     }
+    if (driveEnabled && !driveAccessKey.trim()) {
+      toast.error('Enter the staff access key for Google Drive');
+      return;
+    }
 
     const { broadcast_date, broadcast_time, duration } = selectedEpisode.metadata || {};
     const dateStr = broadcast_date || broadcastDate;
@@ -190,6 +205,18 @@ export function UploadMasterForm() {
     const combinedHostIds = Array.from(new Set(selectedCoHostIds));
 
     try {
+      if (driveEnabled) {
+        const check = await fetch('/api/upload-drive', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${driveAccessKey}`,
+          },
+          body: JSON.stringify({ action: 'check' }),
+        });
+        if (!check.ok)
+          throw new Error('Google Drive is unavailable or the staff access key is invalid');
+      }
       const e2eBlobUrl = process.env.NEXT_PUBLIC_E2E_FAKE_BLOB_URL;
       const blobUrl =
         e2eBlobUrl ||
@@ -227,6 +254,7 @@ export function UploadMasterForm() {
             undefined,
         },
         regularHostIds: combinedHostIds,
+        driveAccessKey: driveEnabled ? driveAccessKey : undefined,
         onPhaseChange: setPhase,
         onDestinationResult: result => setDestinationResults(previous => [...previous, result]),
         clientTimeoutMs: process.env.NEXT_PUBLIC_E2E_UPLOAD_CLIENT_TIMEOUT_MS
@@ -235,11 +263,25 @@ export function UploadMasterForm() {
       });
 
       const summary = buildUploadResultSummary(flowResult);
+      if (flowResult.driveError) {
+        setPendingDrive({
+          blobUrl,
+          fileName: mediaFile.name,
+          broadcastDate: dateStr,
+          episodeId: selectedEpisode.id,
+          canCleanup: Boolean(
+            flowResult.mixcloudUrl && flowResult.radiocultMediaId && flowResult.archiveUpdated
+          ),
+        });
+      } else if (!flowResult.shouldCleanupBlob) {
+        setRetainedBlobUrl(blobUrl);
+      }
       if (
         flowResult.archiveUpdated &&
         flowResult.mixcloudLinkSaved &&
         !flowResult.mixcloudError &&
-        !flowResult.radioCultError
+        !flowResult.radioCultError &&
+        !flowResult.driveError
       ) {
         setPhase('success');
         toast.success('Mastered audio uploaded and episode updated');
@@ -263,6 +305,35 @@ export function UploadMasterForm() {
       setPhase('error');
       console.error('Upload failed:', err);
       toast.error(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const retryDrive = async () => {
+    if (!pendingDrive || !driveAccessKey.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const { cleanupFailed } = await retryMasterToDrive({
+        ...pendingDrive,
+        accessKey: driveAccessKey,
+      });
+      if (!pendingDrive.canCleanup || cleanupFailed) setRetainedBlobUrl(pendingDrive.blobUrl);
+      setPendingDrive(null);
+      setDestinationResults(previous =>
+        previous.map(result =>
+          result.destination === 'Google Drive'
+            ? { destination: 'Google Drive', success: true }
+            : result
+        )
+      );
+      if (cleanupFailed) {
+        toast.warning('Master archived to Google Drive; the temporary audio could not be deleted');
+      } else {
+        toast.success('Master archived to Google Drive');
+      }
+    } catch {
+      toast.error('Google Drive upload could not be confirmed. Check the folder before retrying.');
     } finally {
       setIsSubmitting(false);
     }
@@ -362,6 +433,16 @@ export function UploadMasterForm() {
       {selectedEpisode && (
         <div className='space-y-2'>
           <Label>Co-hosts</Label>
+          {selectedEpisode.metadata?.mixcloud_submission_notes && (
+            <div className='text-sm whitespace-pre-wrap'>
+              <p className='font-medium'>Submitted Mixcloud details</p>
+              <p>{selectedEpisode.metadata.mixcloud_submission_notes}</p>
+              <p className='text-muted-foreground'>
+                Use these details to update host profiles and select co-hosts below. Submission does
+                not automatically tag them.
+              </p>
+            </div>
+          )}
           <Command
             className='w-full border border-input rounded-none relative'
             shouldFilter={false}
@@ -457,8 +538,66 @@ export function UploadMasterForm() {
         />
       </div>
 
+      {driveEnabled && (
+        <div className='space-y-2'>
+          <Label htmlFor='drive-access-key'>Staff access key</Label>
+          <Input
+            id='drive-access-key'
+            type='password'
+            autoComplete='off'
+            value={driveAccessKey}
+            onChange={event => setDriveAccessKey(event.target.value)}
+            disabled={isSubmitting}
+          />
+        </div>
+      )}
+
+      {pendingDrive && (
+        <div className='space-y-2 text-sm' role='status'>
+          <p>
+            The master is still available for Google Drive. Check the Drive folder before retrying.
+          </p>
+          <a
+            className='underline break-all'
+            href={pendingDrive.blobUrl}
+            target='_blank'
+            rel='noopener noreferrer'
+          >
+            Open retained audio
+          </a>
+          <div>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={retryDrive}
+              disabled={isSubmitting || !driveAccessKey.trim()}
+            >
+              Retry Google Drive only
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {retainedBlobUrl && (
+        <div className='space-y-2 text-sm' role='status'>
+          <p>The temporary audio is still retained.</p>
+          <a
+            className='underline break-all'
+            href={retainedBlobUrl}
+            target='_blank'
+            rel='noopener noreferrer'
+          >
+            Open retained audio
+          </a>
+        </div>
+      )}
+
       {selectedEpisode && mediaFile && (
-        <UploadProgressPanel phase={phase} results={destinationResults} />
+        <UploadProgressPanel
+          phase={phase}
+          results={destinationResults}
+          driveEnabled={driveEnabled}
+        />
       )}
 
       <div role='status' aria-live='polite' className='space-y-1 text-sm'>
@@ -474,7 +613,7 @@ export function UploadMasterForm() {
         <Button
           type='button'
           onClick={handleSubmit}
-          disabled={!selectedEpisode || !mediaFile || isSubmitting}
+          disabled={!selectedEpisode || !mediaFile || isSubmitting || Boolean(pendingDrive)}
         >
           {isSubmitting
             ? phase === 'uploadingBlob'
@@ -483,9 +622,11 @@ export function UploadMasterForm() {
                 ? 'Uploading to RadioCult...'
                 : phase === 'uploadingMixcloud'
                   ? 'Uploading to Mixcloud...'
-                  : phase === 'updatingEpisode'
-                    ? 'Updating episode...'
-                    : 'Processing...'
+                  : phase === 'uploadingDrive'
+                    ? 'Archiving to Google Drive...'
+                    : phase === 'updatingEpisode'
+                      ? 'Updating episode...'
+                      : 'Processing...'
             : 'Upload mastered audio'}
         </Button>
       </div>
@@ -496,9 +637,11 @@ export function UploadMasterForm() {
 function UploadProgressPanel({
   phase,
   results,
+  driveEnabled,
 }: {
   phase: SubmissionPhase;
   results: UploadDestinationResult[];
+  driveEnabled: boolean;
 }) {
   const steps: { phase: SubmissionPhase; label: string; description: string }[] = [
     {
@@ -521,6 +664,15 @@ function UploadProgressPanel({
       label: 'Updating the episode',
       description: 'Saving the Mixcloud player and RadioCult media ID.',
     },
+    ...(driveEnabled
+      ? [
+          {
+            phase: 'uploadingDrive' as const,
+            label: 'Archiving to Google Drive',
+            description: 'Saving the master in its broadcast-month folder.',
+          },
+        ]
+      : []),
   ];
 
   const currentIndex = steps.findIndex(step => step.phase === phase);
@@ -541,7 +693,9 @@ function UploadProgressPanel({
               ? 'Mixcloud'
               : step.phase === 'uploadingRadioCult'
                 ? 'RadioCult'
-                : undefined;
+                : step.phase === 'uploadingDrive'
+                  ? 'Google Drive'
+                  : undefined;
           const result = results.find(item => item.destination === destination);
           const isDone = destination
             ? result?.success === true

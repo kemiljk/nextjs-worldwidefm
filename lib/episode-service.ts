@@ -652,7 +652,7 @@ async function fetchRelatedByGenre(
           type: 'episode',
           status: 'published',
           id: { $nin: excludeIds },
-          'metadata.genres.id': { $in: genreIds },
+          'metadata.genres': { $in: genreIds },
           'metadata.broadcast_date': { $lte: todayStr },
         })
         .props(RELATED_EPISODE_PROPS)
@@ -730,6 +730,7 @@ export type RelatedMatchType = 'takeover' | 'host' | 'genre' | 'recent';
 export interface RelatedEpisodesResult {
   episodes: EpisodeObject[];
   matchType: RelatedMatchType;
+  genreId?: string;
 }
 
 export async function getRelatedEpisodes(
@@ -741,79 +742,37 @@ export async function getRelatedEpisodes(
 ): Promise<RelatedEpisodesResult> {
   try {
     const todayStr = new Date().toISOString().slice(0, 10);
-    const result: EpisodeObject[] = [];
-    const excludeIds: string[] = [episodeId];
-    let primaryMatchType: RelatedMatchType = 'recent';
-
-    // 1. Prioritize episodes by same takeover
-    if (takeoverIds && takeoverIds.length > 0) {
+    // Keep each section internally consistent: a short list of matching shows is
+    // more useful than filling it with unrelated episodes under the same heading.
+    if (takeoverIds?.length) {
       try {
-        const takeoverEpisodes = await fetchRelatedByTakeover(
-          episodeId,
-          takeoverIds,
-          limit,
-          todayStr
-        );
-        if (takeoverEpisodes.length > 0) {
-          primaryMatchType = 'takeover';
-        }
-        result.push(...takeoverEpisodes);
-        excludeIds.push(...takeoverEpisodes.map(e => e.id));
-      } catch (takeoverError) {
-        console.warn('Error fetching episodes by takeover:', takeoverError);
+        const episodes = await fetchRelatedByTakeover(episodeId, takeoverIds, limit, todayStr);
+        if (episodes.length) return { episodes, matchType: 'takeover' };
+      } catch (error) {
+        console.warn('Error fetching episodes by takeover:', error);
       }
     }
 
-    // 2. Prioritize episodes by same host
-    if (result.length < limit && hostIds && hostIds.length > 0) {
+    if (hostIds?.length) {
       try {
-        const remainingLimit = limit - result.length;
-        const hostEpisodes = await fetchRelatedByHost(episodeId, hostIds, remainingLimit, todayStr);
-        if (hostEpisodes.length > 0 && primaryMatchType === 'recent') {
-          primaryMatchType = 'host';
-        }
-        result.push(...hostEpisodes);
-        excludeIds.push(...hostEpisodes.map(e => e.id));
-      } catch (hostError) {
-        console.warn('Error fetching episodes by host:', hostError);
+        const episodes = await fetchRelatedByHost(episodeId, hostIds, limit, todayStr);
+        if (episodes.length) return { episodes, matchType: 'host' };
+      } catch (error) {
+        console.warn('Error fetching episodes by host:', error);
       }
     }
 
-    // 3. If we need more, fetch by genre
-    if (result.length < limit && genreIds && genreIds.length > 0) {
+    for (const genreId of genreIds || []) {
       try {
-        const remainingLimit = limit - result.length;
-        const genreEpisodes = await fetchRelatedByGenre(
-          excludeIds,
-          genreIds,
-          remainingLimit,
-          todayStr
-        );
-        if (genreEpisodes.length > 0 && primaryMatchType === 'recent') {
-          primaryMatchType = 'genre';
-        }
-        result.push(...genreEpisodes);
-        excludeIds.push(...genreEpisodes.map(e => e.id));
-      } catch (genreError) {
-        console.warn('Error fetching episodes by genre:', genreError);
+        const episodes = await fetchRelatedByGenre([episodeId], [genreId], limit, todayStr);
+        if (episodes.length) return { episodes, matchType: 'genre', genreId };
+      } catch (error) {
+        console.warn('Error fetching episodes by genre:', error);
       }
     }
 
-    // 4. Fallback: get recent episodes if still under limit
-    if (result.length < limit) {
-      try {
-        const remainingLimit = limit - result.length;
-        const recentEpisodes = await fetchRecentEpisodes(excludeIds, remainingLimit, todayStr);
-        result.push(...recentEpisodes);
-      } catch (recentError) {
-        console.warn('Error fetching recent episodes:', recentError);
-      }
-    }
-
-    return {
-      episodes: result.slice(0, limit),
-      matchType: primaryMatchType,
-    };
+    const episodes = await fetchRecentEpisodes([episodeId], limit, todayStr);
+    return { episodes, matchType: 'recent' };
   } catch (error) {
     console.error('Error in getRelatedEpisodes:', error);
     return { episodes: [], matchType: 'recent' };

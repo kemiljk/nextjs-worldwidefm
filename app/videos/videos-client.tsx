@@ -15,6 +15,7 @@ interface VideoCategory {
   id: string;
   title: string;
   slug: string;
+  metadata?: { description?: string | null } | null;
 }
 
 interface VideosClientProps {
@@ -287,6 +288,7 @@ export default function VideosClient({
                 <VideoCategorySection
                   key={category.id}
                   title={category.title}
+                  description={category.metadata?.description}
                   videos={videos}
                   availableCategories={availableCategories}
                 />

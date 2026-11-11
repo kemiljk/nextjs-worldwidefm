@@ -35,9 +35,15 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 ```bash
 NEXT_PUBLIC_COSMIC_BUCKET_SLUG=your-bucket-slug
-NEXT_PUBLIC_COSMIC_READ_KEY=your-read-key
+COSMIC_READ_KEY=your-read-key
 COSMIC_WRITE_KEY=your-write-key
 ```
+
+Keep `COSMIC_READ_KEY` server-side. For compatibility during migration, the app and scripts
+fall back to the legacy `NEXT_PUBLIC_COSMIC_READ_KEY` when `COSMIC_READ_KEY` is not configured.
+Set the new variable in every deployment environment before removing the legacy variable.
+Changing the variable name does not revoke a key that was previously included in browser code;
+any key rotation must be coordinated separately with all consumers.
 
 **Where to find:**
 

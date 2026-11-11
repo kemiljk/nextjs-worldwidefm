@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ShowCard } from '@/components/ui/show-card';
-import { transformShowToViewData } from '@/lib/cosmic-service';
+import { transformShowToViewData } from '@/lib/transform-show-to-view-data';
 import { EmptyState } from '@/components/dashboard/empty-state';
 import { Bookmark } from 'lucide-react';
 import { SaveShowButton } from '@/components/save-show-button';

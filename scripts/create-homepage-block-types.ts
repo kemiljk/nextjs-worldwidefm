@@ -6,7 +6,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 const cosmic = createBucketClient({
   bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || '',
-  readKey: process.env.NEXT_PUBLIC_COSMIC_READ_KEY || '',
+  readKey: (process.env.COSMIC_READ_KEY || process.env.NEXT_PUBLIC_COSMIC_READ_KEY) || '',
   writeKey: process.env.COSMIC_WRITE_KEY || '',
 });
 

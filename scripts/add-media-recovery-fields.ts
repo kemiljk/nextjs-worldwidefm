@@ -23,7 +23,7 @@ const NEW_METAFIELDS = [
 ];
 
 const bucketSlug = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG;
-const readKey = process.env.NEXT_PUBLIC_COSMIC_READ_KEY;
+const readKey = (process.env.COSMIC_READ_KEY || process.env.NEXT_PUBLIC_COSMIC_READ_KEY);
 const writeKey = process.env.COSMIC_WRITE_KEY;
 
 if (!bucketSlug || !readKey || !writeKey) {

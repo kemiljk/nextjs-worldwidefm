@@ -3,11 +3,12 @@ import {
   sanitizeTracklist,
   sanitizeEditorialContent,
   sanitizeEditorialWithEmbeds,
+  sanitizeHostBiography,
 } from '../../lib/sanitize-html';
 
 interface SafeHtmlProps {
   content: string;
-  type?: 'tracklist' | 'editorial' | 'editorial-with-embeds' | 'default';
+  type?: 'tracklist' | 'editorial' | 'editorial-with-embeds' | 'host-biography' | 'default';
   className?: string;
   allowedTags?: string[];
   allowedAttributes?: string[];
@@ -35,6 +36,9 @@ export function SafeHtml({
       break;
     case 'editorial-with-embeds':
       sanitizedContent = sanitizeEditorialWithEmbeds(content);
+      break;
+    case 'host-biography':
+      sanitizedContent = sanitizeHostBiography(content);
       break;
     default:
       sanitizedContent = content; // Assume already sanitized
@@ -68,6 +72,9 @@ export function SafeHtmlClient({
           break;
         case 'editorial-with-embeds':
           sanitized = sanitizeEditorialWithEmbeds(content);
+          break;
+        case 'host-biography':
+          sanitized = sanitizeHostBiography(content);
           break;
         default:
           sanitized = content;

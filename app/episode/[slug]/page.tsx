@@ -23,6 +23,8 @@ import { ListenBackButton } from '@/components/listen-back-button';
 import { getEpisodeImageUrl, type EpisodeObject } from '@/lib/cosmic-types';
 import { getAuthUser, getUserData } from '@/cosmic/blocks/user-management/actions';
 import { SaveShowButton } from '@/components/save-show-button';
+import { EpisodeReminderButton } from '@/components/episode-reminder-button';
+import { episodeStartTime, parseEpisodeReminderIds } from '@/lib/episode-reminders';
 import { FavoriteButton } from '@/components/favorite-button';
 import { generateShowMetadata } from '@/lib/metadata-utils';
 
@@ -185,17 +187,19 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
   const takeoverIds =
     episode.metadata.takeovers?.map((takeover: any) => takeover.id).filter(Boolean) || [];
 
-  const [{ episodes: relatedEpisodesRaw, matchType }, canonicalGenres, user] = await Promise.all([
-    getRelatedEpisodes(episode.id, 3, hostIds, genreIds, takeoverIds),
-    getCanonicalGenres(),
-    getAuthUser(),
-  ]);
+  const [{ episodes: relatedEpisodesRaw, matchType, genreId }, canonicalGenres, user] =
+    await Promise.all([
+      getRelatedEpisodes(episode.id, 3, hostIds, genreIds, takeoverIds),
+      getCanonicalGenres(),
+      getAuthUser(),
+    ]);
   const relatedEpisodes = relatedEpisodesRaw.map(ep => toShowCardData(ep));
 
   // Pick a heading that honestly reflects how episodes were matched
   let relatedHeading = 'Related Episodes';
-  if (matchType === 'genre' && episode.metadata.genres?.length > 0) {
-    const genreName = episode.metadata.genres[0].title;
+  const matchedGenre = episode.metadata.genres?.find((genre: any) => genre.id === genreId);
+  if (matchType === 'genre' && matchedGenre) {
+    const genreName = matchedGenre.title;
     relatedHeading = `More in ${genreName}`;
   } else if (matchType === 'recent') {
     relatedHeading = 'Recent Episodes';
@@ -209,11 +213,17 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
   };
 
   let isSaved = false;
+  let reminderSaved = false;
   let isHostFavorited = false;
+  const startTime = episodeStartTime(episode.metadata);
+  const isUpcoming = Boolean(startTime && startTime.getTime() > Date.now());
 
   if (user) {
     try {
       const { data: userData } = await getUserData(user.id);
+      reminderSaved = parseEpisodeReminderIds(userData?.metadata?.episode_reminders).includes(
+        episode.id
+      );
       if (userData?.metadata?.listen_later) {
         const savedIds = userData.metadata.listen_later.map((s: any) =>
           typeof s === 'string' ? s : s.id
@@ -237,10 +247,14 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
       {/* Action Buttons */}
       <div className='px-5 mt-4 flex items-center gap-3'>
         {show?.metadata?.player && <ListenBackButton show={show} />}
-        <SaveShowButton
-          show={{ id: episode.id, slug: episode.slug, title: episode.title }}
-          isSaved={isSaved}
-        />
+        {isUpcoming ? (
+          <EpisodeReminderButton episodeId={episode.id} initiallySaved={reminderSaved} />
+        ) : (
+          <SaveShowButton
+            show={{ id: episode.id, slug: episode.slug, title: episode.title }}
+            isSaved={isSaved}
+          />
+        )}
       </div>
 
       {/* Main Content Container */}
