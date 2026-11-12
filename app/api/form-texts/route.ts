@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getFormTexts, getDefaultFormTexts } from '@/lib/form-text-service';
+import { getFormTexts } from '@/lib/form-text-service';
+import { getDefaultFormTexts } from '@/lib/form-text-defaults';
 
 export async function GET() {
   try {

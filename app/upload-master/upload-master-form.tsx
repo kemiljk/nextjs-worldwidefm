@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { EpisodeObject, getEpisodeImageUrl } from '@/lib/cosmic-types';
-import { CosmicHost, getCosmicHosts } from '@/lib/cosmic-host-service';
+import type { CosmicHost } from '@/lib/cosmic-host-service';
+import { fetchFormHosts } from '@/lib/actions/form-options';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -71,7 +72,7 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
   const [isCoHostListOpen, setIsCoHostListOpen] = useState(false);
 
   useEffect(() => {
-    getCosmicHosts().then(setHosts).catch(console.error);
+    fetchFormHosts().then(setHosts).catch(console.error);
   }, []);
 
   const fetchEpisodesByDate = useCallback(async (date: string) => {

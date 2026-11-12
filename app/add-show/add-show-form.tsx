@@ -4,9 +4,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { CosmicLocation, getCosmicLocations } from '@/lib/cosmic-location-service';
-import { CosmicTakeover, getCosmicTakeovers } from '@/lib/cosmic-takeover-service';
-import { CosmicHost, getCosmicHosts } from '@/lib/cosmic-host-service';
+import type { CosmicLocation } from '@/lib/cosmic-location-service';
+import type { CosmicTakeover } from '@/lib/cosmic-takeover-service';
+import type { CosmicHost } from '@/lib/cosmic-host-service';
+import { fetchFormHosts, fetchFormLocations, fetchFormTakeovers } from '@/lib/actions/form-options';
 import { usePlausible } from 'next-plausible';
 import {
   Form,
@@ -37,7 +38,7 @@ import {
   CommandGroup,
 } from '@/components/ui/command';
 import { Dropzone } from '@/components/ui/dropzone';
-import { FormTexts, getDefaultFormTexts } from '@/lib/form-text-service';
+import { FormTexts, getDefaultFormTexts } from '@/lib/form-text-defaults';
 import { compressImage } from '@/lib/image-compression';
 import { upload } from '@vercel/blob/client';
 import {
@@ -190,10 +191,10 @@ export function AddShowForm() {
         // Fetch data in parallel
         const [hostsList, genresResult, locationsList, takeoversList, formTextsResponse] =
           await Promise.all([
-            getCosmicHosts(),
+            fetchFormHosts(),
             fetchGenres(),
-            getCosmicLocations(),
-            getCosmicTakeovers(),
+            fetchFormLocations(),
+            fetchFormTakeovers(),
             fetch('/api/form-texts').then(res => res.json()),
           ]);
 
