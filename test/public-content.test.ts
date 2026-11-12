@@ -1,6 +1,6 @@
 import { liveCacheHeaders } from '@/lib/live-cache';
 import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
-import { changedContentTags, contentTags } from '@/lib/content-cache-policy';
+import { changedContentTags, contentLifetime, contentTags } from '@/lib/content-cache-policy';
 
 mock.module('server-only', () => ({}));
 mock.module('next/cache', () => ({
@@ -79,6 +79,10 @@ describe('public Cosmic reads', () => {
 });
 
 describe('publishing dependencies', () => {
+  it('keeps a short schedule fallback while reducing recurring episode refreshes', () => {
+    expect(contentLifetime('episode').revalidate).toBe(3600);
+    expect(contentLifetime('schedule').revalidate).toBe(60);
+  });
   it('invalidates live data, lists, homepage and the edited episode', () => {
     expect(changedContentTags('episode', 'updated')).toEqual(
       expect.arrayContaining([

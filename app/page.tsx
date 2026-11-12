@@ -25,6 +25,7 @@ import ColouredSectionGallery from '@/components/coloured-section-gallery';
 import MembershipPromoSection from '@/components/membership-promo-section';
 import { ShowCard } from '@/components/ui/show-card';
 import { ShowsGridSkeleton } from '@/components/shows-grid-skeleton';
+import { selectHomepageGenreEpisodes } from '@/lib/homepage-genre-selection';
 
 // Generate metadata for the homepage
 export async function generateMetadata(): Promise<Metadata> {
@@ -366,30 +367,18 @@ export default async function Home() {
   // One archive selection per UTC day keeps the upstream cache key bounded.
   const randomOffset = (Math.floor(Date.now() / 86400000) % 150) + 50;
 
-  // Build parallel fetch promises for genres
-  const genrePromises = topGenresToPreload.map(async genreTitle => {
-    const canonicalGenre = canonicalGenres.find(
-      g => g.title.toLowerCase() === genreTitle.toLowerCase()
-    );
-    if (!canonicalGenre) return { genreTitle, show: null };
-
-    try {
-      const response = await getEpisodesForShows({
-        genre: [canonicalGenre.id],
-        random: true,
-        limit: 1,
-        listenBackOnly: true,
-      });
-
-      if (response?.shows?.[0]) {
-        const transformed = transformShowToViewData(response.shows[0]);
-        return { genreTitle, show: { ...transformed, key: transformed.slug } };
-      }
-    } catch (error) {
-      throw error;
-    }
-    return { genreTitle, show: null };
+  const preloadGenres = topGenresToPreload.flatMap(title => {
+    const genre = canonicalGenres.find(g => g.title.toLowerCase() === title.toLowerCase());
+    return genre ? [{ id: genre.id, title }] : [];
   });
+  const genrePromise = preloadGenres.length
+    ? getEpisodesForShows({
+        genre: preloadGenres.map(genre => genre.id),
+        random: true,
+        limit: 15,
+        listenBackOnly: true,
+      })
+    : Promise.resolve({ shows: [] });
 
   // Fetch archive shows promise
   const archivePromise = getEpisodesForShows({
@@ -464,15 +453,18 @@ export default async function Home() {
 
   // Execute genre/archive and hero fetches in parallel
   const [genreResults, archiveResponse, heroItems] = await Promise.all([
-    Promise.all(genrePromises),
+    genrePromise,
     archivePromise,
     heroItemsPromise,
   ]);
 
   // Build randomShowsByGenre from parallel results
   const randomShowsByGenre: Record<string, any> = {};
-  for (const { genreTitle, show } of genreResults) {
-    if (show) randomShowsByGenre[genreTitle] = show;
+  for (const [genreTitle, show] of Object.entries(
+    selectHomepageGenreEpisodes(preloadGenres, genreResults.shows)
+  )) {
+    const transformed = transformShowToViewData(show);
+    randomShowsByGenre[genreTitle] = { ...transformed, key: transformed.slug };
   }
 
   // Prefer the editor's hand-picked archive selection, falling back to random episodes.

@@ -42,8 +42,11 @@ export function changedContentTags(type: string, slug?: string): string[] {
 }
 
 export function contentLifetime(type: string) {
-  if (type === 'episode' || type === 'schedule') {
+  if (type === 'schedule') {
     return { stale: 30, revalidate: 60, expire: 3600 };
+  }
+  if (type === 'episode') {
+    return { stale: 30, revalidate: 3600, expire: 7200 };
   }
   if (type === 'homepage' || type === 'sections' || type === 'coloured-sections') {
     return { stale: 60, revalidate: 300, expire: 3600 };

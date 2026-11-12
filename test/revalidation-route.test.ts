@@ -48,3 +48,16 @@ test('retains authenticated manual tag invalidation', async () => {
   expect((await POST(request({ tag: 'genres, navigation' }))).status).toBe(200);
   expect(tags).toEqual(['genres', 'navigation']);
 });
+test('a Cosmic object event invalidates the edited object and its relationships', async () => {
+  const response = await POST(
+    request({
+      resource: 'objects',
+      event: 'edited',
+      data: { object: { type: 'episode', slug: 'example-show' } },
+    })
+  );
+  expect(response.status).toBe(200);
+  expect(tags).toContain('episode-example-show');
+  expect(tags).toContain('content-relationships');
+  expect(tags).not.toContain('public-content');
+});

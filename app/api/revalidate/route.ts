@@ -64,7 +64,9 @@ async function handleRevalidation(request: NextRequest) {
     }
 
     const revalidatedItems: string[] = [];
-    const payload = (body.object || body.data || body) as Record<string, unknown>;
+    const data =
+      body.data && typeof body.data === 'object' ? (body.data as Record<string, unknown>) : {};
+    const payload = (body.object || data.object || body.data || body) as Record<string, unknown>;
     const objectType =
       typeof payload.type === 'string' && payload.type !== 'page' && payload.type !== 'layout'
         ? payload.type
