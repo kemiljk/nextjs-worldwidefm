@@ -69,6 +69,9 @@ const nextConfig = {
     parallelServerCompiles: true,
     serverActions: {
       bodySizeLimit: '700mb',
+      // Apex and www both serve the site. A browser on worldwidefm.net posts
+      // actions through the www host, and Next aborts that mismatch otherwise.
+      allowedOrigins: ['worldwidefm.net', 'www.worldwidefm.net'],
     },
     staleTimes: {
       dynamic: 0,
