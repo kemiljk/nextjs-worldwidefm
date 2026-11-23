@@ -7,42 +7,6 @@ on:
   pull_request:
 
 jobs:
-  quality:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Lint
-        run: bun run lint
-
-      - name: Type check upload pipeline
-        run: bunx tsc -p tsconfig.upload.json --noEmit
-
-      - name: Type check tests
-        run: bunx tsc -p tsconfig.test.json --noEmit
-
-      - name: Unit and integration tests
-        run: bun run test
-
-      - name: Node upload streaming regressions
-        env:
-          WWFM_SLOW_UPLOAD: '1'
-        run: bun run test:uploads
-
   live-search-credentials:
     # Secrets are empty for forked pull requests and Dependabot, so the live job skips there.
     runs-on: ubuntu-latest
@@ -91,3 +55,39 @@ jobs:
 
       - name: Live search e2e (read-only Cosmic)
         run: bun run test:e2e:live
+
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Type check upload pipeline
+        run: bunx tsc -p tsconfig.upload.json --noEmit
+
+      - name: Type check tests
+        run: bunx tsc -p tsconfig.test.json --noEmit
+
+      - name: Unit and integration tests
+        run: bun run test
+
+      - name: Node upload streaming regressions
+        env:
+          WWFM_SLOW_UPLOAD: '1'
+        run: bun run test:uploads
