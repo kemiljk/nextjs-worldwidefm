@@ -5,7 +5,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { ShowsGrid } from '../../components/shows-grid';
 import { Loader, X } from 'lucide-react';
 import { getPublicEpisodeCards as getEpisodesForShows } from '@/lib/actions/public-episode-cards';
-import { getRegularHosts, getTakeovers } from '@/lib/actions';
+import { getRegularHosts, getTakeovers } from '@/lib/actions/shows';
 import { toShowCardData as transformShowToViewData } from '@/lib/show-card-data';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getHostProfileUrl } from '@/lib/actions';
+import { getHostProfileUrl } from '@/lib/actions/radiocult';
 
 interface HostLinkProps {
   hostName: string;

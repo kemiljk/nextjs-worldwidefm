@@ -3,7 +3,7 @@
 import { Loader2, ChevronRight } from 'lucide-react';
 import { ArticleCard } from '@/components/ui/article-card';
 import { EventCard } from '@/components/ui/event-card';
-import { getPostsWithFilters } from '@/lib/actions';
+import { getPostsWithFilters } from '@/lib/actions/posts';
 import { cn } from '@/lib/utils';
 import { PostObject } from '@/lib/cosmic-config';
 import { useState, useEffect, useMemo } from 'react';

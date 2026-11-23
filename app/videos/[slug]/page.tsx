@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getVideoBySlug } from '@/lib/actions';
+import { getVideoBySlug } from '@/lib/actions/videos';
 import { format } from 'date-fns';
 import { VideoPlayer } from '@/components/video/video-player';
 import { PageHeader } from '@/components/shared/page-header';

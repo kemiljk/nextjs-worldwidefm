@@ -120,7 +120,7 @@ export default function AboutPage() {
 ```typescript
 import { Metadata } from "next";
 import { generateShowMetadata } from "@/lib/metadata-utils";
-import { getShowBySlug } from "@/lib/actions";
+import { getShowBySlug } from "@/lib/actions/shows";
 
 interface Props {
   params: { slug: string };

@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getPostBySlug, getRelatedPosts } from '@/lib/actions';
+import { getPostBySlug, getRelatedPosts } from '@/lib/actions/posts';
 import { format } from 'date-fns';
 import EditorialSection from '@/components/editorial/editorial-section';
 import { generatePostMetadata } from '@/lib/metadata-utils';

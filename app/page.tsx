@@ -3,11 +3,11 @@ import { Metadata } from 'next';
 import { connection } from 'next/server';
 import {
   getCosmicHomepageData,
-  getVideos,
-  getAllPosts,
   createColouredSections,
   fetchCosmicObjectById,
-} from '@/lib/actions';
+} from '@/lib/actions/homepage';
+import { getVideos } from '@/lib/actions/videos';
+import { getAllPosts } from '@/lib/actions/posts';
 import { generateHomepageMetadata } from '@/lib/metadata-utils';
 import { getEpisodesForShows, getEpisodeBySlug, getEpisodes } from '@/lib/episode-service';
 import { toShowCardData as transformShowToViewData } from '@/lib/show-card-data';
