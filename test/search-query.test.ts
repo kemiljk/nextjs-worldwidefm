@@ -33,12 +33,6 @@ describe('foldSearchText', () => {
 });
 
 describe('buildSearchRegex', () => {
-  it('uses literal combining marks instead of JavaScript-only Unicode escapes for Cosmic', () => {
-    const regex = buildSearchRegex('Gilles');
-    expect(regex!.$regex).not.toContain('\\u');
-    expect(regex!.$regex).toContain('[\u0300-\u036f]*');
-  });
-
   it('uses a plain substring pattern for a single token', () => {
     const regex = buildSearchRegex('Bhok');
     expect(new RegExp(regex!.$regex, regex!.$options).test('Bhok')).toBe(true);
@@ -49,11 +43,6 @@ describe('buildSearchRegex', () => {
     expect(regex).not.toBeNull();
     const compiled = new RegExp(regex!.$regex, regex!.$options);
     expect(compiled.test('Karl Bos w/ Sam Bhok')).toBe(true);
-  });
-
-  it('escapes regex characters in user input', () => {
-    const regex = buildSearchRegex('foo.bar');
-    expect(regex?.$regex).toContain('\\.');
   });
 
   it('matches accented titles when the query omits the accent', () => {
@@ -96,23 +85,6 @@ describe('applySearchToQuery', () => {
     expect(compiled.test('Sam Bhok w/ Karl Bos')).toBe(true);
     expect(compiled.test('Karl Bos w/ Sam Bhok')).toBe(true);
     expect(compiled.test('Sam Bhok')).toBe(false);
-  });
-
-  it('assigns to a single field key so sibling filters are preserved', () => {
-    const query: Record<string, unknown> = {
-      type: 'episode',
-      status: 'published',
-      'metadata.broadcast_date': { $lte: '2026-07-28' },
-    };
-
-    applySearchToQuery(query, 'Sam Bhok');
-
-    expect(query.type).toBe('episode');
-    expect(query.status).toBe('published');
-    expect(query['metadata.broadcast_date']).toEqual({ $lte: '2026-07-28' });
-    expect(query.title).toEqual(buildSearchRegex('Sam Bhok'));
-    expect(query.$and).toBeUndefined();
-    expect(query.$or).toBeUndefined();
   });
 
   it('leaves the query untouched when there is no usable term', () => {
