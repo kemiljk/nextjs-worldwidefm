@@ -12,6 +12,8 @@ import { getPostThumbnail } from '@/lib/post-thumbnail-utils';
 
 import Link from 'next/link';
 
+const PAGE_SIZE = 20;
+
 interface Post extends PostObject {}
 
 interface EditorialSectionProps {
@@ -82,7 +84,7 @@ export default function EditorialSection({
     setDisplayedPosts(posts);
     setCurrentOffset(posts.length);
 
-    setHasMore(posts.length >= 20);
+    setHasMore(posts.length >= PAGE_SIZE);
   }, [posts]);
 
   async function loadMorePosts() {
@@ -106,7 +108,7 @@ export default function EditorialSection({
           .filter(Boolean) as string[]) || [];
 
       const result = await getPostsWithFilters({
-        limit: 20,
+        limit: PAGE_SIZE,
         offset: currentOffset,
         searchTerm: currentFilters?.searchTerm || '',
         categories: categoryIds,
@@ -136,7 +138,7 @@ export default function EditorialSection({
           setDisplayedPosts(prev => [...prev, ...newPosts]);
           setCurrentOffset(prev => prev + newPosts.length);
 
-          setHasMore(newPosts.length >= 20);
+          setHasMore(newPosts.length >= PAGE_SIZE);
         } else {
           // If all posts were duplicates, we've reached the end
           setHasMore(false);
