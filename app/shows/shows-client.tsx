@@ -39,10 +39,9 @@ export default function ShowsClient({
   const PAGE_SIZE = 20;
   const loadMoreSentinelRef = React.useRef<HTMLDivElement>(null);
 
-  // Parse filter params
   const genreParam = searchParams.get('genre') ?? undefined;
   const locationParam = searchParams.get('location') ?? undefined;
-  const typeParam = searchParams.get('type') ?? undefined; // New type parameter for host/takeover filtering
+  const typeParam = searchParams.get('type') ?? undefined;
   const searchTerm = searchParams.get('searchTerm') ?? undefined;
   const letterParam = searchParams.get('letter') ?? undefined;
 
@@ -55,10 +54,8 @@ export default function ShowsClient({
     [locationParam]
   );
 
-  // Determine which filter type is active based on the type parameter
   const activeType = typeParam || 'all';
 
-  // Track if we need to fetch (has filters/search) vs use initial data
   const needsFetch = useMemo(() => {
     return (
       selectedGenres.length > 0 ||
@@ -69,9 +66,7 @@ export default function ShowsClient({
     );
   }, [selectedGenres.length, selectedLocations.length, searchTerm, letterParam, activeType]);
 
-  // Load data whenever filters/search change (skip initial load if we have initial data and no filters)
   useEffect(() => {
-    // If we have initial data and no filters are active, reset to initial data and don't fetch
     if (initialShows.length > 0 && !needsFetch && activeType === 'all') {
       setShows(initialShows);
       setHasNext(initialHasNext);
@@ -88,15 +83,12 @@ export default function ShowsClient({
         try {
           let response;
 
-          // Use different data sources based on the active type
           if (activeType === 'hosts-series') {
-            // Fetch regular hosts objects with filters
             const hostParams: any = {
               limit: PAGE_SIZE,
               offset: 0,
             };
 
-            // Only add filters if they're selected
             if (selectedGenres.length > 0) {
               hostParams.genre = selectedGenres;
             }
@@ -111,13 +103,11 @@ export default function ShowsClient({
 
             response = await getRegularHosts(hostParams);
           } else if (activeType === 'takeovers') {
-            // Fetch takeovers objects with filters
             const takeoverParams: any = {
               limit: PAGE_SIZE,
               offset: 0,
             };
 
-            // Only add filters if they're selected
             if (selectedGenres.length > 0) {
               takeoverParams.genre = selectedGenres;
             }
@@ -128,14 +118,12 @@ export default function ShowsClient({
 
             response = await getTakeovers(takeoverParams);
           } else {
-            // Fetch episodes with filters
             const episodeParams: any = {
               searchTerm,
               limit: PAGE_SIZE,
               offset: 0,
             };
 
-            // Only add filters if they're selected
             if (selectedGenres.length > 0) {
               episodeParams.genre = selectedGenres;
             }
@@ -149,7 +137,6 @@ export default function ShowsClient({
 
           if (!isMounted) return;
 
-          // Transform episodes data using the same function as other components
           if (activeType === 'all' || activeType === 'episodes') {
             const shows = (response as any).shows || [];
             const transformedShows = shows.map((show: any) => {
@@ -161,7 +148,6 @@ export default function ShowsClient({
             });
             setShows(transformedShows);
           } else if (activeType === 'hosts-series') {
-            // For hosts, add key property
             const shows = (response as any).shows || [];
             const transformedHosts = shows.map((host: any) => ({
               ...host,
@@ -169,7 +155,6 @@ export default function ShowsClient({
             }));
             setShows(transformedHosts);
           } else if (activeType === 'takeovers') {
-            // For takeovers, add key property
             const shows = (response as any).shows || [];
             const transformedTakeovers = shows.map((takeover: any) => ({
               ...takeover,
@@ -208,7 +193,6 @@ export default function ShowsClient({
     initialShows.length,
   ]);
 
-  // Load more data function
   const loadMore = useCallback(async () => {
     if (!hasNext || isLoadingMore) return;
 
@@ -218,15 +202,12 @@ export default function ShowsClient({
     try {
       let response;
 
-      // Use different data sources based on the active type
       if (activeType === 'hosts-series') {
-        // Fetch more regular hosts objects with filters
         const hostParams: any = {
           limit: PAGE_SIZE,
           offset: nextOffset,
         };
 
-        // Only add filters if they're selected
         if (selectedGenres.length > 0) {
           hostParams.genre = selectedGenres;
         }
@@ -241,13 +222,11 @@ export default function ShowsClient({
 
         response = await getRegularHosts(hostParams);
       } else if (activeType === 'takeovers') {
-        // Fetch more takeovers objects with filters
         const takeoverParams: any = {
           limit: PAGE_SIZE,
           offset: nextOffset,
         };
 
-        // Only add filters if they're selected
         if (selectedGenres.length > 0) {
           takeoverParams.genre = selectedGenres;
         }
@@ -258,14 +237,12 @@ export default function ShowsClient({
 
         response = await getTakeovers(takeoverParams);
       } else {
-        // Fetch more episodes with filters
         const episodeParams: any = {
           searchTerm,
           limit: PAGE_SIZE,
           offset: nextOffset,
         };
 
-        // Only add filters if they're selected
         if (selectedGenres.length > 0) {
           episodeParams.genre = selectedGenres;
         }
@@ -281,7 +258,6 @@ export default function ShowsClient({
         const existing = new Set(prev.map(s => s.id || s.slug));
         const merged = [...prev];
 
-        // Transform new shows using the same function as other components
         let newShows: any[] = [];
         if (activeType === 'all' || activeType === 'episodes') {
           const shows = (response as any).shows || [];
@@ -333,7 +309,6 @@ export default function ShowsClient({
     letterParam,
   ]);
 
-  // Map episode genres to canonical genres (by slug or title, case-insensitive)
   function mapShowToCanonicalGenres(show: any): string[] {
     const genres = show.genres || show.enhanced_genres || [];
     return canonicalGenres
@@ -350,7 +325,6 @@ export default function ShowsClient({
       .map(genre => genre.slug);
   }
 
-  // Map episode hosts to available hosts (by name or slug, case-insensitive)
   function mapShowToAvailableHosts(show: any): string[] {
     const hosts = show.hosts || show.enhanced_hosts || show.regular_hosts || [];
     return availableFilters.hosts
@@ -372,7 +346,6 @@ export default function ShowsClient({
       .map(host => host.slug);
   }
 
-  // Map episode locations to available locations (by name or slug, case-insensitive)
   function mapShowToAvailableLocations(show: any): string[] {
     const locations = show.locations || [];
     return availableFilters.locations
@@ -392,7 +365,6 @@ export default function ShowsClient({
       .map(location => location.slug);
   }
 
-  // Handle navigation to different filter types
   const handleTypeNavigation = (type: string) => {
     const params = new URLSearchParams(searchParams.toString());
 
@@ -402,7 +374,6 @@ export default function ShowsClient({
       params.set('type', type);
     }
 
-    // Clear letter filter when switching away from hosts-series
     if (type !== 'hosts-series') {
       params.delete('letter');
     }
@@ -410,7 +381,6 @@ export default function ShowsClient({
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Handle genre dropdown selection changes
   const handleGenreSelectionChange = (values: string[]) => {
     const params = new URLSearchParams(searchParams.toString());
 
@@ -423,7 +393,6 @@ export default function ShowsClient({
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Handle location dropdown selection changes
   const handleLocationSelectionChange = (values: string[]) => {
     const params = new URLSearchParams(searchParams.toString());
 
@@ -436,7 +405,6 @@ export default function ShowsClient({
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Handle clear individual genre chip
   const handleClearGenre = (genreId: string) => {
     const newGenres = selectedGenres.filter(g => g !== genreId);
     const params = new URLSearchParams(searchParams.toString());
@@ -450,7 +418,6 @@ export default function ShowsClient({
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Handle clear individual location chip
   const handleClearLocation = (locationId: string) => {
     const newLocations = selectedLocations.filter(l => l !== locationId);
     const params = new URLSearchParams(searchParams.toString());
@@ -464,7 +431,6 @@ export default function ShowsClient({
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Handle letter filter selection
   const handleLetterSelect = (letter: string) => {
     const params = new URLSearchParams(searchParams.toString());
 
@@ -477,7 +443,6 @@ export default function ShowsClient({
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // IntersectionObserver for automatic infinite scroll on hosts-series tab
   useEffect(() => {
     if (activeType !== 'hosts-series' || !hasNext || isLoadingMore) {
       return;
@@ -510,9 +475,9 @@ export default function ShowsClient({
   return (
     <>
       <div className='px-5 flex flex-col gap-1 w-full'>
-        {/* Filter Controls */}
+        {}
         <div className='flex flex-wrap gap-2 text-m7 pt-4 pb-2'>
-          {/* Type Navigation Buttons */}
+          {}
           <Button
             variant='outline'
             className={cn(
@@ -525,8 +490,8 @@ export default function ShowsClient({
             Episodes
           </Button>
 
-          {/* Show genre and location filters for all content types */}
-          {/* Genres Dropdown */}
+          {}
+          {}
           <Combobox
             options={canonicalGenres.map(genre => ({
               value: genre.id,
@@ -540,7 +505,7 @@ export default function ShowsClient({
             className='w-fit'
           />
 
-          {/* Locations Dropdown */}
+          {}
           <Combobox
             options={availableFilters.locations.map(location => ({
               value: location.id,
@@ -579,7 +544,7 @@ export default function ShowsClient({
           </Button>
         </div>
 
-        {/* Alphabet Filter - Only visible for Hosts & Series */}
+        {}
         {activeType === 'hosts-series' && (
           <div className='flex flex-wrap gap-2 text-m7 pt-2 pb-2 border-t border-almostblack/20'>
             {[
@@ -628,7 +593,7 @@ export default function ShowsClient({
           </div>
         )}
 
-        {/* Active Filter Chips */}
+        {}
         {hasActiveFilters && (
           <div className='w-full border-t border-almostblack flex gap-2 pt-4 pb-2 text-m7 overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700'>
             {selectedGenres.map((genreId, index) => {
@@ -713,12 +678,12 @@ export default function ShowsClient({
           )}
         </main>
 
-        {/* IntersectionObserver sentinel for automatic loading */}
+        {}
         {activeType === 'hosts-series' && hasNext && (
           <div ref={loadMoreSentinelRef} className='h-1 w-full' />
         )}
 
-        {/* Load More Button - fallback for manual loading */}
+        {}
         {hasNext && (
           <div className='w-full flex items-center justify-center mt-8'>
             <Button

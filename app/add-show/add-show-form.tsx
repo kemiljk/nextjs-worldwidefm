@@ -54,7 +54,6 @@ import type { RadioCultFailureCode } from '@/lib/radiocult-failure';
 import { tracklistTextToHtml } from '@/lib/tracklist-format';
 import { AddNewHost, AddNewHostTrigger } from './add-new-host';
 
-// Form schema using zod
 const formSchema = z.object({
   title: z.string().min(3, {
     error: 'Show title must be at least 3 characters',
@@ -162,7 +161,6 @@ export function AddShowForm() {
   const [formTexts, setFormTexts] = useState<FormTexts>(getDefaultFormTexts());
   const plausible = usePlausible();
 
-  // Initialize the form
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -182,13 +180,11 @@ export function AddShowForm() {
     },
   });
 
-  // Fetch hosts, genres, locations, and form texts when component mounts
   useEffect(() => {
     const fetchData = async () => {
       // We don't set global isLoading to true here anymore so the form
       // is instantly interactive for text fields (title, desc, etc.)
       try {
-        // Fetch data in parallel
         const [hostsList, genresResult, locationsList, takeoversList, formTextsResponse] =
           await Promise.all([
             fetchFormHosts(),
@@ -219,7 +215,6 @@ export function AddShowForm() {
     fetchData();
   }, []);
 
-  // Handle location selection
   const handleLocationSelect = (location: CosmicLocation) => {
     setSelectedLocation(location);
     setLocationInput(location.title);
@@ -227,7 +222,6 @@ export function AddShowForm() {
     setIsLocationListOpen(false);
   };
 
-  // Handle location input change
   const handleLocationInputChange = (value: string) => {
     setLocationInput(value);
     setIsLocationListOpen(true);
@@ -237,7 +231,6 @@ export function AddShowForm() {
     }
   };
 
-  // Handle takeover selection
   const handleTakeoverSelect = (takeover: CosmicTakeover) => {
     setSelectedTakeover(takeover);
     setTakeoverInput(takeover.title);
@@ -245,7 +238,6 @@ export function AddShowForm() {
     setIsTakeoverListOpen(false);
   };
 
-  // Handle takeover input change
   const handleTakeoverInputChange = (value: string) => {
     setTakeoverInput(value);
     setIsTakeoverListOpen(true);
@@ -255,14 +247,12 @@ export function AddShowForm() {
     }
   };
 
-  // Handle host selection
   const handleHostSelect = (host: CosmicHost) => {
     form.setValue('hostId', host.id);
     setHostInput(host.title);
     setIsHostListOpen(false);
   };
 
-  // Handle host input change
   const handleHostInputChange = (value: string) => {
     setHostInput(value);
     setIsHostListOpen(true);
@@ -294,12 +284,10 @@ export function AddShowForm() {
     );
   }, [genres, selectedGenreInput, selectedGenres]);
 
-  // Update form value when selected genres change
   useEffect(() => {
     form.setValue('tags', selectedGenres);
   }, [selectedGenres, form]);
 
-  // Sync host input with selected host
   useEffect(() => {
     const selectedHostId = form.watch('hostId');
     if (selectedHostId) {
@@ -318,7 +306,6 @@ export function AddShowForm() {
     toast.success(`Host "${newHost.title || 'Unknown'}" added and selected`);
   };
 
-  // Handle genre selection
   const handleGenreSelect = (genreId: string) => {
     if (!selectedGenres.includes(genreId)) {
       setSelectedGenres([...selectedGenres, genreId]);
@@ -327,18 +314,15 @@ export function AddShowForm() {
     }
   };
 
-  // Handle genre removal
   const handleGenreRemove = (genreId: string) => {
     setSelectedGenres(selectedGenres.filter(id => id !== genreId));
   };
 
-  // Get genre title by ID
   const getGenreTitle = (genreId: string) => {
     const genre = genres.find(g => g.id === genreId);
     return genre?.title || genreId;
   };
 
-  // Handle creating another show
   const handleCreateAnother = () => {
     setIsSubmitted(false);
     setSubmittedShowTitle('');
@@ -353,7 +337,6 @@ export function AddShowForm() {
     // Form is already reset from the previous submission
   };
 
-  // Handle form submission
   const onSubmit = async (values: FormValues) => {
     setIsLoading(true);
     setPhase('preparing');
@@ -375,7 +358,6 @@ export function AddShowForm() {
         mediaSize: mediaFile ? `${(mediaFile.size / 1024 / 1024).toFixed(2)}MB` : 'N/A',
       });
 
-      // Upload image file separately if provided
       if (imageFile) {
         setPhase('uploadingImage');
         console.log('📸 Starting image upload...');
@@ -431,7 +413,6 @@ export function AddShowForm() {
         }
       }
 
-      // Upload media file separately if provided
       if (mediaFile) {
         if (mediaFile.size > MAX_MEDIA_MB * 1024 * 1024) {
           throw new Error(
@@ -538,7 +519,6 @@ export function AddShowForm() {
         ? tracklistTextToHtml(values.tracklist) || undefined
         : undefined;
 
-      // Create the show in Cosmic
       console.log('📝 Creating show in Cosmic...');
       setPhase('creatingShow');
       try {
@@ -591,7 +571,6 @@ export function AddShowForm() {
           setAudioRecovery(finalAudioRecovery);
         }
 
-        // Track successful show submission
         plausible('Show Submitted', {
           props: {
             title: values.title,
@@ -602,7 +581,6 @@ export function AddShowForm() {
           },
         });
 
-        // Set success state
         setSubmittedShowTitle(values.title);
         setIsSubmitted(true);
         setPhase('success');
@@ -618,7 +596,6 @@ export function AddShowForm() {
           toast.success('Show submitted successfully!');
         }
 
-        // Reset the form for potential next submission
         form.reset();
         setSelectedGenres([]);
         setSelectedLocation(undefined);
@@ -640,7 +617,6 @@ export function AddShowForm() {
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
 
-      // Track show submission error
       plausible('Show Submission Error', {
         props: {
           error: errorMessage,
@@ -653,7 +629,6 @@ export function AddShowForm() {
         duration: 10000,
       });
 
-      // Log to console for debugging
       console.error('Full error details:', {
         error,
         errorType: error?.constructor?.name,
@@ -665,7 +640,6 @@ export function AddShowForm() {
     }
   };
 
-  // Show success view if submitted
   if (isSubmitted) {
     const recoveryCopy = audioRecovery ? getAudioRecoveryCopy(audioRecovery) : null;
     const requiresHostAction = recoveryCopy?.requiresHostAction ?? false;

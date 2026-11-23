@@ -36,7 +36,6 @@ interface EditorialSectionProps {
   className?: string;
   isHomepage?: boolean;
   layout?: 'grid' | 'list';
-  // Add filter props for pagination
   currentFilters?: {
     searchTerm?: string;
     categories?: string[];
@@ -58,10 +57,9 @@ export default function EditorialSection({
 }: EditorialSectionProps) {
   const [displayedPosts, setDisplayedPosts] = useState<Post[]>(posts);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(false); // Start with false, only show if we have a full batch
+  const [hasMore, setHasMore] = useState(false);
   const [currentOffset, setCurrentOffset] = useState(0);
 
-  // Combine posts and events, sorting by date
   const combinedItems = useMemo(() => {
     const allItems = [
       ...posts.map(post => ({
@@ -75,20 +73,15 @@ export default function EditorialSection({
         date: event.metadata?.event_date,
       })),
     ];
-    // Sort by date descending
     return allItems.sort(
       (a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime()
     );
   }, [posts, events]);
 
-  // Update displayedPosts when posts prop changes
   useEffect(() => {
     setDisplayedPosts(posts);
-    // Set initial offset based on posts length
     setCurrentOffset(posts.length);
 
-    // Only show "Load More" if we loaded a full batch (20 posts)
-    // This indicates there might be more posts available
     setHasMore(posts.length >= 20);
   }, [posts]);
 
@@ -128,7 +121,6 @@ export default function EditorialSection({
       );
 
       if (result.posts.length > 0) {
-        // Filter out any posts that already exist to prevent duplicates
         const existingIds = new Set(displayedPosts.map(post => post.id));
         const newPosts = result.posts.filter(post => !existingIds.has(post.id));
 
@@ -144,15 +136,12 @@ export default function EditorialSection({
           setDisplayedPosts(prev => [...prev, ...newPosts]);
           setCurrentOffset(prev => prev + newPosts.length);
 
-          // Only show "Load More" if we received a full batch (20 posts)
-          // This indicates there might be more posts available
           setHasMore(newPosts.length >= 20);
         } else {
           // If all posts were duplicates, we've reached the end
           setHasMore(false);
         }
       } else {
-        // No more posts available
         setHasMore(false);
       }
     } catch (error) {
@@ -270,7 +259,7 @@ export default function EditorialSection({
               }
             })}
           </div>
-          {/* Load More Button */}
+          {}
           {hasMore && (
             <div className='w-full flex items-center justify-center mt-8'>
               <Button

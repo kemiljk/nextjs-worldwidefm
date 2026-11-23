@@ -65,7 +65,6 @@ export default async function EditorialArticlePage({
 
   const post = response.object;
 
-  // Get related posts based on categories
   let relatedPosts: PostObject[] = [];
   try {
     relatedPosts = await getRelatedPosts(post);
@@ -74,36 +73,30 @@ export default async function EditorialArticlePage({
     relatedPosts = [];
   }
 
-  // Format the date
   const postDate = post.metadata?.date ? new Date(post.metadata.date) : null;
   const formattedDate = postDate ? format(postDate, 'dd-MM-yyyy') : '';
   const imageGallery = post.metadata?.image_gallery || [];
 
-  // Smart props for layout control
   const postType = getPostKind(post);
   const isFeatured = post.metadata?.is_featured || false;
   const featuredSize = post.metadata?.featured_size?.key || 'small';
   const imageAspectRatio = post.metadata?.image_aspect_ratio?.key || '1_1';
   const textFocus = post.metadata?.text_focus || false;
 
-  // Determine which layout to use based on smart props
   const getLayoutComponent = () => {
     // Video posts get special treatment - use Gallery layout for better video display
     if (postType === 'video') {
       return <GalleryLayout post={post} formattedDate={formattedDate} />;
     }
 
-    // Featured posts get special treatment (only large featured posts use FeaturedLayout)
     if (isFeatured && featuredSize === 'large') {
       return <FeaturedLayout post={post} formattedDate={formattedDate} />;
     }
 
-    // Gallery-focused posts (with image gallery and 4:3 aspect ratio)
     if (imageGallery.length > 0 && imageAspectRatio === '4_3') {
       return <GalleryLayout post={post} formattedDate={formattedDate} />;
     }
 
-    // Minimal layout for text-focused posts or posts with no image/gallery
     if (
       textFocus ||
       (!post.metadata?.external_image_url &&
@@ -113,11 +106,9 @@ export default async function EditorialArticlePage({
       return <MinimalLayout post={post} formattedDate={formattedDate} />;
     }
 
-    // Default standard layout
     return <StandardLayout post={post} formattedDate={formattedDate} />;
   };
 
-  // Check if this is a draft post
   const isDraft = post.status === 'draft';
 
   // Shows/episodes linked to this editorial piece (special projects, partnerships)
@@ -125,12 +116,12 @@ export default async function EditorialArticlePage({
 
   return (
     <>
-      {/* Preview Banner - show when post is a draft */}
+      {}
       {isDraft && <PreviewBanner />}
 
       {getLayoutComponent()}
 
-      {/* Related Shows - linked episodes/series for special projects */}
+      {}
       {relatedShows.length > 0 && (
         <div className='border-t'>
           <div className='max-w-7xl mx-auto px-4 py-16'>
@@ -163,7 +154,7 @@ export default async function EditorialArticlePage({
         </div>
       )}
 
-      {/* Related Articles */}
+      {}
       {relatedPosts.length > 0 && (
         <div className='border-t'>
           <div className='max-w-7xl mx-auto px-4 py-16'>
