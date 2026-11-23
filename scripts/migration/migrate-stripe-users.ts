@@ -7,12 +7,10 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { Resend } from 'resend';
 
-// Load environment variables
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
-// Configuration
 const DRY_RUN = process.env.DRY_RUN !== 'false'; // Default to true for safety
-const OLD_PRODUCT_ID = process.env.OLD_PRODUCT_ID; // Must be provided
+const OLD_PRODUCT_ID = process.env.OLD_PRODUCT_ID;
 const BATCH_SIZE = 50;
 
 if (!process.env.STRIPE_MIGRATION_KEY) throw new Error('Missing STRIPE_MIGRATION_KEY');
@@ -37,7 +35,6 @@ async function main() {
   }
   console.log(`Targeting Product ID: ${OLD_PRODUCT_ID}`);
 
-  // 1. Fetch all active subscriptions for the product
   console.log('🔄 Fetching subscriptions...');
   const subscriptions = [];
   try {
@@ -46,8 +43,6 @@ async function main() {
       limit: 100,
       expand: ['data.customer', 'data.plan.product'],
     })) {
-      // Manual filter if search doesn't support product directly easily without looking up price.
-      // Actually, we can just check the plan's product.
       const product = (sub as any).plan.product;
       const productId = typeof product === 'string' ? product : product.id;
       
@@ -56,14 +51,10 @@ async function main() {
       }
     }
   } catch (e: any) {
-    // If auto-pagination fails or other issues
     console.warn('Stripe list failed, falling back to manual search or check error', e);
   }
 
   // NOTE: The above 'for await' iterates ALL subscriptions. This might be slow if there are thousands of non-migrating subs.
-  // Optimization: If we know the Price ID of the old product, it's efficient to filter by `price`. 
-  // We'll ask the user to confirm Price ID if Product ID is ambiguous, but for now we iterate.
-  // Actually, we can assume the user gives us the OLD_PRODUCT_ID. 
   
   console.log(`Found ${subscriptions.length} active subscriptions for product ${OLD_PRODUCT_ID}`);
 
@@ -84,8 +75,6 @@ async function main() {
 
       console.log(`\n👤 Processing ${email} (Customer: ${customer.id})...`);
     
-      // 2. Find or Create Member
-      // First, check if a member already exists with this subscription ID
       let memberId: string | null = null;
       let memberAction = 'none'; // 'created', 'found', 'error'
       
@@ -118,7 +107,6 @@ async function main() {
       if (!memberId) {
          if (DRY_RUN) {
             console.log(`  [DRY RUN] Would create Member for ${email}`);
-            // Mock ID for dry run flow if needed, but we can't really proceed with logic that needs ID
          } else {
             const memberRes = await cosmic.objects.insertOne({
               title: customer.name || email,
@@ -132,7 +120,6 @@ async function main() {
          }
       }
 
-      // 3. Check for existing User
       let existingUser = null;
       try {
         const res = await cosmic.objects.findOne({
@@ -153,13 +140,12 @@ async function main() {
             continue;
         }
 
-        // Update existing user
         await cosmic.objects.updateOne(existingUser.id, {
             metadata: {
                 stripe_customer_id: customer.id,
                 stripe_subscription_id: sub.id,
                 subscription_status: sub.status,
-                member_id: memberId, // Link to the member object
+                member_id: memberId,
             }
         });
         console.log(`  ✅ Updated User: ${existingUser.id}`);
@@ -176,7 +162,6 @@ async function main() {
         continue;
       }
 
-      // 4. Create User in Cosmic (New User)
       const tempPassword = crypto.randomUUID(); // Random password, they must reset
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
       const resetToken = crypto.randomBytes(32).toString('hex');
@@ -202,7 +187,6 @@ async function main() {
       });
       console.log(`  ✅ Created User: ${userRes.object.id}`);
 
-      // 5. Send Migration Email
       const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${resetToken}`;
       await resend.emails.send({
         from: `Worldwide FM Support <${process.env.SUPPORT_EMAIL || 'support@worldwidefm.net'}>`,

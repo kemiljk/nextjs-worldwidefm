@@ -32,7 +32,6 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Configuration
 const CONFIG = {
   bucketSlug: process.env.COSMIC_BUCKET_SLUG || process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG,
   readKey: process.env.COSMIC_READ_KEY || process.env.NEXT_PUBLIC_COSMIC_READ_KEY,
@@ -41,28 +40,23 @@ const CONFIG = {
   exportMedia: process.env.EXPORT_MEDIA !== 'false',
   exportDir: process.env.EXPORT_DIR || path.join(__dirname, '..', 'cosmic-media-backup'),
 
-  // Safety thresholds
   minEpisodes: parseInt(process.env.MIN_EPISODES || '10000', 10),
   minUsedRatio: parseFloat(process.env.MIN_USED_RATIO || '0.1'),
 
-  // Fetching settings
   mediaLimit: 100,
   batchSize: parseInt(process.env.BATCH_SIZE || '50', 10),
-  largeBatchSize: 50, // For large collections like episodes
+  largeBatchSize: 50,
   maxRetries: 3,
   retryDelayBase: 1000,
 
-  // Rate limiting
   deleteDelay: 200,
   downloadDelay: 100,
 
-  // Files
   stateFile: './cosmic-cleanup-state.json',
   reportFile: './cosmic-cleanup-report.json',
   manifestFile: 'manifest.json',
 };
 
-// Validate required env vars
 if (!CONFIG.bucketSlug || !CONFIG.readKey || !CONFIG.writeKey) {
   console.error('❌ Missing required environment variables:');
   console.error('  COSMIC_BUCKET_SLUG (or NEXT_PUBLIC_COSMIC_BUCKET_SLUG)');
@@ -71,14 +65,12 @@ if (!CONFIG.bucketSlug || !CONFIG.readKey || !CONFIG.writeKey) {
   process.exit(1);
 }
 
-// Initialize Cosmic client
 const cosmic = createBucketClient({
   bucketSlug: CONFIG.bucketSlug,
   readKey: CONFIG.readKey,
   writeKey: CONFIG.writeKey,
 });
 
-// Known image fields to check explicitly
 const IMAGE_FIELDS = [
   'image',
   'thumbnail',
@@ -92,19 +84,12 @@ const IMAGE_FIELDS = [
   'playlist_image',
 ];
 
-// Array fields that may contain images
 const IMAGE_ARRAY_FIELDS = ['image_gallery', 'heroItems'];
 
-/**
- * Sleep utility
- */
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/**
- * Format bytes to human readable
- */
 function formatBytes(bytes) {
   if (!bytes || bytes === 0) return '0 B';
   const k = 1024;
@@ -113,9 +98,6 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-/**
- * Retry wrapper with exponential backoff
- */
 async function withRetry(fn, context, maxRetries = CONFIG.maxRetries) {
   let lastError;
 
@@ -150,9 +132,6 @@ async function withRetry(fn, context, maxRetries = CONFIG.maxRetries) {
   );
 }
 
-/**
- * Fetch all media with pagination and retry
- */
 async function fetchAllMedia() {
   console.log('\n📷 Fetching all media...');
   const allMedia = [];
@@ -186,9 +165,6 @@ async function fetchAllMedia() {
   return allMedia;
 }
 
-/**
- * Fetch all object types
- */
 async function fetchObjectTypes() {
   console.log('\n📦 Fetching object types...');
 
@@ -199,16 +175,11 @@ async function fetchObjectTypes() {
   return types;
 }
 
-/**
- * Fetch all objects for a given type with pagination and retry
- * Uses smaller batch sizes for large collections
- */
 async function fetchObjectsByType(typeSlug) {
   const allObjects = [];
   let skip = 0;
   let hasMore = true;
 
-  // Use smaller batch size for large collections
   const isLargeCollection = ['episode', 'episodes'].includes(typeSlug);
   const batchSize = isLargeCollection ? CONFIG.largeBatchSize : CONFIG.batchSize;
 
@@ -228,7 +199,6 @@ async function fetchObjectsByType(typeSlug) {
     hasMore = objects.length === batchSize;
     skip += batchSize;
 
-    // Progress indicator for large collections
     if (isLargeCollection && allObjects.length > 0 && allObjects.length % 500 === 0) {
       console.log(`    ... ${allObjects.length} ${typeSlug} fetched so far`);
     }
@@ -237,9 +207,6 @@ async function fetchObjectsByType(typeSlug) {
   return allObjects;
 }
 
-/**
- * Fetch all objects across all types with validation
- */
 async function fetchAllObjects(objectTypes) {
   console.log('\n📄 Fetching all objects...');
   const allObjects = [];
@@ -263,10 +230,6 @@ async function fetchAllObjects(objectTypes) {
   return { allObjects, typeCounts };
 }
 
-/**
- * Extract image references from an object
- * Returns a Set of all identifiers (id, name, url, imgix_url) found
- */
 function extractImageReferences(obj, depth = 0) {
   const references = new Set();
 
@@ -274,25 +237,21 @@ function extractImageReferences(obj, depth = 0) {
     return references;
   }
 
-  // Check if this looks like an image object
   if (obj.url || obj.imgix_url) {
     if (obj.id) references.add(obj.id);
     if (obj.name) references.add(obj.name);
     if (obj.url) {
       references.add(obj.url);
-      // Also extract filename from URL
       const filename = obj.url.split('/').pop()?.split('?')[0];
       if (filename) references.add(filename);
     }
     if (obj.imgix_url) {
       references.add(obj.imgix_url);
-      // Also extract filename from imgix URL
       const filename = obj.imgix_url.split('/').pop()?.split('?')[0];
       if (filename) references.add(filename);
     }
   }
 
-  // Check known image fields
   for (const field of IMAGE_FIELDS) {
     if (obj[field]) {
       const fieldRefs = extractImageReferences(obj[field], depth + 1);
@@ -300,7 +259,6 @@ function extractImageReferences(obj, depth = 0) {
     }
   }
 
-  // Check image array fields
   for (const field of IMAGE_ARRAY_FIELDS) {
     if (Array.isArray(obj[field])) {
       for (const item of obj[field]) {
@@ -315,7 +273,6 @@ function extractImageReferences(obj, depth = 0) {
     }
   }
 
-  // Check metadata object specifically
   if (obj.metadata && typeof obj.metadata === 'object') {
     const metaRefs = extractImageReferences(obj.metadata, depth + 1);
     metaRefs.forEach(ref => references.add(ref));
@@ -331,7 +288,6 @@ function extractImageReferences(obj, depth = 0) {
     }
   }
 
-  // Check seo object for og_image
   if (obj.seo?.og_image) {
     const seoRefs = extractImageReferences(obj.seo.og_image, depth + 1);
     seoRefs.forEach(ref => references.add(ref));
@@ -340,9 +296,6 @@ function extractImageReferences(obj, depth = 0) {
   return references;
 }
 
-/**
- * Build a comprehensive index of all media identifiers
- */
 function buildMediaIndex(allMedia) {
   const index = {
     byId: new Map(),
@@ -356,7 +309,6 @@ function buildMediaIndex(allMedia) {
     if (media.id) index.byId.set(media.id, media);
     if (media.name) {
       index.byName.set(media.name, media);
-      // Also index without UUID prefix if present
       const nameWithoutUuid = media.name.replace(/^[a-f0-9-]{36}-/i, '');
       if (nameWithoutUuid !== media.name) {
         index.byFilename.set(nameWithoutUuid, media);
@@ -377,9 +329,6 @@ function buildMediaIndex(allMedia) {
   return index;
 }
 
-/**
- * Check if a media item is referenced by any identifier
- */
 function isMediaReferenced(media, allReferences) {
   const identifiers = [
     media.id,
@@ -389,7 +338,6 @@ function isMediaReferenced(media, allReferences) {
     media.original_name,
   ].filter(Boolean);
 
-  // Also check filename variations
   if (media.url) {
     const filename = media.url.split('/').pop()?.split('?')[0];
     if (filename) identifiers.push(filename);
@@ -399,7 +347,6 @@ function isMediaReferenced(media, allReferences) {
     if (filename) identifiers.push(filename);
   }
   if (media.name) {
-    // Check name without UUID prefix
     const nameWithoutUuid = media.name.replace(/^[a-f0-9-]{36}-/i, '');
     if (nameWithoutUuid !== media.name) {
       identifiers.push(nameWithoutUuid);
@@ -409,14 +356,10 @@ function isMediaReferenced(media, allReferences) {
   return identifiers.some(id => allReferences.has(id));
 }
 
-/**
- * Analyze which media is in use
- */
 function analyzeMediaUsage(allMedia, allObjects) {
   console.log('\n🔍 Analyzing media usage...');
   console.log(`  Scanning ${allObjects.length} objects for image references...`);
 
-  // Extract all image references from all objects
   const allReferences = new Set();
 
   for (const obj of allObjects) {
@@ -426,7 +369,6 @@ function analyzeMediaUsage(allMedia, allObjects) {
 
   console.log(`  Found ${allReferences.size} unique image references`);
 
-  // Categorize media
   const usedMedia = [];
   const unusedMedia = [];
 
@@ -445,16 +387,12 @@ function analyzeMediaUsage(allMedia, allObjects) {
   return { usedMedia, unusedMedia, allReferences, usedRatio };
 }
 
-/**
- * Validate safety thresholds
- */
 function validateSafetyThresholds(typeCounts, usedRatio, allMedia) {
   console.log('\n🛡️  Validating safety thresholds...');
 
   const errors = [];
   const warnings = [];
 
-  // Check episode count
   const episodeCount = typeCounts['episode'] || 0;
   if (episodeCount < 0) {
     errors.push(`Episode fetch FAILED - cannot proceed safely`);
@@ -464,7 +402,6 @@ function validateSafetyThresholds(typeCounts, usedRatio, allMedia) {
     console.log(`  ✅ Episodes fetched: ${episodeCount} >= ${CONFIG.minEpisodes} threshold`);
   }
 
-  // Check used media ratio
   if (usedRatio < CONFIG.minUsedRatio) {
     errors.push(
       `Used media ratio (${(usedRatio * 100).toFixed(1)}%) is below threshold (${(CONFIG.minUsedRatio * 100).toFixed(0)}%)`
@@ -475,7 +412,6 @@ function validateSafetyThresholds(typeCounts, usedRatio, allMedia) {
     );
   }
 
-  // Warn if too many media marked as unused
   const unusedRatio = 1 - usedRatio;
   if (unusedRatio > 0.5) {
     warnings.push(`More than 50% of media marked as unused - please verify`);
@@ -496,9 +432,6 @@ function validateSafetyThresholds(typeCounts, usedRatio, allMedia) {
   return true;
 }
 
-/**
- * Sanitize filename for filesystem
- */
 function sanitizeFilename(filename) {
   return filename
     .replace(/[<>:"/\\|?*]/g, '_')
@@ -506,9 +439,6 @@ function sanitizeFilename(filename) {
     .substring(0, 255);
 }
 
-/**
- * Download a single media file
- */
 async function downloadMediaFile(media, exportPath) {
   const url = media.url || media.imgix_url;
   if (!url) {
@@ -527,9 +457,6 @@ async function downloadMediaFile(media, exportPath) {
   return buffer.length;
 }
 
-/**
- * Export unused media to local filesystem
- */
 async function exportUnusedMedia(unusedMedia) {
   if (!CONFIG.exportMedia) {
     console.log('\n📦 Media export disabled (set EXPORT_MEDIA=true to enable)');
@@ -566,7 +493,6 @@ async function exportUnusedMedia(unusedMedia) {
         filePath = path.join(CONFIG.exportDir, sanitizedFilename);
       }
 
-      // Handle filename collisions
       if (fs.existsSync(filePath)) {
         const ext = path.extname(filePath);
         const base = path.basename(filePath, ext);
@@ -613,7 +539,6 @@ async function exportUnusedMedia(unusedMedia) {
     }
   }
 
-  // Save manifest
   const manifestPath = path.join(CONFIG.exportDir, CONFIG.manifestFile);
   const fullManifest = {
     timestamp: new Date().toISOString(),
@@ -640,9 +565,6 @@ async function exportUnusedMedia(unusedMedia) {
   return { exported, failed, totalBytes, manifest };
 }
 
-/**
- * Delete unused media from Cosmic
- */
 async function deleteUnusedMedia(unusedMedia, exportResult) {
   if (CONFIG.dryRun) {
     console.log('\n🏃 DRY RUN - No media will be deleted');
@@ -650,7 +572,6 @@ async function deleteUnusedMedia(unusedMedia, exportResult) {
     return { deleted: 0, failed: 0 };
   }
 
-  // Verify export completed successfully before deletion
   if (CONFIG.exportMedia && exportResult.exported < unusedMedia.length * 0.9) {
     console.log('\n❌ ABORTING DELETION: Export did not complete successfully');
     console.log(`  Exported: ${exportResult.exported} / ${unusedMedia.length}`);
@@ -672,7 +593,6 @@ async function deleteUnusedMedia(unusedMedia, exportResult) {
         console.log(`  [${i + 1}/${unusedMedia.length}] Deleted ${deleted} files`);
       }
 
-      // Save progress periodically
       if (deleted % 100 === 0) {
         saveState({ phase: 'deletion', lastDeletedIndex: i, deleted, failed });
       }
@@ -689,9 +609,6 @@ async function deleteUnusedMedia(unusedMedia, exportResult) {
   return { deleted, failed };
 }
 
-/**
- * Save state for resumability
- */
 function saveState(state) {
   try {
     fs.writeFileSync(
@@ -703,9 +620,6 @@ function saveState(state) {
   }
 }
 
-/**
- * Main execution
- */
 async function main() {
   console.log('═══════════════════════════════════════════════════════════');
   console.log('  Cosmic Media Cleanup Script (Safe Mode)');
@@ -722,7 +636,6 @@ async function main() {
   saveState({ phase: 'starting' });
 
   try {
-    // Phase 1: Fetch all media
     const allMedia = await fetchAllMedia();
     if (allMedia.length === 0) {
       console.log('\n✅ No media found in bucket. Nothing to clean up.');
@@ -730,18 +643,15 @@ async function main() {
     }
     saveState({ phase: 'media_fetched', mediaCount: allMedia.length });
 
-    // Phase 2: Fetch all object types
     const objectTypes = await fetchObjectTypes();
     if (objectTypes.length === 0) {
       console.log('\n❌ ABORTING: No object types found');
       return;
     }
 
-    // Phase 3: Fetch all objects with validation
     const { allObjects, typeCounts } = await fetchAllObjects(objectTypes);
     saveState({ phase: 'objects_fetched', objectCount: allObjects.length, typeCounts });
 
-    // Phase 4: Analyze usage
     const { usedMedia, unusedMedia, usedRatio } = analyzeMediaUsage(allMedia, allObjects);
     saveState({
       phase: 'analysis_complete',
@@ -749,7 +659,6 @@ async function main() {
       unusedCount: unusedMedia.length,
     });
 
-    // Phase 5: Validate safety thresholds
     const safetyPassed = validateSafetyThresholds(typeCounts, usedRatio, allMedia);
     if (!safetyPassed) {
       console.log('\n❌ ABORTING: Safety thresholds not met');
@@ -758,11 +667,9 @@ async function main() {
       process.exit(1);
     }
 
-    // Phase 6: Calculate stats
     const unusedBytes = unusedMedia.reduce((sum, m) => sum + (parseInt(m.size) || 0), 0);
     const totalBytes = allMedia.reduce((sum, m) => sum + (parseInt(m.size) || 0), 0);
 
-    // Phase 7: Print summary
     console.log('\n═══════════════════════════════════════════════════════════');
     console.log('  SUMMARY');
     console.log('═══════════════════════════════════════════════════════════');
@@ -772,7 +679,6 @@ async function main() {
     console.log(`  Potential savings: ${formatBytes(unusedBytes)}`);
     console.log('═══════════════════════════════════════════════════════════');
 
-    // Save full report
     const report = {
       timestamp: new Date().toISOString(),
       bucket: CONFIG.bucketSlug,
@@ -804,14 +710,12 @@ async function main() {
     fs.writeFileSync(CONFIG.reportFile, JSON.stringify(report, null, 2));
     console.log(`\n📝 Full report saved to: ${CONFIG.reportFile}`);
 
-    // Phase 8: Export unused media
     let exportResult = { exported: 0, failed: 0, totalBytes: 0 };
     if (unusedMedia.length > 0 && CONFIG.exportMedia) {
       exportResult = await exportUnusedMedia(unusedMedia);
       saveState({ phase: 'export_complete', ...exportResult });
     }
 
-    // Phase 9: Delete if not dry run
     if (unusedMedia.length > 0) {
       const { deleted, failed } = await deleteUnusedMedia(unusedMedia, exportResult);
 
@@ -838,7 +742,6 @@ async function main() {
   }
 }
 
-// Run
 main().catch(error => {
   console.error('\n❌ Unhandled error:', error);
   process.exit(1);

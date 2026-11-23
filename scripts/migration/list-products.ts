@@ -3,7 +3,6 @@ import Stripe from 'stripe';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables from .env.local
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -12,7 +11,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2020-08-27' as any, // Using the same API version as the main app
+  apiVersion: '2020-08-27' as any,
 });
 
 async function listProducts() {
