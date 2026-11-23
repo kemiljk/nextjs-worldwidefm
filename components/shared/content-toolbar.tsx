@@ -38,7 +38,6 @@ export function ContentToolbar({
   const [activeFilter, setActiveFilter] = useState<string>('');
 
   const handleFilterClick = (filter: string) => {
-    // If clicking the same filter, clear it
     if (activeFilter === filter) {
       setActiveFilter('');
       onFilterChange('');

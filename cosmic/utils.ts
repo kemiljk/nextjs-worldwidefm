@@ -7,10 +7,8 @@ export const getFormattedDateFromString = (inputDate: string) => {
   const month = parseInt(dateParts[1]) - 1;
   const day = parseInt(dateParts[2]);
 
-  // Create a new Date object using UTC timezone
   const date = new Date(Date.UTC(year, month, day));
 
-  // Format the date in UTC
   const formattedDate = date.toLocaleDateString('en-US', {
     timeZone: 'UTC',
     year: 'numeric',
@@ -56,7 +54,6 @@ export function getFormattedDate(
   }
   let minutes: number | string = date.getMinutes();
   if (minutes < 10) {
-    // Adding leading zero to minutes
     minutes = '0' + minutes;
   }
   if (prefomattedDate) return prefomattedDate + ' at ' + hours + ':' + minutes + am_pm;
@@ -75,7 +72,7 @@ export function timeAgo(dateParam?: number | string | Date) {
     return null;
   }
   const date = typeof dateParam === 'object' ? dateParam : new Date(dateParam);
-  const DAY_IN_MS = 86400000; // 24 * 60 * 60 * 1000
+  const DAY_IN_MS = 86400000;
   const today = new Date();
   const yesterday = new Date(today.getTime() - DAY_IN_MS);
   const seconds = Math.round((today.getTime() - date.getTime()) / 1000);

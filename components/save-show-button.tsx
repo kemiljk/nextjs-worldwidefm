@@ -41,7 +41,6 @@ export function SaveShowButton({
       return;
     }
 
-    // Optimistically update the UI
     const previousIsSaved = isSaved;
     setIsSaved(!isSaved);
 
@@ -58,14 +57,12 @@ export function SaveShowButton({
         }
 
         if (!success) {
-          // Revert if the server action failed
           setIsSaved(previousIsSaved);
         } else {
           if (onSuccess) onSuccess(!previousIsSaved);
           router.refresh();
         }
       } catch (error) {
-        // Revert on error
         setIsSaved(previousIsSaved);
       }
     });

@@ -35,10 +35,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       body,
       request,
       onBeforeGenerateToken: async pathname => {
-        /**
-         * Generate a client token for the browser to upload the file directly.
-         * You can add authorization logic here.
-         */
         return {
           allowedContentTypes: [
             'audio/mpeg',
@@ -66,7 +62,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     console.error('❌ Vercel Blob token request failed:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to generate upload token' },
-      { status: 400 } // The client will use this to show a nice error message
+      { status: 400 }
     );
   }
 }

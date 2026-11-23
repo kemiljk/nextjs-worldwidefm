@@ -3,7 +3,6 @@ import { ProcessedHomepageSection, CosmicItem, ColouredSection } from '@/lib/cos
 import UniqueHomepageSection from './unique-homepage-section';
 import { ResponsiveCardImage } from '@/components/ui/optimized-image';
 
-// Reusable Item Card (similar to the one in HomepageHero, could be centralized)
 const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
   // Check external_image_url first (cold storage for old episodes)
   const imageUrl =
@@ -49,7 +48,7 @@ const SectionItemCard: React.FC<{ item: CosmicItem }> = ({ item }) => {
 
 interface CosmicSectionProps {
   section: ProcessedHomepageSection;
-  colouredSection?: ColouredSection; // Optional coloured section data
+  colouredSection?: ColouredSection;
 }
 
 const CosmicSectionComponent: React.FC<CosmicSectionProps> = ({ section, colouredSection }) => {
@@ -57,7 +56,6 @@ const CosmicSectionComponent: React.FC<CosmicSectionProps> = ({ section, coloure
     return null;
   }
 
-  // Handle unique sections with special styling
   if (section.layout === 'Unique') {
     return <UniqueHomepageSection section={section} colouredSection={colouredSection} />;
   }

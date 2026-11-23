@@ -26,7 +26,6 @@ interface EditorialLayoutProps {
   formattedDate: string;
 }
 
-// Standard Layout - Current layout
 export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
   const { title, metadata } = post;
   const imageUrl = metadata?.external_image_url || metadata?.image?.imgix_url || '';
@@ -39,9 +38,7 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
 
   return (
     <article className='w-full'>
-      {/* Hero Section */}
       <div className='w-full mt-20 mb-40 px-5 md:px-20 flex flex-col lg:flex-row gap-20 justify-center items-center md:items-start'>
-        {/* Video or Image */}
         <div className='sm:w-[80vw] lg:w-[50vw] flex items-center justify-center overflow-hidden relative'>
           {hasVideo ? (
             <PostVideoPlayer post={post} />
@@ -56,7 +53,6 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
           ) : null}
         </div>
 
-        {/* Text */}
         <div className='w-full sm:w-[80vw] lg:w-[35vw] text-almostblack dark:text-white'>
           <p className='font-sans text-[28px] md:text-[40px] lg:text-[50px] leading-none mb-4'>
             {title}
@@ -77,7 +73,6 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
               ))}
             </div>
           </div>
-          {/* Image Gallery */}
           {imageGallery.length > 0 && (
             <div className='mt-10 md:mt-20'>
               <ImageGallery
@@ -105,7 +100,6 @@ export function StandardLayout({ post, formattedDate }: EditorialLayoutProps) {
   );
 }
 
-// Featured Layout - Large hero with centered content
 export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
   const { title, metadata } = post;
   const imageUrl = metadata?.external_image_url || metadata?.image?.imgix_url || '';
@@ -118,7 +112,6 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
 
   return (
     <article className='w-full'>
-      {/* Large Hero Video or Image */}
       <div className='relative w-full h-[60vh] mb-20'>
         {hasVideo ? (
           <PostVideoPlayer post={post} className='h-full' />
@@ -159,7 +152,6 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
         </div>
       </div>
 
-      {/* Centered Content */}
       <div className='max-w-4xl mx-auto px-5 md:px-20'>
         {content && (
           <div
@@ -168,7 +160,6 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
           />
         )}
 
-        {/* Image Gallery */}
         {imageGallery.length > 0 && (
           <div className='mt-20'>
             <ImageGallery
@@ -184,7 +175,6 @@ export function FeaturedLayout({ post, formattedDate }: EditorialLayoutProps) {
   );
 }
 
-// Gallery Layout - Image-focused layout
 export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
   const { title, metadata } = post;
   const imageUrl = metadata?.external_image_url || metadata?.image?.imgix_url || '';
@@ -197,7 +187,6 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
 
   return (
     <article className='w-full'>
-      {/* Title Section */}
       <div className='w-full px-10 md:px-20 py-20 text-center'>
         <text className='font-sans text-[32px] sm:text-[50px] lg:text-[60px] leading-none mb-4 text-almostblack dark:text-white'>
           {title}
@@ -222,7 +211,6 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
         </div>
       </div>
 
-      {/* Main Video or Image */}
       {hasVideo ? (
         <div className='w-full mb-20 px-5 md:px-20'>
           <PostVideoPlayer post={post} />
@@ -239,7 +227,6 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
         </div>
       ) : null}
 
-      {/* Content */}
       {content && (
         <div
           className={`max-w-4xl mx-auto px-5 md:px-20 ${imageGallery.length > 0 ? '' : 'mb-20'}`}
@@ -251,7 +238,6 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
         </div>
       )}
 
-      {/* Image Gallery */}
       {imageGallery.length > 0 && (
         <div className='max-w-4xl mx-auto px-5 md:px-20 mb-20'>
           <ImageGallery
@@ -266,7 +252,6 @@ export function GalleryLayout({ post, formattedDate }: EditorialLayoutProps) {
   );
 }
 
-// Minimal Layout - Text-focused
 export function MinimalLayout({ post, formattedDate }: EditorialLayoutProps) {
   const { title, metadata } = post;
   const description = metadata?.excerpt || '';

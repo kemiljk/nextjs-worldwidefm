@@ -25,7 +25,7 @@ export interface CosmicObjectMeta {
   broadcast_time: string;
   duration: string;
   player: null;
-  tracklist: string | null; // Rich Text content
+  tracklist: string | null;
   body_text: null;
   radiocult_media_id: null;
 }
@@ -90,20 +90,18 @@ export interface CosmicItem {
   metadata: CosmicObjectMeta;
 }
 
-export interface HomepageHeroItem extends CosmicItem {
-  // Specific properties for hero items if any, otherwise defaults to CosmicItem
-}
+export interface HomepageHeroItem extends CosmicItem {}
 
 export interface HomepageSection {
   is_active: boolean;
   title: string;
   type: string; // e.g., "Shows", "Editorial", "Custom", "regular-hosts", "new-voices", "friday-curates"
-  layout: 'Grid' | 'Unique'; // Only Grid and Unique layouts supported
+  layout: 'Grid' | 'Unique';
   itemsPerRow: number;
   items: string[];
-  color?: string; // Optional color for the section background
-  subtitle?: string; // Optional subtitle for unique sections
-  description?: string; // Optional description for unique sections
+  color?: string;
+  subtitle?: string;
+  description?: string;
 }
 
 export interface ColouredSection {
@@ -113,13 +111,11 @@ export interface ColouredSection {
   show_type: string[]; // Array of show type IDs
 }
 
-export interface HomepageSectionItem extends CosmicItem {
-  // Specific properties for section items if any, otherwise defaults to CosmicItem
-}
+export interface HomepageSectionItem extends CosmicItem {}
 
 export interface ProcessedHomepageSection extends Omit<HomepageSection, 'items' | 'layout'> {
   items: HomepageSectionItem[];
-  layout: 'Grid' | 'Unique'; // Only Grid and Unique layouts supported
+  layout: 'Grid' | 'Unique';
 }
 
 export interface PageOrderItem {
@@ -169,7 +165,6 @@ export interface CosmicHomepageData {
   };
 }
 
-// Individual type for a Cosmic API response for a single object
 export interface CosmicAPIObject<T> {
   object: T;
 }
@@ -215,7 +210,7 @@ export type PostType = {
       key: 'article' | 'video';
       value: string;
     };
-    categories: any[]; // Consider defining a more specific type if the structure of categories is known
+    categories: any[];
     image: {
       url: string;
       imgix_url: string;
@@ -226,7 +221,7 @@ export type PostType = {
         imgix_url: string;
       };
     }[];
-    author: null | any; // Consider defining a more specific type if the structure of author is known
+    author: null | any;
     date: string;
     excerpt: string;
     content: string;

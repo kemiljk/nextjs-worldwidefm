@@ -33,7 +33,6 @@ export async function getCosmicLocations(): Promise<CosmicLocation[]> {
     }));
   } catch (error) {
     console.error('Error fetching Cosmic locations:', error);
-    // Return a fallback list of major locations
     return getFallbackLocations();
   }
 }

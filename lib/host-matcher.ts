@@ -1,17 +1,15 @@
 import { cosmic } from '@/lib/cosmic-config';
 
-// Convert a display name to slug format
 function nameToSlug(name: string): string {
   return name
     .toLowerCase()
     .trim()
-    .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
-// Calculate simple string similarity (Levenshtein-like)
 function stringSimilarity(str1: string, str2: string): number {
   const longer = str1.length > str2.length ? str1 : str2;
   const shorter = str1.length > str2.length ? str2 : str1;
@@ -34,9 +32,9 @@ function levenshteinDistance(str1: string, str2: string): number {
     for (let i = 1; i <= str1.length; i++) {
       const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
       matrix[j][i] = Math.min(
-        matrix[j][i - 1] + 1, // deletion
-        matrix[j - 1][i] + 1, // insertion
-        matrix[j - 1][i - 1] + indicator // substitution
+        matrix[j][i - 1] + 1,
+        matrix[j - 1][i] + 1,
+        matrix[j - 1][i - 1] + indicator
       );
     }
   }
@@ -50,7 +48,6 @@ interface HostMatch {
   similarity: number;
 }
 
-// Cache for host data to avoid repeated API calls
 let hostsCache: { slug: string; title: string }[] | null = null;
 let cacheTimestamp = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -58,7 +55,6 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 async function getHosts() {
   const now = Date.now();
 
-  // Return cached data if it's still valid
   if (hostsCache && now - cacheTimestamp < CACHE_DURATION) {
     return hostsCache;
   }
@@ -102,17 +98,13 @@ export async function findHostSlug(displayName: string, threshold = 0.6): Promis
   const matches: HostMatch[] = [];
 
   for (const host of hosts) {
-    // Check similarity against slug
     const slugSimilarity = stringSimilarity(targetSlug, host.slug);
 
-    // Check similarity against title (converted to slug format)
     const titleSlug = nameToSlug(host.title);
     const titleSimilarity = stringSimilarity(targetSlug, titleSlug);
 
-    // Also check direct name similarity
     const nameSimilarity = stringSimilarity(displayName.toLowerCase(), host.title.toLowerCase());
 
-    // Use the highest similarity score
     const similarity = Math.max(slugSimilarity, titleSimilarity, nameSimilarity);
 
     if (similarity >= threshold) {
@@ -124,7 +116,6 @@ export async function findHostSlug(displayName: string, threshold = 0.6): Promis
     }
   }
 
-  // Sort by similarity (highest first) and return the best match
   matches.sort((a, b) => b.similarity - a.similarity);
 
   const bestMatch = matches[0];
@@ -141,11 +132,6 @@ export async function findHostSlug(displayName: string, threshold = 0.6): Promis
   return null;
 }
 
-/**
- * Convert a display name to a fallback slug format
- * @param displayName - The host display name
- * @returns A slug format string
- */
 export function displayNameToSlug(displayName: string): string {
   return nameToSlug(displayName);
 }

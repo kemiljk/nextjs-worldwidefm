@@ -54,16 +54,13 @@ export default function GenreDetail({
   return (
     <div className='w-full overflow-x-hidden'>
       <div className='relative w-full h-[25vh] sm:h-[35vh] overflow-hidden'>
-        {/* Hyperpop background */}
         <div className='absolute inset-0 bg-hyperpop' />
 
-        {/* Linear white gradient */}
         <div
           className='absolute inset-0 bg-linear-to-b from-white via-white/0 to-white'
           style={{ mixBlendMode: 'hue' }}
         />
 
-        {/* Noise Overlay */}
         <div
           className='absolute inset-0'
           style={{
@@ -86,9 +83,7 @@ export default function GenreDetail({
       </div>
 
       <div className='px-5 flex flex-col gap-1 w-full'>
-        {/* Filter Controls */}
         <div className='flex flex-wrap gap-2 text-m7 pt-4 pb-2'>
-          {/* Type Navigation Buttons */}
           <Button
             variant='outline'
             className={cn(
@@ -163,7 +158,6 @@ export default function GenreDetail({
           )}
         </main>
 
-        {/* Pagination */}
         {(currentPage > 1 || hasNext) && (
           <div className='w-full flex items-center justify-center gap-3 mt-8'>
             {currentPage > 1 && (

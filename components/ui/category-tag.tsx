@@ -40,7 +40,6 @@ export const CategoryTag: React.FC<CategoryTagProps> = ({
     if (onClick) {
       onClick(e);
     } else if (categorySlug) {
-      // Navigate to editorial page filtered by category
       router.push(`/editorial?categories=${categorySlug}`);
     }
   };

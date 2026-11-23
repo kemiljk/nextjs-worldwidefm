@@ -55,7 +55,6 @@ export function PostVideoPlayer({ post, className }: PostVideoPlayerProps) {
   );
   const hasProvidedThumbnail = Boolean(providedThumbnail);
 
-  // Debug logging
   console.log('PostVideoPlayer Debug:', {
     postTitle: post.title,
     youtubeId,
@@ -66,7 +65,6 @@ export function PostVideoPlayer({ post, className }: PostVideoPlayerProps) {
     metadataKeys: metadata ? Object.keys(metadata) : [],
   });
 
-  // For YouTube videos, only show thumbnail with link if there's a provided thumbnail
   if (youtubeId && hasProvidedThumbnail && providedThumbnail) {
     return (
       <Link
@@ -91,7 +89,6 @@ export function PostVideoPlayer({ post, className }: PostVideoPlayerProps) {
     );
   }
 
-  // If YouTube but no provided thumbnail, show embed
   if (youtubeId) {
     return (
       <div className={cn('relative aspect-video w-full', className)}>

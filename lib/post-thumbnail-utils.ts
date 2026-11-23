@@ -81,7 +81,6 @@ export function getPostThumbnail(post: PostObject, imageSize?: number): string {
     return (metadata as any).external_image_url;
   }
 
-  // Fall back to optimized post thumbnail or image
   return optimizeImageUrl(post.thumbnail?.imgix_url || metadata.image?.imgix_url, width);
 }
 

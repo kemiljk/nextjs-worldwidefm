@@ -28,8 +28,6 @@ export function ListenLaterClient({ listenLaterIds }: ListenLaterClientProps) {
         setLoading(true);
         setError(null);
 
-        // We can create a new API route or use a generic one.
-        // For now, let's assume we can fetch by IDs.
         const response = await fetch('/api/episodes/by-ids', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

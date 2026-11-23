@@ -4,7 +4,6 @@ import { getAuthUser } from '@/cosmic/blocks/user-management/actions';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check if Stripe is configured
     if (!process.env.STRIPE_SECRET_KEY) {
       console.error('Missing STRIPE_SECRET_KEY environment variable');
       return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
@@ -42,7 +41,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Create or retrieve Stripe customer
     let customer;
     try {
       const existingCustomers = await stripe.customers.list({
@@ -68,7 +66,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 });
     }
 
-    // Create checkout session
     console.log('Creating checkout session for:', email);
     const session = await stripe.checkout.sessions.create({
       customer: customer.id,

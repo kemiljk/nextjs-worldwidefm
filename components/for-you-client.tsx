@@ -37,7 +37,6 @@ export function ForYouClient({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Don't fetch if no favorites
     if (favoriteGenreIds.length === 0 && favoriteHostIds.length === 0) {
       setLoading(false);
       return;
@@ -48,7 +47,6 @@ export function ForYouClient({
         setLoading(true);
         setError(null);
 
-        // Fetch episodes via API route
         const params = new URLSearchParams();
         if (favoriteGenreIds.length > 0) {
           params.set('genres', favoriteGenreIds.slice(0, 3).join(','));
@@ -77,7 +75,6 @@ export function ForYouClient({
     fetchEpisodes();
   }, [favoriteGenreIds, favoriteHostIds, limit]);
 
-  // Loading skeleton
   if (loading) {
     return (
       <section className={title ? 'py-8 px-5' : 'py-0 px-0'}>
@@ -95,7 +92,6 @@ export function ForYouClient({
     );
   }
 
-  // No episodes or error
   if (error || episodes.length === 0) {
     return null; // Silently fail
   }

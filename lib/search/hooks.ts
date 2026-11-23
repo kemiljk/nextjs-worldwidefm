@@ -1,18 +1,10 @@
-/**
- * React hooks for using the search engine in components
- */
-
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SearchFilters, SearchState, FilterCategory, FilterItem, ContentType } from './types';
 import { searchEngine } from './engine';
 
-// Default search options
 const DEFAULT_LIMIT = 20;
 
-/**
- * Custom hook for using the search engine with React
- */
 export function useSearch(
   initialOptions: {
     autoLoad?: boolean;
@@ -25,7 +17,6 @@ export function useSearch(
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Main search state
   const [state, setState] = useState<SearchState>({
     items: [],
     filters: {},
@@ -44,26 +35,19 @@ export function useSearch(
     error: null,
   });
 
-  // Flag to track if initial content has been loaded
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-  /**
-   * Load initial content when component mounts
-   */
   useEffect(() => {
     if (autoLoad && !initialLoadComplete) {
-      // Try to load filters from URL if sync is enabled
       let initialFilters: SearchFilters = {};
 
       if (syncWithUrl) {
         initialFilters = getFiltersFromUrl(searchParams);
       }
 
-      // Perform initial search with filters (if any)
       setState(prev => ({ ...prev, loading: true }));
 
       if (Object.keys(initialFilters).length > 0) {
-        // If we have filters from URL, perform a search
         searchEngine
           .search(initialFilters, { limit })
           .then(response => {
@@ -90,7 +74,6 @@ export function useSearch(
             setInitialLoadComplete(true);
           });
       } else {
-        // No filters, just load initial content
         searchEngine
           .getInitialContent(limit)
           .then(response => {
@@ -120,9 +103,6 @@ export function useSearch(
     }
   }, [autoLoad, limit, searchParams, syncWithUrl, initialLoadComplete]);
 
-  /**
-   * Sync URL with current filters when they change (if enabled)
-   */
   useEffect(() => {
     if (syncWithUrl && initialLoadComplete) {
       const url = buildUrlFromFilters(state.filters);
@@ -130,9 +110,6 @@ export function useSearch(
     }
   }, [syncWithUrl, state.filters, router, initialLoadComplete]);
 
-  /**
-   * Load more items (pagination)
-   */
   const loadMore = useCallback(async () => {
     if (state.loading || !state.hasMore) return;
 
@@ -145,7 +122,6 @@ export function useSearch(
         limit,
       });
 
-      // Append new items to existing ones
       setState(prev => ({
         ...prev,
         items: [...prev.items, ...response.items],
@@ -163,9 +139,6 @@ export function useSearch(
     }
   }, [state.loading, state.hasMore, state.filters, state.page, limit]);
 
-  /**
-   * Perform search with new filters
-   */
   const search = useCallback(
     async (newFilters: SearchFilters) => {
       setState(prev => ({
@@ -199,9 +172,6 @@ export function useSearch(
     [limit]
   );
 
-  /**
-   * Set search query and perform search
-   */
   const setSearchQuery = useCallback(
     (query: string) => {
       const newFilters = {
@@ -209,7 +179,6 @@ export function useSearch(
         search: query.trim() || undefined,
       };
 
-      // Remove search property if empty
       if (!newFilters.search) {
         delete newFilters.search;
       }
@@ -219,16 +188,11 @@ export function useSearch(
     [state.filters, search]
   );
 
-  /**
-   * Toggle a filter value (add or remove)
-   */
   const toggleFilter = useCallback(
     (category: FilterCategory, value: string) => {
       setState(prev => {
-        // Create a new filters object with the updated filters
         const newFilters = { ...prev.filters };
 
-        // Convert category to corresponding filter property name
         const filterKey =
           category === 'types'
             ? 'contentType'
@@ -244,26 +208,21 @@ export function useSearch(
 
         if (!filterKey) return prev;
 
-        // Initialize array if it doesn't exist
         if (!newFilters[filterKey]) {
           newFilters[filterKey] = [];
         }
 
-        // Get current values for this filter category
         const currentValues = newFilters[filterKey] as string[];
 
-        // Check if value is already in the array
         const index = currentValues.indexOf(value);
 
         if (index === -1) {
-          // Value not in array, add it
           if (filterKey === 'contentType') {
             newFilters[filterKey] = [...(currentValues as ContentType[]), value as ContentType];
           } else {
             newFilters[filterKey] = [...currentValues, value];
           }
         } else {
-          // Value in array, remove it
           const updated = [...currentValues.slice(0, index), ...currentValues.slice(index + 1)];
 
           if (filterKey === 'contentType') {
@@ -272,7 +231,6 @@ export function useSearch(
             newFilters[filterKey] = updated;
           }
 
-          // Remove empty arrays
           if ((newFilters[filterKey] as any).length === 0) {
             delete newFilters[filterKey];
           }
@@ -285,15 +243,11 @@ export function useSearch(
         };
       });
 
-      // Perform search with new filters
       search(state.filters);
     },
     [state.filters, search]
   );
 
-  /**
-   * Reset all filters
-   */
   const resetFilters = useCallback(() => {
     setState(prev => ({
       ...prev,
@@ -301,7 +255,6 @@ export function useSearch(
       loading: true,
     }));
 
-    // Load initial content again
     searchEngine
       .getInitialContent(limit)
       .then(response => {
@@ -326,9 +279,6 @@ export function useSearch(
       });
   }, [limit]);
 
-  /**
-   * Check if a filter value is currently active
-   */
   const isFilterActive = useCallback(
     (category: FilterCategory, value: string): boolean => {
       const filterKey =
@@ -351,20 +301,14 @@ export function useSearch(
     [state.filters]
   );
 
-  /**
-   * Get active filters as a human-readable object (for UI display)
-   */
   const activeFilters = useMemo(() => {
     const result: Record<string, FilterItem[]> = {};
 
-    // Process each filter category
     for (const [category, values] of Object.entries(state.filters)) {
       if (!values || (Array.isArray(values) && values.length === 0)) continue;
 
-      // Skip search query
       if (category === 'search') continue;
 
-      // Map category name to filter category
       const filterCategory: FilterCategory | null =
         category === 'contentType'
           ? 'types'
@@ -380,7 +324,6 @@ export function useSearch(
 
       if (!filterCategory) continue;
 
-      // Find the FilterItem objects for each active value
       const filterValues = (values as string[]).map(value => {
         const filterItem = state.availableFilters[filterCategory].find(
           item => item.slug === value || item.id === value
@@ -405,21 +348,17 @@ export function useSearch(
   }, [state.filters, state.availableFilters]);
 
   return {
-    // Search state
     items: state.items,
     loading: state.loading,
     hasMore: state.hasMore,
     total: state.total,
     error: state.error,
 
-    // Available filters (for UI menus)
     availableFilters: state.availableFilters,
 
-    // Current search filters
     filters: state.filters,
     activeFilters,
 
-    // Search actions
     search,
     setSearchQuery,
     toggleFilter,
@@ -427,48 +366,38 @@ export function useSearch(
     loadMore,
     isFilterActive,
 
-    // Utility values
     searchQuery: state.filters.search || '',
   };
 }
 
-/**
- * Extract search filters from URL search params
- */
 function getFiltersFromUrl(searchParams: URLSearchParams): SearchFilters {
   const filters: SearchFilters = {};
 
-  // Search query
   const search = searchParams.get('q');
   if (search) {
     filters.search = search;
   }
 
-  // Content types
   const types = searchParams.getAll('type');
   if (types.length > 0) {
     filters.contentType = types as ContentType[];
   }
 
-  // Genre filters
   const genres = searchParams.getAll('genre');
   if (genres.length > 0) {
     filters.genres = genres;
   }
 
-  // Location filters
   const locations = searchParams.getAll('location');
   if (locations.length > 0) {
     filters.locations = locations;
   }
 
-  // Host filters
   const hosts = searchParams.getAll('host');
   if (hosts.length > 0) {
     filters.hosts = hosts;
   }
 
-  // Takeover filters
   const takeovers = searchParams.getAll('takeover');
   if (takeovers.length > 0) {
     filters.takeovers = takeovers;
@@ -477,46 +406,37 @@ function getFiltersFromUrl(searchParams: URLSearchParams): SearchFilters {
   return filters;
 }
 
-/**
- * Build URL from search filters
- */
 function buildUrlFromFilters(filters: SearchFilters): string {
   const params = new URLSearchParams();
 
-  // Add search query
   if (filters.search) {
     params.set('q', filters.search);
   }
 
-  // Add content types
   if (filters.contentType) {
     filters.contentType.forEach(type => {
       params.append('type', type);
     });
   }
 
-  // Add genres
   if (filters.genres) {
     filters.genres.forEach(genre => {
       params.append('genre', genre);
     });
   }
 
-  // Add locations
   if (filters.locations) {
     filters.locations.forEach(location => {
       params.append('location', location);
     });
   }
 
-  // Add hosts
   if (filters.hosts) {
     filters.hosts.forEach(host => {
       params.append('host', host);
     });
   }
 
-  // Add takeovers
   if (filters.takeovers) {
     filters.takeovers.forEach(takeover => {
       params.append('takeover', takeover);

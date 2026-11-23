@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
     const episodes: any[] = [];
     const perRequestLimit = Math.max(limit + 5, 15);
 
-    // Fetch in parallel with timeout
     const fetchWithTimeout = async (promise: Promise<any>, ms: number) => {
       const timeout = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('timeout')), ms)
@@ -54,7 +53,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Dedupe and sort
     const uniqueMap = new Map();
     for (const ep of episodes) {
       const key = ep.id || ep.slug;

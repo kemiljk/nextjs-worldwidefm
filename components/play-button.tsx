@@ -8,7 +8,7 @@ import { usePlausible } from 'next-plausible';
 
 interface PlayButtonProps {
   label?: boolean;
-  show: any; // Using any to work with both episode and legacy show formats
+  show: any;
   variant?: 'default' | 'secondary' | 'ghost' | 'link' | 'destructive';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   className?: string;

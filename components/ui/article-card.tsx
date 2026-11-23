@@ -34,12 +34,10 @@ export function ArticleCard({
   const isSquare = aspectRatio === '1_1';
   const isFeatured = variant === 'featured';
 
-  // Use categories if available, otherwise fall back to tags
   const displayTags =
     categories ||
     (tags ? tags.map(tag => ({ slug: tag.toLowerCase().replace(/\s+/g, '-'), title: tag })) : []);
 
-  // Use custom href if provided, otherwise default to editorial page
   const linkHref = href || `/editorial/${slug}`;
   const isExternalLink = href?.startsWith('http');
 

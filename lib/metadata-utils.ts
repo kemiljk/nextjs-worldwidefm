@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 
-// Base metadata configuration that can be extended
 export interface BaseMetadataConfig {
   title: string;
   description: string;
@@ -13,7 +12,6 @@ export interface BaseMetadataConfig {
   ogImage?: string;
 }
 
-// Default metadata values for Worldwide FM
 export const DEFAULT_METADATA = {
   siteName: 'Worldwide FM',
   locale: 'en_US',
@@ -22,7 +20,6 @@ export const DEFAULT_METADATA = {
   defaultKeywords: ['radio', 'music', 'independent', 'worldwide fm', 'shows', 'mixes', 'playlists'],
 } as const;
 
-// Generate base metadata with fallbacks
 export function generateBaseMetadata(config: BaseMetadataConfig): Metadata {
   const {
     title,
@@ -36,7 +33,6 @@ export function generateBaseMetadata(config: BaseMetadataConfig): Metadata {
     ogImage,
   } = config;
 
-  // Use OG-specific fields if provided, otherwise fall back to regular fields
   const finalOgTitle = ogTitle || title;
   const finalOgDescription = ogDescription || description;
   const finalOgImage = ogImage || image;
@@ -84,7 +80,6 @@ export function generateBaseMetadata(config: BaseMetadataConfig): Metadata {
   };
 }
 
-// Template for homepage metadata
 export function generateHomepageMetadata(cosmicData?: any): Metadata {
   const baseConfig: BaseMetadataConfig = {
     title: cosmicData?.metadata?.seo?.title || 'Worldwide FM - Independent Radio Station',
@@ -103,7 +98,6 @@ export function generateHomepageMetadata(cosmicData?: any): Metadata {
     ],
   };
 
-  // Try to get a hero image from Cosmic data
   const heroItem = cosmicData?.metadata?.heroItems?.[0];
   if (heroItem?.metadata?.external_image_url || heroItem?.metadata?.image?.imgix_url) {
     baseConfig.image = heroItem.metadata.external_image_url || heroItem.metadata.image.imgix_url;
@@ -112,7 +106,6 @@ export function generateHomepageMetadata(cosmicData?: any): Metadata {
   return generateBaseMetadata(baseConfig);
 }
 
-// Template for about page metadata
 export function generateAboutMetadata(cosmicData?: any): Metadata {
   const baseConfig: BaseMetadataConfig = {
     title: cosmicData?.metadata?.seo?.title || 'About - Worldwide FM',
@@ -136,7 +129,6 @@ export function generateAboutMetadata(cosmicData?: any): Metadata {
   return generateBaseMetadata(baseConfig);
 }
 
-// Template for shows/shows page metadata
 export function generateShowsMetadata(): Metadata {
   return generateBaseMetadata({
     title: 'Shows - Worldwide FM',
@@ -146,7 +138,6 @@ export function generateShowsMetadata(): Metadata {
   });
 }
 
-// Template for episodes page metadata
 export function generateEpisodesMetadata(): Metadata {
   return generateBaseMetadata({
     title: 'Episodes - Worldwide FM',
@@ -156,7 +147,6 @@ export function generateEpisodesMetadata(): Metadata {
   });
 }
 
-// Template for editorial/posts page metadata
 export function generateEditorialMetadata(cosmicData?: any): Metadata {
   const baseConfig: BaseMetadataConfig = {
     title: cosmicData?.metadata?.seo?.title || 'Editorial - Worldwide FM',
@@ -176,7 +166,6 @@ export function generateEditorialMetadata(cosmicData?: any): Metadata {
     ogImage: cosmicData?.metadata?.seo?.og_image?.imgix_url,
   };
 
-  // Try to get a hero image from Cosmic data if no OG image is set
   if (!baseConfig.ogImage && cosmicData?.metadata?.hero_image?.imgix_url) {
     baseConfig.image = cosmicData.metadata.hero_image.imgix_url;
   }
@@ -184,7 +173,6 @@ export function generateEditorialMetadata(cosmicData?: any): Metadata {
   return generateBaseMetadata(baseConfig);
 }
 
-// Template for videos page metadata
 export function generateVideosMetadata(): Metadata {
   return generateBaseMetadata({
     title: 'Videos - Worldwide FM',
@@ -194,7 +182,6 @@ export function generateVideosMetadata(): Metadata {
   });
 }
 
-// Template for schedule page metadata
 export function generateScheduleMetadata(): Metadata {
   return generateBaseMetadata({
     title: 'Schedule - Worldwide FM',
@@ -204,7 +191,6 @@ export function generateScheduleMetadata(): Metadata {
   });
 }
 
-// Template for hosts page metadata
 export function generateHostsMetadata(): Metadata {
   return generateBaseMetadata({
     title: 'Hosts - Worldwide FM',
@@ -214,7 +200,6 @@ export function generateHostsMetadata(): Metadata {
   });
 }
 
-// Template for takeovers page metadata
 export function generateTakeoversMetadata(): Metadata {
   return generateBaseMetadata({
     title: 'Takeovers - Worldwide FM',
@@ -224,7 +209,6 @@ export function generateTakeoversMetadata(): Metadata {
   });
 }
 
-// Template for events page metadata
 export function generateEventsMetadata(): Metadata {
   return generateBaseMetadata({
     title: 'Events - Worldwide FM',
@@ -234,7 +218,6 @@ export function generateEventsMetadata(): Metadata {
   });
 }
 
-// Template for contact page metadata
 export function generateContactMetadata(): Metadata {
   return generateBaseMetadata({
     title: 'Contact - Worldwide FM',
@@ -244,7 +227,6 @@ export function generateContactMetadata(): Metadata {
   });
 }
 
-// Template for privacy policy page metadata
 export function generatePrivacyMetadata(): Metadata {
   return generateBaseMetadata({
     title: 'Privacy Policy - Worldwide FM',
@@ -255,7 +237,6 @@ export function generatePrivacyMetadata(): Metadata {
   });
 }
 
-// Template for terms of service page metadata
 export function generateTermsMetadata(): Metadata {
   return generateBaseMetadata({
     title: 'Terms of Service - Worldwide FM',
@@ -266,7 +247,6 @@ export function generateTermsMetadata(): Metadata {
   });
 }
 
-// Template for individual show/episode metadata
 export function generateShowMetadata(showData: any): Metadata {
   const title = showData?.metadata?.seo?.title || showData?.title || 'Show - Worldwide FM';
   const description =
@@ -283,16 +263,13 @@ export function generateShowMetadata(showData: any): Metadata {
   });
 }
 
-// Template for individual post/article metadata
 export function generatePostMetadata(postData: any): Metadata {
-  // Extract SEO fields from Cosmic - these are the primary fields to use
   const seoTitle = postData?.metadata?.seo?.title;
   const seoDescription = postData?.metadata?.seo?.description;
   const ogTitle = postData?.metadata?.seo?.og_title;
   const ogDescription = postData?.metadata?.seo?.og_description;
   const ogImage = postData?.metadata?.seo?.og_image?.imgix_url;
 
-  // Fallback to regular fields if SEO fields are empty
   const title = seoTitle || postData?.title || 'Article - Worldwide FM';
   const description =
     seoDescription ||
@@ -300,11 +277,9 @@ export function generatePostMetadata(postData: any): Metadata {
     postData?.metadata?.description ||
     `Read ${title} on Worldwide FM`;
 
-  // Use OG image if available, otherwise fall back to regular image
   const image =
     ogImage || postData?.metadata?.external_image_url || postData?.metadata?.image?.imgix_url;
 
-  // Generate keywords from categories and title
   const categoryKeywords =
     postData?.metadata?.categories?.map((cat: any) => cat.title?.toLowerCase()) || [];
   const keywords = [
@@ -322,14 +297,12 @@ export function generatePostMetadata(postData: any): Metadata {
     image,
     canonical: postData?.slug ? `https://worldwidefm.net/editorial/${postData.slug}` : undefined,
     noIndex: postData?.noIndex || postData?.status === 'draft',
-    // Use OG-specific fields if provided, otherwise fall back to regular fields
     ogTitle: ogTitle ? `${ogTitle} - Worldwide FM` : undefined,
     ogDescription: ogDescription || undefined,
     ogImage: ogImage || undefined,
   });
 }
 
-// Template for individual video metadata
 export function generateVideoMetadata(videoData: any): Metadata {
   const title = videoData?.title || 'Video - Worldwide FM';
   const description = videoData?.metadata?.description || `Watch ${title} on Worldwide FM`;

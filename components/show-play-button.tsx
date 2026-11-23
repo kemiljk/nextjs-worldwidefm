@@ -7,7 +7,7 @@ import { ButtonProps } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface ShowPlayButtonProps extends ButtonProps {
-  show: any; // Using any to work with both episode and legacy show formats
+  show: any;
   variant?: 'default' | 'outline' | 'ghost' | 'link' | 'destructive' | 'secondary';
   size?: 'default' | 'sm' | 'lg' | 'icon';
   children?: React.ReactNode;

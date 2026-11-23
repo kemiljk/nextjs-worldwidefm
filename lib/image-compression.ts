@@ -7,13 +7,6 @@ function toJpegFilename(filename: string): string {
   return `${base}.jpg`;
 }
 
-/**
- * Compress an image file before upload
- * @param file - The image file to compress
- * @param maxSizeMB - Maximum size in MB (default: 2MB)
- * @param maxWidthOrHeight - Maximum width or height in pixels (default: 2000px)
- * @returns Compressed image file
- */
 export async function compressImage(
   file: File,
   maxSizeMB: number = 2,
@@ -87,16 +80,10 @@ export async function compressImage(
   });
 }
 
-/**
- * Check if a file is an image
- */
 export function isImageFile(file: File): boolean {
   return file.type.startsWith('image/');
 }
 
-/**
- * Get readable file size string
- */
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;

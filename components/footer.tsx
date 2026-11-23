@@ -17,14 +17,12 @@ function FooterContent({ socialLinks }: { socialLinks: SocialLink[] }) {
       <div className='mx-auto px-5'>
         <div className='flex flex-col sm:flex-row sm:justify-between sm:w-full gap-10'>
           <div className='w-full sm:w-[30vw] sm:pr-10 flex flex-col gap-10'>
-            {/* About section */}
             <div>
               <p className='font-sans text-b3 leading-5'>
                 Worldwide FM is a global music radio platform founded by Gilles Peterson, connecting
                 people through music that transcends borders and cultures.
               </p>
             </div>
-            {/* Connect section */}
             <div className='w-auto pr-10'>
               <h3 className='text-m7 font-mono uppercase font-normal text-almostblack dark:text-white pb-4'>
                 Connect
@@ -56,9 +54,7 @@ function FooterContent({ socialLinks }: { socialLinks: SocialLink[] }) {
             </div>
           </div>
 
-          {/* Quick links + Newsletter wrapper */}
           <div className='w-full sm:max-w-[60vw] flex flex-col md:flex-row gap-20'>
-            {/* Quick links */}
             <div className='w-auto pr-10'>
               <h3 className='text-m7 whitespace-nowrap font-mono uppercase font-normal text-almostblack dark:text-white pb-3'>
                 Quick Links
@@ -92,7 +88,6 @@ function FooterContent({ socialLinks }: { socialLinks: SocialLink[] }) {
               </ul>
             </div>
 
-            {/* Newsletter section */}
             <div className='w-full lg:w-80'>
               <h3 className='text-m7 font-mono uppercase font-normal text-almostblack dark:text-white pb-3'>
                 BECOME A MEMBER

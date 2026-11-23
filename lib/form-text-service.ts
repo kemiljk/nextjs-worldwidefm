@@ -15,7 +15,6 @@ export async function getFormTexts(): Promise<FormTexts> {
 
     const metadata = response.object.metadata || {};
 
-    // Map the flat Cosmic structure to our nested structure
     return {
       'show-details': {
         title: metadata.show_details_title || 'Show Details',

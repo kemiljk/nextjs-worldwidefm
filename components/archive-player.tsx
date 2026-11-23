@@ -25,17 +25,14 @@ const ArchivePlayer: React.FC = () => {
   // Only show loading state if iframe takes longer than 2 seconds to load
   useEffect(() => {
     if (selectedArchiveUrl) {
-      // Clear any existing timeout
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current);
       }
 
-      // Only show loading state after 2 second delay
       loadingTimeoutRef.current = setTimeout(() => {
         setIsLoading(true);
       }, 2000);
 
-      // Track show play
       if (selectedShow) {
         plausible('Archive Show Played', {
           props: {
@@ -54,17 +51,14 @@ const ArchivePlayer: React.FC = () => {
   }, [selectedArchiveUrl, selectedShow, plausible]);
 
   const handleLoad = () => {
-    // Clear the timeout if iframe loads quickly
     if (loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current);
     }
     setIsLoading(false);
 
-    // Initialize Mixcloud Widget API (only for Mixcloud URLs)
     const isSoundCloud = selectedArchiveUrl?.includes('soundcloud.com');
     if (iframeRef.current && !widgetInitializedRef.current && !isSoundCloud) {
       try {
-        // Load Mixcloud widget API script if not already loaded
         if (!window.Mixcloud) {
           const script = document.createElement('script');
           script.src = 'https://widget.mixcloud.com/media/js/widgetApi.js';
@@ -90,15 +84,12 @@ const ArchivePlayer: React.FC = () => {
       setWidgetRef(widget);
       widgetInitializedRef.current = true;
 
-      // Listen to play/pause events from the widget
       widget.ready.then(() => {
         widget.events.pause.on(() => {
-          // Widget was paused
           console.log('[ArchivePlayer] Widget paused');
         });
 
         widget.events.play.on(() => {
-          // Widget started playing
           console.log('[ArchivePlayer] Widget playing');
         });
       });
@@ -128,22 +119,18 @@ const ArchivePlayer: React.FC = () => {
     pauseShow();
   };
 
-  // Reset widget initialization when URL changes
   useEffect(() => {
     widgetInitializedRef.current = false;
   }, [selectedArchiveUrl]);
 
-  // Only render when there's a show selected
   const shouldShowPlayer = selectedArchiveUrl && selectedShow;
 
   if (!shouldShowPlayer) {
     return null;
   }
 
-  // Detect if this is a SoundCloud URL
   const isSoundCloud = selectedArchiveUrl.includes('soundcloud.com');
 
-  // Build iframe URL based on provider
   const embedUrl = isSoundCloud
     ? `https://w.soundcloud.com/player/?url=${encodeURIComponent(selectedArchiveUrl)}&color=%23ff5500&auto_play=true&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false`
     : `https://www.mixcloud.com/widget/iframe/?feed=${encodeURIComponent(selectedArchiveUrl)}&hide_cover=1&autoplay=1&hide_artwork=1&light=1&mini=1`;

@@ -14,11 +14,8 @@ function ShowCardSkeleton() {
 
       {/* Details - exact match to ShowCard */}
       <div className='flex flex-col justify-between pt-3 pb-1 h-30'>
-        {/* Title section */}
         <div className='w-auto h-auto flex-1 gap-1 flex flex-col'>
-          {/* Title text */}
           <Skeleton className='h-4 w-full rounded-none font-mono text-m8 sm:text-m6' />
-          {/* Date/time/location line */}
           <Skeleton className='h-3 w-3/4 rounded-none pt-1' />
         </div>
 

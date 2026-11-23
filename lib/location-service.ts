@@ -10,7 +10,6 @@ export const LocationSchema = z.object({
 
 export type Location = z.infer<typeof LocationSchema>;
 
-// Cache for cities data
 const citiesCache: { [key: string]: Location[] } = {};
 
 export async function getCountries(): Promise<Location[]> {
@@ -32,12 +31,10 @@ export async function getCities(countryCode?: string, name?: string): Promise<Lo
     return [];
   }
 
-  // If we have cached cities for this country, use them
   if (citiesCache[countryCode]) {
     const cities = citiesCache[countryCode];
     if (!name) return cities;
 
-    // Filter cities by name if provided
     const searchTerm = name.toLowerCase();
     return cities.filter(
       (city: Location) =>
@@ -47,7 +44,6 @@ export async function getCities(countryCode?: string, name?: string): Promise<Lo
   }
 
   try {
-    // Get country name from country code
     const countryResponse = await fetch(`https://restcountries.com/v3.1/alpha/${countryCode}`);
     const countryData = await countryResponse.json();
     const countryName = countryData[0]?.name?.common;
@@ -56,7 +52,6 @@ export async function getCities(countryCode?: string, name?: string): Promise<Lo
       throw new Error('Could not find country name for code: ' + countryCode);
     }
 
-    // Fetch cities from the free API with the correct request format
     const response = await fetch('https://countriesnow.space/api/v0.1/countries/cities', {
       method: 'POST',
       headers: {
@@ -69,13 +64,11 @@ export async function getCities(countryCode?: string, name?: string): Promise<Lo
 
     const data = await response.json();
 
-    // Check if the response has the expected structure
     if (!data.data || !Array.isArray(data.data)) {
       console.error('Unexpected API response format:', data);
       throw new Error('Invalid response format from cities API');
     }
 
-    // Transform the data to match our Location type
     const cities = data.data.map((cityName: string) => ({
       id: `${countryCode}-${cityName}`,
       name: cityName,
@@ -83,10 +76,8 @@ export async function getCities(countryCode?: string, name?: string): Promise<Lo
       countryCode,
     }));
 
-    // Cache the cities for this country
     citiesCache[countryCode] = cities;
 
-    // Filter by name if provided
     if (name) {
       const searchTerm = name.toLowerCase();
       return cities.filter((city: Location) => city.name.toLowerCase().includes(searchTerm));
@@ -95,7 +86,6 @@ export async function getCities(countryCode?: string, name?: string): Promise<Lo
     return cities;
   } catch (error) {
     console.error('Error fetching cities:', error);
-    // If the API fails, try to use a fallback list of major cities
     const fallbackCities = getFallbackCities(countryCode);
     citiesCache[countryCode] = fallbackCities;
 
@@ -110,7 +100,6 @@ export async function getCities(countryCode?: string, name?: string): Promise<Lo
   }
 }
 
-// Fallback list of major cities by country code
 function getFallbackCities(countryCode: string): Location[] {
   const majorCities: { [key: string]: string[] } = {
     US: [
@@ -209,7 +198,6 @@ function getFallbackCities(countryCode: string): Location[] {
       'Mons',
       'Aalst',
     ],
-    // Add more countries as needed
   };
 
   const cities = majorCities[countryCode] || [];

@@ -24,7 +24,6 @@ const HOT_STORAGE_LIMIT = 500;
 const MAX_MIGRATIONS_PER_RUN = 100; // Limit per cron run to avoid timeouts
 const DELETE_MEDIA = process.env.DELETE_MEDIA === 'true';
 
-// Object types that can have images
 const OBJECT_TYPES_WITH_IMAGES = [
   'episode',
   'regular-hosts',
@@ -109,7 +108,6 @@ async function findObjectsReferencingMedia(mediaItem: MediaItem): Promise<Cosmic
         const objImgixUrl = obj.metadata?.image?.imgix_url;
         const objImageName = obj.metadata?.image?.name;
 
-        // Check all possible matches
         if (
           objImageName === filename ||
           objImageUrl === mediaItem.url ||
@@ -132,7 +130,6 @@ export async function GET(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // Verify cron secret
     let authHeader: string | null = null;
     try {
       authHeader = request.headers.get('authorization');
@@ -154,7 +151,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check Blob token
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       console.error('[COLD-STORAGE] BLOB_READ_WRITE_TOKEN not configured');
       return NextResponse.json(
@@ -172,7 +168,6 @@ export async function GET(request: NextRequest) {
       `[COLD-STORAGE] Delete media: ${DELETE_MEDIA ? 'YES' : 'NO (set DELETE_MEDIA=true to enable)'}`
     );
 
-    // Fetch media sorted by created_at DESC (newest first)
     const allMedia: MediaItem[] = [];
     let skip = 0;
     let hasMore = true;
@@ -200,7 +195,6 @@ export async function GET(request: NextRequest) {
 
     console.log(`[COLD-STORAGE] Fetched ${allMedia.length} media items`);
 
-    // Identify cold media (beyond position 500)
     const coldMedia = allMedia.slice(HOT_STORAGE_LIMIT);
 
     console.log(`[COLD-STORAGE] Hot media (kept): ${Math.min(allMedia.length, HOT_STORAGE_LIMIT)}`);
@@ -219,7 +213,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Migrate up to MAX_MIGRATIONS_PER_RUN media items
     const toMigrate = coldMedia.slice(0, MAX_MIGRATIONS_PER_RUN);
     const results = {
       migrated: 0,
@@ -233,14 +226,12 @@ export async function GET(request: NextRequest) {
       const downloadUrl = mediaItem.imgix_url || mediaItem.url;
 
       try {
-        // Check if already in Blob
         let blobUrl: string;
         try {
           const existing = await head(blobPath);
           blobUrl = existing.url;
           console.log(`[COLD-STORAGE] ${mediaItem.name}: Already in Blob`);
         } catch {
-          // Download and upload
           console.log(`[COLD-STORAGE] ${mediaItem.name}: Migrating...`);
           const { buffer, contentType } = await downloadMedia(downloadUrl);
 
@@ -252,7 +243,6 @@ export async function GET(request: NextRequest) {
           blobUrl = blob.url;
         }
 
-        // Find and update objects referencing this media
         const referencingObjects = await findObjectsReferencingMedia(mediaItem);
 
         for (const obj of referencingObjects) {
@@ -269,7 +259,6 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        // Delete from Cosmic media (only if DELETE_MEDIA is set)
         if (DELETE_MEDIA) {
           try {
             await cosmic.media.deleteOne(mediaItem.id);

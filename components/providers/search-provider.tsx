@@ -50,7 +50,6 @@ export default function SearchProvider({ children }: SearchProviderProps) {
 
   // Lazy initialization - only fetch when search is first used
   const initializeSearch = useCallback(async () => {
-    // Skip if already initialized or currently initializing
     if (isInitialized || initializingRef.current) return;
 
     initializingRef.current = true;
@@ -88,10 +87,8 @@ export default function SearchProvider({ children }: SearchProviderProps) {
     }
   }, [isInitialized]);
 
-  // Perform search - automatically initializes if needed
   const performSearch = useCallback(
     async (term: string) => {
-      // Auto-initialize if not yet initialized
       if (!isInitialized && !initializingRef.current) {
         await initializeSearch();
       }
@@ -109,7 +106,6 @@ export default function SearchProvider({ children }: SearchProviderProps) {
 
           let filtered = [...allContent];
 
-          // Filter by search term if provided
           if (term) {
             const lowercaseTerm = term.toLowerCase();
             filtered = filtered.filter(item => {
@@ -133,7 +129,6 @@ export default function SearchProvider({ children }: SearchProviderProps) {
                 genre.title?.toLowerCase().includes(lowercaseTerm)
               );
 
-              // Search metadata fields
               const metadataMatch =
                 item.metadata && typeof item.metadata === 'object'
                   ? Object.entries(item.metadata).some(
@@ -142,7 +137,6 @@ export default function SearchProvider({ children }: SearchProviderProps) {
                     )
                   : false;
 
-              // Check people-related fields in metadata
               let peopleMatch = false;
               if (item.metadata && typeof item.metadata === 'object') {
                 const peopleFields = [
@@ -181,7 +175,6 @@ export default function SearchProvider({ children }: SearchProviderProps) {
             });
           }
 
-          // Apply filters
           if (Array.isArray(filters.type) && filters.type.length > 0) {
             filtered = filtered.filter(item =>
               filters.type?.includes(item.type as SearchResultType)
@@ -226,7 +219,6 @@ export default function SearchProvider({ children }: SearchProviderProps) {
 
           setResults(filtered);
         } else {
-          // If we don't have content, fetch it from the API
           console.log('No cached content available, fetching from API');
           const content = await getAllSearchResultsAndFilters();
           setAllContent(content.results);
@@ -254,20 +246,17 @@ export default function SearchProvider({ children }: SearchProviderProps) {
     [allContent, filters, isInitialized, initializeSearch]
   );
 
-  // Toggle filter functions
   const toggleGenreFilter = useCallback((genre: FilterItem) => {
     setFilters(prev => {
       const genreFilters = prev.genres || [];
       const genreIndex = genreFilters.indexOf(genre.slug);
 
       if (genreIndex > -1) {
-        // Remove genre if it exists
         return {
           ...prev,
           genres: genreFilters.filter((_, index) => index !== genreIndex),
         };
       } else {
-        // Add genre if it doesn't exist
         return {
           ...prev,
           genres: [...genreFilters, genre.slug],
@@ -282,13 +271,11 @@ export default function SearchProvider({ children }: SearchProviderProps) {
       const locationIndex = locationFilters.indexOf(location.slug);
 
       if (locationIndex > -1) {
-        // Remove location if it exists
         return {
           ...prev,
           locations: locationFilters.filter((_, index) => index !== locationIndex),
         };
       } else {
-        // Add location if it doesn't exist
         return {
           ...prev,
           locations: [...locationFilters, location.slug],
@@ -303,13 +290,11 @@ export default function SearchProvider({ children }: SearchProviderProps) {
       const hostIndex = hostFilters.indexOf(host.slug);
 
       if (hostIndex > -1) {
-        // Remove host if it exists
         return {
           ...prev,
           hosts: hostFilters.filter((_, index) => index !== hostIndex),
         };
       } else {
-        // Add host if it doesn't exist
         return {
           ...prev,
           hosts: [...hostFilters, host.slug],
@@ -324,13 +309,11 @@ export default function SearchProvider({ children }: SearchProviderProps) {
       const takeoverIndex = takeoverFilters.indexOf(takeover.slug);
 
       if (takeoverIndex > -1) {
-        // Remove takeover if it exists
         return {
           ...prev,
           takeovers: takeoverFilters.filter((_, index) => index !== takeoverIndex),
         };
       } else {
-        // Add takeover if it doesn't exist
         return {
           ...prev,
           takeovers: [...takeoverFilters, takeover.slug],

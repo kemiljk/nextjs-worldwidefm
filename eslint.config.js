@@ -32,7 +32,6 @@ export default [
       parser: typescriptParser,
     },
   },
-  // Source files configuration
   {
     files: [
       'app/**/*.{js,jsx,ts,tsx}',
@@ -52,7 +51,6 @@ export default [
         },
       },
       globals: {
-        // Browser globals
         window: 'readonly',
         document: 'readonly',
         console: 'readonly',
@@ -65,14 +63,11 @@ export default [
         clearInterval: 'readonly',
         URLSearchParams: 'readonly',
         WebSocket: 'readonly',
-        // Node.js globals
         process: 'readonly',
         Buffer: 'readonly',
         global: 'readonly',
-        // React globals
         React: 'readonly',
         JSX: 'readonly',
-        // HTML element types
         HTMLElement: 'readonly',
         HTMLDivElement: 'readonly',
         HTMLInputElement: 'readonly',
@@ -85,11 +80,9 @@ export default [
         HTMLLIElement: 'readonly',
         HTMLOListElement: 'readonly',
         HTMLIFrameElement: 'readonly',
-        // Event types
         MouseEvent: 'readonly',
         KeyboardEvent: 'readonly',
         Event: 'readonly',
-        // Other types
         Node: 'readonly',
         File: 'readonly',
         RequestInit: 'readonly',
@@ -102,7 +95,6 @@ export default [
       prettier: prettier,
     },
     rules: {
-      // Remove unused imports automatically
       'unused-imports/no-unused-imports': 'error',
       'unused-imports/no-unused-vars': [
         'warn',
@@ -114,15 +106,12 @@ export default [
         },
       ],
 
-      // TypeScript specific rules
       '@typescript-eslint/no-unused-vars': 'off', // Turn off base rule as it can report incorrect errors
       '@typescript-eslint/no-explicit-any': 'warn',
 
-      // Prettier integration
       'prettier/prettier': 'error',
 
-      // General code quality
-      'no-console': 'off', // Allow console statements
+      'no-console': 'off',
       'prefer-const': 'error',
       'no-var': 'error',
       'no-undef': 'off', // TypeScript handles this

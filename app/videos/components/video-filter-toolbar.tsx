@@ -41,21 +41,17 @@ export function VideoFilterToolbar({
   const handleCategorySelectionChange = (values: string[]) => {
     const currentSelected = selectedFilters.categories || [];
 
-    // Find what changed
     const added = values.filter(v => !currentSelected.includes(v));
     const removed = currentSelected.filter(v => !values.includes(v));
 
-    // Handle additions
     added.forEach(value => {
       onFilterChange('categories', value);
     });
 
-    // Handle removals
     removed.forEach(value => {
       onFilterChange('categories', value);
     });
 
-    // If no categories selected, clear all filters
     if (values.length === 0) {
       onFilterChange('');
     }
@@ -65,11 +61,10 @@ export function VideoFilterToolbar({
     if (filterType === 'new') {
       onFilterChange('');
     } else if (filterType === 'categories' && value) {
-      onFilterChange('categories', value); // This will toggle the category
+      onFilterChange('categories', value);
     }
   };
 
-  // Get all active filter chips
   const getActiveChips = () => {
     const chips: Array<{ type: string; value: string; label: string }> = [];
 
@@ -93,7 +88,6 @@ export function VideoFilterToolbar({
   return (
     <div className='flex flex-row flex-wrap items-start justify-between gap-2 h-auto pt-4 pb-2'>
       <div className='flex flex-col gap-4'>
-        {/* Main Filter Controls */}
         <div className='flex flex-wrap gap-2 text-m7'>
           <Button
             variant='outline'
@@ -130,7 +124,6 @@ export function VideoFilterToolbar({
           />
         </div>
 
-        {/* Active Filter Chips */}
         {getActiveChips().length > 0 && (
           <div className='w-full border-t border-almostblack flex gap-2 pt-4 pb-2 text-m7 overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700'>
             {getActiveChips().map((chip, index) => (
@@ -152,7 +145,6 @@ export function VideoFilterToolbar({
           </div>
         )}
       </div>
-      {/* Search Bar */}
       {onSearchChange && (
         <div className='relative w-auto h-auto flex flex-row bg-background border border-almostblack dark:border-white items-center text-almostblack self-start'>
           <Input

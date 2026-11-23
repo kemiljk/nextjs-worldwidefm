@@ -19,11 +19,9 @@ export interface SearchResult {
   metadata?: any;
 }
 
-// Helper to safely extract a string field
 const safeString = (val: any): string | undefined =>
   typeof val === 'string' && val.trim() ? val : undefined;
 
-// Helper to strip HTML tags for search indexing
 const stripHtmlTags = (html: string): string => {
   if (!html) return '';
   return html
@@ -61,7 +59,6 @@ const getTakeovers = (meta: any): FilterItem[] =>
 const getDate = (meta: any, fallback: string): string | undefined =>
   safeString(meta?.date) || fallback;
 
-// Helper functions to convert Cosmic objects to FilterItems
 const mapGenreToFilterItem = (genre: GenreObject): FilterItem => ({
   title: genre.title,
   slug: genre.slug,
@@ -86,7 +83,6 @@ const mapTakeoverToFilterItem = (takeover: TakeoverObject): FilterItem => ({
   type: 'takeovers',
 });
 
-// Fetch and normalize all content types from Cosmic
 export async function fetchAllCosmicContent(): Promise<SearchResult[]> {
   const contentProps = 'id,slug,title,metadata,created_at';
   const [eventsRes, postsRes, videosRes, takeoversRes] = await Promise.all([
@@ -170,7 +166,6 @@ export async function fetchAllCosmicContent(): Promise<SearchResult[]> {
   return [...events, ...posts, ...videos, ...takeovers];
 }
 
-// Fetch episodes from Cosmic and normalize for search
 export async function fetchEpisodesForSearch(): Promise<SearchResult[]> {
   const { getEpisodes } = await import('./episode-service');
   const { episodes } = await getEpisodes({ limit: 1000 });
@@ -193,7 +188,6 @@ export async function fetchEpisodesForSearch(): Promise<SearchResult[]> {
     .filter(item => item.title);
 }
 
-// Fetch all filter facets
 export async function fetchAllFilters(): Promise<{
   genres: FilterItem[];
   locations: FilterItem[];
@@ -222,7 +216,6 @@ export async function fetchAllFilters(): Promise<{
   return { genres, locations, hosts };
 }
 
-// Main function to get all search results and filters
 export async function getAllSearchResultsAndFilters() {
   const [cosmicContent, episodes, filters] = await Promise.all([
     fetchAllCosmicContent(),

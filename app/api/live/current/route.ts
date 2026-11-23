@@ -4,11 +4,6 @@ import { NextResponse } from 'next/server';
 import { getScheduleData, findMatchingShow } from '@/lib/radiocult-service';
 import { getCurrentScheduleShow } from '@/lib/schedule-service';
 
-/**
- * API endpoint to get the current live event
- * This is called by the client to check if there's a live show
- * Also includes matching Cosmic show info for linking to episode detail pages
- */
 export async function GET() {
   await connection();
   try {

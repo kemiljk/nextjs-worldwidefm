@@ -80,7 +80,6 @@ async function findEpisode(query: Record<string, unknown>): Promise<EpisodeObjec
     return episodes[0];
   }
 
-  // Relax the title match to partial if no exact matches
   if (query.title && typeof query.title === 'object') {
     const partialQuery = {
       ...query,

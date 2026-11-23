@@ -83,9 +83,6 @@ export interface MembershipPage {
   metadata: unknown;
 }
 
-/**
- * Get all radio shows
- */
 export async function getRadioShows(
   params: {
     limit?: number;
@@ -212,9 +209,6 @@ export async function getRadioShows(
   }
 }
 
-/**
- * Get a single radio show by slug
- */
 export async function getRadioShowBySlug(slug: string): Promise<CosmicResponse<RadioShowObject>> {
   try {
     const response = await cosmic.objects
@@ -235,9 +229,6 @@ export async function getRadioShowBySlug(slug: string): Promise<CosmicResponse<R
   }
 }
 
-/**
- * Get all categories
- */
 export async function getCategories(): Promise<CosmicResponse<CategoryObject>> {
   try {
     const response = await cosmic.objects
@@ -257,9 +248,6 @@ export async function getCategories(): Promise<CosmicResponse<CategoryObject>> {
   }
 }
 
-/**
- * Get a single category by slug
- */
 export async function getCategoryBySlug(slug: string): Promise<CosmicResponse<CategoryObject>> {
   try {
     const response = await cosmic.objects
@@ -323,15 +311,8 @@ export async function getSchedule(): Promise<CosmicResponse<Schedule> | null> {
   }
 }
 
-/**
- * Helper function to transform Cosmic data to the format used in the mock data
- * This is a pure utility function that can be used in both Server and Client Components
- */
 export { transformShowToViewData } from './transform-show-to-view-data';
 
-/**
- * Get navigation data
- */
 export async function getNavigation(slug: string = 'navigation'): Promise<unknown> {
   try {
     const response = await cosmic.objects
@@ -355,9 +336,6 @@ export async function getNavigation(slug: string = 'navigation'): Promise<unknow
   }
 }
 
-/**
- * Get editorial homepage data
- */
 export async function getEditorialHomepage(): Promise<unknown> {
   try {
     const response = await cosmic.objects
@@ -381,9 +359,6 @@ export async function getEditorialHomepage(): Promise<unknown> {
   }
 }
 
-/**
- * Get posts (articles, videos, events)
- */
 export async function getPosts(
   params: {
     id?: string;
@@ -430,9 +405,6 @@ export async function getPosts(
   }
 }
 
-/**
- * Get About page data
- */
 export async function getAboutPage(): Promise<AboutPage | null> {
   const { object } = await cosmic.objects
     .findOne({
@@ -445,9 +417,6 @@ export async function getAboutPage(): Promise<AboutPage | null> {
   return object ?? null;
 }
 
-/**
- * Get all hosts
- */
 export async function getHosts(
   params: {
     limit?: number;
@@ -478,9 +447,6 @@ export async function getHosts(
   }
 }
 
-/**
- * Get a single host by slug
- */
 export async function getHostBySlug(slug: string): Promise<CosmicResponse<unknown>> {
   try {
     const response = await cosmic.objects
@@ -494,9 +460,6 @@ export async function getHostBySlug(slug: string): Promise<CosmicResponse<unknow
   }
 }
 
-/**
- * Get host by name (for cases where we don't have the exact slug)
- */
 export async function getHostByName(name: string): Promise<unknown | null> {
   try {
     const response = await cosmic.objects
@@ -515,9 +478,6 @@ export async function getHostByName(name: string): Promise<unknown | null> {
   }
 }
 
-/**
- * Get Membership page data
- */
 export async function getMembershipPage(): Promise<MembershipPage | null> {
   const { object } = await cosmic.objects
     .findOne({

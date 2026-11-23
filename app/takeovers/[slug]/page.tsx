@@ -59,7 +59,6 @@ async function getRelatedEpisodes(takeover: any, limit: number = 12) {
     const result: any[] = [];
     const excludeIds: string[] = [];
 
-    // 1. Get episodes for this takeover
     const response = await getEpisodesForShows({
       takeover: takeover.id,
       limit,
@@ -69,7 +68,6 @@ async function getRelatedEpisodes(takeover: any, limit: number = 12) {
     result.push(...takeoverShows);
     excludeIds.push(...takeoverShows.map((s: any) => s.id));
 
-    // 2. If we need more, fetch by genre
     if (result.length < limit) {
       const genreIds = takeover.metadata?.genres?.map((g: any) => g.id).filter(Boolean) || [];
       if (genreIds.length > 0) {

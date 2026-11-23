@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
         sanitizedContent = sanitizeEditorialContent(content);
         break;
       default:
-        sanitizedContent = content; // Return as-is if no specific type
+        sanitizedContent = content;
         break;
     }
 

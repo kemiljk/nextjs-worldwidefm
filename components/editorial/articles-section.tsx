@@ -13,7 +13,6 @@ interface ArticlesSectionProps {
 }
 
 export default function ArticlesSection({ title, articles, lastArticleRef }: ArticlesSectionProps) {
-  // If no articles, show a message instead of empty space
   if (!articles || articles.length === 0) {
     return (
       <div>
