@@ -7,6 +7,8 @@
  * - `$and` is silently ignored when the query has other field conditions (bbdc357).
  * - A `$regex` containing a literal `\u` escape fails with HTTP 500 (7a11c3f).
  * - An empty result is a 404 with "No objects found".
+ * - One page returns at most 1,000 objects, whatever `limit` asks for.
+ * - Unknown query keys, such as `props` put in the query, filter on fields of that name.
  */
 
 export interface FakeCosmicObject {
@@ -20,6 +22,7 @@ export interface FakeCosmicObject {
 }
 
 type Query = Record<string, unknown>;
+const MAX_LIMIT = 1000;
 
 class FakeCosmicError extends Error {
   constructor(
@@ -136,7 +139,7 @@ export function createFakeCosmic(seed: FakeCosmicObject[]) {
     );
     if (found.length === 0) throw new FakeCosmicError(404, 'No objects found');
     const skip = Number(params.get('skip') ?? 0);
-    const limit = Number(params.get('limit') ?? found.length);
+    const limit = Math.min(Number(params.get('limit') ?? MAX_LIMIT), MAX_LIMIT);
     const props = params
       .get('props')
       ?.split(',')

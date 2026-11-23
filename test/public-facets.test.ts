@@ -1,53 +1,55 @@
-import { beforeEach, expect, mock, test } from 'bun:test';
+import { afterEach, beforeAll, afterAll, expect, mock, test } from 'bun:test';
+import { createFakeCosmic, type FakeCosmicObject } from './support/fake-cosmic';
+
 mock.module('server-only', () => ({}));
-let calls: Array<{ query: any; options: any }> = [];
-let handler: (query: any, options: any) => Promise<any>;
-mock.module('@/lib/cosmic-public', () => ({
-  getPublicObjects: (query: any, options: any) => {
-    calls.push({ query, options });
-    return handler(query, options);
-  },
-}));
+mock.module('next/cache', () => ({ cacheLife: () => {}, cacheTag: () => {} }));
+
+const term = (type: string, id: string): FakeCosmicObject => ({
+  id,
+  type,
+  slug: id,
+  title: id.toUpperCase(),
+  metadata: { description: 'not needed by filters' },
+});
+const cosmic = createFakeCosmic([
+  ...Array.from({ length: 1001 }, (_, i) => term('genres', `genre-${i}`)),
+  term('regular-hosts', 'host'),
+  term('locations', 'london'),
+  term('episode', 'episode'),
+]);
+
+const originalFetch = globalThis.fetch;
+const env = { ...process.env };
+beforeAll(() => {
+  process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG = 'test-bucket';
+  process.env.COSMIC_READ_KEY = 'test-read-key';
+});
+afterEach(() => {
+  globalThis.fetch = cosmic.fetch as typeof fetch;
+});
+afterAll(() => {
+  globalThis.fetch = originalFetch;
+  process.env = env;
+});
+globalThis.fetch = cosmic.fetch as typeof fetch;
+
 const { getPublicFacet, getSearchFacets } = await import('../lib/public-facets');
-beforeEach(() => {
-  calls = [];
+
+test('search filters list every genre, host and location as id and title', async () => {
+  const facets = await getSearchFacets();
+  expect(facets.genres).toHaveLength(1001);
+  expect(facets.genres).toContainEqual({ id: 'genre-1000', title: 'GENRE-1000' });
+  expect(facets.hosts).toEqual([{ id: 'host', title: 'HOST' }]);
+  expect(facets.locations).toEqual([{ id: 'london', title: 'LONDON' }]);
 });
 
-test('search loads only three lean taxonomies without sending options as query filters', async () => {
-  handler = async ({ type }) => ({
-    objects: [{ id: type, slug: type, title: type, metadata: { unneeded: true } }],
-    total: 1,
-  });
-  const result = await getSearchFacets();
-  expect(calls.map(call => call.query.type).sort()).toEqual([
-    'genres',
-    'locations',
-    'regular-hosts',
-  ]);
-  for (const call of calls) {
-    expect(Object.keys(call.query)).toEqual(['type']);
-    expect(call.options).toEqual({ props: 'id,slug,title', depth: 0, limit: 1000 });
-  }
-  expect(result.hosts[0]).toEqual({
-    id: 'regular-hosts',
-    title: 'regular-hosts',
-  });
+test('taxonomies beyond one Cosmic page are not truncated', async () => {
+  const genres = await getPublicFacet('genres');
+  expect(new Set(genres.map(genre => genre.id)).size).toBe(1001);
 });
-test('paginates large taxonomies rather than silently truncating them', async () => {
-  handler = async (_query, options) => ({
-    objects: Array.from({ length: options.skip ? 1 : 1000 }, (_, i) => ({
-      id: String((options.skip || 0) + i),
-      slug: String((options.skip || 0) + i),
-      title: String((options.skip || 0) + i),
-    })),
-    total: 1001,
-  });
-  expect((await getPublicFacet('genres')).length).toBe(1001);
-  expect(calls[1].options.skip).toBe(1000);
-});
-test('propagates outages so unavailable filters are retryable rather than cached empty', async () => {
-  handler = async () => {
-    throw new Error('unavailable');
-  };
-  expect(getPublicFacet('genres')).rejects.toThrow('unavailable');
+
+test('an outage rejects instead of caching empty filters', async () => {
+  globalThis.fetch = (async () =>
+    Response.json({ message: 'unavailable' }, { status: 503 })) as unknown as typeof fetch;
+  await expect(getPublicFacet('genres')).rejects.toThrow();
 });
