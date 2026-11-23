@@ -4,7 +4,8 @@
  * the code built it.
  *
  * It also reproduces Cosmic behaviour that has caused production defects:
- * - `$and` is silently ignored when the query has other field conditions (bbdc357).
+ * - `$and` is silently ignored beside a `metadata.*` condition (bbdc357). Checked live:
+ *   dropped beside `$in`/`$lte` on metadata fields, kept beside `title` or `slug`.
  * - A `$regex` containing a literal `\u` escape fails with HTTP 500 (7a11c3f).
  * - An empty result is a 404 with "No objects found".
  * - One page returns at most 1,000 objects, whatever `limit` asks for.
@@ -89,11 +90,10 @@ function matchesCondition(values: unknown[], condition: unknown): boolean {
 }
 
 function matches(object: FakeCosmicObject, query: Query): boolean {
-  const fields = Object.keys(query).filter(key => !key.startsWith('$'));
-  const hasSiblingFilters = fields.some(key => key !== 'type' && key !== 'status');
+  const hasMetadataFilter = Object.keys(query).some(key => key.startsWith('metadata.'));
   return Object.entries(query).every(([key, condition]) => {
     if (key === '$and') {
-      return hasSiblingFilters || (condition as Query[]).every(part => matches(object, part));
+      return hasMetadataFilter || (condition as Query[]).every(part => matches(object, part));
     }
     if (key === '$or') return (condition as Query[]).some(part => matches(object, part));
     if (key.startsWith('$')) throw new FakeCosmicError(400, `Unsupported operator ${key}`);

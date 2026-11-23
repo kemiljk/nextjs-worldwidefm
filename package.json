@@ -21,6 +21,7 @@
     "export-shows": "bun run scripts/export-shows.ts",
     "audit-episodes": "bun run scripts/audit-episodes.ts",
     "retry-radiocult-upload": "bun run scripts/retry-radiocult-upload.ts",
+    "test:e2e:live": "playwright test -c playwright.live.config.ts",
     "test": "bun run scripts/test-unit.ts",
     "test:unit": "bun run scripts/test-unit.ts",
     "test:e2e": "playwright test",
