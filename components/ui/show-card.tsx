@@ -9,6 +9,7 @@ import { GenreTag } from './genre-tag';
 import { ResponsiveCardImage } from './optimized-image';
 import type { CanonicalGenre } from '@/lib/get-canonical-genres';
 import { formatLondonBroadcastTime, parseLondonDateTime } from '@/lib/date-utils';
+import { SHOW_CARD_LAYOUT } from './show-card-layout';
 
 interface ShowCardProps {
   show: any;
@@ -196,7 +197,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
     subtitle = '';
   }
 
-  const borderClass = variant === 'light' ? 'border-black' : 'border-almostblack dark:border-white';
+  const borderClass = variant === 'light' ? 'border-black' : SHOW_CARD_LAYOUT.frameBorder;
   const textClass = variant === 'light' ? 'text-black' : 'text-almostblack dark:text-white';
   const imageBorderClass =
     variant === 'light' ? 'border-black' : 'border-almostblack dark:border-0';
@@ -208,9 +209,9 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   const genreTagVariant = variant === 'light' ? 'light' : undefined;
 
   return (
-    <div className={`${borderClass} border p-2 ${className}`}>
+    <div className={`${borderClass} ${SHOW_CARD_LAYOUT.frame} ${className}`}>
       <Link href={slug} className='block'>
-        <div className='group relative aspect-square cursor-pointer'>
+        <div className={`${SHOW_CARD_LAYOUT.media} cursor-pointer`}>
           <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-50 transition-opacity pointer-events-none z-10' />
           <ResponsiveCardImage
             src={showImage}
@@ -244,7 +245,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
         </div>
       </Link>
 
-      <div className='flex flex-col justify-between pt-3 pb-1 h-30'>
+      <div className={SHOW_CARD_LAYOUT.details}>
         <Link href={slug} className='block'>
           <div className='w-auto h-auto flex-1 gap-1 flex flex-col cursor-pointer'>
             <div
@@ -264,7 +265,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
           </div>
         </Link>
 
-        <div className='flex flex-row w-full pr-1'>
+        <div className={SHOW_CARD_LAYOUT.tags}>
           <div className='flex flex-row flex-wrap'>
             {showTags.map((tag, idx) => {
               const genreLink = getGenreLink(tag.id);
