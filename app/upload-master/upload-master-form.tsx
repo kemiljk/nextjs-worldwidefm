@@ -24,6 +24,7 @@ import {
   runUploadMasterFlow,
   buildUploadResultSummary,
   retryMasterToDrive,
+  uploadFormOutcome,
   type UploadDestinationResult,
 } from '@/lib/upload-master-flow';
 import {
@@ -277,31 +278,21 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
       } else if (!flowResult.shouldCleanupBlob) {
         setRetainedBlobUrl(blobUrl);
       }
-      if (
-        flowResult.archiveUpdated &&
-        flowResult.mixcloudLinkSaved &&
-        !flowResult.mixcloudError &&
-        !flowResult.radioCultError &&
-        !flowResult.driveError
-      ) {
-        setPhase('success');
-        toast.success('Mastered audio uploaded and episode updated');
-        setSelectedEpisode(null);
-        setMediaFile(null);
-        setEpisodeInput('');
-        setSelectedCoHostIds([]);
-        setCoHostInput('');
-      } else if (flowResult.hasAnySuccess) {
-        setPhase('success');
-        toast.warning(summary);
-        setSelectedEpisode(null);
-        setMediaFile(null);
-        setEpisodeInput('');
-        setSelectedCoHostIds([]);
-        setCoHostInput('');
-      } else {
+      const outcome = uploadFormOutcome(flowResult);
+      if (outcome === 'failed') {
         throw new Error(summary);
       }
+      setPhase('success');
+      if (outcome === 'complete') {
+        toast.success('Mastered audio uploaded and episode updated');
+      } else {
+        toast.warning(summary);
+      }
+      setSelectedEpisode(null);
+      setMediaFile(null);
+      setEpisodeInput('');
+      setSelectedCoHostIds([]);
+      setCoHostInput('');
     } catch (err) {
       setPhase('error');
       console.error('Upload failed:', err);

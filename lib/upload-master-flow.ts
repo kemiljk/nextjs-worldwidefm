@@ -373,6 +373,25 @@ function safeErrorMessage(value: unknown, status: number): string {
   return message.length > 500 ? `${message.slice(0, 497)}...` : message;
 }
 
+/**
+ * What the form does with a finished flow: `complete` and `partial` clear the
+ * form, `failed` keeps the show and file selected so staff can retry.
+ */
+export type UploadFormOutcome = 'complete' | 'partial' | 'failed';
+
+export function uploadFormOutcome(result: UploadMasterFlowResult): UploadFormOutcome {
+  if (
+    result.archiveUpdated &&
+    result.mixcloudLinkSaved &&
+    !result.mixcloudError &&
+    !result.radioCultError &&
+    !result.driveError
+  ) {
+    return 'complete';
+  }
+  return result.hasAnySuccess ? 'partial' : 'failed';
+}
+
 export function buildUploadResultSummary(result: UploadMasterFlowResult): string {
   const parts: string[] = [];
 

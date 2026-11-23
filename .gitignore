@@ -37,3 +37,6 @@ next-env.d.ts
 test-results/
 playwright-report/
 exports/
+
+# Upload Master model replays
+test/model/.replay/

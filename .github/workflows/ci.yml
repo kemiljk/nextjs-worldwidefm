@@ -42,3 +42,6 @@ jobs:
         env:
           WWFM_SLOW_UPLOAD: '1'
         run: bun run test:uploads
+
+      - name: Upload Master bounded model (current, pre-fix replay and mutants)
+        run: bun run verify:upload-master
