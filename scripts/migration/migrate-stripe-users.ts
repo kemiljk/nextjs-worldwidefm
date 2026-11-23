@@ -76,7 +76,6 @@ async function main() {
       console.log(`\n👤 Processing ${email} (Customer: ${customer.id})...`);
     
       let memberId: string | null = null;
-      let memberAction = 'none'; // 'created', 'found', 'error'
       
       try {
         const existingMemberRes = await cosmic.objects.findOne({
@@ -86,7 +85,6 @@ async function main() {
         
         if (existingMemberRes.object) {
           memberId = existingMemberRes.object.id;
-          memberAction = 'found';
           console.log(`  📎 Found existing Member: ${memberId}`);
         }
       } catch (err) {
@@ -115,7 +113,6 @@ async function main() {
               metadata: memberMetadata,
             });
             memberId = memberRes.object.id;
-            memberAction = 'created';
             console.log(`  ✅ Created Member: ${memberId}`);
          }
       }
