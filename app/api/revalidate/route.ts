@@ -1,38 +1,9 @@
 import { unstable_rethrow } from 'next/navigation';
 import { timingSafeEqual } from 'node:crypto';
 import { revalidateContent } from '@/lib/content-revalidation';
+import { ALL_CONTENT_TAGS } from '@/lib/content-cache-policy';
 import { revalidateTag, revalidatePath } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
-
-/**
- * Available cache tags for manual revalidation:
- *
- * Content Tags:
- * - homepage     → Homepage sections and layout
- * - hero         → Homepage hero section (weekly updates)
- * - episodes     → All episode listings
- * - latest       → Latest episodes section
- * - shows        → Show/episode archive
- * - schedule     → Weekly schedule
- * - editorial    → Posts and editorial content
- * - posts        → Individual posts
- * - hosts        → Host profiles
- * - takeovers    → Takeover pages
- * - genres       → Genre listings
- * - categories   → Post categories
- * - navigation   → Site navigation
- * - about        → About page
- * - membership   → Membership page
- *
- * Usage examples:
- * - POST /api/revalidate?secret=xxx&tag=hero        → Refresh hero section
- * - POST /api/revalidate?secret=xxx&tag=episodes    → Refresh all episodes
- * - POST /api/revalidate?secret=xxx&tag=latest      → Refresh latest episodes
- * - POST /api/revalidate?secret=xxx&tag=schedule    → Refresh schedule
- * - POST /api/revalidate?secret=xxx&tag=editorial   → Refresh editorial content
- * - POST /api/revalidate?secret=xxx                 → Refresh everything (default)
- * - GET  /api/revalidate?secret=xxx&tag=hero        → Same as POST (for easy browser testing)
- */
 
 async function handleRevalidation(request: NextRequest) {
   try {
@@ -103,29 +74,7 @@ async function handleRevalidation(request: NextRequest) {
     }
 
     if (!objectType && !tag && !path && !body.tag && !body.path) {
-      const allTags = [
-        'public-content',
-        'content-relationships',
-        'videos',
-        'locations',
-        'about',
-        'membership',
-        'homepage',
-        'hero',
-        'episodes',
-        'latest',
-        'shows',
-        'schedule',
-        'editorial',
-        'posts',
-        'hosts',
-        'takeovers',
-        'genres',
-        'categories',
-        'navigation',
-      ];
-
-      for (const t of allTags) {
+      for (const t of ALL_CONTENT_TAGS) {
         revalidateTag(t, { expire: 0 });
         revalidatedItems.push(`tag:${t}`);
       }
