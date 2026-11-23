@@ -113,29 +113,7 @@ Plausible is integrated at the root level in `app/layout.tsx` using `PlausiblePr
 
 ---
 
-### 7. Show Filter Events
-
-**Location:** `components/shows-filter.tsx`
-
-#### `Shows Filter Applied`
-- **Trigger:** User applies a filter (genre, host, or takeover)
-- **Props:**
-  - `filterType`: Type of filter (genre/host/takeover)
-  - `filterValue`: The selected filter value
-
-#### `Shows Search Used`
-- **Trigger:** User enters a search term (debounced, fires after 1 second of no typing)
-- **Props:**
-  - `searchLength`: Length of the search query
-
-#### `New Shows Filter Toggled`
-- **Trigger:** User enables the "New Shows" filter
-- **Props:**
-  - `enabled`: Always "true" (only tracks when enabled)
-
----
-
-### 8. Genre Selection Events
+### 7. Genre Selection Events
 
 **Location:** `components/genre-selector.tsx`
 
@@ -147,7 +125,7 @@ Plausible is integrated at the root level in `app/layout.tsx` using `PlausiblePr
 
 ---
 
-### 9. Search Events
+### 8. Search Events
 
 **Location:** `components/search.tsx`
 
@@ -158,7 +136,7 @@ Plausible is integrated at the root level in `app/layout.tsx` using `PlausiblePr
 
 ---
 
-### 10. Membership Events
+### 9. Membership Events
 
 **Locations:** 
 - `components/membership-promo-section.tsx`
