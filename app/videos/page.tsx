@@ -1,7 +1,8 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 import { PageHeader } from '@/components/shared/page-header';
-import { getVideos, getVideoCategories, getVideosPageConfig } from '@/lib/actions';
+import { getVideos, getVideoCategories } from '@/lib/actions/videos';
+import { getVideosPageConfig } from '@/lib/actions/page-config';
 import VideosClient from './videos-client';
 import { generateVideosMetadata } from '@/lib/metadata-utils';
 

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { PostObject } from '@/lib/cosmic-config';
 import { useEffect, useState } from 'react';
-import { getAllPosts } from '@/lib/actions';
+import { getAllPosts } from '@/lib/actions/posts';
 import { subDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getEpisodeImageUrl, type EpisodeObject } from '@/lib/cosmic-types';
 import type { GenreObject } from '@/lib/cosmic-config';
-import { fetchGenres } from '@/lib/actions';
+import { fetchGenres } from '@/lib/actions/filters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

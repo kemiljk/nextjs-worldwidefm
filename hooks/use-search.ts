@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
 import { SearchResult, FilterItem } from '@/lib/search-context';
-import { searchContent } from '@/lib/actions';
+import { searchContent } from '@/lib/actions/search';
 import { getFilterItems } from '@/lib/search/unified-types';
 
 interface UseSearchReturn {

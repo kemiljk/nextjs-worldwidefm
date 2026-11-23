@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import { connection } from 'next/server';
 import ShowsClient from './shows-client';
 import { getCanonicalGenres } from '@/lib/get-canonical-genres';
-import { getShowsFilters } from '@/lib/actions';
+import { getShowsFilters } from '@/lib/actions/filters';
 import { generateShowsMetadata } from '@/lib/metadata-utils';
 import { getEpisodesForShows } from '@/lib/episode-service';
 import { toShowCardData as transformShowToViewData } from '@/lib/show-card-data';

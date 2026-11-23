@@ -17,7 +17,8 @@ import {
   FilterItem,
   ContentType,
 } from './types';
-import { getAllPosts, getVideos } from '../actions';
+import { getAllPosts } from '../actions/posts';
+import { getVideos } from '../actions/videos';
 
 // Constants
 const DEFAULT_LIMIT = 20;

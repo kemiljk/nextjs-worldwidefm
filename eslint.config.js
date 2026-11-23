@@ -127,6 +127,25 @@ export default [
       'no-var': 'error',
       'no-undef': 'off', // TypeScript handles this
 
+      // Next.js 16.4 Turbopack drops the server-action id of a binding a 'use server'
+      // module re-exports, and client calls throw `reading 'apply'` (#21). Export each
+      // action from the module that defines it.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "Program:has(> ExpressionStatement[directive='use server']) ExportNamedDeclaration[declaration=null][exportKind!='type']",
+          message:
+            "Do not re-export from a 'use server' module. Import the action from the module that defines it.",
+        },
+        {
+          selector:
+            "Program:has(> ExpressionStatement[directive='use server']) ExportAllDeclaration[exportKind!='type']",
+          message:
+            "Do not re-export from a 'use server' module. Import the action from the module that defines it.",
+        },
+      ],
+
       // Disable Next.js img element warning - using native img intentionally
       '@next/next/no-img-element': 'off',
     },
