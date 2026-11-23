@@ -23,6 +23,10 @@ export const CONTENT_TAGS: Record<string, string[]> = {
   memberships: ['membership'],
 };
 
+export const ALL_CONTENT_TAGS = [
+  ...new Set(['public-content', 'content-relationships', ...Object.values(CONTENT_TAGS).flat()]),
+];
+
 export function contentTags(type: string, slug?: string): string[] {
   return [
     ...new Set([
