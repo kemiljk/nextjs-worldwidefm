@@ -32,7 +32,6 @@ interface NewObjectTypeConfig {
   metafields: Metafield[];
 }
 
-// External image URL field definition (reused across object types)
 const externalImageUrlField: Metafield = {
   title: 'External Image URL',
   key: 'external_image_url',
@@ -51,7 +50,6 @@ const mixcloudUsernameField: Metafield = {
     'Mixcloud account username for co-host tagging on uploads (must be an accepted Host in the WWFM Mixcloud dashboard).',
 };
 
-// Existing object type updates - add external_image_url to ALL object types with images
 const updates: ObjectTypeUpdateConfig[] = [
   {
     slug: 'posts',
@@ -121,7 +119,6 @@ const updates: ObjectTypeUpdateConfig[] = [
   },
 ];
 
-// New page configuration object types
 const newObjectTypes: NewObjectTypeConfig[] = [
   {
     title: 'Editorial Page Config',
@@ -169,7 +166,6 @@ async function updateObjectType(config: ObjectTypeUpdateConfig) {
   console.log(`\n📦 Updating object type: ${slug}`);
 
   try {
-    // Step 1: Get existing object type to retrieve current metafields
     console.log(`  ├─ Fetching existing object type...`);
     const response = await cosmic.objectTypes.findOne(slug);
 
@@ -181,7 +177,6 @@ async function updateObjectType(config: ObjectTypeUpdateConfig) {
     const existingMetafields: Metafield[] = response.object_type.metafields || [];
     console.log(`  ├─ Found ${existingMetafields.length} existing metafields`);
 
-    // Step 2: Check which new metafields already exist (by key)
     const existingKeys = new Set(existingMetafields.map((m: Metafield) => m.key));
     const metafieldsToAdd = newMetafields.filter(m => !existingKeys.has(m.key));
 
@@ -194,10 +189,8 @@ async function updateObjectType(config: ObjectTypeUpdateConfig) {
       `  ├─ Adding ${metafieldsToAdd.length} new metafield(s): ${metafieldsToAdd.map(m => m.key).join(', ')}`
     );
 
-    // Step 3: Merge existing metafields with new ones
     const updatedMetafields = [...existingMetafields, ...metafieldsToAdd];
 
-    // Step 4: Update the object type with combined metafields
     console.log(`  ├─ Updating object type with ${updatedMetafields.length} total metafields...`);
     await cosmic.objectTypes.updateOne(slug, {
       metafields: updatedMetafields,
@@ -217,7 +210,6 @@ async function createObjectType(config: NewObjectTypeConfig) {
   console.log(`\n🆕 Creating object type: ${slug}`);
 
   try {
-    // Check if object type already exists
     try {
       const existingResponse = await cosmic.objectTypes.findOne(slug);
       if (existingResponse?.object_type) {
@@ -225,7 +217,6 @@ async function createObjectType(config: NewObjectTypeConfig) {
         return true;
       }
     } catch {
-      // Object type doesn't exist, proceed with creation
     }
 
     console.log(`  ├─ Creating new object type...`);
@@ -265,7 +256,6 @@ async function main() {
   let successCount = 0;
   let failCount = 0;
 
-  // Create new object types first
   if (newObjectTypes.length > 0) {
     console.log(`\nNew object types to create:`);
     newObjectTypes.forEach(ot => {
@@ -282,7 +272,6 @@ async function main() {
     }
   }
 
-  // Update existing object types
   if (updates.length > 0) {
     console.log(`\nUpdates to apply:`);
     updates.forEach(u => {

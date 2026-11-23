@@ -5,8 +5,6 @@ process.env.NEXT_PUBLIC_APP_URL = 'https://example.test';
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import bcrypt from 'bcryptjs';
 
-// --- In-memory stand-ins for Cosmic, Resend and next/headers ----------------
-
 type StoredObject = {
   id: string;
   type: string;
@@ -130,8 +128,6 @@ const meRoute = await import('@/app/api/app/v1/me/route');
 const passwordRoute = await import('@/app/api/app/v1/me/password/route');
 const favouritesRoute = await import('@/app/api/app/v1/me/favourites/[kind]/[id]/route');
 
-// --- Helpers ----------------------------------------------------------------
-
 const PASSWORD = 'correct horse 1';
 // Cosmic object ids are 24 hex characters; the app API rejects anything else.
 const ALICE = 'a1'.repeat(12);
@@ -198,8 +194,6 @@ beforeEach(async () => {
   await addUser(BOB, 'bob@example.test');
 });
 
-// --- Sessions ---------------------------------------------------------------
-
 describe('member session store', () => {
   it('stores only a digest of the token and resolves it', async () => {
     const token = await newSession(ALICE);
@@ -231,8 +225,6 @@ describe('member session store', () => {
     expect(await sessionUserId(other)).toBeNull();
   });
 });
-
-// --- App API ----------------------------------------------------------------
 
 describe('app API', () => {
   it('signs in and returns the profile without secrets', async () => {
@@ -348,8 +340,6 @@ describe('app API', () => {
     expect(unknown.status).toBe(202);
   });
 });
-
-// --- Website server actions -------------------------------------------------
 
 describe('website server actions', () => {
   async function webLogin(email: string) {

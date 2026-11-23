@@ -3,7 +3,6 @@ import Stripe from 'stripe';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables from .env.local
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 
 if (!process.env.STRIPE_SECRET_KEY) {

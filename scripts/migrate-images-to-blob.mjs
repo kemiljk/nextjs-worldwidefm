@@ -31,37 +31,29 @@ import { createBucketClient } from '@cosmicjs/sdk';
 import { put, head } from '@vercel/blob';
 import fs from 'fs';
 
-// Configuration
 const CONFIG = {
-  // Cosmic
   bucketSlug: process.env.COSMIC_BUCKET_SLUG || process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG,
   readKey: process.env.COSMIC_READ_KEY || process.env.NEXT_PUBLIC_COSMIC_READ_KEY,
   writeKey: process.env.COSMIC_WRITE_KEY,
 
-  // Vercel Blob
   blobToken: process.env.BLOB_READ_WRITE_TOKEN,
 
-  // Options
   dryRun: process.env.DRY_RUN !== 'false',
   hotStorageLimit: parseInt(process.env.HOT_STORAGE_LIMIT || '1000', 10),
   batchSize: parseInt(process.env.BATCH_SIZE || '50', 10),
 
-  // Rate limiting
   downloadDelay: 100,
   uploadDelay: 50,
 
-  // Files
   stateFile: './blob-migration-state.json',
   reportFile: './blob-migration-report.json',
 };
 
-// Validate Cosmic credentials
 if (!CONFIG.bucketSlug || !CONFIG.readKey || !CONFIG.writeKey) {
   console.error('❌ Missing Cosmic credentials');
   process.exit(1);
 }
 
-// Check Vercel Blob token
 const blobConfigured = !!CONFIG.blobToken;
 
 if (!CONFIG.dryRun && !blobConfigured) {
@@ -70,23 +62,16 @@ if (!CONFIG.dryRun && !blobConfigured) {
   process.exit(1);
 }
 
-// Initialize Cosmic client
 const cosmic = createBucketClient({
   bucketSlug: CONFIG.bucketSlug,
   readKey: CONFIG.readKey,
   writeKey: CONFIG.writeKey,
 });
 
-/**
- * Sleep utility
- */
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/**
- * Format bytes to human readable
- */
 function formatBytes(bytes) {
   if (!bytes || bytes === 0) return '0 B';
   const k = 1024;
@@ -95,9 +80,6 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-/**
- * Check if URL is from Cosmic (needs migration)
- */
 function isCosmicUrl(url) {
   if (!url) return false;
   return (
@@ -107,9 +89,6 @@ function isCosmicUrl(url) {
   );
 }
 
-/**
- * Check if URL is from Vercel Blob (already migrated)
- */
 function isVercelBlobUrl(url) {
   if (!url) return false;
   return (
@@ -117,17 +96,11 @@ function isVercelBlobUrl(url) {
   );
 }
 
-/**
- * Generate blob pathname for episode image
- */
 function generateBlobPath(slug, originalFilename) {
   const ext = (originalFilename || 'image.jpg').split('.').pop()?.toLowerCase() || 'jpg';
   return `episodes/${slug}.${ext}`;
 }
 
-/**
- * Check if file exists in Vercel Blob
- */
 async function existsInBlob(pathname) {
   if (!blobConfigured) return false;
 
@@ -139,9 +112,6 @@ async function existsInBlob(pathname) {
   }
 }
 
-/**
- * Upload file to Vercel Blob
- */
 async function uploadToBlob(pathname, buffer, contentType) {
   const blob = await put(pathname, buffer, {
     access: 'public',
@@ -152,9 +122,6 @@ async function uploadToBlob(pathname, buffer, contentType) {
   return blob.url;
 }
 
-/**
- * Download image from URL
- */
 async function downloadImage(url) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -168,15 +135,11 @@ async function downloadImage(url) {
   return { buffer, contentType, size: buffer.length };
 }
 
-/**
- * Find Cosmic media by URL for deletion
- */
 async function findCosmicMediaByUrl(imageUrl) {
   try {
     const urlParts = imageUrl.split('/');
     const filename = urlParts[urlParts.length - 1].split('?')[0];
 
-    // Search through media - need to paginate
     let skip = 0;
     const limit = 100;
 
@@ -212,9 +175,6 @@ async function findCosmicMediaByUrl(imageUrl) {
   }
 }
 
-/**
- * Fetch all episodes sorted by broadcast_date DESC
- */
 async function fetchAllEpisodes() {
   console.log('\n📄 Fetching all episodes (sorted by broadcast date)...');
   const allEpisodes = [];
@@ -246,7 +206,6 @@ async function fetchAllEpisodes() {
       } else {
         console.error(`  ⚠️  Error at skip=${skip}: ${error.message}`);
         await sleep(2000);
-        // Retry once
         try {
           const response = await cosmic.objects
             .find({ type: 'episode' })
@@ -272,9 +231,6 @@ async function fetchAllEpisodes() {
   return allEpisodes;
 }
 
-/**
- * Identify episodes that need migration
- */
 function identifyMigrationCandidates(episodes) {
   console.log(`\n🔍 Identifying migration candidates (position > ${CONFIG.hotStorageLimit})...`);
 
@@ -308,9 +264,6 @@ function identifyMigrationCandidates(episodes) {
   return { hotEpisodes, coldEpisodes, needsMigration, alreadyMigrated, noImage };
 }
 
-/**
- * Migrate a single episode's image to Vercel Blob
- */
 async function migrateEpisodeImage(episode, index, total) {
   const imageUrl = episode.metadata?.image?.url || episode.metadata?.image?.imgix_url;
   const imageName = episode.metadata?.image?.name || imageUrl?.split('/').pop()?.split('?')[0];
@@ -325,18 +278,15 @@ async function migrateEpisodeImage(episode, index, total) {
   }
 
   try {
-    // Check if already exists in Blob
     const existsAlready = await existsInBlob(blobPath);
     let blobUrl;
     let bytesUploaded = 0;
 
     if (existsAlready) {
       console.log(`    ✅ Already in Blob, updating Cosmic metadata...`);
-      // Get the existing URL
       const headResult = await head(blobPath);
       blobUrl = headResult.url;
     } else {
-      // Download from Cosmic
       console.log(`    ⬇️  Downloading from Cosmic...`);
       const { buffer, contentType, size } = await downloadImage(imageUrl);
       bytesUploaded = size;
@@ -344,14 +294,12 @@ async function migrateEpisodeImage(episode, index, total) {
 
       await sleep(CONFIG.downloadDelay);
 
-      // Upload to Vercel Blob
       console.log(`    ⬆️  Uploading to Vercel Blob...`);
       blobUrl = await uploadToBlob(blobPath, buffer, contentType);
 
       await sleep(CONFIG.uploadDelay);
     }
 
-    // Update Cosmic episode metadata with external image URL
     console.log(`    📝 Updating Cosmic metadata...`);
     await cosmic.objects.updateOne(episode.id, {
       metadata: {
@@ -359,7 +307,6 @@ async function migrateEpisodeImage(episode, index, total) {
       },
     });
 
-    // Find and delete the old Cosmic media
     console.log(`    🗑️  Deleting from Cosmic media...`);
     const cosmicMedia = await findCosmicMediaByUrl(imageUrl);
 
@@ -384,9 +331,6 @@ async function migrateEpisodeImage(episode, index, total) {
   }
 }
 
-/**
- * Save state for resumability
- */
 function saveState(state) {
   try {
     fs.writeFileSync(
@@ -398,9 +342,6 @@ function saveState(state) {
   }
 }
 
-/**
- * Main execution
- */
 async function main() {
   console.log('═══════════════════════════════════════════════════════════');
   console.log('  Episode Image Cold Storage Migration');
@@ -416,7 +357,6 @@ async function main() {
   saveState({ phase: 'starting' });
 
   try {
-    // Phase 1: Fetch all episodes
     const episodes = await fetchAllEpisodes();
 
     if (episodes.length === 0) {
@@ -426,7 +366,6 @@ async function main() {
 
     saveState({ phase: 'episodes_fetched', count: episodes.length });
 
-    // Phase 2: Identify migration candidates
     const { hotEpisodes, coldEpisodes, needsMigration, alreadyMigrated, noImage } =
       identifyMigrationCandidates(episodes);
 
@@ -437,7 +376,6 @@ async function main() {
       needsMigration: needsMigration.length,
     });
 
-    // Estimate storage needed
     const estimatedBytes = needsMigration.length * 350 * 1024; // ~350KB average
     console.log(`\n  💾 Estimated storage needed: ${formatBytes(estimatedBytes)}`);
     console.log(`  📊 Vercel Pro includes 5 GB (you have room for ~14,500 images)`);
@@ -447,7 +385,6 @@ async function main() {
       return;
     }
 
-    // Phase 3: Migrate images
     console.log(`\n🚀 Starting migration of ${needsMigration.length} episodes...`);
 
     const results = {
@@ -482,7 +419,6 @@ async function main() {
         });
       }
 
-      // Save progress periodically
       if ((i + 1) % 50 === 0) {
         saveState({
           phase: 'migrating',
@@ -496,7 +432,6 @@ async function main() {
       }
     }
 
-    // Phase 4: Summary
     console.log('\n═══════════════════════════════════════════════════════════');
     console.log('  MIGRATION SUMMARY');
     console.log('═══════════════════════════════════════════════════════════');
@@ -519,7 +454,6 @@ async function main() {
     }
     console.log('═══════════════════════════════════════════════════════════');
 
-    // Save report
     const report = {
       timestamp: new Date().toISOString(),
       dryRun: CONFIG.dryRun,
@@ -550,7 +484,6 @@ async function main() {
   }
 }
 
-// Run
 main().catch(error => {
   console.error('\n❌ Unhandled error:', error);
   process.exit(1);

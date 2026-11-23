@@ -39,33 +39,26 @@ import { createBucketClient } from '@cosmicjs/sdk';
 import { put, head } from '@vercel/blob';
 import fs from 'fs';
 
-// Configuration
 const CONFIG = {
-  // Cosmic
   bucketSlug: process.env.COSMIC_BUCKET_SLUG || process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG,
   readKey: process.env.COSMIC_READ_KEY || process.env.NEXT_PUBLIC_COSMIC_READ_KEY,
   writeKey: process.env.COSMIC_WRITE_KEY,
 
-  // Vercel Blob
   blobToken: process.env.BLOB_READ_WRITE_TOKEN,
 
-  // Options
   dryRun: process.env.DRY_RUN !== 'false',
-  deleteMedia: process.env.DELETE_MEDIA === 'true', // Only delete if explicitly set
+  deleteMedia: process.env.DELETE_MEDIA === 'true',
   deleteOnly: process.env.DELETE_ONLY === 'true', // Skip migration, just delete cold media
   hotStorageLimit: parseInt(process.env.HOT_STORAGE_LIMIT || '500', 10),
   batchSize: parseInt(process.env.BATCH_SIZE || '100', 10),
 
-  // Rate limiting
   downloadDelay: 100,
   uploadDelay: 50,
   cosmicWriteDelay: 200,
 
-  // Files
   stateFile: './media-migration-state.json',
   reportFile: './media-migration-report.json',
 
-  // Object types that can have images
   // Add external_image_url field to these in Cosmic
   objectTypesWithImages: [
     'episode',
@@ -82,13 +75,11 @@ const CONFIG = {
   ],
 };
 
-// Validate Cosmic credentials
 if (!CONFIG.bucketSlug || !CONFIG.readKey || !CONFIG.writeKey) {
   console.error('❌ Missing Cosmic credentials');
   process.exit(1);
 }
 
-// Check Vercel Blob token
 const blobConfigured = !!CONFIG.blobToken;
 
 if (!CONFIG.dryRun && !blobConfigured) {
@@ -97,23 +88,16 @@ if (!CONFIG.dryRun && !blobConfigured) {
   process.exit(1);
 }
 
-// Initialize Cosmic client
 const cosmic = createBucketClient({
   bucketSlug: CONFIG.bucketSlug,
   readKey: CONFIG.readKey,
   writeKey: CONFIG.writeKey,
 });
 
-/**
- * Sleep utility
- */
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/**
- * Format bytes to human readable
- */
 function formatBytes(bytes) {
   if (!bytes || bytes === 0) return '0 B';
   const k = 1024;
@@ -122,9 +106,6 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-/**
- * Extract filename from Cosmic URL
- */
 function extractFilename(url) {
   if (!url) return null;
   try {
@@ -135,19 +116,11 @@ function extractFilename(url) {
   }
 }
 
-/**
- * Generate blob pathname preserving folder structure
- */
 function generateBlobPath(mediaItem) {
-  // Use original name if available, otherwise extract from URL
   const filename = mediaItem.name || extractFilename(mediaItem.url) || `media-${mediaItem.id}`;
-  // Store in cosmic-archive folder to organize
   return `cosmic-archive/${filename}`;
 }
 
-/**
- * Check if file exists in Vercel Blob
- */
 async function existsInBlob(pathname) {
   if (!blobConfigured) return false;
 
@@ -159,9 +132,6 @@ async function existsInBlob(pathname) {
   }
 }
 
-/**
- * Upload file to Vercel Blob
- */
 async function uploadToBlob(pathname, buffer, contentType) {
   const blob = await put(pathname, buffer, {
     access: 'public',
@@ -172,9 +142,6 @@ async function uploadToBlob(pathname, buffer, contentType) {
   return blob.url;
 }
 
-/**
- * Download media from URL
- */
 async function downloadMedia(url) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -188,9 +155,6 @@ async function downloadMedia(url) {
   return { buffer, contentType, size: buffer.length };
 }
 
-/**
- * Fetch all Cosmic media sorted by created_at DESC (newest first)
- */
 async function fetchAllMedia() {
   console.log('\n📸 Fetching all Cosmic media (sorted by upload date)...');
   const allMedia = [];
@@ -230,9 +194,6 @@ async function fetchAllMedia() {
   return allMedia;
 }
 
-/**
- * Find all objects that reference a media item
- */
 async function findObjectsReferencingMedia(mediaItem) {
   const filename = mediaItem.name || extractFilename(mediaItem.url);
   const imgixUrl = mediaItem.imgix_url;
@@ -242,7 +203,6 @@ async function findObjectsReferencingMedia(mediaItem) {
 
   for (const objectType of CONFIG.objectTypesWithImages) {
     try {
-      // Fetch objects of this type and check for image references
       let skip = 0;
       const limit = 100;
 
@@ -258,7 +218,6 @@ async function findObjectsReferencingMedia(mediaItem) {
         if (objects.length === 0) break;
 
         for (const obj of objects) {
-          // Check if object references this media
           const objImageUrl = obj.metadata?.image?.url || obj.metadata?.image?.imgix_url;
           const objImageName = obj.metadata?.image?.name;
 
@@ -291,9 +250,6 @@ async function findObjectsReferencingMedia(mediaItem) {
   return referencingObjects;
 }
 
-/**
- * Update an object to use external_image_url
- */
 async function updateObjectWithExternalUrl(obj, blobUrl) {
   try {
     await cosmic.objects.updateOne(obj.id, {
@@ -308,9 +264,6 @@ async function updateObjectWithExternalUrl(obj, blobUrl) {
   }
 }
 
-/**
- * Migrate a single media item to Vercel Blob
- */
 async function migrateMediaItem(mediaItem, index, total, allReferences) {
   console.log(`\n  [${index + 1}/${total}] ${mediaItem.name || mediaItem.id}`);
   console.log(`    Size: ${formatBytes(mediaItem.size)}`);
@@ -319,7 +272,6 @@ async function migrateMediaItem(mediaItem, index, total, allReferences) {
   const blobPath = generateBlobPath(mediaItem);
   const downloadUrl = mediaItem.imgix_url || mediaItem.url;
 
-  // Find objects referencing this media
   const references = allReferences.get(mediaItem.id) || [];
   console.log(`    Referenced by: ${references.length} object(s)`);
 
@@ -332,7 +284,6 @@ async function migrateMediaItem(mediaItem, index, total, allReferences) {
   }
 
   try {
-    // Check if already exists in Blob
     const existingBlobUrl = await existsInBlob(blobPath);
     let blobUrl;
     let bytesUploaded = 0;
@@ -341,21 +292,18 @@ async function migrateMediaItem(mediaItem, index, total, allReferences) {
       console.log(`    ✅ Already in Blob`);
       blobUrl = existingBlobUrl;
     } else {
-      // Download from Cosmic
       console.log(`    ⬇️  Downloading from Cosmic...`);
       const { buffer, contentType, size } = await downloadMedia(downloadUrl);
       bytesUploaded = size;
 
       await sleep(CONFIG.downloadDelay);
 
-      // Upload to Vercel Blob
       console.log(`    ⬆️  Uploading to Vercel Blob...`);
       blobUrl = await uploadToBlob(blobPath, buffer, contentType);
 
       await sleep(CONFIG.uploadDelay);
     }
 
-    // Update all referencing objects
     let objectsUpdated = 0;
     for (const ref of references) {
       console.log(`    📝 Updating ${ref.type}/${ref.slug}...`);
@@ -364,7 +312,6 @@ async function migrateMediaItem(mediaItem, index, total, allReferences) {
       await sleep(CONFIG.cosmicWriteDelay);
     }
 
-    // Delete from Cosmic media (only if DELETE_MEDIA=true)
     let mediaDeleted = false;
     if (CONFIG.deleteMedia) {
       console.log(`    🗑️  Deleting from Cosmic media...`);
@@ -394,20 +341,15 @@ async function migrateMediaItem(mediaItem, index, total, allReferences) {
   }
 }
 
-/**
- * Build a map of media -> referencing objects for efficiency
- */
 async function buildMediaReferenceMap(mediaToMigrate) {
   console.log('\n🔗 Building media reference map...');
 
   const referenceMap = new Map();
 
-  // Initialize empty arrays for all media
   for (const media of mediaToMigrate) {
     referenceMap.set(media.id, []);
   }
 
-  // Build a lookup of filenames/URLs to media IDs
   const mediaLookup = new Map();
   for (const media of mediaToMigrate) {
     const filename = media.name || extractFilename(media.url);
@@ -416,7 +358,6 @@ async function buildMediaReferenceMap(mediaToMigrate) {
     if (media.imgix_url) mediaLookup.set(media.imgix_url, media.id);
   }
 
-  // Scan all object types for references
   for (const objectType of CONFIG.objectTypesWithImages) {
     console.log(`  Scanning ${objectType}...`);
 
@@ -441,7 +382,6 @@ async function buildMediaReferenceMap(mediaToMigrate) {
           const objImgixUrl = obj.metadata?.image?.imgix_url;
           const objImageName = obj.metadata?.image?.name;
 
-          // Check all possible matches
           let mediaId = null;
           if (objImageName && mediaLookup.has(objImageName)) {
             mediaId = mediaLookup.get(objImageName);
@@ -450,7 +390,6 @@ async function buildMediaReferenceMap(mediaToMigrate) {
           } else if (objImgixUrl && mediaLookup.has(objImgixUrl)) {
             mediaId = mediaLookup.get(objImgixUrl);
           } else if (objImageUrl) {
-            // Try filename extraction
             const filename = extractFilename(objImageUrl);
             if (filename && mediaLookup.has(filename)) {
               mediaId = mediaLookup.get(filename);
@@ -480,7 +419,6 @@ async function buildMediaReferenceMap(mediaToMigrate) {
     }
   }
 
-  // Count references
   let totalRefs = 0;
   for (const refs of referenceMap.values()) {
     totalRefs += refs.length;
@@ -492,9 +430,6 @@ async function buildMediaReferenceMap(mediaToMigrate) {
   return referenceMap;
 }
 
-/**
- * Save state for resumability
- */
 function saveState(state) {
   try {
     fs.writeFileSync(
@@ -506,9 +441,6 @@ function saveState(state) {
   }
 }
 
-/**
- * Main execution
- */
 async function main() {
   console.log('═══════════════════════════════════════════════════════════════════');
   console.log('  Cosmic Media Cold Storage Migration');
@@ -537,7 +469,6 @@ async function main() {
   saveState({ phase: 'starting' });
 
   try {
-    // Phase 1: Fetch all media (already sorted by created_at DESC)
     const allMedia = await fetchAllMedia();
 
     if (allMedia.length === 0) {
@@ -547,7 +478,6 @@ async function main() {
 
     saveState({ phase: 'media_fetched', count: allMedia.length });
 
-    // Phase 2: Split into hot and cold storage
     const hotMedia = allMedia.slice(0, CONFIG.hotStorageLimit);
     const coldMedia = allMedia.slice(CONFIG.hotStorageLimit);
 
@@ -555,7 +485,6 @@ async function main() {
     console.log(`  🔥 Hot storage (newest ${CONFIG.hotStorageLimit}): ${hotMedia.length} items`);
     console.log(`  ❄️  Cold storage (older): ${coldMedia.length} items`);
 
-    // Calculate sizes
     const hotSize = hotMedia.reduce((sum, m) => sum + (m.size || 0), 0);
     const coldSize = coldMedia.reduce((sum, m) => sum + (m.size || 0), 0);
     console.log(`\n  💾 Storage breakdown:`);
@@ -575,7 +504,6 @@ async function main() {
       coldSize,
     });
 
-    // DELETE_ONLY mode - just delete cold media, skip migration
     if (CONFIG.deleteOnly) {
       console.log(
         `\n🗑️  DELETE ONLY: Removing ${coldMedia.length} cold media items from Cosmic...`
@@ -615,7 +543,6 @@ async function main() {
       console.log(`  Storage freed: ~${formatBytes(coldSize)}`);
       console.log('═══════════════════════════════════════════════════════════════════');
 
-      // Save report
       const report = {
         timestamp: new Date().toISOString(),
         mode: 'DELETE_ONLY',
@@ -630,12 +557,10 @@ async function main() {
       return;
     }
 
-    // Phase 3: Build reference map (which objects use which media)
     const referenceMap = await buildMediaReferenceMap(coldMedia);
 
     saveState({ phase: 'references_mapped' });
 
-    // Phase 4: Migrate cold media
     console.log(`\n🚀 Starting migration of ${coldMedia.length} media items...`);
 
     const results = {
@@ -670,7 +595,6 @@ async function main() {
         });
       }
 
-      // Save progress periodically
       if ((i + 1) % 50 === 0) {
         saveState({
           phase: 'migrating',
@@ -684,7 +608,6 @@ async function main() {
       }
     }
 
-    // Phase 5: Summary
     console.log('\n═══════════════════════════════════════════════════════════════════');
     console.log('  MIGRATION SUMMARY');
     console.log('═══════════════════════════════════════════════════════════════════');
@@ -716,7 +639,6 @@ async function main() {
     }
     console.log('═══════════════════════════════════════════════════════════════════');
 
-    // Save report
     const report = {
       timestamp: new Date().toISOString(),
       dryRun: CONFIG.dryRun,
@@ -746,7 +668,6 @@ async function main() {
   }
 }
 
-// Run
 main().catch(error => {
   console.error('\n❌ Unhandled error:', error);
   process.exit(1);
