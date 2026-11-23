@@ -14,7 +14,6 @@ import { getAllPosts } from '../actions/posts';
 import { getVideos } from '../actions/videos';
 
 const DEFAULT_LIMIT = 20;
-const DEFAULT_CACHE_EXPIRY = 1000 * 60 * 15; // 15 minutes
 const FILTERS_CACHE_KEY = 'wwfm_search_filters';
 const CONTENT_CACHE_KEY = 'wwfm_search_content';
 
@@ -58,8 +57,6 @@ export class WWFMSearchEngine implements SearchEngine {
   }
 
   async getInitialContent(limit = DEFAULT_LIMIT): Promise<SearchResponse> {
-    // Disable cache: always fetch fresh data
-
     try {
       const [episodes, postsRes, videosRes] = await Promise.all([
         import('@/lib/episode-service').then(m => m.getEpisodesForShows({ limit: 100 })),
@@ -120,8 +117,6 @@ export class WWFMSearchEngine implements SearchEngine {
   }
 
   async getAvailableFilters(): Promise<Record<FilterCategory, FilterItem[]>> {
-    // Disable cache: always fetch fresh filters
-
     const typeFilters: FilterItem[] = [
       { id: 'episodes', slug: 'episodes', title: 'Episodes', type: 'types' },
       { id: 'posts', slug: 'posts', title: 'Posts', type: 'types' },
@@ -359,45 +354,6 @@ export class WWFMSearchEngine implements SearchEngine {
       hasMore: end < results.length,
       availableFilters: availableFilters || this.calculateAvailableFilters(results),
     };
-  }
-
-  private loadFromCache<T>(key: string): T | null {
-    try {
-      if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-        return null;
-      }
-
-      const cachedData = localStorage.getItem(key);
-      if (!cachedData) return null;
-
-      const data = JSON.parse(cachedData);
-
-      if (data._timestamp && Date.now() - data._timestamp > DEFAULT_CACHE_EXPIRY) {
-        console.log(`Cache expired for ${key}`);
-        return null;
-      }
-
-      return data.value as T;
-    } catch (error) {
-      console.error(`Error loading from cache (${key}):`, error);
-      return null;
-    }
-  }
-
-  private saveToCache(key: string, value: any): void {
-    try {
-      if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-        return;
-      }
-
-      const data = {
-        _timestamp: Date.now(),
-        value,
-      };
-      localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-      console.error(`Error saving to cache (${key}):`, error);
-    }
   }
 }
 
