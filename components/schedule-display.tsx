@@ -78,7 +78,6 @@ export default function ScheduleDisplay({
     }
   };
 
-  // Convert time to user's timezone string
   const convertTime = (time: string, day: string) => {
     const date = buildDateFromDay(day, time);
     if (!date) return time;
@@ -90,7 +89,6 @@ export default function ScheduleDisplay({
     }
   };
 
-  // Group shows by day
   const showsByDay = scheduleItems.reduce(
     (acc, show) => {
       if (!acc[show.show_day]) {
@@ -102,7 +100,6 @@ export default function ScheduleDisplay({
     {} as Record<string, ScheduleShow[]>
   );
 
-  // Sort shows within each day by time
   Object.keys(showsByDay).forEach(day => {
     showsByDay[day].sort((a, b) => {
       const timeA = a.show_time.split(':').map(Number);
@@ -144,14 +141,12 @@ export default function ScheduleDisplay({
 
   return (
     <>
-      {/* Times note at top-left */}
       <div className='mb-3 pl-5'>
         <p className='text-sm font-mono text-black dark:text-white'>
           *TIMES ARE DISPLAYED IN {userTimezoneAbbr}
         </p>
       </div>
 
-      {/* Schedule list */}
       <div className='space-y-0 px-5'>
         {visibleDays.map(day => {
           const dayShows = showsByDay[day] || [];
@@ -172,14 +167,12 @@ export default function ScheduleDisplay({
 
           return (
             <div key={day}>
-              {/* Black day header */}
               <div className='bg-almostblack py-0.5 dark:bg-white pl-1'>
                 <h2 className='text-white dark:text-black font-display tracking-tight text-[22px]'>
                   {dayHeader}
                 </h2>
               </div>
 
-              {/* Show entries or placeholder */}
               {dayShows.length === 0 ? (
                 <div className='flex items-start py-4'>
                   <span className='w-[30vw] lg:w-[15vw] text-m7 font-mono text-black dark:text-white pr-8 opacity-0'>
@@ -224,7 +217,6 @@ export default function ScheduleDisplay({
                       </div>
                     );
 
-                    // Check if this is a valid episode link
                     const isEpisodeLink = show.url.startsWith('/episode/');
                     const isShowLink = show.url.startsWith('/shows/');
 

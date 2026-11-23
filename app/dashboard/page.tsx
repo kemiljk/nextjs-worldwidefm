@@ -17,7 +17,6 @@ export const generateMetadata = async (): Promise<Metadata> => {
 };
 
 async function DashboardContent({ userId }: { userId: string }) {
-  // Fetch all dashboard data server-side
   const [{ data, error }, weeklySchedule] = await Promise.all([
     getDashboardData(userId),
     getWeeklySchedule(),

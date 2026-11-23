@@ -110,9 +110,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   const slug = `${firstName}-${lastName}-${Date.now()}`
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove accents
-    .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
-    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 
   const memberData = {
     title: `${firstName} ${lastName}`,

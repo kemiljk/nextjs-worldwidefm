@@ -184,7 +184,6 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
 
   return (
     <div className='min-h-screen w-screen flex items-center justify-center relative overflow-hidden'>
-      {/* Background layers */}
       <div className='absolute inset-0 bg-soul-200' />
       <div
         className='absolute inset-0 bg-linear-to-b from-white via-white/0 to-white'
@@ -200,7 +199,6 @@ export default function MembershipSignupClient({ heading, body }: MembershipSign
         }}
       />
 
-      {/* Content */}
       <div className='relative z-10 text-center px-4 '>
         <h1 className='font-display mx-20 uppercase text-5xl sm:text-6xl font-bold tracking-tight mb-8 text-white leading-12'>
           {heading}

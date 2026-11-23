@@ -24,7 +24,6 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div className={`${paddingTop ? 'mt-4' : 'pt-4'}`}>
-      {/* Breadcrumb navigation */}
       {breadcrumbs && breadcrumbs.length > 0 && (
         <nav className='flex items-center gap-2 text-sm text-muted-foreground mb-4'>
           {breadcrumbs.map((item, index) => (
@@ -45,7 +44,6 @@ export function PageHeader({
         </nav>
       )}
 
-      {/* Page title and description */}
       <h1
         className={`text-[40px] sm:text-h5 font-display tracking-tight uppercase text-almostblack dark:text-white mb-4 text-left leading-10 sm:leading-15 ${className || ''}`}
       >

@@ -20,18 +20,15 @@ export async function POST(request: NextRequest) {
   try {
     const { name, email, subject, message } = await request.json();
 
-    // Basic validation
     if (!name || !email || !subject || !message) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 });
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
-    // Send email to Worldwide FM team
     const safeName = escapeHtml(name);
     const safeEmail = escapeHtml(email);
     const safeSubject = escapeHtml(subject);

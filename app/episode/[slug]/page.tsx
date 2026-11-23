@@ -118,7 +118,6 @@ export default async function EpisodePage({
     );
   }
 
-  // Transform the episode data to the expected format
   const show = toShowCardData(episode);
 
   const broadcastInstant = parseBroadcastDateTime(
@@ -131,7 +130,6 @@ export default async function EpisodePage({
   const displayName = episode.title || 'Untitled Episode';
   const displayImage = getEpisodeImageUrl(episode);
 
-  // Check if this is a draft episode
   const isDraft = episode.status === 'draft';
 
   // Format date for overlay (e.g., SAT 14.06.25), London calendar
@@ -172,7 +170,6 @@ export default async function EpisodePage({
 }
 
 async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
-  // Transform the episode data to the expected format
   const show = toShowCardData(episode);
 
   const broadcastInstant = parseBroadcastDateTime(
@@ -181,7 +178,6 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
     episode.metadata.broadcast_date_old
   );
 
-  // Get related episodes based on genres, hosts and takeovers
   const hostIds = episode.metadata.regular_hosts?.map((host: any) => host.id).filter(Boolean) || [];
   const genreIds = episode.metadata.genres?.map((genre: any) => genre.id).filter(Boolean) || [];
   const takeoverIds =
@@ -205,7 +201,6 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
     relatedHeading = 'Recent Episodes';
   }
 
-  // Helper function to get genre link
   const getGenreLink = (genreId: string): string | undefined => {
     if (!canonicalGenres.length) return undefined;
     const canonicalGenre = canonicalGenres.find(genre => genre.id === genreId);
@@ -244,7 +239,6 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
 
   return (
     <div>
-      {/* Action Buttons */}
       <div className='px-5 mt-4 flex items-center gap-3'>
         {show?.metadata?.player && <ListenBackButton show={show} />}
         {isUpcoming ? (
@@ -257,12 +251,8 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
         )}
       </div>
 
-      {/* Main Content Container */}
-
       <div className='w-full flex flex-col md:flex-row justify-between gap-8 px-5 pt-8'>
-        {/*LEFT CONTAINER*/}
         <div className='w-full md:w-[40%] lg:w-[35%] flex flex-col gap-3'>
-          {/* Episode Description */}
           {(episode.metadata.body_text || episode.metadata.description) && (
             <div className='max-w-none'>
               <SafeHtml
@@ -273,7 +263,6 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
             </div>
           )}
 
-          {/* Genres Section */}
           {episode.metadata.genres?.length > 0 && (
             <div>
               <div className='flex flex-wrap my-3'>
@@ -289,14 +278,12 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
             </div>
           )}
 
-          {/* Show Type, Hosts, Duration, and Broadcast Info Row */}
           {(episode.metadata.type?.title ||
             episode.metadata.regular_hosts?.length > 0 ||
             episode.metadata.duration ||
             episode.metadata.broadcast_date ||
             episode.metadata.broadcast_date_old) && (
             <div className='flex flex-row flex-wrap items-center gap-2'>
-              {/* Show Type */}
               {episode.metadata.type?.title && (
                 <>
                   <span className='text-m8 font-mono uppercase text-muted-foreground underline'>
@@ -311,7 +298,6 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
                 </>
               )}
 
-              {/* Hosts */}
               {episode.metadata.regular_hosts?.length > 0 && (
                 <>
                   <div className='flex flex-row flex-wrap items-center gap-1'>
@@ -347,7 +333,6 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
                 </>
               )}
 
-              {/* Takeovers */}
               {episode.metadata.takeovers?.length > 0 && (
                 <>
                   <div className='flex flex-row flex-wrap items-center gap-1'>
@@ -373,7 +358,6 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
                 </>
               )}
 
-              {/* Duration */}
               {episode.metadata.duration && (
                 <>
                   <span className='text-m8 font-mono uppercase text-muted-foreground'>
@@ -385,7 +369,6 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
                 </>
               )}
 
-              {/* Broadcast Info */}
               {(episode.metadata.broadcast_date || episode.metadata.broadcast_date_old) && (
                 <span className='text-m8 font-mono uppercase text-muted-foreground'>
                   {broadcastInstant?.toLocaleDateString('en-GB', {
@@ -402,7 +385,6 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
             </div>
           )}
 
-          {/* Tracklist Section */}
           {(() => {
             if (
               (!episode.metadata.broadcast_date && !episode.metadata.broadcast_date_old) ||
@@ -432,7 +414,6 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
           })()}
         </div>
 
-        {/*RIGHT CONTAINER*/}
         <div className='w-full md:w-[50%] flex flex-col gap-2 h-auto'>
           {relatedEpisodes.length > 0 && (
             <div>

@@ -1,10 +1,3 @@
-/**
- * Unified search types for WorldwideFM
- *
- * This file provides a type-safe, maintainable approach to search results
- * using discriminated unions for different content types.
- */
-
 export type SearchResultType =
   | 'posts'
   | 'episodes'
@@ -19,7 +12,6 @@ export interface FilterItem {
   type: string;
 }
 
-// Base interface with common properties
 interface BaseSearchResult {
   id: string;
   title: string;
@@ -30,7 +22,6 @@ interface BaseSearchResult {
   metadata?: any;
 }
 
-// Discriminated union for different content types
 export type SearchResult =
   | PostSearchResult
   | EpisodeSearchResult
@@ -39,7 +30,6 @@ export type SearchResult =
   | TakeoverSearchResult
   | HostSearchResult;
 
-// Post-specific search result
 export interface PostSearchResult extends BaseSearchResult {
   type: 'posts';
   description?: string;
@@ -49,7 +39,6 @@ export interface PostSearchResult extends BaseSearchResult {
   postType?: 'article' | 'video' | 'event';
 }
 
-// Episode-specific search result
 export interface EpisodeSearchResult extends BaseSearchResult {
   type: 'episodes';
   description?: string;
@@ -62,7 +51,6 @@ export interface EpisodeSearchResult extends BaseSearchResult {
   broadcastTime?: string;
 }
 
-// Event-specific search result
 export interface EventSearchResult extends BaseSearchResult {
   type: 'events';
   description?: string;
@@ -71,7 +59,6 @@ export interface EventSearchResult extends BaseSearchResult {
   ticketLink?: string;
 }
 
-// Video-specific search result
 export interface VideoSearchResult extends BaseSearchResult {
   type: 'videos';
   description?: string;
@@ -81,14 +68,12 @@ export interface VideoSearchResult extends BaseSearchResult {
   duration?: string;
 }
 
-// Takeover-specific search result
 export interface TakeoverSearchResult extends BaseSearchResult {
   type: 'takeovers';
   description?: string;
   hosts: FilterItem[];
 }
 
-// Host-specific search result
 export interface HostSearchResult extends BaseSearchResult {
   type: 'hosts-series';
   description?: string;
@@ -96,7 +81,6 @@ export interface HostSearchResult extends BaseSearchResult {
   locations: FilterItem[];
 }
 
-// Type guards for type-safe handling
 export function isPostSearchResult(result: SearchResult): result is PostSearchResult {
   return result.type === 'posts';
 }
@@ -121,7 +105,6 @@ export function isHostSearchResult(result: SearchResult): result is HostSearchRe
   return result.type === 'hosts-series';
 }
 
-// Generic result type that works with both discriminated union and simple interface
 export interface GenericSearchResult {
   type: string;
   genres?: FilterItem[];
@@ -131,7 +114,6 @@ export interface GenericSearchResult {
   categories?: FilterItem[];
 }
 
-// Helper function to get filter items - accepts both SearchResult types
 export function getFilterItems(result: GenericSearchResult): {
   genres: FilterItem[];
   locations: FilterItem[];
@@ -148,7 +130,6 @@ export function getFilterItems(result: GenericSearchResult): {
   };
 }
 
-// Search filters interface
 export interface SearchFilters {
   type?: SearchResultType[];
   genres?: string[];
@@ -158,7 +139,6 @@ export interface SearchFilters {
   categories?: string[];
 }
 
-// Generic search result for context (compatible with both type systems)
 export interface AnySearchResult extends GenericSearchResult {
   id: string;
   slug: string;
@@ -171,7 +151,6 @@ export interface AnySearchResult extends GenericSearchResult {
   metadata?: any;
 }
 
-// Search context interface
 export interface SearchContextType {
   searchTerm: string;
   setSearchTerm: (term: string) => void;

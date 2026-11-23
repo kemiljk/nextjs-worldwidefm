@@ -68,10 +68,6 @@ async function uploadToCosmicOnly(file: File, fileName?: string): Promise<any> {
   }
 }
 
-/**
- * Trigger button to be placed inside CommandList or anywhere else.
- * Clicking it calls the provided onOpen callback.
- */
 export function AddNewHostTrigger({
   initialName,
   onOpen,

@@ -9,7 +9,7 @@ import { formatDateShort } from '@/lib/utils';
 import { useMediaPlayer } from './providers/media-player-provider';
 
 interface FeaturedCardProps {
-  show: any; // can type more strictly if you have a Show type
+  show: any;
   priority?: boolean;
   className?: string;
   href?: string;

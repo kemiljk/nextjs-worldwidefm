@@ -192,9 +192,6 @@ function buildScheduleShow(params: {
   };
 }
 
-/**
- * Fetch for manual schedule overrides from all schedule objects
- */
 async function fetchAllSchedules(): Promise<{ metadata: Record<string, unknown>; id: string }[]> {
   try {
     const schedules: { id: string; metadata: Record<string, unknown> }[] = [];
@@ -299,9 +296,6 @@ async function fetchManualOverrides(dayDates: Partial<ScheduleDayMap>): Promise<
   }
 }
 
-/**
- * Fetch for episodes by date
- */
 const SCHEDULE_EPISODE_PROPS =
   'id,slug,title,created_at,modified_at,metadata.broadcast_date,metadata.broadcast_time,metadata.duration,metadata.image,metadata.external_image_url,metadata.genres,metadata.regular_hosts';
 

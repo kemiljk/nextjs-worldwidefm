@@ -51,18 +51,15 @@ export function deduplicateFilters<T extends FilterItem>(filters: T[]): T[] {
   const seenTitles = new Set();
 
   return filters.filter(filter => {
-    // Check for duplicate IDs
     if (seenIds.has(filter.id)) {
       return false;
     }
 
-    // Check for duplicate titles (case-insensitive)
     const normalizedTitle = filter.title?.toLowerCase().trim();
     if (normalizedTitle && seenTitles.has(normalizedTitle)) {
       return false;
     }
 
-    // Add to seen sets
     seenIds.add(filter.id);
     if (normalizedTitle) {
       seenTitles.add(normalizedTitle);

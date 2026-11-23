@@ -1,18 +1,5 @@
-/**
- * Search system types for WorldwideFM
- *
- * This file contains all the type definitions for the search system.
- * These are designed to be flexible and support all content types.
- */
-
-/**
- * ContentTypes represents all possible content types in the system
- */
 export type ContentType = 'episodes' | 'posts' | 'events' | 'videos' | 'takeovers' | 'hosts-series';
 
-/**
- * FilterCategories represents all possible filter categories
- */
 export type FilterCategory =
   | 'genres'
   | 'locations'
@@ -21,33 +8,24 @@ export type FilterCategory =
   | 'types'
   | 'categories';
 
-/**
- * FilterItem represents a single filter option within a category
- */
 export interface FilterItem {
-  id: string; // Unique identifier
-  slug: string; // URL-friendly identifier
-  title: string; // Display name
-  count?: number; // Optional count of matching items
-  type: FilterCategory; // The category this filter belongs to
+  id: string;
+  slug: string;
+  title: string;
+  count?: number;
+  type: FilterCategory;
 }
 
-/**
- * SearchFilters represents the current set of filters applied to a search
- */
 export interface SearchFilters {
   contentType?: ContentType[];
-  genres?: string[]; // Array of genre slugs
-  locations?: string[]; // Array of location slugs
-  hosts?: string[]; // Array of host slugs
-  takeovers?: string[]; // Array of takeover slugs
-  categories?: string[]; // Array of category slugs
-  search?: string; // Search query string
+  genres?: string[];
+  locations?: string[];
+  hosts?: string[];
+  takeovers?: string[];
+  categories?: string[];
+  search?: string;
 }
 
-/**
- * SearchItem represents a single item in the search results
- */
 export interface SearchItem {
   id: string;
   title: string;
@@ -58,7 +36,6 @@ export interface SearchItem {
   image?: string;
   contentType: ContentType;
 
-  // Filter related properties
   genres: FilterItem[];
   locations: FilterItem[];
   hosts: FilterItem[];
@@ -68,9 +45,6 @@ export interface SearchItem {
   metadata?: Record<string, any>;
 }
 
-/**
- * SearchState represents the current state of the search
- */
 export interface SearchState {
   items: SearchItem[];
   filters: SearchFilters;
@@ -82,9 +56,6 @@ export interface SearchState {
   error: string | null;
 }
 
-/**
- * SearchOptions represents options for configuring the search
- */
 export interface SearchOptions {
   limit?: number;
   page?: number;
@@ -93,9 +64,6 @@ export interface SearchOptions {
   saveToCacke?: boolean;
 }
 
-/**
- * SearchResponse represents the response from a search request
- */
 export interface SearchResponse {
   items: SearchItem[];
   total: number;
@@ -103,9 +71,6 @@ export interface SearchResponse {
   availableFilters: Record<FilterCategory, FilterItem[]>;
 }
 
-/**
- * SearchEngine interface represents the methods required for a search implementation
- */
 export interface SearchEngine {
   search(filters: SearchFilters, options?: SearchOptions): Promise<SearchResponse>;
   getInitialContent(limit?: number): Promise<SearchResponse>;

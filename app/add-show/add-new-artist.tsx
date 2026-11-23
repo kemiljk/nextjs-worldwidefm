@@ -28,7 +28,6 @@ import { Dropzone } from '@/components/ui/dropzone';
 import { toast } from 'sonner';
 import { RadioCultArtist } from '@/lib/radiocult-service';
 
-// Form schema using zod
 const artistFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().optional(),
@@ -71,7 +70,6 @@ interface AddNewArtistProps {
   onArtistCreated: (artist: RadioCultArtist) => void;
 }
 
-// Function to upload image to Cosmic only via API route
 async function uploadToCosmicOnly(file: File): Promise<string | null> {
   try {
     const formData = new FormData();
@@ -99,7 +97,6 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  // Initialize form
   const form = useForm<ArtistFormValues>({
     resolver: zodResolver(artistFormSchema),
     defaultValues: {
@@ -114,12 +111,10 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
     },
   });
 
-  // Handle form submission
   const onSubmit = async (values: ArtistFormValues) => {
     setIsLoading(true);
 
     try {
-      // Upload image if provided
       let imageUrl: string | undefined = undefined;
       if (imageFile) {
         const uploadedUrl = await uploadToCosmicOnly(imageFile);
@@ -129,7 +124,6 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
         imageUrl = uploadedUrl;
       }
 
-      // Create social links object
       const socialLinks: Record<string, string> = {};
 
       if (values.instagram) socialLinks.instagram = values.instagram;
@@ -139,7 +133,6 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
       if (values.mixcloud) socialLinks.mixcloud = values.mixcloud;
       if (values.soundcloud) socialLinks.soundcloud = values.soundcloud;
 
-      // Send request to create artist
       const response = await fetch('/api/artists/create', {
         method: 'POST',
         headers: {
@@ -162,12 +155,10 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
 
       toast.success('Artist created successfully!');
 
-      // Close the dialog and reset form
       setOpen(false);
       form.reset();
       setImageFile(null);
 
-      // Notify parent component
       onArtistCreated(data.artist);
     } catch (error) {
       console.error('Error creating artist:', error);
@@ -237,7 +228,7 @@ export function AddNewArtist({ onArtistCreated }: AddNewArtistProps) {
                 disabled={isLoading}
                 onFileSelect={setImageFile}
                 selectedFile={imageFile}
-                maxSize={10 * 1024 * 1024} // 10MB limit for images
+                maxSize={10 * 1024 * 1024}
                 className='cursor-pointer'
               />
               <FormDescription>

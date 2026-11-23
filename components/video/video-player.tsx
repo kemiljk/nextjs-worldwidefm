@@ -94,7 +94,6 @@ export function VideoPlayer({ video, className }: VideoPlayerProps) {
     );
   }
 
-  // Direct video files (Cosmic or other sources)
   return (
     <div className={cn('relative aspect-video w-full', className)}>
       <video className='w-full h-full object-cover' controls poster={poster}>

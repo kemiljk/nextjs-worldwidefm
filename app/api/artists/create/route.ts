@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createArtist } from '@/lib/radiocult-artist';
 
-// Input schema validation
 const createArtistSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().optional(),
@@ -12,16 +11,14 @@ const createArtistSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse and validate the request body
     const body = await request.json();
     const validatedData = createArtistSchema.parse(body);
 
-    // Create the artist in RadioCult with social links
     // Note: Image is stored in Cosmic but not sent to RadioCult during creation
     const artist = await createArtist({
       name: validatedData.name,
       description: validatedData.description,
-      imageUrl: validatedData.imageUrl || undefined, // Stored for future reference
+      imageUrl: validatedData.imageUrl || undefined,
       socialLinks: validatedData.socialLinks,
     });
 
@@ -29,7 +26,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create artist' }, { status: 500 });
     }
 
-    // Return the created artist
     return NextResponse.json({
       success: true,
       artist,

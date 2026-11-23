@@ -37,14 +37,11 @@ export function ShowsFilter({
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm || '');
   const debouncedSearchTerm = useDebounce(localSearchTerm, 1000);
 
-  // Handle animation timing when opening/closing
   useEffect(() => {
     if (isOpen) {
       setIsClosing(false);
     } else if (!isClosing) {
-      // Start closing animation
       setIsClosing(true);
-      // Wait for animation to finish before hiding
       const timer = setTimeout(() => {
         setIsClosing(false);
       }, 300); // Same duration as the animation
@@ -53,12 +50,10 @@ export function ShowsFilter({
     }
   }, [isOpen]);
 
-  // Function to close with animation
   const closeFilter = useCallback(() => {
     setIsOpen(false);
   }, []);
 
-  // Memoize the update function to prevent unnecessary re-renders
   const createQueryString = useCallback(
     (name: string, value: string | null) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -76,12 +71,10 @@ export function ShowsFilter({
 
   const updateFilters = useCallback(
     (type: string, value: string) => {
-      // Create a new params object to avoid modifying the original
       const params = new URLSearchParams(searchParams.toString());
 
       let isRemoving = false;
 
-      // Clear other filters when selecting a new one
       if (type === 'genre') {
         params.delete('host');
         params.delete('takeover');
@@ -111,7 +104,6 @@ export function ShowsFilter({
         }
       }
 
-      // Track filter usage
       if (!isRemoving) {
         plausible('Shows Filter Applied', {
           props: {
@@ -136,7 +128,6 @@ export function ShowsFilter({
     [createQueryString, router, pathname]
   );
 
-  // Update URL when debounced search term changes
   useEffect(() => {
     if (debouncedSearchTerm && debouncedSearchTerm !== searchTerm) {
       plausible('Shows Search Used', {
@@ -180,7 +171,6 @@ export function ShowsFilter({
         </div>
 
         <div className='space-y-4'>
-          {/* Search */}
           <div>
             <label htmlFor='search' className='block text-sm text-foreground mb-1'>
               Search
@@ -195,7 +185,6 @@ export function ShowsFilter({
             />
           </div>
 
-          {/* New Shows Toggle */}
           <div>
             <button
               onClick={toggleNew}
@@ -205,7 +194,6 @@ export function ShowsFilter({
             </button>
           </div>
 
-          {/* Genres */}
           {genres.length > 0 && (
             <div>
               <h3 className='text-sm text-foreground mb-2'>Genres</h3>
@@ -223,7 +211,6 @@ export function ShowsFilter({
             </div>
           )}
 
-          {/* Hosts */}
           {hosts.length > 0 && (
             <div>
               <h3 className='text-sm text-foreground mb-2'>Hosts</h3>
@@ -241,7 +228,6 @@ export function ShowsFilter({
             </div>
           )}
 
-          {/* Takeovers */}
           {takeovers.length > 0 && (
             <div>
               <h3 className='text-sm text-foreground mb-2'>Takeovers</h3>
@@ -265,7 +251,6 @@ export function ShowsFilter({
 
   return (
     <>
-      {/* Filter button for both desktop and mobile */}
       <button
         onClick={() => setIsOpen(true)}
         className='w-max h-fit flex items-center justify-center bg-bronze-500 text-white py-3 px-4 mb-4 text-sm gap-2'
@@ -279,7 +264,6 @@ export function ShowsFilter({
         )}
       </button>
 
-      {/* Filter panel */}
       {isOpen && (
         <div className='fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end lg:items-center lg:justify-center'>
           <div

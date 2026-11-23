@@ -39,7 +39,6 @@ export default async function TermsAndConditionsPage() {
     );
   }
 
-  // Extract the last updated date from the content if it exists
   const text = termsAndConditions.metadata?.text;
   if (!text) {
     return (

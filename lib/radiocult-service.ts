@@ -10,17 +10,13 @@ function normalizeTitle(str: string): string {
     .trim();
 }
 
-// Define the RadioCult API base URL
 export const RADIOCULT_API_BASE_URL = 'https://api.radiocult.fm';
 
-// Station ID from environment variables
 const STATION_ID = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID || '';
 
-// API keys from environment variables
 const RADIOCULT_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY || '';
 const RADIOCULT_SECRET_KEY = process.env.RADIOCULT_SECRET_KEY || '';
 
-// Cache for RadioCult data with memoization
 type CacheKey = string;
 const dataCache = new Map<
   CacheKey,
@@ -31,12 +27,10 @@ const dataCache = new Map<
 >();
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
 
-// Helper to create a cache key from params
 function createCacheKey(endpoint: string, params: Record<string, any> = {}): CacheKey {
   return `${endpoint}:${JSON.stringify(params)}`;
 }
 
-// RadioCult Artist interface
 export interface RadioCultArtist {
   id: string;
   name: string;
@@ -55,7 +49,6 @@ export interface RadioCultArtist {
   updatedAt: string;
 }
 
-// RadioCult Show interface
 export interface RadioCultShow {
   id: string;
   name: string;
@@ -88,7 +81,6 @@ export interface RadioCultEvent {
   updatedAt: string;
 }
 
-// RadioCult Schedule Item interface from the API response
 export interface RadioCultScheduleItem {
   id?: string;
   originalId?: string;
@@ -108,7 +100,6 @@ export interface RadioCultScheduleItem {
   tags?: string[];
   createdAt?: string;
   updatedAt?: string;
-  // Additional fields in the schedule response
   timezone?: string;
   media?: { type: string };
   entity?: string;
@@ -126,7 +117,6 @@ export interface RadioCultScheduleItem {
   scheduleRangeEndUtc?: string;
 }
 
-// Interface for parameters to get shows
 export interface RadioCultShowsParams {
   tag?: string;
   searchTerm?: string;
@@ -135,7 +125,6 @@ export interface RadioCultShowsParams {
   offset?: number;
 }
 
-// Interface for parameters to get scheduled events
 export interface RadioCultEventsParams {
   startDate?: string; // ISO timestamp
   endDate?: string; // ISO timestamp
@@ -145,7 +134,6 @@ export interface RadioCultEventsParams {
   offset?: number;
 }
 
-// RadioCult Tag interface
 export interface RadioCultTag {
   id: string;
   stationId: string;
@@ -153,7 +141,6 @@ export interface RadioCultTag {
   color: string;
 }
 
-// Helper function to make API requests to RadioCult
 async function fetchFromRadioCult<T>(
   endpoint: string,
   options: RequestInit = {},
@@ -190,7 +177,7 @@ async function fetchFromRadioCult<T>(
         revalidate: noCache ? 0 : 900, // No caching for live data, 15 min for others
         tags: ['radiocult'],
       },
-      ...(noCache && { cache: 'no-store' }), // Prevent caching only when requested
+      ...(noCache && { cache: 'no-store' }),
     });
 
     if (!response.ok) {
@@ -216,15 +203,11 @@ async function fetchFromRadioCult<T>(
   }
 }
 
-/**
- * Get artists from RadioCult
- */
 export async function getArtists(forceRefresh = false): Promise<RadioCultArtist[]> {
   const endpoint = `/api/station/${STATION_ID}/artists`;
   const cacheKey = createCacheKey(endpoint);
   const cached = dataCache.get(cacheKey);
 
-  // Use cache if available and not expired
   if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
     return cached.data;
   }
@@ -232,7 +215,6 @@ export async function getArtists(forceRefresh = false): Promise<RadioCultArtist[
   try {
     const data = await fetchFromRadioCult<{ artists: RadioCultArtist[] }>(endpoint);
 
-    // Update cache
     dataCache.set(cacheKey, {
       data: data.artists,
       timestamp: Date.now(),
@@ -245,9 +227,6 @@ export async function getArtists(forceRefresh = false): Promise<RadioCultArtist[
   }
 }
 
-/**
- * Get a specific artist by ID or slug
- */
 export async function getArtist(
   identifier: string,
   isSlug = false
@@ -256,7 +235,6 @@ export async function getArtist(
   const cacheKey = createCacheKey(endpoint);
   const cached = dataCache.get(cacheKey);
 
-  // Use cache if available and not expired
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
     return cached.data;
   }
@@ -264,7 +242,6 @@ export async function getArtist(
   try {
     const data = await fetchFromRadioCult<{ artist: RadioCultArtist }>(endpoint);
 
-    // Update cache
     dataCache.set(cacheKey, {
       data: data.artist,
       timestamp: Date.now(),
@@ -277,9 +254,6 @@ export async function getArtist(
   }
 }
 
-/**
- * Get an artist's scheduled events
- */
 export async function getArtistSchedule(
   artistId: string,
   startDate?: string,
@@ -299,7 +273,6 @@ export async function getArtistSchedule(
   const cacheKey = createCacheKey(endpoint);
   const cached = dataCache.get(cacheKey);
 
-  // Use cache if available and not expired
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
     return cached.data;
   }
@@ -307,7 +280,6 @@ export async function getArtistSchedule(
   try {
     const data = await fetchFromRadioCult<{ events: RadioCultEvent[] }>(endpoint);
 
-    // Update cache
     dataCache.set(cacheKey, {
       data: data.events,
       timestamp: Date.now(),
@@ -320,14 +292,10 @@ export async function getArtistSchedule(
   }
 }
 
-/**
- * Get scheduled events from RadioCult
- */
 export async function getEvents(
   params: RadioCultEventsParams = {},
   forceRefresh = false
 ): Promise<{ events: RadioCultEvent[]; total: number }> {
-  // Early check for required environment variables
   if (!STATION_ID || !RADIOCULT_PUBLISHABLE_KEY) {
     console.log('RadioCult not configured, returning empty events');
     return { events: [], total: 0 };
@@ -365,13 +333,11 @@ export async function getEvents(
   const cacheKey = createCacheKey(endpoint);
   const cached = dataCache.get(cacheKey);
 
-  // Use cache if available and not expired
   if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
     return cached.data;
   }
 
   try {
-    // Use the safer fetchFromRadioCult helper
     // Pass noCache when forceRefresh is true to bypass all caching
     const data = await fetchFromRadioCult<any>(endpoint, {}, false, forceRefresh);
 
@@ -379,7 +345,6 @@ export async function getEvents(
     let events: RadioCultEvent[] = [];
     let total = 0;
 
-    // Handle the schedules array format
     if (data.schedules && Array.isArray(data.schedules)) {
       events = data.schedules.map((item: RadioCultScheduleItem) => ({
         id: item.id || item.originalId || item.slug || '',
@@ -397,14 +362,10 @@ export async function getEvents(
         updatedAt: item.updatedAt || item.modified || '',
       }));
       total = events.length;
-    }
-    // Handle events format
-    else if (data.events && Array.isArray(data.events)) {
+    } else if (data.events && Array.isArray(data.events)) {
       events = data.events;
       total = data.total || events.length;
-    }
-    // Handle schedule array format
-    else if (data.schedule && Array.isArray(data.schedule)) {
+    } else if (data.schedule && Array.isArray(data.schedule)) {
       events = data.schedule.map((item: RadioCultScheduleItem) => ({
         id: item.id || item.slug || '',
         showId: item.showId || '',
@@ -429,7 +390,6 @@ export async function getEvents(
 
     const result = { events, total };
 
-    // Update cache
     dataCache.set(cacheKey, {
       data: result,
       timestamp: Date.now(),
@@ -443,22 +403,16 @@ export async function getEvents(
   }
 }
 
-/**
- * Get a specific event by slug
- */
 export async function getEventBySlug(slug: string): Promise<RadioCultEvent | null> {
   try {
-    // According to the documentation, we can look up events directly
     const endpoint = `/api/station/${STATION_ID}/events/${slug}`;
     const cacheKey = createCacheKey(endpoint);
     const cached = dataCache.get(cacheKey);
 
-    // Use cache if available and not expired
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return cached.data;
     }
 
-    // Make the API request to get the specific event
     const response = await fetch(`${RADIOCULT_API_BASE_URL}${endpoint}`, {
       headers: {
         'x-api-key': RADIOCULT_PUBLISHABLE_KEY,
@@ -478,13 +432,11 @@ export async function getEventBySlug(slug: string): Promise<RadioCultEvent | nul
 
     const data = await response.json();
 
-    // Check if we got a valid response
     if (!data || data.success === false) {
       console.error('Failed to fetch event by slug:', data.error || 'Unknown error');
       throw new Error(`Failed to fetch event: ${data.error || 'Unknown error'}`);
     }
 
-    // Extract the event from the response
     const event = data.event;
 
     if (!event) {
@@ -492,7 +444,6 @@ export async function getEventBySlug(slug: string): Promise<RadioCultEvent | nul
       return null;
     }
 
-    // Update cache
     dataCache.set(cacheKey, {
       data: event,
       timestamp: Date.now(),
@@ -502,12 +453,10 @@ export async function getEventBySlug(slug: string): Promise<RadioCultEvent | nul
   } catch (error) {
     console.error(`Error fetching event by slug (${slug}):`, error);
 
-    // If the direct endpoint fails, try to get events from schedule as fallback
     try {
-      // Get schedule for the next 30 days
       const now = new Date();
       const futureDate = new Date(now);
-      futureDate.setDate(futureDate.getDate() + 30); // Look 30 days ahead
+      futureDate.setDate(futureDate.getDate() + 30);
 
       const { events } = await getEvents({
         startDate: now.toISOString(),
@@ -515,7 +464,6 @@ export async function getEventBySlug(slug: string): Promise<RadioCultEvent | nul
         limit: 100, // High limit to ensure we get all relevant events
       });
 
-      // Find the event with matching slug
       const event = (events || []).find(e => e && e.slug === slug);
 
       if (!event) {
@@ -534,16 +482,12 @@ export async function getEventBySlug(slug: string): Promise<RadioCultEvent | nul
   }
 }
 
-/**
- * Get current live and upcoming events
- */
 export async function getScheduleData(): Promise<{
   currentEvent: RadioCultEvent | null;
   upcomingEvent: RadioCultEvent | null;
   upcomingEvents: RadioCultEvent[];
 }> {
   try {
-    // Get events for the next week, including events that may have started recently
     const now = new Date();
     const startDate = new Date(now);
     startDate.setUTCHours(0, 0, 0, 0);
@@ -560,7 +504,6 @@ export async function getScheduleData(): Promise<{
       limit: 200, // Cover the bounded schedule window without truncating the current event
     });
 
-    // Check if we have events
     if (!events || events.length === 0) {
       console.log('No events returned from schedule for upcoming shows');
       return {
@@ -570,7 +513,6 @@ export async function getScheduleData(): Promise<{
       };
     }
 
-    // Sort events by start time
     const sortedEvents = [...events].sort((a, b) => {
       return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
     });
@@ -579,7 +521,6 @@ export async function getScheduleData(): Promise<{
     const currentEvent =
       sortedEvents.find(event => isCurrentRadioEvent(event, now.getTime())) || null;
 
-    // Debug logging
     if (process.env.NODE_ENV === 'development') {
       console.log('[getScheduleData] Events found:', sortedEvents.length);
       console.log('[getScheduleData] Current time:', now.toISOString());
@@ -596,7 +537,6 @@ export async function getScheduleData(): Promise<{
       );
     }
 
-    // Find upcoming events (excluding the current one)
     const upcomingEvents = sortedEvents.filter(event => {
       const startTime = new Date(event.startTime);
       return startTime > now && (!currentEvent || event.id !== currentEvent.id);
@@ -638,7 +578,6 @@ export function transformRadioCultEvent(
   // Don't use RadioCult playlist tags as they don't match our genre taxonomy
   const genreObjects: GenreObject[] = cosmicShow?.metadata?.genres || [];
 
-  // Create host objects from artists
   const hostObjects: HostObject[] = event.artists.map(artist => ({
     id: artist.id,
     slug: artist.slug,
@@ -694,15 +633,11 @@ export function transformRadioCultEvent(
   };
 }
 
-/**
- * Get tags from RadioCult
- */
 export async function getTags(forceRefresh = false, useSecretKey = false): Promise<RadioCultTag[]> {
   const endpoint = `/api/station/${STATION_ID}/media/tag`;
   const cacheKey = createCacheKey(endpoint);
   const cached = dataCache.get(cacheKey);
 
-  // Use cache if available and not expired
   if (!forceRefresh && cached && Date.now() - cached.timestamp < CACHE_DURATION) {
     return cached.data;
   }
@@ -715,7 +650,6 @@ export async function getTags(forceRefresh = false, useSecretKey = false): Promi
       useSecretKey
     );
 
-    // Update cache
     dataCache.set(cacheKey, {
       data: data.tags,
       timestamp: Date.now(),
@@ -757,7 +691,6 @@ export async function findMatchingShow(
       return null;
     }
 
-    // Fetch recent episodes to match against
     const response = await (
       await import('./public-content.server')
     ).fetchPublicContent(
@@ -775,14 +708,12 @@ export async function findMatchingShow(
 
     const shows = response.objects as RadioShowObject[];
 
-    // 1. Exact title match (case-insensitive)
     const exactMatch = shows.find(show => normalizeTitle(show.title) === normalizedEventTitle);
     if (exactMatch) {
       dataCache.set(cacheKey, { data: exactMatch, timestamp: Date.now() });
       return exactMatch;
     }
 
-    // 2. Partial match - show title contains event title or vice versa
     const partialMatch = shows.find(show => {
       const normalizedShowTitle = normalizeTitle(show.title);
       return (
@@ -796,7 +727,6 @@ export async function findMatchingShow(
       return partialMatch;
     }
 
-    // No match found
     dataCache.set(cacheKey, { data: null, timestamp: Date.now() });
     return null;
   } catch (error) {

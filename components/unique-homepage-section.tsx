@@ -7,7 +7,7 @@ import { ProcessedHomepageSection, CosmicItem, ColouredSection } from '@/lib/cos
 
 interface UniqueHomepageSectionProps {
   section: ProcessedHomepageSection;
-  colouredSection?: ColouredSection; // Optional coloured section data
+  colouredSection?: ColouredSection;
 }
 
 const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
@@ -19,35 +19,29 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
   }
 
   // Colors are now assigned sequentially in the parent component
-  // Fallback to orange if no color is provided
   const sectionColor = section.color || 'bg-sunset';
 
   // Data is already transformed by createColouredSections, so use it directly
   const shows = section.items.map((item: CosmicItem) => {
-    // Data is already transformed, just ensure key is set
     return {
       ...item,
       key: item.slug,
     };
   });
 
-  // Use coloured section data if available, otherwise fall back to section data
   const displayTitle = colouredSection?.title || section.title;
   const displayTime = colouredSection?.time || section.subtitle || '';
   const displayDescription = colouredSection?.description || section.description || '';
 
   return (
     <section className='relative w-full h-full overflow-visible'>
-      {/* Solid Color Background*/}
       <div className='absolute inset-0' style={{ backgroundColor: sectionColor }} />
 
-      {/*Linear white gradient*/}
       <div
         className='absolute inset-0 w-full bg-linear-to-b from-white via-white/0 to-white'
         style={{ mixBlendMode: 'hue' }}
       />
 
-      {/* Noise Overlay */}
       <div
         className='absolute inset-0'
         style={{
@@ -57,9 +51,7 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
         }}
       />
 
-      {/* Content Container */}
       <div className='relative flex flex-col gap-6 p-5'>
-        {/* Shows Grid */}
         <div className='grid grid-cols-2 md:grid-cols-5 gap-3 overflow-hidden'>
           {shows.map((show, index) => (
             <div
@@ -81,16 +73,13 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
           ))}
         </div>
 
-        {/* Section Header */}
         <div className='flex items-center'>
-          {/* Main Title */}
           <div className='flex flex-col gap-4 w-full pb-5'>
             <div className='flex flex-row justify-between w-full items-start'>
               <div className='flex flex-wrap items- gap-0 w-full pt-1 pr-3'>
                 <h2 className='font-display text-h8 sm:text-h7 leading-none uppercase tracking-tight'>
                   <HighlightedText variant='default'>{displayTitle}</HighlightedText>
                 </h2>
-                {/* Subtitle with color background */}
                 {displayTime && (
                   <h3 className='font-display text-h8 sm:text-h7 leading-none uppercase tracking-tight wrap-break-word'>
                     <HighlightedText
@@ -103,7 +92,6 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
                   </h3>
                 )}
               </div>
-              {/* See All Link */}
               <div className='text-left'>
                 <a
                   href={`/${section.type}`}
@@ -113,7 +101,6 @@ const UniqueHomepageSection: React.FC<UniqueHomepageSectionProps> = ({
                 </a>
               </div>
             </div>
-            {/* Description */}
             {displayDescription && (
               <div className='max-w-80'>
                 <p className='font-body text-b4 md:text-b3 text-almostblack'>

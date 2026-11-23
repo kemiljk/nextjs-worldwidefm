@@ -1,29 +1,13 @@
-/**
- * Common type utilities to replace 'any' usage
- *
- * These types help improve type safety throughout the codebase
- * by providing specific types for common patterns.
- */
-
 import type { GenreObject, HostObject, LocationObject, TakeoverObject } from '../cosmic-config';
 
-/**
- * Type for Cosmic query objects
- */
 export type CosmicQuery = {
   type?: string;
   status?: string;
   [key: string]: unknown;
 };
 
-/**
- * Union type for all Cosmic object types that appear in metadata arrays
- */
 export type CosmicMetadataObject = GenreObject | HostObject | LocationObject | TakeoverObject;
 
-/**
- * Type guard to check if an object is a GenreObject
- */
 export function isGenreObject(obj: unknown): obj is GenreObject {
   return (
     typeof obj === 'object' &&
@@ -33,9 +17,6 @@ export function isGenreObject(obj: unknown): obj is GenreObject {
   );
 }
 
-/**
- * Type guard to check if an object is a HostObject
- */
 export function isHostObject(obj: unknown): obj is HostObject {
   return (
     typeof obj === 'object' &&
@@ -45,9 +26,6 @@ export function isHostObject(obj: unknown): obj is HostObject {
   );
 }
 
-/**
- * Type guard to check if an object is a LocationObject
- */
 export function isLocationObject(obj: unknown): obj is LocationObject {
   return (
     typeof obj === 'object' &&
@@ -57,9 +35,6 @@ export function isLocationObject(obj: unknown): obj is LocationObject {
   );
 }
 
-/**
- * Type guard to check if an object is a TakeoverObject
- */
 export function isTakeoverObject(obj: unknown): obj is TakeoverObject {
   return (
     typeof obj === 'object' &&
@@ -69,9 +44,6 @@ export function isTakeoverObject(obj: unknown): obj is TakeoverObject {
   );
 }
 
-/**
- * Type for objects with metadata arrays
- */
 export interface HasMetadata {
   metadata?: {
     genres?: GenreObject[];
@@ -82,9 +54,6 @@ export interface HasMetadata {
   };
 }
 
-/**
- * Type for Cosmic API response objects (with type narrowing)
- */
 export type CosmicResponseObject<T = unknown> = {
   id: string;
   slug: string;

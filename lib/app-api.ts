@@ -3,8 +3,6 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { resolveMemberSessionToken } from '@/lib/member-session-store';
 
-// Helpers for the /api/app/v1 routes used by the iOS and Android apps.
-
 export function appJson(body: unknown, status = 200) {
   return NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 }
@@ -26,14 +24,12 @@ export async function getBearerToken(): Promise<string | null> {
 // error rather than a 404, so reject them here and keep real failures as errors.
 const COSMIC_ID_TOKEN = /^[a-f0-9]{24}\./;
 
-/** The session and member account behind the request's bearer token, or null. */
 export async function getAppSession() {
   const token = await getBearerToken();
   if (!token || !COSMIC_ID_TOKEN.test(token)) return null;
   return resolveMemberSessionToken(token);
 }
 
-/** The member account behind the request's bearer token, or null. */
 export async function getAppUser() {
   return (await getAppSession())?.account ?? null;
 }

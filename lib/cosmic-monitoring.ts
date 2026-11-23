@@ -6,7 +6,6 @@
  * See docs/assessments/2026-09-07-performance/implementation.md for cache policy.
  */
 
-// Development-only logging for API response sizes
 const isDev = process.env.NODE_ENV === 'development';
 
 interface ApiCallMetrics {
@@ -39,7 +38,6 @@ export function logApiCall(
 
   metrics.push(metric);
 
-  // Log to console in development
   const sizeKB = (responseSize / 1024).toFixed(2);
   console.log(
     `[Cosmic API] ${endpoint}: ${sizeKB}KB in ${duration}ms` +

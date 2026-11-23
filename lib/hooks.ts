@@ -102,7 +102,6 @@ export function useSchedule(slug = 'main-schedule') {
             },
           });
         } else {
-          // If no schedule, get shows based on broadcast dates
           const showsResponse = await getRadioShows({
             limit: 7,
             sort: '-metadata.broadcast_date',
@@ -133,7 +132,6 @@ export function useSchedule(slug = 'main-schedule') {
                 setCurrentShow(transformShowToViewData(currentShowObj));
               }
 
-              // Get upcoming shows (future shows)
               const upcomingShowsList = allShows
                 .filter(show => {
                   const startTime = new Date(show.metadata.broadcast_date || '');

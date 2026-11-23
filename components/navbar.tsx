@@ -53,7 +53,6 @@ export default function Navbar({ navItems, initialUser = null, socialLinks = [] 
     }
   }, [userId]);
 
-  // Close mobile Sheet if resizing to desktop
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 768) {
@@ -71,14 +70,12 @@ export default function Navbar({ navItems, initialUser = null, socialLinks = [] 
   // Helper to get item link (handles both 'link' and 'url' properties from CMS)
   const getItemLink = (item: NavItem): string => item.link || item.url || '/';
 
-  // Split nav items into visible and overflow items
   const processedNavItems = navItems.map(item => {
     const itemName = getItemName(item);
     const itemLink = getItemLink(item);
 
     const normalizedName = itemName.toLowerCase().trim();
     if (normalizedName === 'log in' || normalizedName === 'login') {
-      // Swap login link for profile when authenticated.
       const newItem = {
         ...item,
         name: user ? '' : itemName,
@@ -110,7 +107,6 @@ export default function Navbar({ navItems, initialUser = null, socialLinks = [] 
             <Logo className='w-auto h-5 text-foreground' />
           </Link>
 
-          {/* Desktop Navigation */}
           <nav className='hidden md:block ml-auto'>
             <ul className='flex items-center uppercase pr-0 border-r border-black '>
               {processedVisibleNavItems.map(item => (

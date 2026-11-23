@@ -20,24 +20,20 @@ interface Show {
 }
 
 interface LiveEvent {
-  // Define a more specific type if available
   showName?: string;
   [key: string]: any;
 }
 
 interface MediaPlayerContextType {
-  // Live player state
   isLivePlaying: boolean;
   setIsLivePlaying: (playing: boolean) => void;
 
-  // Live playback controls (RadioCult)
   currentLiveEvent: LiveEvent | null;
   playLive: (event: LiveEvent) => void;
   pauseLive: () => void;
   liveVolume: number;
   setLiveVolume: (volume: number) => void;
 
-  // Archive player state
   selectedArchiveUrl: string | null;
   setSelectedArchiveUrl: (url: string | null) => void;
   selectedShow: Show | null;
@@ -46,14 +42,11 @@ interface MediaPlayerContextType {
   // Global controls
   stopAllPlayers: () => void;
 
-  // Playback controls
   playShow: (show: Show) => void;
   pauseShow: () => void;
 
-  // New: Archive player state
   isArchivePlaying: boolean;
 
-  // Widget control
   setWidgetRef: (widget: any) => void;
   widgetRef: any;
 }
@@ -96,7 +89,6 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     setIsLivePlaying(playing);
   }, []);
 
-  // New: Play and pause controls for archive
   const playShow = useCallback(
     (show: Show) => {
       setIsLivePlaying(false);
@@ -118,7 +110,6 @@ export function MediaPlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [widgetRef]);
 
-  // Live playback controls for RadioCult
   const playLive = useCallback((event: LiveEvent) => {
     setCurrentLiveEvent(event);
     setIsLivePlaying(true);

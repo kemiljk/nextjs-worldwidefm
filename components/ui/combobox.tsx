@@ -40,7 +40,6 @@ export function Combobox({
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
 
-  // Sort options alphabetically
   const sortedOptions = React.useMemo(() => {
     return [...options].sort((a, b) => a.label.localeCompare(b.label));
   }, [options]);

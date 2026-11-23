@@ -11,7 +11,7 @@ import type { CanonicalGenre } from '@/lib/get-canonical-genres';
 import { formatLondonBroadcastTime, parseLondonDateTime } from '@/lib/date-utils';
 
 interface ShowCardProps {
-  show: any; // Using any to work with both episode and legacy show formats
+  show: any;
   slug: string;
   className?: string;
   playable?: boolean;
@@ -74,7 +74,6 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   };
 
   const getShowTags = (show: any): Array<{ id: string; title: string }> => {
-    // Try to get genre objects with IDs first
     if (show.metadata?.genres && Array.isArray(show.metadata.genres)) {
       return show.metadata.genres
         .filter((genre: any) => genre.id && genre.title)
@@ -93,7 +92,6 @@ export const ShowCard: React.FC<ShowCardProps> = ({
         .slice(0, 3)
         .map((genre: any) => ({ id: genre.id, title: genre.title }));
     }
-    // Fallback to legacy tags format
     if (show.tags && Array.isArray(show.tags)) {
       return show.tags
         .filter((tag: any) => tag.name?.toLowerCase() !== 'worldwide fm')
@@ -106,7 +104,6 @@ export const ShowCard: React.FC<ShowCardProps> = ({
     return [];
   };
 
-  // Map genre IDs to canonical genre slugs for linking
   const getGenreLink = (genreId: string): string | undefined => {
     if (!canonicalGenres.length) return undefined;
 
@@ -150,7 +147,6 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   const formattedTime = formatShowTime(broadcastDate, broadcastTime);
   const formattedDate = broadcastDate
     ? (() => {
-        // Handle date in YYYY-MM-DD format
         let date: Date;
         if (/^\d{4}-\d{2}-\d{2}$/.test(broadcastDate)) {
           date = new Date(`${broadcastDate}T00:00:00Z`);
@@ -158,7 +154,6 @@ export const ShowCard: React.FC<ShowCardProps> = ({
           date = new Date(broadcastDate);
         }
 
-        // Validate date
         if (isNaN(date.getTime()) || !isFinite(date.getTime())) {
           return null;
         }
@@ -197,12 +192,10 @@ export const ShowCard: React.FC<ShowCardProps> = ({
   const [mainTitle, ...restTitle] = showName.split(':');
   let subtitle = restTitle.length > 0 ? restTitle.join(':').trim() : showHost;
 
-  // Avoid duplication if title and host/subtitle are the same
   if (subtitle.toLowerCase() === mainTitle.trim().toLowerCase()) {
     subtitle = '';
   }
 
-  // Helper to choose classes based on variant
   const borderClass = variant === 'light' ? 'border-black' : 'border-almostblack dark:border-white';
   const textClass = variant === 'light' ? 'text-black' : 'text-almostblack dark:text-white';
   const imageBorderClass =
@@ -216,10 +209,8 @@ export const ShowCard: React.FC<ShowCardProps> = ({
 
   return (
     <div className={`${borderClass} border p-2 ${className}`}>
-      {/* Image and Play Button (hover group) */}
       <Link href={slug} className='block'>
         <div className='group relative aspect-square cursor-pointer'>
-          {/* Overlay for dimming on hover */}
           <div className='absolute inset-0 bg-black opacity-0 group-hover:opacity-50 transition-opacity pointer-events-none z-10' />
           <ResponsiveCardImage
             src={showImage}
@@ -253,9 +244,7 @@ export const ShowCard: React.FC<ShowCardProps> = ({
         </div>
       </Link>
 
-      {/* Details */}
       <div className='flex flex-col justify-between pt-3 pb-1 h-30'>
-        {/* Title */}
         <Link href={slug} className='block'>
           <div className='w-auto h-auto flex-1 gap-1 flex flex-col cursor-pointer'>
             <div
@@ -275,7 +264,6 @@ export const ShowCard: React.FC<ShowCardProps> = ({
           </div>
         </Link>
 
-        {/* Tags and Play Button */}
         <div className='flex flex-row w-full pr-1'>
           <div className='flex flex-row flex-wrap'>
             {showTags.map((tag, idx) => {

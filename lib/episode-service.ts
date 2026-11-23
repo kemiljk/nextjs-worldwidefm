@@ -47,18 +47,12 @@ function getYesterdayDateString(): string {
   return yesterday.toISOString().slice(0, 10);
 }
 
-/**
- * Get date string for 30 days ago (for "new" episode filtering)
- */
 function getThirtyDaysAgoDateString(): string {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   return thirtyDaysAgo.toISOString().slice(0, 10);
 }
 
-/**
- * Episode fetching - core implementation
- */
 async function fetchEpisodesFromCosmic(
   query: Record<string, unknown>,
   baseLimit: number,
@@ -86,9 +80,6 @@ async function fetchEpisodesFromCosmic(
   };
 }
 
-/**
- * Random episodes fetching
- */
 async function fetchRandomEpisodesFromCosmic(
   query: Record<string, unknown>,
   fetchLimit: number
@@ -105,25 +96,19 @@ async function fetchRandomEpisodesFromCosmic(
   return response.objects || [];
 }
 
-/**
- * Simplified episode service that works directly with Cosmic data
- */
 export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeResponse> {
   const baseLimit = params.limit || SEARCH_PAGE_SIZE;
   const offset = params.offset || 0;
   const yesterdayStr = getYesterdayDateString();
 
   try {
-    // Handle random episodes
     if (params.random) {
       try {
-        // Build query with filters if provided
         const query: Record<string, unknown> = {
           type: 'episode',
           status: 'published',
         };
 
-        // Add genre filter if provided
         if (params.genre) {
           const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
           const validGenres = genres.filter(Boolean);
@@ -132,7 +117,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
           }
         }
 
-        // Add location filter
         if (params.location) {
           const locations = Array.isArray(params.location) ? params.location : [params.location];
           query['metadata.locations'] = { $in: locations };
@@ -145,11 +129,9 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
           query['metadata.player'] = { $regex: '\\S' };
         }
 
-        // Fetch a larger set to randomize from
         const fetchLimit = Math.min(baseLimit * 5, 200);
         const episodes = await fetchRandomEpisodesFromCosmic(query, fetchLimit);
 
-        // Shuffle client-side (randomization happens after fetch)
         const shuffled = [...episodes].sort(() => Math.random() - 0.5);
         const randomEpisodes = shuffled.slice(0, baseLimit);
 
@@ -182,7 +164,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       }
     }
 
-    // Build query for Cosmic
     const query: Record<string, unknown> = {
       type: 'episode',
       status: 'published',
@@ -197,7 +178,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
       query['metadata.player'] = { $regex: '\\S' };
     }
 
-    // Add filters
     if (params.genre) {
       const genres = Array.isArray(params.genre) ? params.genre : [params.genre];
       const validGenres = genres.filter(Boolean);
@@ -261,7 +241,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
           ? 'metadata.broadcast_date'
           : '-metadata.broadcast_date');
 
-    // Fetch episodes from Cosmic
     const { objects: episodes, total: totalCount } = await fetchEpisodesFromCosmic(
       query,
       baseLimit,
@@ -301,9 +280,6 @@ export async function getEpisodes(params: EpisodeParams = {}): Promise<EpisodeRe
   }
 }
 
-/**
- * Get episodes formatted for the Shows page - returns direct Cosmic objects
- */
 export async function getEpisodesForShows(params: EpisodeParams = {}): Promise<{
   shows: EpisodeObject[];
   total: number;
@@ -311,7 +287,6 @@ export async function getEpisodesForShows(params: EpisodeParams = {}): Promise<{
 }> {
   const result = await getEpisodes(params);
 
-  // Return episodes directly from Cosmic - no transformation needed
   return {
     shows: result.episodes,
     total: result.total,
@@ -319,9 +294,6 @@ export async function getEpisodesForShows(params: EpisodeParams = {}): Promise<{
   };
 }
 
-/**
- * Fetch for regular hosts
- */
 async function fetchRegularHostsFromCosmic(
   query: Record<string, unknown>,
   limit: number,
@@ -342,9 +314,6 @@ async function fetchRegularHostsFromCosmic(
   };
 }
 
-/**
- * Get regular hosts from Cosmic
- */
 export async function getRegularHosts(
   params: {
     limit?: number;
@@ -394,9 +363,6 @@ export async function getRegularHosts(
   }
 }
 
-/**
- * Fetch for takeovers
- */
 async function fetchTakeoversFromCosmic(
   query: Record<string, unknown>,
   limit: number,
@@ -417,9 +383,6 @@ async function fetchTakeoversFromCosmic(
   };
 }
 
-/**
- * Get takeovers from Cosmic
- */
 export async function getTakeovers(
   params: {
     limit?: number;
@@ -497,7 +460,6 @@ function normalizeSlug(slug: string): string {
             continue;
           }
         } catch {
-          // If decoding fails, break and continue with current normalized value
           break;
         }
       } else {
@@ -508,14 +470,14 @@ function normalizeSlug(slug: string): string {
     // Normalize Unicode characters to ASCII equivalents
     // This converts ã → a, é → e, ñ → n, etc.
     normalized = normalized
-      .normalize('NFD') // Decompose characters (ã → a + ~)
-      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .trim()
-      .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens
-      .replace(/\s+/g, '-') // Replace spaces with hyphens
-      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
 
     return normalized;
   } catch (error) {
@@ -524,9 +486,6 @@ function normalizeSlug(slug: string): string {
   }
 }
 
-/**
- * Check if an error is a 404 (not found) error
- */
 function is404Error(error: unknown): boolean {
   if (!error || typeof error !== 'object') {
     return false;
@@ -544,9 +503,6 @@ function is404Error(error: unknown): boolean {
   return false;
 }
 
-/**
- * Episode fetch by slug
- */
 async function fetchEpisodeBySlugFromCosmic(
   slugToFetch: string,
   options: { includeDrafts?: boolean } = {}
@@ -610,9 +566,6 @@ export async function getEpisodeBySlug(
   return null;
 }
 
-/**
- * Fetch for related episodes by host
- */
 async function fetchRelatedByHost(
   episodeId: string,
   hostIds: string[],
@@ -665,9 +618,6 @@ async function fetchRelatedByGenre(
   return response.objects || [];
 }
 
-/**
- * Fetch for related episodes by takeover
- */
 async function fetchRelatedByTakeover(
   episodeId: string,
   takeoverIds: string[],
@@ -694,9 +644,6 @@ async function fetchRelatedByTakeover(
   return response.objects || [];
 }
 
-/**
- * Fetch for recent episodes (fallback)
- */
 async function fetchRecentEpisodes(
   excludeIds: string[],
   limit: number,

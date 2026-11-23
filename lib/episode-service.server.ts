@@ -46,9 +46,6 @@ export async function fetchEpisodesFromCosmic(
   };
 }
 
-/**
- * Cached random episodes fetching
- */
 export async function fetchRandomEpisodesFromCosmic(
   query: Record<string, unknown>,
   fetchLimit: number
@@ -65,9 +62,6 @@ export async function fetchRandomEpisodesFromCosmic(
   return response.objects || [];
 }
 
-/**
- * Cached fetch for regular hosts
- */
 export async function fetchRegularHostsFromCosmic(
   query: Record<string, unknown>,
   limit: number,
@@ -90,9 +84,6 @@ export async function fetchRegularHostsFromCosmic(
   };
 }
 
-/**
- * Cached fetch for takeovers
- */
 export async function fetchTakeoversFromCosmic(
   query: Record<string, unknown>,
   limit: number,
@@ -115,9 +106,6 @@ export async function fetchTakeoversFromCosmic(
   };
 }
 
-/**
- * Cached episode fetch by slug
- */
 export async function fetchEpisodeBySlugFromCosmic(
   slugToFetch: string,
   isPreview: boolean
@@ -136,9 +124,6 @@ export async function fetchEpisodeBySlugFromCosmic(
   return response.object;
 }
 
-/**
- * Cached fetch for related episodes by host
- */
 export async function fetchRelatedByHost(
   episodeId: string,
   hostIds: string[],
@@ -162,9 +147,6 @@ export async function fetchRelatedByHost(
   return response.objects || [];
 }
 
-/**
- * Cached fetch for recent episodes (fallback)
- */
 export async function fetchRecentEpisodes(
   excludeIds: string[],
   limit: number,

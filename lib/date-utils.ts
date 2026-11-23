@@ -1,8 +1,3 @@
-/**
- * Date utility functions for handling broadcast dates
- * Supports both old format (ISO strings) and new format (YYYY-MM-DD + HH:MM)
- */
-
 const LONDON_TZ = 'Europe/London';
 
 const londonWallClockFormatter = new Intl.DateTimeFormat('en-GB', {
@@ -121,18 +116,15 @@ export function parseBroadcastDateTime(
   broadcast_time: string | null | undefined = null,
   broadcast_date_old: string | null | undefined = null
 ): Date | null {
-  // Try broadcast_date first, fallback to broadcast_date_old during migration
   const dateToUse = broadcast_date || broadcast_date_old;
 
   if (!dateToUse) return null;
 
-  // Handle old format (full ISO string)
   if (dateToUse.includes('T')) {
     const date = new Date(dateToUse);
     return Number.isNaN(date.getTime()) ? null : date;
   }
 
-  // Handle new format (YYYY-MM-DD + HH:MM) as Europe/London wall clock
   const time = broadcast_time || '00:00';
   return parseLondonDateTime(dateToUse, time);
 }
@@ -151,18 +143,13 @@ export function broadcastToISOString(
   return date ? date.toISOString() : null;
 }
 
-/**
- * Extract date part only (YYYY-MM-DD) from any date format
- */
 export function extractDatePart(dateString: string | null | undefined): string | null {
   if (!dateString) return null;
 
-  // If already in YYYY-MM-DD format, return as-is
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
     return dateString;
   }
 
-  // If ISO string, extract date part
   try {
     return new Date(dateString).toISOString().split('T')[0];
   } catch (error) {
@@ -171,13 +158,9 @@ export function extractDatePart(dateString: string | null | undefined): string |
   }
 }
 
-/**
- * Extract time part (HH:MM) from any date format
- */
 export function extractTimePart(dateString: string | null | undefined): string | null {
   if (!dateString) return null;
 
-  // If it's an ISO string, extract time
   if (dateString.includes('T')) {
     try {
       return new Date(dateString).toISOString().substring(11, 16);
@@ -236,7 +219,6 @@ export function parseDurationToMinutes(duration: string | number | null | undefi
  * @returns The timezone abbreviation with brackets, e.g., "[BST]" or "[GMT]"
  */
 export function getUKTimezoneAbbreviation(date: Date = new Date()): string {
-  // Validate date - check if it's a valid, finite date
   if (!(date instanceof Date) || isNaN(date.getTime()) || !isFinite(date.getTime())) {
     return '[GMT]';
   }

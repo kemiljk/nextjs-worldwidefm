@@ -83,7 +83,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     'posts',
     'videos',
     'takeovers',
-  ]); // Default all types available
+  ]);
   const [canonicalGenres, setCanonicalGenres] = useState<any[]>([]);
   const [availableFilters, setAvailableFilters] = useState<any>({
     genres: [],
@@ -94,7 +94,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [selectedHosts, setSelectedHosts] = useState<string[]>([]);
 
-  // Clear all state when dialog closes
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
       setSearchTerm('');
@@ -179,7 +178,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     return () => controller.abort();
   }, [open, filterRetry]);
 
-  // Determine selected content type
   const selectedType =
     activeFilters.find(f => Object.keys(typeLabels).includes(f)) || 'hosts-series';
 
@@ -302,7 +300,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     PAGE_SIZE,
   ]);
 
-  // Filter toggle logic (content type only)
   const handleFilterToggle = (filter: { type: string; slug: string }) => {
     if (filter.type === 'types') {
       setActiveFilters(prev => {
@@ -313,7 +310,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     }
   };
 
-  // Clear all filters
   const clearAllFilters = () => {
     setActiveFilters([]);
     setSelectedGenres([]);
@@ -394,7 +390,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             </form>
           </div>
 
-          {/* Desktop: full-width search bar above filters and results */}
           <div className='hidden sm:block border-b border-almostblack dark:border-white shrink-0 w-full bg-background'>
             <form
               onSubmit={e => {
@@ -416,9 +411,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             </form>
           </div>
 
-          {/* Main flex: Filters and Results */}
           <div className='flex flex-1 w-full min-h-0 relative overflow-hidden'>
-            {/* Filters Section */}
             <div
               className={cn(
                 'w-full sm:w-[35%] md:w-[30%] lg:w-[25%] border-r bg-background relative inset-y-0 left-0 z-30 sm:relative transition-transform duration-200 ease-in-out',
@@ -427,7 +420,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 'sm:translate-x-0 sm:block'
               )}
             >
-              {/* On mobile, add top margin for search bar and toggle */}
               <div className={cn('flex flex-col h-full', 'sm:mt-0', 'mt-0')}>
                 <div className='px-4 py-3'>
                   <div className='flex h-4 items-center justify-between'>
@@ -464,7 +456,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 </div>
                 <div className='overflow-y-auto h-full bg-background hide-scrollbar'>
                   <div className='px-4 py-4 space-y-4'>
-                    {/* Content Type Section */}
                     <div className='border-b border-almostblack dark:border-white pb-4'>
                       <div className='space-y-2'>
                         {availableTypes.map(type => {
@@ -498,7 +489,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                         </Button>
                       </div>
                     )}
-                    {/* Filter Dropdowns */}
                     {(selectedType === 'episodes' ||
                       selectedType === 'takeovers' ||
                       selectedType === 'hosts-series') && (
@@ -564,7 +554,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                           )}
                       </div>
                     )}
-                    {/* Selected Filters as Removable Badges */}
                     {(selectedGenres.length > 0 ||
                       selectedLocations.length > 0 ||
                       selectedHosts.length > 0) && (
@@ -631,17 +620,14 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
               </div>
             </div>
 
-            {/* Main Content Section */}
             <div
               className={cn(
                 'flex flex-1 w-full justify-left flex-col min-w-0 min-h-0 overflow-hidden transition-all duration-200',
                 'sm:static absolute h-full left-0',
-                // On mobile: hide results if showFilters is true, always show on desktop
                 !showFilters ? 'translate-x-0 block' : 'translate-x-full hidden',
                 'sm:translate-x-0 sm:block'
               )}
             >
-              {/* Results Section */}
               <ScrollArea
                 className='flex-1 w-full hide-scrollbar min-h-0 h-full'
                 ref={scrollAreaRef}
@@ -732,7 +718,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                             onClick={() => onOpenChange(false)}
                             className='group block w-full'
                           >
-                            {/* Mobile Layout: Stacked */}
                             <div className='flex sm:hidden flex-col w-full pb-4 gap-1'>
                               <div className='flex items-center justify-between'>
                                 <div className='flex items-center gap-2 text-[10px] text-muted-foreground'>
@@ -781,9 +766,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                               )}
                             </div>
 
-                            {/* Desktop Layout: Original */}
                             <div className='hidden sm:flex flex-col w-full pb-6 gap-2'>
-                              {/* Line 1: Type + Date */}
                               <div className='flex items-center justify-between'>
                                 <div className='flex items-center gap-2 text-m8 text-muted-foreground'>
                                   <TypeIcon className='w-3 h-3 text-foreground' />
@@ -795,7 +778,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                                   </span>
                                 )}
                               </div>
-                              {/* Line 2: Title + Genres/Categories/Hosts */}
                               <div className='flex items-center justify-between gap-4'>
                                 <h3 className='text-[16px] sm:text-[18px] font-mono uppercase flex-1 min-w-0'>
                                   {result.title}
@@ -839,7 +821,6 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                           </Link>
                         );
                       })}
-                      {/* Sentinel for Intersection Observer infinite scroll */}
                       <div
                         ref={hasNext ? observerTarget : undefined}
                         className='h-8 w-full flex items-center justify-center py-4'

@@ -35,7 +35,6 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
     }
   };
 
-  // Grid Layout
   if (layout === 'grid') {
     return (
       <div className={`w-full grid grid-cols-1 md:grid-cols-2 gap-4 ${className}`}>
@@ -57,7 +56,6 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
     );
   }
 
-  // Carousel Layout
   if (layout === 'carousel') {
     return (
       <div className={`w-full relative ${className}`}>
@@ -105,10 +103,8 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
     );
   }
 
-  // Thumbnail Layout (default)
   return (
     <div className={`w-full ${className}`}>
-      {/* Main Image */}
       <div className='relative w-full mb-4'>
         <img
           src={buildImgixUrl(selectedImage.image.imgix_url, {
@@ -121,7 +117,6 @@ export function ImageGallery({ images, layout = 'thumbnail', className = '' }: I
         />
       </div>
 
-      {/* Thumbnail Navigation */}
       {images.length > 1 && (
         <div className='flex gap-2 overflow-x-auto pb-2'>
           {images.map((image, index) => (

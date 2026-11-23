@@ -55,7 +55,6 @@ export function OptimizedImage({
 }: OptimizedImageProps) {
   const [hasError, setHasError] = useState(false);
 
-  // Determine quality based on variant or explicit quality prop
   const qualityValue = useMemo(() => {
     if (typeof quality === 'number') return quality;
     if (quality && quality in QUALITY_PRESETS)
@@ -64,7 +63,6 @@ export function OptimizedImage({
     return QUALITY_PRESETS.card;
   }, [quality, variant]);
 
-  // Get srcset config based on variant
   const srcsetWidths = useMemo(() => {
     switch (variant) {
       case 'thumbnail':
@@ -80,7 +78,6 @@ export function OptimizedImage({
     }
   }, [variant]);
 
-  // Default sizes attribute based on variant
   const defaultSizes = useMemo(() => {
     switch (variant) {
       case 'thumbnail':
@@ -96,7 +93,6 @@ export function OptimizedImage({
     }
   }, [variant]);
 
-  // Calculate aspect ratio for height
   const aspectRatioValue = useMemo(() => {
     switch (aspectRatio) {
       case 'square':
@@ -110,7 +106,6 @@ export function OptimizedImage({
     }
   }, [aspectRatio]);
 
-  // If no src or error, show placeholder
   if (!src || hasError) {
     return (
       <img
@@ -133,11 +128,9 @@ export function OptimizedImage({
     );
   }
 
-  // Check if this is an imgix URL
   const normalizedSrc = convertToImgixUrl(src);
   const canOptimize = isImgixUrl(normalizedSrc);
 
-  // Build the main image URL
   const mainWidth = srcsetWidths[srcsetWidths.length - 1] || 800;
   const mainHeight = aspectRatioValue ? Math.round(mainWidth * aspectRatioValue) : undefined;
 
@@ -150,7 +143,6 @@ export function OptimizedImage({
       })
     : src;
 
-  // Generate srcset
   const srcSet = canOptimize
     ? generateSrcSet(normalizedSrc, {
         widths: srcsetWidths,
@@ -204,10 +196,6 @@ export function OptimizedImage({
   );
 }
 
-/**
- * Simple image component for when you just need a basic optimized img tag
- * Useful for replacing Next.js Image in simple cases
- */
 export function SimpleOptimizedImage({
   src,
   alt,
@@ -293,10 +281,6 @@ export function getOptimizedImageUrl(
   return buildImgixUrl(normalizedSrc, { width, height, quality, fit });
 }
 
-/**
- * Responsive image component with srcset for different screen sizes
- * Ideal for cards and grid layouts
- */
 export function ResponsiveCardImage({
   src,
   alt,
@@ -342,7 +326,6 @@ export function ResponsiveCardImage({
   const normalizedSrc = convertToImgixUrl(src);
   const canOptimize = isImgixUrl(normalizedSrc);
 
-  // Use card sizes: 400, 600, 800
   const widths = SRCSET_CONFIGS.card;
   const mainWidth = widths[widths.length - 1];
   const mainHeight = Math.round(mainWidth * aspectRatioValue);
@@ -390,9 +373,6 @@ export function ResponsiveCardImage({
   );
 }
 
-/**
- * Hero image component optimized for full-width displays
- */
 export function HeroImage({
   src,
   alt,
@@ -434,7 +414,6 @@ export function HeroImage({
   const normalizedSrc = convertToImgixUrl(src);
   const canOptimize = isImgixUrl(normalizedSrc);
 
-  // Hero sizes: 768, 1024, 1400, 1920
   const widths = SRCSET_CONFIGS.hero;
   const mainWidth = widths[widths.length - 1];
   const mainHeight = aspectRatio ? Math.round(mainWidth * aspectRatio) : undefined;
@@ -495,9 +474,6 @@ export function HeroImage({
   );
 }
 
-/**
- * Video thumbnail image component
- */
 export function VideoThumbnailImage({
   src,
   alt,
@@ -535,7 +511,6 @@ export function VideoThumbnailImage({
   const normalizedSrc = convertToImgixUrl(src);
   const canOptimize = isImgixUrl(normalizedSrc);
 
-  // Video thumbnail: 16:9 aspect ratio
   const aspectRatioValue = 9 / 16;
   const widths = SRCSET_CONFIGS.video;
   const mainWidth = large ? widths[widths.length - 1] : widths[1];

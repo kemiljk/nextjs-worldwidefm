@@ -9,7 +9,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
   return generateBaseMetadata({
     title: 'Add Show - Worldwide FM',
     description: 'Add a new show to the Worldwide FM schedule.',
-    noIndex: true, // Don't index admin pages
+    noIndex: true,
   });
 };
 

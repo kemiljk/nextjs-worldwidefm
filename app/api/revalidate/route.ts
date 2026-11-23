@@ -79,7 +79,6 @@ async function handleRevalidation(request: NextRequest) {
       revalidatedItems.push(...revalidateContent(objectType, slug).map(t => `tag:${t}`));
     }
 
-    // Revalidate by tag if specified
     if (tag || body.tag) {
       const tagInput = (tag || body.tag) as unknown;
       const rawTagString = typeof tagInput === 'string' ? tagInput : '';
@@ -95,7 +94,6 @@ async function handleRevalidation(request: NextRequest) {
       }
     }
 
-    // Revalidate by path if specified
     if (path || body.path) {
       const pathToRevalidate = (path || body.path) as string;
       const revalidationType = (type || body.type || 'page') as 'page' | 'layout';
@@ -104,7 +102,6 @@ async function handleRevalidation(request: NextRequest) {
       console.log(`Revalidated path: ${pathToRevalidate} (${revalidationType})`);
     }
 
-    // If no specific tag or path, revalidate all major content tags
     if (!objectType && !tag && !path && !body.tag && !body.path) {
       const allTags = [
         'public-content',
@@ -167,7 +164,6 @@ async function handleRevalidation(request: NextRequest) {
   }
 }
 
-// Support both GET and POST for easier manual triggering
 export async function GET(request: NextRequest) {
   return handleRevalidation(request);
 }

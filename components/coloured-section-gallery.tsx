@@ -41,12 +41,11 @@ export default function ColouredSectionGallery({
         const maxScrollLeft = container.scrollWidth - container.clientWidth;
 
         if (container.scrollLeft + childWidth > maxScrollLeft) {
-          // loop back to start
           container.scrollTo({ left: 0, behavior: 'smooth' });
         } else {
           container.scrollBy({ left: childWidth, behavior: 'smooth' });
         }
-      }, 7000); // 7 seconds per slide
+      }, 7000);
 
       return () => clearInterval(interval);
     }

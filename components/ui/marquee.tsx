@@ -26,15 +26,14 @@ const Marquee = forwardRef<HTMLDivElement, MarqueeProps>(
   ) => {
     const [isPaused, setIsPaused] = useState(false);
 
-    // Fixed durations for consistent speeds
     const getDuration = () => {
       switch (speed) {
         case 'slow':
-          return '120s'; // 2 minutes for slow
+          return '120s';
         case 'fast':
-          return '30s'; // 30 seconds for fast
+          return '30s';
         default:
-          return '60s'; // 1 minute for normal
+          return '60s';
       }
     };
 
@@ -42,7 +41,6 @@ const Marquee = forwardRef<HTMLDivElement, MarqueeProps>(
 
     const directionVar = direction === 'left' ? 'forwards' : 'reverse';
 
-    // Debug logging
     console.log(`Marquee speed: ${speed}, duration: ${duration}`);
 
     const handleMouseEnter = () => {

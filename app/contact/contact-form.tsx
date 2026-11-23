@@ -92,7 +92,6 @@ export default function ContactForm({ contactInfo }: ContactFormProps) {
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-2 gap-8 mb-12'>
-        {/* Contact Information */}
         <div className='space-y-6'>
           <h2 className='text-2xl font-display font-bold mb-6'>Get In Touch</h2>
 
@@ -145,11 +144,9 @@ export default function ContactForm({ contactInfo }: ContactFormProps) {
           </div>
         </div>
 
-        {/* Contact Form */}
         <div className='space-y-6'>
           <h2 className='text-2xl font-display font-bold mb-6'>Send a Message</h2>
 
-          {/* Status Messages */}
           {submitStatus === 'success' && (
             <div className='flex items-center space-x-2 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 '>
               <CheckCircle className='h-5 w-5 text-green-600 dark:text-green-400' />
@@ -250,7 +247,6 @@ export default function ContactForm({ contactInfo }: ContactFormProps) {
         </div>
       </div>
 
-      {/* Additional Information */}
       <div className='border border-almostblack dark:border-white p-6'>
         <h3 className='text-xl font-display font-bold mb-4'>Additional Ways to Connect</h3>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-muted-foreground'>

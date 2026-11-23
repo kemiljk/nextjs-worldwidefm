@@ -7,7 +7,6 @@ import { z } from 'zod';
 
 export const maxDuration = 60;
 
-// Input schema validation
 const createShowSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
@@ -35,7 +34,6 @@ const createShowSchema = z.object({
     .optional(),
 });
 
-// Helper function to remove null/undefined/empty values from metadata
 function cleanMetadata(metadata: any): any {
   const cleaned: any = {};
 
@@ -43,17 +41,14 @@ function cleanMetadata(metadata: any): any {
   const relationshipFields = ['genres', 'locations', 'regular_hosts', 'takeovers'];
 
   for (const [key, value] of Object.entries(metadata)) {
-    // Skip null, undefined values
     if (value === null || value === undefined) {
       continue;
     }
 
-    // For strings, only include non-empty strings
     if (typeof value === 'string' && value.trim() === '') {
       continue;
     }
 
-    // For arrays, preserve relationship fields even if empty, otherwise skip empty arrays
     if (Array.isArray(value)) {
       if (value.length === 0 && !relationshipFields.includes(key)) {
         continue;
@@ -62,7 +57,6 @@ function cleanMetadata(metadata: any): any {
       continue;
     }
 
-    // For objects, recursively clean and only include if not empty
     if (typeof value === 'object' && !Array.isArray(value) && value !== null) {
       const cleanedObj = cleanMetadata(value);
       if (Object.keys(cleanedObj).length > 0) {
@@ -79,7 +73,6 @@ function cleanMetadata(metadata: any): any {
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse and validate the request body
     const body = await request.json();
     const validatedData = createShowSchema.parse(body);
 
@@ -114,7 +107,6 @@ export async function POST(request: NextRequest) {
       imageStructure: validatedData.image ? Object.keys(validatedData.image) : null,
     });
 
-    // Get host details from Cosmic
     let host: any = null;
     try {
       const hostResponse = await cosmic.objects.findOne({
@@ -148,17 +140,13 @@ export async function POST(request: NextRequest) {
     const now = new Date().toISOString();
     const bucketSlug = process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG || '';
 
-    // Calculate broadcast date from startDate and startTime
     const broadcastDate = new Date(`${validatedData.startDate}T${validatedData.startTime}`);
 
-    // Format broadcast time in 24-hour format (HH:MM) and day
     const broadcastTime = validatedData.startTime;
     const broadcastDay = broadcastDate.toLocaleDateString([], { weekday: 'long' });
 
-    // Helper function to get or create a Cosmic object by title
     async function getOrCreateObject(type: string, title: string, additionalData: any = {}) {
       try {
-        // First, try to find existing object by title
         try {
           const existingResponse = await cosmic.objects
             .find({
@@ -184,7 +172,6 @@ export async function POST(request: NextRequest) {
 
         console.log(`🆕 Creating new ${type}: "${title}"`);
 
-        // Create new object
         const createData = {
           type,
           title,
@@ -212,13 +199,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Handle location if provided (location is a slug from the form)
     let locationObjects: any[] = [];
     if (validatedData.location) {
       console.log(`📍 Processing location slug: "${validatedData.location}"`);
 
       try {
-        // Try to find the existing location by slug
         const locationResponse = await cosmic.objects
           .find({
             type: 'locations',
@@ -238,13 +223,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Handle takeover if provided (takeover is an ID from the form)
     let takeoverObjects: any[] = [];
     if (validatedData.takeover) {
       console.log(`🎭 Processing takeover ID: "${validatedData.takeover}"`);
 
       try {
-        // Try to find the existing takeover by ID using findOne
         const takeoverObj = await cosmic.objects.findOne({
           type: 'takeovers',
           id: validatedData.takeover,
@@ -263,7 +246,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Handle genres - the tags field now contains Cosmic genre IDs
     const genreObjects = [];
     for (const genreId of validatedData.tags) {
       const genre = allGenres.find(g => g.id === genreId);
@@ -278,10 +260,8 @@ export async function POST(request: NextRequest) {
     }
     console.log(`📊 Total genres processed: ${genreObjects.length}`);
 
-    // Build metadata strictly from form values (only include fields that have a value)
     const rawMetadata: any = {};
 
-    // Required form-derived fields
     if (validatedData.startDate) {
       rawMetadata.broadcast_date = broadcastDate.toISOString().split('T')[0];
     }
@@ -296,7 +276,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Optional text fields
     if (validatedData.description && validatedData.description.trim()) {
       rawMetadata.description = validatedData.description.trim();
     }
@@ -310,13 +289,11 @@ export async function POST(request: NextRequest) {
       rawMetadata.mixcloud_submission_notes = validatedData.mixcloudSubmissionNotes.trim();
     }
 
-    // Optional booleans
     if (validatedData.featuredOnHomepage) {
       rawMetadata.featured_on_homepage = true;
     }
     rawMetadata.is_live = validatedData.isLive || false;
 
-    // Optional media fields
     if (validatedData.radiocult_media_id) {
       rawMetadata.radiocult_media_id = validatedData.radiocult_media_id;
     }
@@ -332,7 +309,6 @@ export async function POST(request: NextRequest) {
       console.log(`🖼️ Image uploaded: "${thumbnailName}" (URL: ${validatedData.image.media.url})`);
     }
 
-    // Handle hosts - use the selected host ID directly
     let hostObjects: any[] = [];
     if (host) {
       console.log(`👤 Processing host: "${host.title}" (ID: ${host.id})`);
@@ -341,7 +317,6 @@ export async function POST(request: NextRequest) {
       console.log(`✅ Host added: "${host.title}" (ID: ${host.id})`);
     }
 
-    // Relationship arrays: only include if they have values
     if (genreObjects.length > 0) {
       rawMetadata.genres = genreObjects;
     }
@@ -357,13 +332,11 @@ export async function POST(request: NextRequest) {
 
     const metadata = rawMetadata;
 
-    // Log final summary
     console.log(`📋 Final show metadata summary:`);
     console.log(`  - Genres: ${metadata.genres ? metadata.genres.length : 0}`);
     console.log(`  - Locations: ${metadata.locations ? metadata.locations.length : 0}`);
     console.log(`  - Hosts: ${metadata.regular_hosts ? metadata.regular_hosts.length : 0}`);
 
-    // Create the new object in Cosmic
     console.log('Creating Cosmic object with metadata:', JSON.stringify(metadata, null, 2));
 
     try {
@@ -375,12 +348,10 @@ export async function POST(request: NextRequest) {
         metadata,
       };
 
-      // Set thumbnail if image was uploaded
       if (thumbnailName) {
         objectData.thumbnail = thumbnailName;
       }
 
-      // First attempt
       try {
         const cosmicResponse = await cosmic.objects.insertOne(objectData);
 
@@ -388,7 +359,6 @@ export async function POST(request: NextRequest) {
       } catch (firstError: any) {
         console.error('Cosmic creation error (first attempt):', firstError);
 
-        // If it's a metafield validation error, remove the offending key and retry once
         const msg: string = firstError?.message || '';
         const match = msg.match(/metafield with key: '([^']+)' is missing/i);
         if (match?.[1] === 'mixcloud_submission_notes') {
@@ -413,13 +383,11 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Re-throw to be handled by the outer catch which applies minimal fallback
         throw firstError;
       }
     } catch (cosmicError: any) {
       console.error('Cosmic creation error:', cosmicError);
 
-      // If it's a metafield validation error, try with minimal metadata
       if (
         cosmicError.message &&
         cosmicError.message.includes('metafield') &&
@@ -439,7 +407,6 @@ export async function POST(request: NextRequest) {
           is_live: validatedData.isLive || false,
         };
 
-        // Only add description if provided
         if (validatedData.description) {
           rawMinimalMetadata.description = validatedData.description;
         }
@@ -476,7 +443,6 @@ export async function POST(request: NextRequest) {
         } catch (secondError: any) {
           console.error('Second retry failed, creating basic object:', secondError);
 
-          // Last resort: create with no metadata
           const basicData: any = {
             type: 'episode',
             title: validatedData.title,

@@ -105,20 +105,16 @@ export function Dropzone({
 
   const validateFile = (file: File): boolean => {
     if (accept) {
-      // Split accept string by comma and check if file type matches any of them
       const acceptedTypes = accept.split(',').map(type => type.trim());
       const isValidType = acceptedTypes.some(acceptedType => {
-        // Handle wildcard patterns like "audio/*"
         if (acceptedType.endsWith('/*')) {
           const category = acceptedType.slice(0, -2);
           return file.type.startsWith(category + '/');
         }
-        // Handle exact MIME type matches
         return file.type === acceptedType;
       });
 
       if (!isValidType) {
-        // More user-friendly error messages
         if (acceptedTypes.some(type => type.startsWith('audio'))) {
           setError(`Please select an audio file (MP3, WAV, M4A, AAC, or FLAC)`);
         } else if (acceptedTypes.some(type => type.startsWith('image'))) {

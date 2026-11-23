@@ -18,7 +18,6 @@ interface VideoSectionProps {
   curated?: boolean;
 }
 
-// Helper function to extract YouTube video ID from URL
 function getYouTubeThumbnail(url: string) {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
@@ -30,7 +29,6 @@ function getYouTubeThumbnail(url: string) {
   return null;
 }
 
-// Helper function to extract Vimeo video ID from URL
 function getVimeoThumbnail(url: string) {
   const regExp = /vimeo\.com\/(\d+)/;
   const match = url.match(regExp);
@@ -77,7 +75,6 @@ export default function VideoSection({
             : 'flex flex-col sm:flex-row gap-3 h-auto w-full'
         }
       >
-        {/* First video card - 65% width */}
         {firstVideo && (
           <div
             className={cn(
@@ -91,7 +88,6 @@ export default function VideoSection({
             <Link href={`/videos/${firstVideo.slug}`} className='w-full h-full'>
               <Card className='overflow-hidden transition-shadow border border-white group hover:bg-white hover:text-almostblack'>
                 <CardContent className='p-0 flex flex-col aspect-video w-full'>
-                  {/* Image takes remaining space */}
                   <div className='relative flex-1'>
                     <VideoThumbnailImage
                       src={
@@ -111,7 +107,6 @@ export default function VideoSection({
                     />
                   </div>
 
-                  {/* Title & border */}
                   <div className='relative border-t border-white flex-row flex justify-between pl-2 h-auto w-full bg-almostblack text-white items-center group-hover:bg-white group-hover:text-almostblack group-hover:border-black'>
                     <h3 className='text-[25px] font-bold line-clamp-1 group-hover:text-almostblack'>
                       {firstVideo.title}

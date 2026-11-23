@@ -12,7 +12,6 @@ import { useMediaPlayer } from '@/components/providers/media-player-provider';
 import { HeroImage, ResponsiveCardImage } from '@/components/ui/optimized-image';
 import { getVideoThumbnailUrl } from '@/lib/video-thumbnail';
 
-// Using any for now since heroItems come from transformed show data
 interface HomepageHeroProps {
   heroLayout: string;
   heroItems: any[];
@@ -39,12 +38,10 @@ const HeroItem = ({
   };
   const href = hrefByType[item.type] ?? '#';
 
-  // Check if this item has audio content and can be played
   const isEpisode = item.type === 'episode' || item.type === 'episodes';
   const hasAudioContent = item.url || item.metadata?.player;
   const shouldShowPlayButton = isEpisode && hasAudioContent;
 
-  // Check if this specific episode is currently playing
   const isCurrentlyPlaying = isArchivePlaying && selectedShow?.slug === item.slug;
 
   const broadcastWallTime =
@@ -87,7 +84,6 @@ const HeroItem = ({
               aspectRatio={1}
               mobileMaxWidth={800}
             />
-            {/* Play button for episodes */}
             {shouldShowPlayButton && (
               <div className='absolute bottom-4 right-4 z-30 opacity-0 group-hover:opacity-100 transition-opacity'>
                 <button
@@ -205,7 +201,6 @@ const HomepageHero: React.FC<HomepageHeroProps> = ({ heroLayout, heroItems }) =>
   );
 };
 
-// New: EpisodeHero for episode pages
 export const EpisodeHero = ({
   displayName,
   displayImage,
@@ -226,7 +221,6 @@ export const EpisodeHero = ({
 
   return (
     <div className='relative w-full h-[80vh] sm:h-200 aspect-2/1 flex flex-col justify-center overflow-hidden'>
-      {/* Overlay: soft blur + blend */}
       <div className='absolute inset-0 w-full h-full z-10 bg-blend-multiply backdrop-blur-[20px] pointer-events-none' />
 
       <div className='absolute inset-0 w-full h-full z-20 pointer-events-none'>
@@ -249,7 +243,6 @@ export const EpisodeHero = ({
         aspectRatio='square'
         sizes='(max-width: 640px) 80vw, (max-width: 768px) 400px, (max-width: 1024px) 450px, 600px'
       />
-      {/* Overlay: Play Button and Text - Always show artwork and title */}
       <div className='relative inset-0 flex justify-center pt-5 z-30'>
         <div className='flex flex-col md:max-w-full md:flex-row gap-10 px-10 items-start md:items-center '>
           <div className='relative w-[80vw] sm:w-[400px] md:w-[450px] lg:w-[600px] aspect-square border border-almostblack z-30'>
@@ -261,7 +254,6 @@ export const EpisodeHero = ({
               aspectRatio='square'
               sizes='(max-width: 640px) 80vw, (max-width: 768px) 400px, (max-width: 1024px) 450px, 600px'
             />
-            {/* Only show play button if there's audio content */}
             {(isEpisode || hasAudioContent) && show?.metadata?.player && (
               <PlayButton
                 show={show}

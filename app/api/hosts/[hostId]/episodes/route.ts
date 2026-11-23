@@ -22,7 +22,6 @@ export async function GET(
       depth: 1,
     });
 
-    // Transform episodes to show format for ShowCard compatibility
     const transformedShows = (response.objects || []).map(transformShowToViewData);
 
     const hasNext = transformedShows.length === limit && offset + limit < (response.total || 0);

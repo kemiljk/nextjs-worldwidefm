@@ -14,25 +14,15 @@ import { put, del, head, list } from '@vercel/blob';
 
 export { put, del, head, list };
 
-/**
- * Check if Vercel Blob is configured
- */
 export function isBlobConfigured(): boolean {
   return !!process.env.BLOB_READ_WRITE_TOKEN;
 }
 
-/**
- * Generate a storage path for an episode image
- * Format: episodes/{slug}.{ext}
- */
 export function generateEpisodeImagePath(slug: string, originalFilename?: string): string {
   const ext = (originalFilename || 'image.jpg').split('.').pop()?.toLowerCase() || 'jpg';
   return `episodes/${slug}.${ext}`;
 }
 
-/**
- * Check if a URL is from Vercel Blob (already migrated)
- */
 export function isVercelBlobUrl(url: string): boolean {
   if (!url) return false;
   return (
@@ -40,9 +30,6 @@ export function isVercelBlobUrl(url: string): boolean {
   );
 }
 
-/**
- * Check if a URL is from Cosmic (needs migration)
- */
 export function isCosmicUrl(url: string): boolean {
   if (!url) return false;
   return (
@@ -52,9 +39,6 @@ export function isCosmicUrl(url: string): boolean {
   );
 }
 
-/**
- * Upload an image to Vercel Blob
- */
 export async function uploadEpisodeImage(
   slug: string,
   imageBuffer: Buffer,
@@ -66,7 +50,7 @@ export async function uploadEpisodeImage(
   const blob = await put(pathname, imageBuffer, {
     access: 'public',
     contentType,
-    addRandomSuffix: false, // Use exact pathname
+    addRandomSuffix: false,
   });
 
   return {
@@ -75,9 +59,6 @@ export async function uploadEpisodeImage(
   };
 }
 
-/**
- * Check if an episode image exists in Vercel Blob
- */
 export async function episodeImageExists(
   slug: string,
   originalFilename?: string
@@ -91,9 +72,6 @@ export async function episodeImageExists(
   }
 }
 
-/**
- * Delete an episode image from Vercel Blob
- */
 export async function deleteEpisodeImage(url: string): Promise<void> {
   await del(url);
 }

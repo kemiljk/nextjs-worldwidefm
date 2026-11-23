@@ -15,7 +15,6 @@ export function formatDate(dateString: string): string {
 
   const date = new Date(dateString);
 
-  // Check if date is valid
   if (isNaN(date.getTime())) return dateString;
 
   return date.toLocaleDateString('en-US', {
@@ -47,14 +46,8 @@ export function formatDateShort(dateString: string): string {
     .concat(yearSuffix);
 }
 
-/**
- * Remove all URLs from a string
- * @param text The input string
- * @returns The string with all URLs removed
- */
 export function stripUrlsFromText(text: string): string {
   if (!text) return text;
-  // Regex to match URLs (http, https, www, etc.)
   return text
     .replace(/https?:\/\/\S+|www\.[a-zA-Z0-9./?=_-]+/g, '')
     .replace(/\s{2,}/g, ' ')

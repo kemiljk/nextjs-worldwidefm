@@ -27,7 +27,6 @@ export function FilterToolbar({
   selectedFilters,
   availableFilters,
 }: FilterToolbarProps) {
-  // Handle "Article" filter button (acts as toggle)
   const handleArticleClick = () => {
     if (activeFilter === 'article') {
       onFilterChange('');
@@ -36,7 +35,6 @@ export function FilterToolbar({
     }
   };
 
-  // Handle "Video" filter button (acts as toggle)
   const handleVideoClick = () => {
     if (activeFilter === 'video') {
       onFilterChange('');
@@ -45,25 +43,20 @@ export function FilterToolbar({
     }
   };
 
-  // Handle dropdown selection changes
   const handleSelectionChange = (filterType: string) => (values: string[]) => {
     const currentSelected = selectedFilters[filterType] || [];
 
-    // Find what changed
     const added = values.filter(v => !currentSelected.includes(v));
     const removed = currentSelected.filter(v => !values.includes(v));
 
-    // Handle additions
     added.forEach(value => {
       onFilterChange(filterType, value);
     });
 
-    // Handle removals
     removed.forEach(value => {
       onFilterChange(filterType, value);
     });
 
-    // If no items selected, clear all filters
     if (values.length === 0) {
       onFilterChange('');
     }
@@ -71,15 +64,13 @@ export function FilterToolbar({
 
   const handleClearFilter = (filterType: string, value?: string) => {
     if (value) {
-      onFilterChange(filterType, value); // This will toggle the item
+      onFilterChange(filterType, value);
     }
   };
 
-  // Get all active filter chips
   const getActiveChips = () => {
     const chips: Array<{ type: string; value: string; label: string }> = [];
 
-    // Add article filters
     if (selectedFilters.article?.length > 0) {
       selectedFilters.article.forEach(slug => {
         const item = availableFilters.article?.find(f => f.slug === slug);
@@ -91,7 +82,6 @@ export function FilterToolbar({
       });
     }
 
-    // Add video filters
     if (selectedFilters.video?.length > 0) {
       selectedFilters.video.forEach(slug => {
         const item = availableFilters.video?.find(f => f.slug === slug);
@@ -103,7 +93,6 @@ export function FilterToolbar({
       });
     }
 
-    // Add category filters
     if (selectedFilters.categories?.length > 0) {
       selectedFilters.categories.forEach(slug => {
         const item = availableFilters.categories?.find(f => f.slug === slug);
@@ -121,7 +110,6 @@ export function FilterToolbar({
   return (
     <div className='flex flex-row flex-wrap items-start justify-between gap-2 h-auto pt-4 pb-2'>
       <div className='flex flex-col gap-4'>
-        {/* Main Filter Controls */}
         <div className='flex flex-wrap gap-2 text-m7'>
           <Button
             variant='outline'
@@ -172,7 +160,6 @@ export function FilterToolbar({
           />
         </div>
 
-        {/* Active Filter Chips */}
         {getActiveChips().length > 0 && (
           <div className='w-full border-t border-almostblack flex gap-2 pt-4 pb-2 text-[15px] overflow-x-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700'>
             {getActiveChips().map((chip, index) => (
@@ -194,7 +181,6 @@ export function FilterToolbar({
           </div>
         )}
       </div>
-      {/* Search Bar */}
       {onSearchChange && (
         <div className='relative w-auto h-auto flex flex-row bg-background border border-almostblack dark:border-white items-center text-almostblack self-start'>
           <Input

@@ -11,7 +11,6 @@ export type {
   AnySearchResult,
 } from './search/unified-types';
 
-// Use the unified search context type
 export type SearchContextType = UnifiedSearchContextType;
 
 export const SearchContext = createContext<SearchContextType>({

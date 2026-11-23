@@ -55,7 +55,6 @@ export async function signUp(formData: FormData) {
     const firstName = formData.get('firstName') as string;
     const lastName = formData.get('lastName') as string;
 
-    // Add password validation
     if (!isValidPassword(password)) {
       return {
         success: false,
@@ -63,7 +62,6 @@ export async function signUp(formData: FormData) {
       };
     }
 
-    // Check if user already exists
     let existingUser;
     try {
       existingUser = await cosmic.objects
@@ -84,14 +82,11 @@ export async function signUp(formData: FormData) {
       };
     }
 
-    // Generate verification code
     const verificationCode = crypto.randomBytes(32).toString('hex');
     const verificationExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user
     await cosmic.objects.insertOne({
       title: `${firstName} ${lastName}`,
       type: 'users',
@@ -107,7 +102,6 @@ export async function signUp(formData: FormData) {
       },
     });
 
-    // Send verification email
     const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify?code=${verificationCode}`;
 
     try {
@@ -253,7 +247,6 @@ export async function updateUserProfile(userId: string, formData: FormData) {
     const email = (formData.get('email') as string).toLowerCase();
     const avatar = formData.get('avatar') as File;
 
-    // Get current user data to check if email has changed
     const { object: currentUser } = await cosmic.objects
       .findOne({ id: userId })
       .props(['metadata'])
@@ -265,9 +258,7 @@ export async function updateUserProfile(userId: string, formData: FormData) {
       email: email,
     };
 
-    // If email has changed, generate new verification
     if (email !== currentUser.metadata.email) {
-      // Check if new email already exists
       const existingUser = await cosmic.objects
         .findOne({
           type: 'users',
@@ -290,7 +281,6 @@ export async function updateUserProfile(userId: string, formData: FormData) {
       metadata.verification_code = hashSecret(verificationCode);
       metadata.verification_expiry = verificationExpiry;
 
-      // Send new verification email
       const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify?code=${verificationCode}`;
       try {
         const result = await getResendClient().emails.send({
@@ -328,7 +318,6 @@ export async function updateUserProfile(userId: string, formData: FormData) {
       },
     };
 
-    // Handle avatar upload if provided
     if (avatar && avatar.size > 0) {
       const { media } = await uploadFile(avatar);
       updates.metadata.avatar = media.name;
@@ -344,7 +333,6 @@ export async function updateUserProfile(userId: string, formData: FormData) {
   }
 }
 
-// Add new verification function
 export async function verifyEmail(code: string) {
   try {
     const { object } = await cosmic.objects
@@ -384,7 +372,6 @@ export async function forgotPassword(formData: FormData) {
   try {
     const email = (formData.get('email') as string).toLowerCase();
 
-    // Check if user exists
     const existingUser = await cosmic.objects
       .findOne({
         type: 'users',
@@ -400,11 +387,9 @@ export async function forgotPassword(formData: FormData) {
       };
     }
 
-    // Generate reset token and expiry
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetExpiry = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
 
-    // Update user with reset token
     await cosmic.objects.updateOne(existingUser.object.id, {
       metadata: {
         ...existingUser.object.metadata,
@@ -413,7 +398,6 @@ export async function forgotPassword(formData: FormData) {
       },
     });
 
-    // Send reset email
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${resetToken}`;
 
     try {
@@ -453,7 +437,6 @@ export async function resetPassword(token: string, formData: FormData) {
   try {
     const password = formData.get('password') as string;
 
-    // Add password validation
     if (!isValidPassword(password)) {
       return {
         success: false,
@@ -461,7 +444,6 @@ export async function resetPassword(token: string, formData: FormData) {
       };
     }
 
-    // Find user with reset token
     const existingUser = await cosmic.objects
       .findOne({
         type: 'users',
@@ -485,10 +467,8 @@ export async function resetPassword(token: string, formData: FormData) {
       };
     }
 
-    // Hash new password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Update user password and clear reset token
     await cosmic.objects.updateOne(existingUser.object.id, {
       metadata: {
         ...existingUser.object.metadata,
@@ -536,11 +516,9 @@ export async function logoutUser() {
   return { success: true };
 }
 
-// --- FAVOURITES MANAGEMENT ---
 import type { GenreObject } from '@/lib/cosmic-config';
 import type { HostObject } from '@/lib/cosmic-config';
 
-// Generic helper for managing favorites
 async function manageFavourites<T extends { id: string }>(
   userId: string,
   item: T,
@@ -552,7 +530,6 @@ async function manageFavourites<T extends { id: string }>(
     if (!authenticated || authenticated.id !== userId) {
       return { success: false, error: 'Unauthorized' };
     }
-    // Validate inputs
     if (!userId || !item?.id) {
       throw new Error('Invalid user ID or item ID');
     }
@@ -607,7 +584,6 @@ export async function removeFavouriteGenre(userId: string, genreId: string) {
   return manageFavourites(userId, { id: genreId } as GenreObject, 'favourite_genres', 'remove');
 }
 
-// For hosts, use the same pattern. Type is any for now, but should be HostObject if defined.
 export async function addFavouriteHost(userId: string, host: HostObject) {
   return manageFavourites(userId, host, 'favourite_hosts', 'add');
 }
@@ -616,7 +592,6 @@ export async function removeFavouriteHost(userId: string, hostId: string) {
   return manageFavourites(userId, { id: hostId } as HostObject, 'favourite_hosts', 'remove');
 }
 
-// Generic helper for managing multiple favorites
 async function manageMultipleFavourites<T extends { id: string }>(
   userId: string,
   items: T[],
@@ -813,7 +788,6 @@ export async function setEpisodeReminder(episodeId: string, enabled: boolean) {
   }
 }
 
-// Helper function to get latest shows by genre
 async function getShowsByGenre(genreId: string, limit = 4): Promise<any[]> {
   try {
     const cosmicResponse = await cosmic.objects
@@ -866,7 +840,6 @@ async function getShowsByGenre(genreId: string, limit = 4): Promise<any[]> {
   }
 }
 
-// Helper function to get latest shows by host
 async function getShowsByHost(hostId: string, limit = 4): Promise<any[]> {
   try {
     const cosmicResponse = await cosmic.objects
@@ -919,8 +892,6 @@ async function getShowsByHost(hostId: string, limit = 4): Promise<any[]> {
   }
 }
 
-// (Moved to client-side fetching via components)
-
 export async function getDashboardOptions() {
   const [genresRes, hostsRes] = await Promise.all([
     cosmic.objects
@@ -952,18 +923,13 @@ export async function getDashboardOptions() {
 
 export async function getDashboardData(userId: string) {
   try {
-    // Fetch user data first
     const { data: userData, error: userError } = await getUserData(userId);
     if (userError || !userData) {
       return { data: null, error: userError || 'User not found' };
     }
 
-    // Fetch only options in parallel - shows are fetched client-side
     const optionsData = await getDashboardOptions();
 
-    // Prepare favourites from user data directly
-    // If they are IDs (strings), we'll try to find them in the all-options list if needed,
-    // but the UI currently expects objects with titles.
     const favouriteGenres = (userData.metadata?.favourite_genres || [])
       .map((g: any) => {
         if (typeof g !== 'string') return g;

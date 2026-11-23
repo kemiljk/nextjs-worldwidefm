@@ -22,7 +22,6 @@ export async function ForYouSection({
     const limitedGenres = favoriteGenreIds.slice(0, 3);
     const limitedHosts = favoriteHostIds.slice(0, 3);
 
-    // Reduce per-request limit to avoid large queries
     const perRequestLimit = Math.max(limit + 5, 15);
 
     const promises: Promise<any>[] = [];
@@ -47,7 +46,6 @@ export async function ForYouSection({
       );
     }
 
-    // Fetch with timeout protection
     const results = await Promise.allSettled(
       promises.map(async p => {
         const timeoutPromise = new Promise((_, reject) => {
@@ -57,7 +55,6 @@ export async function ForYouSection({
       })
     );
 
-    // Extract successful results
     for (const result of results) {
       if (result.status === 'fulfilled' && result.value?.shows) {
         episodes.push(...result.value.shows);
@@ -112,7 +109,6 @@ export async function ForYouSection({
     );
   } catch (error) {
     console.error('Error fetching For You shows:', error);
-    // Silently fail - don't show the section if there's an error
     return null;
   }
 }

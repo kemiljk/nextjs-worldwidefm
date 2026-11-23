@@ -1,9 +1,8 @@
-// Removed MixcloudShow import - using any type for show format compatibility
 import { ShowCard } from './ui/show-card';
 import type { CanonicalGenre } from '@/lib/get-canonical-genres';
 
 interface ShowsGridProps {
-  shows: any[]; // Using any for show format compatibility
+  shows: any[];
   contentType?: 'episodes' | 'hosts-series' | 'takeovers';
   canonicalGenres?: CanonicalGenre[];
 }
@@ -22,7 +21,6 @@ export function ShowsGrid({
   }
 
   const getSlugForShow = (show: any) => {
-    // Use __source if available, otherwise fall back to contentType
     const source = show.__source || contentType;
 
     switch (source) {

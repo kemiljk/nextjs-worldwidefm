@@ -24,7 +24,6 @@ export default function HostClient({
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
-  // Load more episodes function
   const loadMore = async () => {
     if (!hasNext || isLoadingMore) return;
 
@@ -77,7 +76,6 @@ export default function HostClient({
         ))}
       </div>
 
-      {/* Load More Button */}
       {hasNext && (
         <div className='w-full flex items-center justify-center mt-8'>
           <Button

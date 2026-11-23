@@ -39,7 +39,6 @@ export default function ResetPasswordForm({ token, onSubmit }: ResetPasswordForm
         return;
       }
 
-      // Redirect to login with success message
       router.push('/login?success=Password reset successful. Please login with your new password.');
     } catch (err: any) {
       setError(err.message || 'An error occurred');

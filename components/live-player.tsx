@@ -79,12 +79,10 @@ export default function LivePlayer() {
   const mountedRef = useRef(true);
   const playAttemptRef = useRef(0);
 
-  // Environment variables
   const streamUrl = process.env.NEXT_PUBLIC_RADIOCULT_STREAM_URL;
   const stationId = process.env.NEXT_PUBLIC_RADIOCULT_STATION_ID;
   const apiKey = process.env.NEXT_PUBLIC_RADIOCULT_PUBLISHABLE_KEY;
 
-  // Fetch current show from schedule (preferred) and RadioCult (fallback)
   useEffect(() => {
     let boundaryTimeout: ReturnType<typeof setTimeout> | undefined;
     let inFlight = false;
@@ -172,7 +170,6 @@ export default function LivePlayer() {
     isLivePlayingRef.current = isLivePlaying;
   }, [isLivePlaying]);
 
-  // Initialize audio element once on mount
   useEffect(() => {
     const audio = new Audio();
     audio.preload = 'none';
@@ -314,7 +311,6 @@ export default function LivePlayer() {
     };
   }, []);
 
-  // WebSocket connection for real-time metadata
   const connectWebSocket = useCallback(() => {
     if (!mountedRef.current || !stationId || !apiKey) {
       if (!stationId || !apiKey) {
@@ -374,7 +370,6 @@ export default function LivePlayer() {
             const contentArtist = metadata.content?.artist || metadata.metadata?.artist;
 
             setMatchingShowSlug(null);
-            // Always update immediately with latest metadata - this is the current live show
             setLiveMetadata({
               content: {
                 title: contentTitle,
@@ -405,7 +400,6 @@ export default function LivePlayer() {
     }
   }, [stationId, apiKey]);
 
-  // Initialize WebSocket connection immediately on mount
   useEffect(() => {
     mountedRef.current = true;
 
@@ -452,14 +446,12 @@ export default function LivePlayer() {
     };
   }, [connectWebSocket, stationId, apiKey]);
 
-  // Handle volume changes
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = liveVolume;
     }
   }, [liveVolume]);
 
-  // Handle pause when state changes elsewhere
   useEffect(() => {
     if (!audioRef.current) return;
 
@@ -485,14 +477,12 @@ export default function LivePlayer() {
       return;
     }
 
-    // Create event from WebSocket metadata
     const eventToPlay = {
       showName: scheduleShow?.name || liveMetadata.content?.title || 'Live Stream',
       ...liveMetadata.content,
     };
 
     if (streamState.error) {
-      // Retry on error
       setStreamState(prev => ({ ...prev, error: null }));
     }
 
@@ -564,7 +554,6 @@ export default function LivePlayer() {
             return;
           }
 
-          // Retry succeeded
           plausible('Live Stream Played', {
             props: {
               show: eventToPlay.showName || 'Unknown',

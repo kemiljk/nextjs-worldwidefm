@@ -7,7 +7,6 @@ export const cosmic = createBucketClient({
   writeKey: process.env.COSMIC_WRITE_KEY as string,
 });
 
-// Types based on the provided API responses
 export interface CosmicImage {
   url: string;
   imgix_url: string;

@@ -2,13 +2,13 @@ import { ShowCard } from '@/components/ui/show-card';
 import { FeaturedCard } from '../featured-card';
 
 interface ArchiveSectionProps {
-  shows: any[]; // Using any for show format compatibility
+  shows: any[];
   className?: string;
 }
 
 export default function ArchiveSection({ shows, className }: ArchiveSectionProps) {
-  const firstShow = shows[0]; // index 0
-  const nextFourShows = shows.slice(1, 5); // indexes 1, 2, 3
+  const firstShow = shows[0];
+  const nextFourShows = shows.slice(1, 5);
   return (
     <section className=' w-full relative flex flex-col gap-6 h-auto p-5'>
       <div className=''>
@@ -23,7 +23,6 @@ export default function ArchiveSection({ shows, className }: ArchiveSectionProps
         </div>
 
         <div className='flex md:flex-row w-full gap-3 flex-col md:items-stretch'>
-          {/* First show in its own container */}
           {firstShow && (
             <div className='flex w-full h-100 md:h-auto md:w-[60%]'>
               <FeaturedCard
@@ -34,7 +33,6 @@ export default function ArchiveSection({ shows, className }: ArchiveSectionProps
               />
             </div>
           )}
-          {/* four shows in a separate grid */}
           {nextFourShows.length > 0 && (
             <div className='flex flex-row md:grid md:grid-cols-2 gap-3 w-full md:w-[40%]'>
               {nextFourShows.map((show, index) => (
