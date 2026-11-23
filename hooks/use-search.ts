@@ -62,7 +62,6 @@ export function useSearch(): UseSearchReturn {
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  // Extract available filters from content
   useEffect(() => {
     if (allContent.length > 0) {
       const newFilters = {
@@ -106,7 +105,6 @@ export function useSearch(): UseSearchReturn {
         });
       });
 
-      // Sort filters alphabetically by title
       const sortedFilters = Object.fromEntries(
         Object.entries(newFilters).map(([key, map]) => [
           key,
@@ -135,7 +133,6 @@ export function useSearch(): UseSearchReturn {
         setResults([]);
         return;
       }
-      // Use server action instead of API route
       const results = await searchContent(term, 'cosmic', 100);
       setResults(Array.isArray(results) ? results : []);
     } catch (err) {
@@ -145,7 +142,6 @@ export function useSearch(): UseSearchReturn {
     }
   }, []);
 
-  // Trigger search on debounced input
   useEffect(() => {
     const term = debouncedSearchTerm.trim();
     if (term.length >= 2) {

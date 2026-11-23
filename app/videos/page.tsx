@@ -17,12 +17,11 @@ export default async function VideosPage() {
     getVideosPageConfig(),
   ]);
 
-  // Extract category order from page config
   const categoryOrder = pageConfig?.category_order || [];
 
   return (
     <div className='w-full overflow-x-hidden'>
-      {/* Header */}
+      {}
       <div className='relative w-full h-[25vh] sm:h-[35vh] overflow-hidden'>
         <div className='absolute inset-0 bg-soul' />
         <div
@@ -42,7 +41,7 @@ export default async function VideosPage() {
         </div>
       </div>
 
-      {/* Content */}
+      {}
       <div className='px-5 pb-20 font-mono uppercase text-m8'>
         <Suspense fallback={<div>Loading...</div>}>
           <VideosClient

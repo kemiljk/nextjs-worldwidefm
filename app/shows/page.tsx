@@ -16,7 +16,6 @@ export default async function ShowsPage() {
   // Opt into dynamic rendering - ensures time-based calculations use current time
   await connection();
 
-  // Data fetching uses time-based caching (latest: 5min revalidation)
   // Content updates via revalidation or manual trigger at /api/revalidate
 
   const [canonicalGenres, availableFilters, initialShowsData] = await Promise.all([

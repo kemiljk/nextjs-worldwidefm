@@ -1,10 +1,3 @@
-/**
- * World Wide FM Search Engine
- *
- * This file implements the search engine using Fuse.js for fuzzy searching
- * and implements client-side caching for improved performance.
- */
-
 import Fuse from 'fuse.js';
 import type { IFuseOptions } from 'fuse.js';
 import {
@@ -20,15 +13,10 @@ import {
 import { getAllPosts } from '../actions/posts';
 import { getVideos } from '../actions/videos';
 
-// Constants
 const DEFAULT_LIMIT = 20;
-const DEFAULT_CACHE_EXPIRY = 1000 * 60 * 15; // 15 minutes
 const FILTERS_CACHE_KEY = 'wwfm_search_filters';
 const CONTENT_CACHE_KEY = 'wwfm_search_content';
 
-/**
- * World Wide FM Search Engine Implementation
- */
 export class WWFMSearchEngine implements SearchEngine {
   private fuseInstance: Fuse<SearchItem> | null = null;
   private allContent: SearchItem[] = [];
@@ -44,7 +32,6 @@ export class WWFMSearchEngine implements SearchEngine {
   private contentLoaded = false;
   private filtersLoaded = false;
 
-  // Fuse.js configuration for improved searching
   private readonly fuseOptions: IFuseOptions<SearchItem> = {
     keys: [
       { name: 'title', weight: 2 },
@@ -61,9 +48,6 @@ export class WWFMSearchEngine implements SearchEngine {
     useExtendedSearch: true,
   };
 
-  /**
-   * Initialize with optional content preloading
-   */
   constructor(preloadContent = false) {
     // Only preload content if we're in the browser to avoid SSR issues
     if (preloadContent && typeof window !== 'undefined') {
@@ -72,28 +56,7 @@ export class WWFMSearchEngine implements SearchEngine {
     }
   }
 
-  /**
-   * Get initial content batch - used for initial rendering and search
-   */
   async getInitialContent(limit = DEFAULT_LIMIT): Promise<SearchResponse> {
-    // Disable cache: always fetch fresh data
-    // const cachedContent = this.loadFromCache<SearchItem[]>(CONTENT_CACHE_KEY);
-    // if (cachedContent && cachedContent.length > 0) {
-    //   console.log(`Loaded ${cachedContent.length} items from cache`);
-    //   this.allContent = cachedContent;
-    //   this.initFuse(cachedContent);
-    //   this.contentLoaded = true;
-    //
-    //   // Return first batch from cache
-    //   return {
-    //     items: cachedContent.slice(0, limit),
-    //     total: cachedContent.length,
-    //     hasMore: cachedContent.length > limit,
-    //     availableFilters: await this.getAvailableFilters(),
-    //   };
-    // }
-
-    // Nothing in cache, load from API
     try {
       const [episodes, postsRes, videosRes] = await Promise.all([
         import('@/lib/episode-service').then(m => m.getEpisodesForShows({ limit: 100 })),
@@ -101,18 +64,15 @@ export class WWFMSearchEngine implements SearchEngine {
         getVideos({ limit: 20 }),
       ]);
 
-      // Map to unified format
       const items: SearchItem[] = [
         ...mapEpisodesToSearchItems(episodes.shows || []),
         ...mapPostsToSearchItems(postsRes.posts || []),
         ...mapVideosToSearchItems(videosRes.videos || []),
       ];
 
-      // Sort by date (newest first), prioritizing broadcast_date for episodes
       items.sort((a, b) => {
         let dateA: number, dateB: number;
 
-        // For episodes, prioritize broadcast_date if available
         if (a.contentType === 'episodes') {
           const episodeA = a.metadata;
           dateA = episodeA?.broadcast_date
@@ -138,15 +98,12 @@ export class WWFMSearchEngine implements SearchEngine {
         return dateB - dateA;
       });
 
-      // Update instance state
       this.allContent = items;
       this.initFuse(items);
       this.contentLoaded = true;
 
-      // Extract and update available filters
       this.updateFiltersFromContent(items);
 
-      // Return first batch
       return {
         items: items.slice(0, limit),
         total: items.length,
@@ -159,20 +116,7 @@ export class WWFMSearchEngine implements SearchEngine {
     }
   }
 
-  /**
-   * Get all available filters for category filtering
-   */
   async getAvailableFilters(): Promise<Record<FilterCategory, FilterItem[]>> {
-    // Disable cache: always fetch fresh filters
-    // const cachedFilters = this.loadFromCache<Record<FilterCategory, FilterItem[]>>(FILTERS_CACHE_KEY);
-    // if (cachedFilters && cachedFilters.genres?.length && cachedFilters.hosts?.length) {
-    //   console.log(`Loaded filters from cache: ${cachedFilters.genres.length} genres, ${cachedFilters.hosts.length} hosts`);
-    //   this.allFilters = cachedFilters;
-    //   this.filtersLoaded = true;
-    //   return cachedFilters;
-    // }
-
-    // Build content type filters
     const typeFilters: FilterItem[] = [
       { id: 'episodes', slug: 'episodes', title: 'Episodes', type: 'types' },
       { id: 'posts', slug: 'posts', title: 'Posts', type: 'types' },
@@ -181,75 +125,58 @@ export class WWFMSearchEngine implements SearchEngine {
       { id: 'takeovers', slug: 'takeovers', title: 'Takeovers', type: 'types' },
     ];
 
-    // Ensure content is loaded so we can extract filters
     if (!this.contentLoaded) {
       await this.getInitialContent(100);
     }
 
-    // Update instance state and add content type filters
     this.allFilters.types = typeFilters;
     this.filtersLoaded = true;
-
-    // Save to cache
-    // this.saveToCache(FILTERS_CACHE_KEY, this.allFilters);
 
     return this.allFilters;
   }
 
-  /**
-   * Execute search with filters and options
-   */
   async search(filters: SearchFilters, options: SearchOptions = {}): Promise<SearchResponse> {
-    // Ensure content is loaded
     if (!this.contentLoaded) {
       await this.getInitialContent(100);
     }
 
     const { limit = DEFAULT_LIMIT, page = 1 } = options;
 
-    // If search query or filters not provided, just paginate all content
     if (!filters.search && !this.hasActiveFilters(filters)) {
       return this.paginateResults(this.allContent, page, limit);
     }
 
     let results = this.allContent;
 
-    // Apply content type filter if specified
     if (filters.contentType && filters.contentType.length > 0) {
       results = results.filter(item =>
         filters.contentType?.includes(item.contentType as ContentType)
       );
     }
 
-    // Apply genre filters if specified
     if (filters.genres && filters.genres.length > 0) {
       results = results.filter(item =>
         item.genres.some(genre => filters.genres?.includes(genre.slug))
       );
     }
 
-    // Apply location filters if specified
     if (filters.locations && filters.locations.length > 0) {
       results = results.filter(item =>
         item.locations.some(location => filters.locations?.includes(location.slug))
       );
     }
 
-    // Apply host filters if specified
     if (filters.hosts && filters.hosts.length > 0) {
       results = results.filter(item => item.hosts.some(host => filters.hosts?.includes(host.slug)));
     }
 
-    // Apply takeover filters if specified
     if (filters.takeovers && filters.takeovers.length > 0) {
       results = results.filter(item =>
         item.takeovers.some(takeover => filters.takeovers?.includes(takeover.slug))
       );
     }
 
-    // Apply search query if specified
     if (filters.search && this.fuseInstance) {
-      // Get fuzzy search results from Fuse
       const searchResults = this.fuseInstance.search(filters.search, { limit: 500 });
 
       // Keep only results that also match the other filters
@@ -263,19 +190,13 @@ export class WWFMSearchEngine implements SearchEngine {
         .map(result => result.item);
     }
 
-    // Update available filters based on the filtered results
     const availableFilters = this.calculateAvailableFilters(results);
 
-    // Return paginated results
     return this.paginateResults(results, page, limit, availableFilters);
   }
 
-  /**
-   * Clear search cache
-   */
   clearCache(): void {
     try {
-      // Check if we're in the browser environment
       if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
         return;
       }
@@ -288,16 +209,10 @@ export class WWFMSearchEngine implements SearchEngine {
     }
   }
 
-  /**
-   * Initialize Fuse.js with content
-   */
   private initFuse(items: SearchItem[]): void {
     this.fuseInstance = new Fuse(items, this.fuseOptions);
   }
 
-  /**
-   * Check if there are any active filters
-   */
   private hasActiveFilters(filters: SearchFilters): boolean {
     return !!(
       (filters.contentType && filters.contentType.length > 0) ||
@@ -308,32 +223,24 @@ export class WWFMSearchEngine implements SearchEngine {
     );
   }
 
-  /**
-   * Calculate available filters based on the filtered results
-   */
   private calculateAvailableFilters(results: SearchItem[]): Record<FilterCategory, FilterItem[]> {
-    // Create maps to track filters with counts
     const genresMap = new Map<string, FilterItem & { count: number }>();
     const locationsMap = new Map<string, FilterItem & { count: number }>();
     const hostsMap = new Map<string, FilterItem & { count: number }>();
     const takeoversMap = new Map<string, FilterItem & { count: number }>();
     const typesMap = new Map<string, FilterItem & { count: number }>();
 
-    // Initialize type filters
     this.allFilters.types.forEach(type => {
       typesMap.set(type.slug, { ...type, count: 0 });
     });
 
-    // Count occurrences in results
     results.forEach(item => {
-      // Count content types
       const typeKey = item.contentType;
       const typeItem = typesMap.get(typeKey);
       if (typeItem) {
         typeItem.count++;
       }
 
-      // Count genres
       item.genres.forEach(genre => {
         if (!genresMap.has(genre.slug)) {
           genresMap.set(genre.slug, { ...genre, count: 1 });
@@ -343,7 +250,6 @@ export class WWFMSearchEngine implements SearchEngine {
         }
       });
 
-      // Count locations
       item.locations.forEach(location => {
         if (!locationsMap.has(location.slug)) {
           locationsMap.set(location.slug, { ...location, count: 1 });
@@ -353,7 +259,6 @@ export class WWFMSearchEngine implements SearchEngine {
         }
       });
 
-      // Count hosts
       item.hosts.forEach(host => {
         if (!hostsMap.has(host.slug)) {
           hostsMap.set(host.slug, { ...host, count: 1 });
@@ -363,7 +268,6 @@ export class WWFMSearchEngine implements SearchEngine {
         }
       });
 
-      // Count takeovers
       item.takeovers.forEach(takeover => {
         if (!takeoversMap.has(takeover.slug)) {
           takeoversMap.set(takeover.slug, { ...takeover, count: 1 });
@@ -374,7 +278,6 @@ export class WWFMSearchEngine implements SearchEngine {
       });
     });
 
-    // Sort filters by count (descending) then by title (ascending)
     const sortByCountAndTitle = (
       a: FilterItem & { count: number },
       b: FilterItem & { count: number }
@@ -385,7 +288,6 @@ export class WWFMSearchEngine implements SearchEngine {
       return a.title.localeCompare(b.title);
     };
 
-    // Convert maps to arrays and sort
     return {
       genres: Array.from(genresMap.values()).sort(sortByCountAndTitle),
       locations: Array.from(locationsMap.values()).sort(sortByCountAndTitle),
@@ -396,40 +298,31 @@ export class WWFMSearchEngine implements SearchEngine {
     };
   }
 
-  /**
-   * Extract filters from content items
-   */
   private updateFiltersFromContent(items: SearchItem[]): void {
-    // Maps for deduplication
     const genresMap = new Map<string, FilterItem>();
     const locationsMap = new Map<string, FilterItem>();
     const hostsMap = new Map<string, FilterItem>();
     const takeoversMap = new Map<string, FilterItem>();
 
-    // Extract filters from each item
     items.forEach(item => {
-      // Add genres
       item.genres.forEach(genre => {
         if (!genresMap.has(genre.slug)) {
           genresMap.set(genre.slug, genre);
         }
       });
 
-      // Add locations
       item.locations.forEach(location => {
         if (!locationsMap.has(location.slug)) {
           locationsMap.set(location.slug, location);
         }
       });
 
-      // Add hosts
       item.hosts.forEach(host => {
         if (!hostsMap.has(host.slug)) {
           hostsMap.set(host.slug, host);
         }
       });
 
-      // Add takeovers
       item.takeovers.forEach(takeover => {
         if (!takeoversMap.has(takeover.slug)) {
           takeoversMap.set(takeover.slug, takeover);
@@ -437,19 +330,14 @@ export class WWFMSearchEngine implements SearchEngine {
       });
     });
 
-    // Sort filters alphabetically
     const sortByTitle = (a: FilterItem, b: FilterItem) => a.title.localeCompare(b.title);
 
-    // Update filter lists
     this.allFilters.genres = Array.from(genresMap.values()).sort(sortByTitle);
     this.allFilters.locations = Array.from(locationsMap.values()).sort(sortByTitle);
     this.allFilters.hosts = Array.from(hostsMap.values()).sort(sortByTitle);
     this.allFilters.takeovers = Array.from(takeoversMap.values()).sort(sortByTitle);
   }
 
-  /**
-   * Paginate results for the response
-   */
   private paginateResults(
     results: SearchItem[],
     page: number,
@@ -467,59 +355,8 @@ export class WWFMSearchEngine implements SearchEngine {
       availableFilters: availableFilters || this.calculateAvailableFilters(results),
     };
   }
-
-  /**
-   * Load data from local storage cache
-   */
-  private loadFromCache<T>(key: string): T | null {
-    try {
-      // Check if we're in the browser environment
-      if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-        return null;
-      }
-
-      const cachedData = localStorage.getItem(key);
-      if (!cachedData) return null;
-
-      const data = JSON.parse(cachedData);
-
-      // Check if cache has expired
-      if (data._timestamp && Date.now() - data._timestamp > DEFAULT_CACHE_EXPIRY) {
-        console.log(`Cache expired for ${key}`);
-        return null;
-      }
-
-      return data.value as T;
-    } catch (error) {
-      console.error(`Error loading from cache (${key}):`, error);
-      return null;
-    }
-  }
-
-  /**
-   * Save data to local storage cache
-   */
-  private saveToCache(key: string, value: any): void {
-    try {
-      // Check if we're in the browser environment
-      if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-        return;
-      }
-
-      const data = {
-        _timestamp: Date.now(),
-        value,
-      };
-      localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-      console.error(`Error saving to cache (${key}):`, error);
-    }
-  }
 }
 
-/**
- * Helper function to map episodes to search items
- */
 export function mapEpisodesToSearchItems(episodes: any[]): SearchItem[] {
   return episodes.map(episode => ({
     id: episode.id || episode.slug,
@@ -568,7 +405,6 @@ export function mapShowsToSearchItems(shows: any[]): SearchItem[] {
     // Detect Mixcloud shows by presence of 'key' and 'name' fields
     const isMixcloud = typeof show.key === 'string' && typeof show.name === 'string';
     if (isMixcloud) {
-      // Mixcloud show mapping
       return {
         id: show.key,
         title: show.name,
@@ -600,7 +436,6 @@ export function mapShowsToSearchItems(shows: any[]): SearchItem[] {
         metadata: show, // Store full Mixcloud show for detail pages
       };
     } else {
-      // Cosmic show mapping (as before)
       return {
         id: show.id,
         title: show.title,
@@ -624,9 +459,6 @@ export function mapShowsToSearchItems(shows: any[]): SearchItem[] {
   });
 }
 
-/**
- * Helper function to map posts to search items
- */
 function mapPostsToSearchItems(posts: any[]): SearchItem[] {
   return posts.map(post => ({
     id: post.id,
@@ -649,9 +481,6 @@ function mapPostsToSearchItems(posts: any[]): SearchItem[] {
   }));
 }
 
-/**
- * Helper function to map videos to search items
- */
 function mapVideosToSearchItems(videos: any[]): SearchItem[] {
   return videos.map(video => ({
     id: video.id,
@@ -675,9 +504,6 @@ function mapVideosToSearchItems(videos: any[]): SearchItem[] {
   }));
 }
 
-/**
- * Helper function to map filter items to our standard format
- */
 function mapFilterItems(items: any[], type: FilterCategory): FilterItem[] {
   if (!items || !Array.isArray(items)) return [];
 

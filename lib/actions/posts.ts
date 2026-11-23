@@ -11,9 +11,6 @@ import { applySearchToQuery } from '../search-query';
 const POST_LIST_PROPS =
   'id,slug,title,type,created_at,thumbnail,metadata.type,metadata.date,metadata.excerpt,metadata.is_featured,metadata.text_focus,metadata.featured_size,metadata.image_aspect_ratio,metadata.image,metadata.external_image_url,metadata.categories.id,metadata.categories.slug,metadata.categories.title,metadata.author,metadata.video_url,metadata.youtube_video,metadata.video,metadata.video_thumbnail,metadata.youtube_video_thumbnail';
 
-/**
- * Fetch for posts with filters
- */
 async function fetchPostsWithFiltersFromCosmic(
   query: Record<string, unknown>,
   limit: number,
@@ -122,9 +119,6 @@ export async function getAllPosts({
   }
 }
 
-/**
- * Fetch for single post by slug
- */
 async function fetchPostBySlugFromCosmic(
   slug: string,
   options: { includeDrafts?: boolean } = {}

@@ -4,9 +4,6 @@ import { getPublicObject, getPublicObjects } from '@/lib/cosmic-public';
 
 import { CosmicHomepageData, HomepageSectionItem, ProcessedHomepageSection } from '../cosmic-types';
 
-/**
- * Fetch for homepage data
- */
 async function fetchHomepageFromCosmic(): Promise<CosmicHomepageData | null> {
   try {
     const response = await getPublicObject(
@@ -28,9 +25,6 @@ async function fetchHomepageFromCosmic(): Promise<CosmicHomepageData | null> {
   }
 }
 
-/**
- * Fallback fetch by ID
- */
 async function fetchHomepageByIdFromCosmic(id: string): Promise<CosmicHomepageData | null> {
   try {
     const response = await getPublicObject({ id }, { props: 'slug,title,metadata,type', depth: 4 });
@@ -43,13 +37,11 @@ async function fetchHomepageByIdFromCosmic(id: string): Promise<CosmicHomepageDa
 }
 
 export async function getCosmicHomepageData(): Promise<CosmicHomepageData | null> {
-  // Try primary fetch
   const homepage = await fetchHomepageFromCosmic();
   if (homepage) {
     return homepage;
   }
 
-  // Try fallback by ID
   const COSMIC_HOMEPAGE_ID = process.env.NEXT_PUBLIC_COSMIC_HOMEPAGE_ID;
   if (COSMIC_HOMEPAGE_ID && COSMIC_HOMEPAGE_ID !== 'undefined') {
     const fallback = await fetchHomepageByIdFromCosmic(COSMIC_HOMEPAGE_ID);
@@ -62,9 +54,6 @@ export async function getCosmicHomepageData(): Promise<CosmicHomepageData | null
   return null;
 }
 
-/**
- * Fetch for Cosmic object by ID
- */
 async function fetchObjectByIdFromCosmic(id: string): Promise<HomepageSectionItem | null> {
   try {
     const response = await getPublicObject({ id }, { props: 'slug,title,metadata,type', depth: 1 });

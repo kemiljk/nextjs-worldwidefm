@@ -26,7 +26,6 @@ export default function PostsGrid({
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
-  // Reset posts when filters change
   useEffect(() => {
     setPosts(initialPosts);
     setHasMore(true);
@@ -52,7 +51,6 @@ export default function PostsGrid({
     }
   }
 
-  // Filter posts based on active filters
   const filterPosts = (postsToFilter: PostObject[]): PostObject[] => {
     if (!activeFilter) return postsToFilter;
 
@@ -80,7 +78,6 @@ export default function PostsGrid({
     }
   };
 
-  // Get filtered posts
   const filteredPosts = filterPosts(posts);
 
   return (
@@ -129,7 +126,7 @@ export default function PostsGrid({
         })}
       </div>
 
-      {/* Load More Button */}
+      {}
       {hasMore && (
         <div className='w-full flex items-center justify-center mt-8'>
           <Button

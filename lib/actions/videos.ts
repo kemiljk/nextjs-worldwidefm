@@ -5,9 +5,6 @@ import { getPublicObjects, getPublicObject } from '@/lib/cosmic-public';
 import { VideoObject } from '../cosmic-config';
 import { applySearchToQuery } from '../search-query';
 
-/**
- * Fetch for videos
- */
 async function fetchVideosFromCosmic(
   query: Record<string, unknown>,
   limit: number,

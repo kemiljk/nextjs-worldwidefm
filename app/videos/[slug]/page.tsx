@@ -36,7 +36,6 @@ export default async function VideoPage({ params }: { params: Promise<{ slug: st
     notFound();
   }
 
-  // Format the date - use created_at if date is not available
   const videoDate = video.metadata?.date
     ? new Date(video.metadata.date)
     : new Date(video.created_at);
@@ -44,10 +43,10 @@ export default async function VideoPage({ params }: { params: Promise<{ slug: st
 
   return (
     <article className='bg-almostblack text-white min-h-dvh px-5 pt-10 pb-20'>
-      {/* Video Player Section */}
+      {}
       <VideoPlayer video={video} />
 
-      {/* Header Section */}
+      {}
       <div className='max-w-[80vh] h-auto'>
         <div className='pb-4'>
           <div className='font-mono uppercase text-m8 leading-none text-white mb-4'>
@@ -57,7 +56,7 @@ export default async function VideoPage({ params }: { params: Promise<{ slug: st
           <VideoCaption description={video.metadata?.description} className='text-white/80' />
         </div>
 
-        {/* Video Categories */}
+        {}
         {video.metadata?.categories && (
           <div className='flex flex-wrap gap-3 mb-8'>
             {video.metadata.categories.map((category: { slug: string; title: string }) => (

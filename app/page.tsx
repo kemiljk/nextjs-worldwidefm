@@ -27,7 +27,6 @@ import { ShowCard } from '@/components/ui/show-card';
 import { ShowsGridSkeleton } from '@/components/shows-grid-skeleton';
 import { selectHomepageGenreEpisodes } from '@/lib/homepage-genre-selection';
 
-// Generate metadata for the homepage
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const homepageData = await getCosmicHomepageData();
@@ -53,7 +52,6 @@ interface HomepageRenderContext {
   };
 }
 
-// Render a curated grid of episodes/shows.
 function renderShowsGrid(title: string, items: any[]): React.ReactNode {
   return (
     <section className='py-8 px-5'>
@@ -93,7 +91,6 @@ function renderGenreSelector(ctx: HomepageRenderContext): React.ReactNode {
   );
 }
 
-// Helper function to render page order items (sync only - async components handled separately)
 function renderPageOrderItem(item: PageOrderItem, ctx: HomepageRenderContext): React.ReactNode {
   switch (item.type) {
     case 'latest-episodes':
@@ -148,7 +145,6 @@ function renderPageOrderItem(item: PageOrderItem, ctx: HomepageRenderContext): R
       return <MembershipPromoSection config={item.metadata} />;
 
     case 'coloured-sections':
-      // Render carousel of coloured sections
       // Note: colouredSections are pre-processed in the main Home component
       return (
         <ColouredSectionGallery
@@ -198,7 +194,6 @@ export default async function Home() {
   // Public data remains shared; each response renders its own streaming boundaries.
   // Content updates via revalidation or manual trigger at /api/revalidate
 
-  // Parallel fetch all initial data in a single Promise.all
   const [homepageData, videosData, postsData, canonicalGenres, recentEpisodesResponse] =
     await Promise.all([
       getCosmicHomepageData(),
@@ -208,7 +203,6 @@ export default async function Home() {
       getEpisodesForShows({ limit: 20, listenBackOnly: true }),
     ]);
 
-  // Transform recent episodes once
   const shows = (recentEpisodesResponse?.shows || []).map(show => {
     const transformed = transformShowToViewData(show);
     return {
@@ -217,10 +211,8 @@ export default async function Home() {
     };
   });
 
-  // Get page order from Cosmic
   const pageOrder = homepageData?.metadata?.page_order || [];
 
-  // Process coloured sections from page_order items (NEW structure)
   const colouredSectionItems = pageOrder.filter(item => item.type === 'coloured-sections');
   let colouredSections: any[] = [];
 
@@ -230,7 +222,6 @@ export default async function Home() {
       colouredSectionItems.flatMap(item => {
         const sectionData = item.metadata?.coloured_section || [];
         return sectionData.map(async (section: any, idx: number) => {
-          // Color mapping from Cosmic color names to hex values
           const colorMap: Record<string, string> = {
             Orange: '#f8971d',
             Green: '#88ca4f',
@@ -266,7 +257,6 @@ export default async function Home() {
                 });
               }
             } else if (section.show_type) {
-              // Extract ID from show_type object if it's an object, otherwise use as-is
               const showTypeId =
                 typeof section.show_type === 'object' && section.show_type?.id
                   ? section.show_type.id
@@ -283,7 +273,6 @@ export default async function Home() {
               });
             }
 
-            // Get color from section.colour or show_type metadata
             const colorName =
               section.colour || section.show_type?.metadata?.colour?.value || 'Orange';
             const backgroundColor = colorMap[colorName] || '#f8971d';
@@ -306,7 +295,6 @@ export default async function Home() {
       })
     );
 
-    // Extract successful sections only
     colouredSections = allSections.filter(Boolean);
   } else {
     // Fallback to OLD structure - if homepageData is null or doesn't have the expected structure,
@@ -316,7 +304,6 @@ export default async function Home() {
       Array.isArray(homepageData.metadata.coloured_sections)
     ) {
       try {
-        // Only process if we have the expected ProcessedHomepageSection[] format
         const sections = homepageData.metadata.coloured_sections as any;
         if (sections.length > 0 && sections[0]?.items && sections[0]?.layout) {
           colouredSections = await createColouredSections(sections);
@@ -328,7 +315,6 @@ export default async function Home() {
     }
   }
 
-  // Get top genres from recent shows for initial default view
   const noise = new Set([
     'worldwide fm',
     'show',
@@ -362,7 +348,6 @@ export default async function Home() {
     .slice(0, 10)
     .map(([name]) => name);
 
-  // Fetch random shows for top genres AND archive shows in parallel
   const topGenresToPreload = topGenres.slice(0, 5);
   // One archive selection per UTC day keeps the upstream cache key bounded.
   const randomOffset = (Math.floor(Date.now() / 86400000) % 150) + 50;
@@ -380,7 +365,6 @@ export default async function Home() {
       })
     : Promise.resolve({ shows: [] });
 
-  // Fetch archive shows promise
   const archivePromise = getEpisodesForShows({
     limit: 5,
     offset: randomOffset,
@@ -451,14 +435,12 @@ export default async function Home() {
         ).then(items => items.filter(Boolean))
       : Promise.resolve([]);
 
-  // Execute genre/archive and hero fetches in parallel
   const [genreResults, archiveResponse, heroItems] = await Promise.all([
     genrePromise,
     archivePromise,
     heroItemsPromise,
   ]);
 
-  // Build randomShowsByGenre from parallel results
   const randomShowsByGenre: Record<string, any> = {};
   for (const [genreTitle, show] of Object.entries(
     selectHomepageGenreEpisodes(preloadGenres, genreResults.shows)
@@ -475,7 +457,6 @@ export default async function Home() {
     return { ...transformed, key: transformed.slug };
   });
 
-  // Check if sections are in page_order (new system) or should use old system
   const hasColouredSectionsInOrder = pageOrder.some(item => item.type === 'coloured-sections');
 
   // Auto-generated blocks render at fixed positions by default, but if the
@@ -501,21 +482,21 @@ export default async function Home() {
   return (
     <div className='w-full min-h-screen'>
       <div className='mt-8 mb-12'>
-        {/* Hero Section */}
+        {}
         {displayHeroItems && heroLayout && heroItems.length > 0 && (
           <Suspense>
             <HomepageHero heroLayout={heroLayout} heroItems={heroItems} />
           </Suspense>
         )}
 
-        {/* Only show FeaturedSections if heroItems are not displayed */}
+        {}
         {!(displayHeroItems && heroLayout && heroItems.length > 0) && (
           <Suspense>
             <FeaturedSections shows={shows.slice(0, 2)} />
           </Suspense>
         )}
 
-        {/* Coloured Sections - use page_order if available, otherwise hardcoded */}
+        {}
         {!hasColouredSectionsInOrder && (
           <Suspense>
             <ColouredSectionGallery
@@ -527,7 +508,7 @@ export default async function Home() {
           </Suspense>
         )}
 
-        {/* Dynamic page order rendering - ONLY render sections that ARE in page_order */}
+        {}
         {pageOrder.map((item, index) => {
           const hasHeroItemsFlag = !!(displayHeroItems && heroLayout && heroItems.length > 0);
 
@@ -551,12 +532,12 @@ export default async function Home() {
           );
         })}
 
-        {/* From The Archive Section - fixed position fallback */}
+        {}
         {!hasArchiveBlockInOrder && archiveShows.length > 0 && (
           <ArchiveSection shows={archiveShows} className='pt-8' />
         )}
 
-        {/* Genre Selector Section - fixed position fallback */}
+        {}
         {!hasGenreSelectorInOrder && (
           <Suspense>
             <GenreSelector
@@ -567,12 +548,12 @@ export default async function Home() {
           </Suspense>
         )}
 
-        {/* Video Section - fixed position fallback */}
+        {}
         {!hasVideoBlockInOrder && videosData.videos.length > 0 && (
           <VideoSection videos={videosData.videos} className='pt-8' />
         )}
 
-        {/* Editorial Section - fixed position fallback */}
+        {}
         {!hasEditorialBlockInOrder && postsData.posts.length > 0 && (
           <EditorialSection
             posts={postsData.posts}
