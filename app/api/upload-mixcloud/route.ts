@@ -9,7 +9,6 @@ import { del, isVercelBlobUrl } from '@/lib/blob-client';
 import { uploadMediaToMixcloud } from '@/lib/mixcloud-upload';
 import { saveMixcloudLinkToEpisode } from '@/lib/episode-archive';
 
-// Must be a literal — Next.js rejects imported segment config. Keep in sync with lib/upload-config.ts.
 export const maxDuration = 800;
 
 export async function POST(request: NextRequest) {

@@ -5,7 +5,6 @@ import { del, isVercelBlobUrl } from '@/lib/blob-client';
 import { uploadMediaToRadioCult } from '@/lib/radiocult-upload';
 import { describeRadioCultFailure } from '@/lib/radiocult-failure';
 
-// Must be a literal — Next.js rejects imported segment config. Keep in sync with lib/upload-config.ts.
 export const maxDuration = 800;
 
 export async function POST(request: NextRequest) {
