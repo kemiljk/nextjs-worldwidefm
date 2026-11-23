@@ -125,7 +125,13 @@ async function main() {
   try {
     for (const [index, replay] of REPLAYS.entries()) {
       const file = join(REPLAY_DIR, `flow-${index}.ts`);
-      await writeFile(file, await replay.source());
+      try {
+        await writeFile(file, await replay.source());
+      } catch (error) {
+        unexpected++;
+        console.log(`\nUNEXPECTED  ${replay.name}\n  ${(error as Error).message}`);
+        continue;
+      }
       const flow = (await import(file)) as FlowModule & Partial<typeof current>;
       // The pre-fix module predates `uploadFormOutcome`. Its inline form logic
       // was this function without the Drive clause, and its results carry no Drive fields.
