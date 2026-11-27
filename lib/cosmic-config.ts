@@ -1,18 +1,11 @@
 import { createBucketClient } from '@cosmicjs/sdk';
 import { getCosmicReadKey } from './cosmic-server-env';
-import { withCleanEpisodeTitles } from './cosmic-clean-titles';
 
-const bucketClient = createBucketClient({
+export const cosmic = createBucketClient({
   bucketSlug: process.env.NEXT_PUBLIC_COSMIC_BUCKET_SLUG as string,
   readKey: getCosmicReadKey() as string,
   writeKey: process.env.COSMIC_WRITE_KEY as string,
 });
-
-/**
- * Episode titles in Cosmic can end in the broadcast date, to tell same-named shows apart in the
- * dashboard. Every read through this client returns them without it; writes are untouched.
- */
-export const cosmic = withCleanEpisodeTitles(bucketClient);
 
 export interface CosmicImage {
   url: string;

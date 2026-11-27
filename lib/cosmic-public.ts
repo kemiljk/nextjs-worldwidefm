@@ -3,7 +3,6 @@ import { cacheLife, cacheTag } from 'next/cache';
 import { createHash } from 'node:crypto';
 import { getCosmicReadKey } from './cosmic-server-env';
 import { contentLifetime, contentTags } from './content-cache-policy';
-import { stripEpisodeTitleDates } from './episode-title';
 
 export interface PublicReadOptions {
   props?: string;
@@ -86,8 +85,6 @@ async function fetchObjects(queryJson: string, optionsJson: string) {
       ) {
         throw new Error('Account reads cannot use the public cache');
       }
-      // Cached once, already clean: listeners never see the date kept in titles for Cosmic search.
-      stripEpisodeTitleDates(body, query.type);
       return { objects: body.objects, total: body.total ?? body.objects.length };
     } catch (error) {
       const retryable = status === 429 || status >= 500 || status === 0;

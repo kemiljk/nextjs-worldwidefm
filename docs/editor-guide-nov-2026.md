@@ -67,20 +67,3 @@ You are not limited to show type. In a **Coloured Sections** block, each section
 If Episodes is filled in it is used, otherwise Hosts, otherwise Show Type, so leave the ones you
 don't want empty. None of them is required. For a hand-picked archive row, add a **Sections** block,
 set its type to **Archive** and choose the shows under Items.
-
-## Dates in episode titles (Cosmic only)
-
-To tell same-named shows apart in the Cosmic dashboard, put the broadcast date at the end of the
-episode title, for example `Luke Una – 06.10.2026`. The website removes it everywhere, so listeners
-never see it. It is only removed when it is the last thing in the title, after a dash, slash, bar,
-comma or in brackets, and matches the show's broadcast date (so a show that genuinely ends in a
-different date keeps it). Recognised formats: `06.10.2026`, `06/10/2026`, `06-10-2026`, `6.10.26`,
-`2026-10-06`, `6 Oct 2026` and `6th October 2026`.
-
-To add the date to every existing episode in one go, run
-`bun run scripts/backfill-episode-title-dates.ts` first. It is a dry run that writes a before and
-after list to `tasks/cosmic-migrations/` and changes nothing. Titles that already end in a date
-(the same one, or an older recording date) are left alone. Then `--limit=20 --apply` for a trial,
-and `--apply` for the rest. `--revert=<file>` puts the original titles back. Only deploy-then-apply:
-run it after the site change is live.
-
