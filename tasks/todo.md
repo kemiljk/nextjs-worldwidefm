@@ -41,7 +41,7 @@ Source: Google Sheet "Website" tab (collapsed rows ignored). Verified against `m
 - [x] R84 Homepage "Listen by location" block (`components/location-selector.tsx`, opt-in via `location-selector` block type, script updated, not applied). Checked in a browser against real Cosmic data.
 - [x] R72 Mixcloud host tags: username normalisation (`@`, links), post-publish verification in the publisher cron, `audit-mixcloud-hosts.ts`. Finding: 108 of 111 hosts on shows in the last 120 days have no `mixcloud_username`.
 - [x] R83 Membership page blocks (`lib/membership-blocks.ts`, `components/membership-blocks.tsx`); schema script `add-membership-blocks-field.ts` (not applied).
-- [x] R75 Dropped: the client sorted it with "Sort by Date" on the episode page, so no title changes or backfill were made.
+- [x] R75 Dates in Cosmic episode titles are stripped on the site (`lib/episode-title.ts`), at the public read layer (`cosmic-public.ts`) and through the shared `cosmic` client (`lib/cosmic-clean-titles.ts`). `scripts/backfill-episode-title-dates.ts` adds the date to existing titles (dry run by default, `--apply`, `--revert`). Client said not to worry about it, but the crew wants it, so it is built and not yet applied. The weekly job now also matches existing episodes by slug.
 - Not done (need input): R69/R70 Drive intake, R71 Drive config, R76 member insights (staff access decision), R80 corrected copy, R99 leftovers.
 - Verification: 51/51 unit suites, `tsc --noEmit` clean, ESLint 0 errors, `next build` passes.
 - Playwright was NOT re-run after the final edits: a preview dev server I started (PID 73162, port 3100) blocks Playwright's own server and stopping it was denied.

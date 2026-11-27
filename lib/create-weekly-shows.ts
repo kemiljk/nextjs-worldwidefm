@@ -39,25 +39,24 @@ function formatCosmicError(error: unknown): string {
 }
 
 async function findExistingEpisode(title: string, broadcastDate: string): Promise<boolean> {
-  try {
-    const response = await cosmic.objects
-      .find({
-        type: 'episode',
-        title,
-        'metadata.broadcast_date': broadcastDate,
-      })
-      .props('id')
-      .limit(1)
-      .status('any');
+  // Titles in Cosmic may end in the broadcast date ("Show – 06.10.2026"), so match the
+  // episode this job would create by its slug as well as by the plain title.
+  const slug = buildRecurringEpisodeSlug(title, broadcastDate);
+  for (const match of [{ slug }, { title, 'metadata.broadcast_date': broadcastDate }]) {
+    try {
+      const response = await cosmic.objects
+        .find({ type: 'episode', ...match })
+        .props('id')
+        .limit(1)
+        .status('any');
 
-    return Boolean(response.objects && response.objects.length > 0);
-  } catch (error) {
-    const typedError = error as { status?: number };
-    if (typedError?.status === 404) {
-      return false;
+      if (response.objects && response.objects.length > 0) return true;
+    } catch (error) {
+      const typedError = error as { status?: number };
+      if (typedError?.status !== 404) throw error;
     }
-    throw error;
   }
+  return false;
 }
 
 async function findHost(identifier: { id?: string; slug?: string }): Promise<{
