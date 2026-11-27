@@ -346,3 +346,31 @@ export function getCurrentUkWeek(
     dayDates,
   };
 }
+
+export interface UkRollingWeekInfo extends UkWeekInfo {
+  /** The seven weekdays in display order: today first, then the six days after. */
+  orderedDays: UkWeekday[];
+}
+
+/**
+ * Seven days starting today (Europe/London), instead of the Monday-Sunday
+ * calendar week. Each weekday appears exactly once, so a weekly schedule
+ * template maps onto the window without gaps or duplicates.
+ */
+export function getRollingUkWeek(referenceDate: Date = new Date()): UkRollingWeekInfo {
+  const today = getDateInTimeZone(referenceDate, 'Europe/London');
+  today.setUTCHours(0, 0, 0, 0);
+
+  const dayDates = {} as Record<UkWeekday, string>;
+  const orderedDays: UkWeekday[] = [];
+  for (let offset = 0; offset < 7; offset++) {
+    const current = new Date(today);
+    current.setUTCDate(today.getUTCDate() + offset);
+    // UK_WEEK_DAYS starts on Monday; getUTCDay() starts on Sunday.
+    const weekday = UK_WEEK_DAYS[(current.getUTCDay() + 6) % 7];
+    dayDates[weekday] = current.toISOString().slice(0, 10);
+    orderedDays.push(weekday);
+  }
+
+  return { startOfWeek: today, dayDates, orderedDays };
+}

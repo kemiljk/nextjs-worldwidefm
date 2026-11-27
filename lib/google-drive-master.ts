@@ -57,7 +57,7 @@ export function validateMasterBlobUrl(value: string, blobHost: string): void {
   }
 }
 
-async function accessToken(config: DriveMasterConfig, signal: AbortSignal): Promise<string> {
+export async function accessToken(config: DriveMasterConfig, signal: AbortSignal): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
   const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
   const unsigned = `${encode({ alg: 'RS256', typ: 'JWT' })}.${encode({

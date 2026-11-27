@@ -1,6 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { EpisodeObject, getEpisodeImageUrl } from '@/lib/cosmic-types';
 import type { CosmicHost } from '@/lib/cosmic-host-service';
 import { fetchFormHosts } from '@/lib/actions/form-options';
@@ -16,7 +24,7 @@ import {
   CommandItem,
   CommandEmpty,
 } from '@/components/ui/command';
-import { Check, X } from 'lucide-react';
+import { Check, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { buildMediaMetadataTitle, buildTemporaryMediaBlobPath } from '@/lib/upload-filename-utils';
 import { getMaxMediaUploadMb } from '@/lib/upload-config';
@@ -27,6 +35,18 @@ import {
   uploadFormOutcome,
   type UploadDestinationResult,
 } from '@/lib/upload-master-flow';
+import {
+  MAX_MIXCLOUD_HOST_TAGS,
+  mixcloudHostUsernames,
+  normalizeMixcloudUsername,
+} from '@/lib/mixcloud-username';
+import {
+  runUploadQueue,
+  summariseUploadQueue,
+  type UploadJobHandle,
+  type UploadJobResult,
+  type UploadJobStatus,
+} from '@/lib/upload-master-queue';
 import {
   buildMixcloudDescription,
   buildMixcloudTags,
@@ -45,10 +65,51 @@ type SubmissionPhase =
   | 'success'
   | 'error';
 
-const MAX_MIXCLOUD_HOST_TAGS = 2;
+interface UploadMasterJobProps {
+  /** 1-based position in the queue; the first job keeps the original element ids. */
+  jobNumber: number;
+  /** Show a header with status and a remove button (only when several shows are queued). */
+  showHeader: boolean;
+  driveEnabled: boolean;
+  driveAccessKey: string;
+  initialBroadcastDate: string;
+  /** Only one upload may run at a time across the whole page. */
+  acquireUploadLock(): boolean;
+  releaseUploadLock(): void;
+  /** True while a different show is uploading. */
+  waitingForOtherUpload: boolean;
+  onStatusChange(status: UploadJobStatus, broadcastDate: string): void;
+  onRemove?(): void;
+}
 
-export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: boolean }) {
-  const [broadcastDate, setBroadcastDate] = useState('');
+const STATUS_LABELS: Record<UploadJobStatus, string> = {
+  empty: 'Not set up',
+  ready: 'Ready',
+  uploading: 'Uploading',
+  done: 'Uploaded',
+  warning: 'Uploaded with warnings',
+  failed: 'Failed',
+};
+
+const UploadMasterJob = forwardRef<UploadJobHandle, UploadMasterJobProps>(function UploadMasterJob(
+  {
+    jobNumber,
+    showHeader,
+    driveEnabled,
+    driveAccessKey,
+    initialBroadcastDate,
+    acquireUploadLock,
+    releaseUploadLock,
+    waitingForOtherUpload,
+    onStatusChange,
+    onRemove,
+  },
+  ref
+) {
+  const dateInputId = jobNumber === 1 ? 'broadcast-date' : `broadcast-date-${jobNumber}`;
+  const [broadcastDate, setBroadcastDate] = useState(initialBroadcastDate);
+  const [lastOutcome, setLastOutcome] = useState<UploadJobResult | null>(null);
+  const [lastUploadedTitle, setLastUploadedTitle] = useState('');
   const [episodes, setEpisodes] = useState<EpisodeObject[]>([]);
   const [selectedEpisode, setSelectedEpisode] = useState<EpisodeObject | null>(null);
   const [episodeInput, setEpisodeInput] = useState('');
@@ -58,7 +119,6 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
   const [phase, setPhase] = useState<SubmissionPhase>('idle');
   const [destinationResults, setDestinationResults] = useState<UploadDestinationResult[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [driveAccessKey, setDriveAccessKey] = useState('');
   const [retainedBlobUrl, setRetainedBlobUrl] = useState<string | null>(null);
   const [pendingDrive, setPendingDrive] = useState<{
     blobUrl: string;
@@ -145,9 +205,11 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
 
   // Mixcloud only tags hosts with a username, and at most two per upload.
   const { untaggableHosts, overLimitHosts } = useMemo(() => {
-    const withUsername = selectedCoHosts.filter(host => host.metadata?.mixcloud_username?.trim());
+    const hasUsername = (host: CosmicHost) =>
+      Boolean(normalizeMixcloudUsername(host.metadata?.mixcloud_username));
+    const withUsername = selectedCoHosts.filter(hasUsername);
     return {
-      untaggableHosts: selectedCoHosts.filter(host => !host.metadata?.mixcloud_username?.trim()),
+      untaggableHosts: selectedCoHosts.filter(host => !hasUsername(host)),
       overLimitHosts: withUsername.slice(MAX_MIXCLOUD_HOST_TAGS),
     };
   }, [selectedCoHosts]);
@@ -169,16 +231,17 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
   const resetUploadResults = () => {
     setDestinationResults([]);
     setPhase('idle');
+    setLastOutcome(null);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<UploadJobResult> => {
     if (!selectedEpisode || !mediaFile) {
       toast.error('Please select a show and add mastered audio');
-      return;
+      return 'skipped';
     }
     if (driveEnabled && !driveAccessKey.trim()) {
       toast.error('Enter the staff access key for Google Drive');
-      return;
+      return 'skipped';
     }
 
     const { broadcast_date, broadcast_time, duration } = selectedEpisode.metadata || {};
@@ -186,23 +249,29 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
 
     if (!dateStr) {
       toast.error('Show has no broadcast date');
-      return;
+      return 'skipped';
     }
 
     if (mediaFile.size > MAX_MEDIA_MB * 1024 * 1024) {
       toast.error(
         `Selected audio file is ${(mediaFile.size / 1024 / 1024).toFixed(1)}MB which exceeds the ${MAX_MEDIA_MB}MB limit.`
       );
-      return;
+      return 'skipped';
+    }
+
+    if (!acquireUploadLock()) {
+      toast.error('Another show is uploading. Wait for it to finish, then try again.');
+      return 'skipped';
     }
 
     setDestinationResults([]);
+    setLastOutcome(null);
     setIsSubmitting(true);
     setPhase('uploadingBlob');
 
-    const mixcloudHostUsernames = selectedCoHosts
-      .map(host => host.metadata?.mixcloud_username?.trim().replace(/^@/, '') || '')
-      .filter(Boolean);
+    const taggedUsernames = mixcloudHostUsernames(
+      selectedCoHosts.map(host => host.metadata?.mixcloud_username)
+    );
 
     const combinedHostIds = Array.from(new Set(selectedCoHostIds));
 
@@ -244,7 +313,7 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
         mixcloudImageUrl:
           selectedEpisode.metadata?.external_image_url ||
           selectedEpisode.metadata?.image?.imgix_url,
-        mixcloudHostUsernames,
+        mixcloudHostUsernames: taggedUsernames,
         broadcastDate: dateStr,
         broadcastTime: broadcast_time || '',
         duration: duration || '',
@@ -283,24 +352,56 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
         throw new Error(summary);
       }
       setPhase('success');
+      const uploadedTitle = selectedEpisode.title;
+      const withTitle = (message: string) =>
+        jobNumber > 1 || showHeader ? `${uploadedTitle}: ${message}` : message;
       if (outcome === 'complete') {
-        toast.success('Mastered audio uploaded and episode updated');
+        toast.success(withTitle('Mastered audio uploaded and episode updated'));
       } else {
-        toast.warning(summary);
+        toast.warning(withTitle(summary));
       }
+      setLastUploadedTitle(uploadedTitle);
+      setLastOutcome(outcome);
       setSelectedEpisode(null);
       setMediaFile(null);
       setEpisodeInput('');
       setSelectedCoHostIds([]);
       setCoHostInput('');
+      return outcome;
     } catch (err) {
       setPhase('error');
+      setLastOutcome('failed');
       console.error('Upload failed:', err);
-      toast.error(err instanceof Error ? err.message : 'Upload failed');
+      const message = err instanceof Error ? err.message : 'Upload failed';
+      toast.error(showHeader ? `${selectedEpisode.title}: ${message}` : message);
+      return 'failed';
     } finally {
       setIsSubmitting(false);
+      releaseUploadLock();
     }
   };
+
+  // The latest submit handler is exposed to the page's "upload all" queue.
+  const submitRef = useRef(handleSubmit);
+  submitRef.current = handleSubmit;
+  useImperativeHandle(ref, () => ({ submit: () => submitRef.current() }), []);
+
+  const status: UploadJobStatus = isSubmitting
+    ? 'uploading'
+    : lastOutcome === 'complete'
+      ? 'done'
+      : lastOutcome === 'partial'
+        ? 'warning'
+        : lastOutcome === 'failed'
+          ? 'failed'
+          : selectedEpisode && mediaFile
+            ? 'ready'
+            : 'empty';
+
+  useEffect(() => {
+    onStatusChange(status, broadcastDate);
+    // The parent callback is stable per job; report only when these values change.
+  }, [status, broadcastDate]);
 
   const retryDrive = async () => {
     if (!pendingDrive || !driveAccessKey.trim()) return;
@@ -332,11 +433,34 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
   };
 
   return (
-    <div className='space-y-6'>
+    <div
+      className={showHeader ? 'space-y-6 border border-input p-4' : 'space-y-6'}
+      data-testid={`upload-job-${jobNumber}`}
+    >
+      {showHeader && (
+        <div className='flex items-center justify-between gap-3'>
+          <h2 className='text-h8 font-display uppercase'>Show {jobNumber}</h2>
+          <div className='flex items-center gap-3'>
+            <Badge variant={status === 'failed' ? 'destructive' : 'secondary'} role='status'>
+              {STATUS_LABELS[status]}
+            </Badge>
+            {onRemove && !isSubmitting && (
+              <button
+                type='button'
+                onClick={onRemove}
+                className='inline-flex items-center gap-1 text-sm underline'
+                aria-label={`Remove show ${jobNumber}`}
+              >
+                <X className='size-3.5' aria-hidden='true' /> Remove
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       <div className='space-y-2'>
-        <Label htmlFor='broadcast-date'>Broadcast date</Label>
+        <Label htmlFor={dateInputId}>Broadcast date</Label>
         <Input
-          id='broadcast-date'
+          id={dateInputId}
           type='date'
           value={broadcastDate}
           onChange={e => {
@@ -462,9 +586,9 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
                       className='cursor-pointer'
                     >
                       {host.title}
-                      {host.metadata?.mixcloud_username && (
+                      {normalizeMixcloudUsername(host.metadata?.mixcloud_username) && (
                         <span className='ml-2 text-muted-foreground'>
-                          @{host.metadata.mixcloud_username}
+                          @{normalizeMixcloudUsername(host.metadata?.mixcloud_username)}
                         </span>
                       )}
                     </CommandItem>
@@ -499,7 +623,7 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
             >
               {untaggableHosts.length > 0 && (
                 <p>
-                  Won&apos;t be tagged on Mixcloud — no Mixcloud username in Cosmic:{' '}
+                  Won&apos;t be tagged on Mixcloud — no valid Mixcloud username in Cosmic:{' '}
                   {untaggableHosts.map(host => host.title).join(', ')}. Add one on the host in
                   Cosmic, then reload this page.
                 </p>
@@ -529,20 +653,6 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
           disabled={isSubmitting}
         />
       </div>
-
-      {driveEnabled && (
-        <div className='space-y-2'>
-          <Label htmlFor='drive-access-key'>Staff access key</Label>
-          <Input
-            id='drive-access-key'
-            type='password'
-            autoComplete='off'
-            value={driveAccessKey}
-            onChange={event => setDriveAccessKey(event.target.value)}
-            disabled={isSubmitting}
-          />
-        </div>
-      )}
 
       {pendingDrive && (
         <div className='space-y-2 text-sm' role='status'>
@@ -592,6 +702,12 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
         />
       )}
 
+      {lastUploadedTitle && lastOutcome && lastOutcome !== 'skipped' && !isSubmitting && (
+        <p className='text-sm font-medium'>
+          {lastOutcome === 'failed' ? 'Upload failed' : 'Last upload'}: {lastUploadedTitle}
+        </p>
+      )}
+
       <div role='status' aria-live='polite' className='space-y-1 text-sm'>
         {destinationResults.map(result => (
           <p key={result.destination}>
@@ -605,23 +721,193 @@ export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: bool
         <Button
           type='button'
           onClick={handleSubmit}
-          disabled={!selectedEpisode || !mediaFile || isSubmitting || Boolean(pendingDrive)}
+          disabled={
+            !selectedEpisode ||
+            !mediaFile ||
+            isSubmitting ||
+            waitingForOtherUpload ||
+            Boolean(pendingDrive)
+          }
         >
-          {isSubmitting
-            ? phase === 'uploadingBlob'
-              ? 'Preparing upload...'
-              : phase === 'uploadingRadioCult'
-                ? 'Uploading to RadioCult...'
-                : phase === 'uploadingMixcloud'
-                  ? 'Uploading to Mixcloud...'
-                  : phase === 'uploadingDrive'
-                    ? 'Archiving to Google Drive...'
-                    : phase === 'updatingEpisode'
-                      ? 'Updating episode...'
-                      : 'Processing...'
-            : 'Upload mastered audio'}
+          {waitingForOtherUpload && !isSubmitting
+            ? 'Waiting for the current upload...'
+            : isSubmitting
+              ? phase === 'uploadingBlob'
+                ? 'Preparing upload...'
+                : phase === 'uploadingRadioCult'
+                  ? 'Uploading to RadioCult...'
+                  : phase === 'uploadingMixcloud'
+                    ? 'Uploading to Mixcloud...'
+                    : phase === 'uploadingDrive'
+                      ? 'Archiving to Google Drive...'
+                      : phase === 'updatingEpisode'
+                        ? 'Updating episode...'
+                        : 'Processing...'
+              : 'Upload mastered audio'}
         </Button>
       </div>
+    </div>
+  );
+});
+
+interface QueuedJob {
+  id: string;
+  number: number;
+}
+
+/**
+ * Several mastered shows can be set up on one page. Each has its own status and
+ * result, and uploads run strictly one at a time so none can start while another
+ * is still running.
+ */
+export function UploadMasterForm({ driveEnabled = false }: { driveEnabled?: boolean }) {
+  const nextNumber = useRef(2);
+  const [jobs, setJobs] = useState<QueuedJob[]>([{ id: 'job-1', number: 1 }]);
+  const [statuses, setStatuses] = useState<Record<string, UploadJobStatus>>({});
+  const [dates, setDates] = useState<Record<string, string>>({});
+  const [driveAccessKey, setDriveAccessKey] = useState('');
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [isRunningQueue, setIsRunningQueue] = useState(false);
+  const activeJobRef = useRef<string | null>(null);
+  const handles = useRef(new Map<string, UploadJobHandle>());
+  const unmounted = useRef(false);
+
+  // Reset on mount too: React Strict Mode runs the cleanup once before the real mount.
+  useEffect(() => {
+    unmounted.current = false;
+    return () => {
+      unmounted.current = true;
+    };
+  }, []);
+
+  // Leaving the page mid-upload would abandon it; ask first.
+  useEffect(() => {
+    if (!activeJobId) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [activeJobId]);
+
+  const acquireLock = (id: string) => {
+    if (activeJobRef.current && activeJobRef.current !== id) return false;
+    activeJobRef.current = id;
+    setActiveJobId(id);
+    return true;
+  };
+  const releaseLock = (id: string) => {
+    if (activeJobRef.current !== id) return;
+    activeJobRef.current = null;
+    setActiveJobId(null);
+  };
+
+  const addJob = () => {
+    const lastId = jobs[jobs.length - 1]?.id;
+    const number = nextNumber.current++;
+    setJobs(previous => [...previous, { id: `job-${number}`, number }]);
+    // Shows usually share a broadcast date; start the new one on the same day.
+    if (lastId) {
+      setDates(previous => ({ ...previous, [`job-${number}`]: previous[lastId] || '' }));
+    }
+  };
+
+  const removeJob = (id: string) => {
+    setJobs(previous => previous.filter(job => job.id !== id));
+    handles.current.delete(id);
+  };
+
+  const readyJobs = jobs.filter(job => statuses[job.id] === 'ready');
+  const statusList = jobs.map(job => statuses[job.id] ?? 'empty');
+  const multiple = jobs.length > 1;
+
+  const uploadAll = async () => {
+    if (isRunningQueue || activeJobRef.current) return;
+    setIsRunningQueue(true);
+    try {
+      const results = await runUploadQueue(
+        readyJobs.map(job => ({ id: job.id, getHandle: () => handles.current.get(job.id) })),
+        { shouldStop: () => unmounted.current }
+      );
+      const values = Object.values(results);
+      const failed = values.filter(result => result === 'failed').length;
+      const skipped = values.filter(result => result === 'skipped').length;
+      if (failed + skipped > 0) {
+        toast.warning(
+          `${failed} failed${skipped ? `, ${skipped} not started` : ''}. Check each show below.`
+        );
+      }
+    } finally {
+      setIsRunningQueue(false);
+    }
+  };
+
+  return (
+    <div className='space-y-6'>
+      {driveEnabled && (
+        <div className='space-y-2'>
+          <Label htmlFor='drive-access-key'>Staff access key</Label>
+          <Input
+            id='drive-access-key'
+            type='password'
+            autoComplete='off'
+            value={driveAccessKey}
+            onChange={event => setDriveAccessKey(event.target.value)}
+            disabled={Boolean(activeJobId)}
+          />
+        </div>
+      )}
+
+      {jobs.map(job => (
+        <UploadMasterJob
+          key={job.id}
+          ref={handle => {
+            if (handle) handles.current.set(job.id, handle);
+            else handles.current.delete(job.id);
+          }}
+          jobNumber={job.number}
+          showHeader={multiple}
+          driveEnabled={driveEnabled}
+          driveAccessKey={driveAccessKey}
+          initialBroadcastDate={dates[job.id] ?? ''}
+          acquireUploadLock={() => acquireLock(job.id)}
+          releaseUploadLock={() => releaseLock(job.id)}
+          waitingForOtherUpload={Boolean(activeJobId) && activeJobId !== job.id}
+          onStatusChange={(status, broadcastDate) => {
+            setStatuses(previous =>
+              previous[job.id] === status ? previous : { ...previous, [job.id]: status }
+            );
+            setDates(previous =>
+              previous[job.id] === broadcastDate
+                ? previous
+                : { ...previous, [job.id]: broadcastDate }
+            );
+          }}
+          onRemove={multiple ? () => removeJob(job.id) : undefined}
+        />
+      ))}
+
+      <div className='flex flex-wrap items-center justify-between gap-3'>
+        <Button type='button' variant='outline' onClick={addJob} disabled={Boolean(activeJobId)}>
+          <Plus className='size-4' aria-hidden='true' /> Add another show
+        </Button>
+        {multiple && (
+          <Button
+            type='button'
+            onClick={uploadAll}
+            disabled={readyJobs.length === 0 || Boolean(activeJobId) || isRunningQueue}
+          >
+            {isRunningQueue ? 'Uploading shows one by one...' : `Upload ${readyJobs.length} ready`}
+          </Button>
+        )}
+      </div>
+
+      {multiple && (
+        <p role='status' aria-live='polite' className='text-sm' data-testid='upload-queue-summary'>
+          {summariseUploadQueue(statusList)}
+        </p>
+      )}
     </div>
   );
 }

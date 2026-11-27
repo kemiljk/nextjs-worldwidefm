@@ -16,6 +16,8 @@ export interface ScheduleShow {
   duration: number;
   isManual?: boolean;
   isReplay?: boolean;
+  /** Plain-text stand-in with no episode yet; replaced once the show is published. */
+  isPlaceholder?: boolean;
 }
 
 export type ScheduleDayMap = Record<UkWeekday, string>;

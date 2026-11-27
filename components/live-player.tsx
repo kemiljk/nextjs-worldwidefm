@@ -5,6 +5,7 @@ import { Play, Pause, Loader2 } from 'lucide-react';
 import { useMediaPlayer } from '@/components/providers/media-player-provider';
 import { usePlausible } from 'next-plausible';
 import Link from 'next/link';
+import { getLiveStatus } from '@/lib/live-status';
 
 declare global {
   interface Window {
@@ -592,12 +593,10 @@ export default function LivePlayer() {
   const canPlay = Boolean(streamUrl);
 
   const currentTitle = scheduleShow?.name || liveMetadata.content?.title || '';
-  const isPlaylist =
-    !hasScheduleShow &&
-    hasMetadata &&
-    (currentTitle.toLowerCase().includes('playlist') ||
-      (currentTitle.toLowerCase().includes('wwfm') &&
-        !currentTitle.toLowerCase().includes('show')));
+  const { isOnAir, isPlaylist } = getLiveStatus({
+    scheduleShowName: scheduleShow?.name,
+    streamTitle: liveMetadata.content?.title,
+  });
 
   const displayName = hasScheduleShow
     ? scheduleShow!.name
@@ -641,8 +640,11 @@ export default function LivePlayer() {
         </button>
       </div>
       <div className='flex items-center mx-2 gap-2 overflow-hidden flex-1'>
-        {canPlay && (
-          <span className='flex shrink-0 items-center gap-1 text-m7 font-mono uppercase'>
+        {canPlay && isOnAir && (
+          <span
+            className='flex shrink-0 items-center gap-1 text-m7 font-mono uppercase'
+            data-testid='live-player-live-indicator'
+          >
             <span aria-hidden='true' className='size-1.5 rounded-full bg-red-500' />
             Live
           </span>

@@ -15,6 +15,8 @@ Never use `NEXT_PUBLIC_` for these values. The form asks for the staff access ke
 
 The transfer streams the original temporary audio into a Google Drive resumable-upload session. It checks for a completed upload of the same episode and temporary Blob before starting another. Google Drive can return a stale listing after an interrupted upload, and concurrent first uploads can create duplicate month folders. The transfer selects a stable folder and checks all visible matching month folders for an existing file, but this is not an exactly-once guarantee; check the Drive folder before retrying an ambiguous result. When Drive fails, the Blob remains and the form offers a Drive-only retry without uploading to the other services again. If the page is closed, the retained audio URL must be kept by staff; this interface does not persist a recovery job. The Blob is only removed after Mixcloud, RadioCult, the episode update, and Drive all report success.
 
+The client's archive folder ID is `1tKyMjLzWb2SE3j9sarm618LTXJrz98Fn` (use it for `GOOGLE_DRIVE_MASTER_FOLDER_ID`). Once the service account has been added to it, run `bun run scripts/test-google-drive-archive.ts` to check authentication, that the folder is in a Shared Drive and writable, and that a small file can be uploaded and deleted.
+
 A real Shared Drive end-to-end test, including large files and interrupted transfers, remains necessary once credentials and a folder are available.
 
 Google references: [Shared Drive support](https://developers.google.com/workspace/drive/api/guides/enable-shareddrives), [resumable uploads](https://developers.google.com/workspace/drive/api/guides/manage-uploads), and [service account OAuth](https://developers.google.com/identity/protocols/oauth2/service-account).

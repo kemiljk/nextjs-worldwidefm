@@ -141,7 +141,7 @@ export default function VideoCategorySection({
                   </Link>
                   <VideoCaption
                     description={video.metadata?.description}
-                    className='mt-2 text-sm [&_p:first-child]:line-clamp-2 [&_p:not(:first-child)]:hidden'
+                    className='mt-2 text-sm [&>*:first-child]:line-clamp-2 [&>*:not(:first-child)]:hidden'
                   />
                 </CarouselItem>
               );

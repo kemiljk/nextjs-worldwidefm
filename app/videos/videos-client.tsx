@@ -9,6 +9,7 @@ import { VideoObject } from '@/lib/cosmic-config';
 import { subDays } from 'date-fns';
 import { VideoFilterToolbar } from './components/video-filter-toolbar';
 import { useDebounce } from '@/hooks/use-debounce';
+import { richTextToPlain } from '@/lib/rich-text';
 import type { CategoryOrder } from '@/lib/actions/page-config';
 
 interface VideoCategory {
@@ -254,7 +255,8 @@ export default function VideosClient({
       filtered = filtered.filter(
         video =>
           video.title.toLowerCase().includes(search) ||
-          (video.metadata.description && video.metadata.description.toLowerCase().includes(search))
+          (video.metadata.description &&
+            richTextToPlain(video.metadata.description).toLowerCase().includes(search))
       );
     }
 

@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import MembershipSignupClient from '@/cosmic/blocks/user-management/MembershipSignupClient';
+import { MembershipBlocks } from '@/components/membership-blocks';
 import { generateBaseMetadata } from '@/lib/metadata-utils';
 import { getCachedMembershipPage as getMembershipPage } from '@/lib/cached-data';
 
@@ -48,6 +49,7 @@ export default async function MembershipPage() {
         heading={membership.title ?? 'Membership'}
         body={(membership.metadata as { body?: string }).body ?? ''}
       />
+      <MembershipBlocks blocks={(membership.metadata as { blocks?: unknown }).blocks} />
     </div>
   );
 }

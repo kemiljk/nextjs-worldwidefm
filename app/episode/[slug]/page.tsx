@@ -9,6 +9,7 @@ import { displayNameToSlug } from '@/lib/host-matcher';
 import { ShowCard } from '@/components/ui/show-card';
 import { EpisodeHero } from '@/components/homepage-hero';
 import { SafeHtml } from '@/components/ui/safe-html';
+import { linkHostNames } from '@/lib/link-host-names';
 import { GenreTag } from '@/components/ui/genre-tag';
 import { TracklistToggle } from '@/components/ui/tracklisttoggle';
 import {
@@ -256,9 +257,12 @@ async function EpisodeDetails({ episode }: { episode: EpisodeObject }) {
           {(episode.metadata.body_text || episode.metadata.description) && (
             <div className='max-w-none'>
               <SafeHtml
-                content={episode.metadata.body_text || episode.metadata.description || ''}
+                content={linkHostNames(
+                  episode.metadata.body_text || episode.metadata.description || '',
+                  episode.metadata.regular_hosts
+                )}
                 type='editorial-with-embeds'
-                className='text-m6 leading-5 text-almostblack dark:text-white'
+                className='text-m6 leading-5 text-almostblack dark:text-white [&_a]:underline [&_a]:underline-offset-2'
               />
             </div>
           )}

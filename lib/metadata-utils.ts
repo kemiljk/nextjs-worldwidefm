@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import { richTextToPlain } from '@/lib/rich-text';
 
 export interface BaseMetadataConfig {
   title: string;
@@ -305,7 +306,11 @@ export function generatePostMetadata(postData: any): Metadata {
 
 export function generateVideoMetadata(videoData: any): Metadata {
   const title = videoData?.title || 'Video - Worldwide FM';
-  const description = videoData?.metadata?.description || `Watch ${title} on Worldwide FM`;
+  // Captions may be rich text; search results and social cards need plain text.
+  const caption = richTextToPlain(videoData?.metadata?.description || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const description = caption || `Watch ${title} on Worldwide FM`;
 
   return generateBaseMetadata({
     title: `${title} - Worldwide FM`,

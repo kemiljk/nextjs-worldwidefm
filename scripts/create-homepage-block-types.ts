@@ -11,7 +11,7 @@ const cosmic = createBucketClient({
 });
 
 // Marker block types so the homepage's auto-generated sections (archive,
-// genre selector, video, editorial feed) can be dragged into `page_order`
+// genre selector, location selector, video, editorial feed) can be dragged into `page_order`
 // and positioned anywhere. They carry no config - the homepage supplies the
 // content. When absent from page_order, the homepage falls back to rendering
 // these blocks in their original fixed positions, so existing pages are
@@ -25,6 +25,7 @@ interface BlockType {
 
 const BLOCK_TYPES: BlockType[] = [
   { title: 'Genre Selector Block', slug: 'genre-selector', singular: 'Genre Selector Block', emoji: '🎚️' },
+  { title: 'Location Selector Block', slug: 'location-selector', singular: 'Location Selector Block', emoji: '📍' },
   { title: 'Archive Block', slug: 'archive-block', singular: 'Archive Block', emoji: '🗄️' },
   { title: 'Video Block', slug: 'video-block', singular: 'Video Block', emoji: '🎬' },
   { title: 'Editorial Block', slug: 'editorial-block', singular: 'Editorial Block', emoji: '📰' },

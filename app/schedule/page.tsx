@@ -14,7 +14,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
 export default async function SchedulePage() {
   await connection();
 
-  const [{ scheduleItems, dayDates, isActive, error }, user] = await Promise.all([
+  const [{ scheduleItems, dayDates, dayOrder, isActive, error }, user] = await Promise.all([
     getWeeklySchedule(),
     getAuthUser(),
   ]);
@@ -34,6 +34,7 @@ export default async function SchedulePage() {
         <ScheduleDisplay
           scheduleItems={scheduleItems}
           dayDates={dayDates}
+          dayOrder={dayOrder}
           isActive={isActive}
           error={error}
           savedReminderKeys={savedReminderKeys}

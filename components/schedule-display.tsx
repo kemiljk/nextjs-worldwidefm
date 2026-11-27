@@ -16,6 +16,8 @@ import { ScheduleReminderButton } from './schedule-reminder-button';
 interface ScheduleDisplayProps {
   scheduleItems: ScheduleShow[];
   dayDates: ScheduleDayMap;
+  /** Weekdays in display order, starting today. Defaults to Monday-first. */
+  dayOrder?: UkWeekday[];
   isActive: boolean;
   error?: string;
   savedReminderKeys?: string[];
@@ -24,6 +26,7 @@ interface ScheduleDisplayProps {
 export default function ScheduleDisplay({
   scheduleItems,
   dayDates,
+  dayOrder,
   isActive,
   error,
   savedReminderKeys = [],
@@ -108,7 +111,7 @@ export default function ScheduleDisplay({
     });
   });
 
-  const visibleDays = getVisibleScheduleDays(scheduleItems);
+  const visibleDays = getVisibleScheduleDays(scheduleItems, dayOrder);
 
   if (!isActive || scheduleItems.length === 0) {
     return (
@@ -231,7 +234,11 @@ export default function ScheduleDisplay({
                             {content}
                           </Link>
                         ) : (
-                          <div className='min-w-0 flex-1 opacity-60 cursor-default'>{content}</div>
+                          <div
+                            className={`min-w-0 flex-1 cursor-default ${show.isPlaceholder ? '' : 'opacity-60'}`}
+                          >
+                            {content}
+                          </div>
                         )}
                         <ScheduleReminderButton
                           show={show}

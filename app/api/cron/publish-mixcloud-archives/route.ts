@@ -13,6 +13,12 @@ export async function GET(request: NextRequest) {
     if (result.failed.length) {
       console.error('[CRON publish-mixcloud-archives] Some lookups failed:', result.failed);
     }
+    if (result.hostWarnings.length) {
+      console.warn(
+        '[CRON publish-mixcloud-archives] Mixcloud did not tag every host:',
+        result.hostWarnings
+      );
+    }
     return NextResponse.json(result);
   } catch (error) {
     console.error('[CRON publish-mixcloud-archives] Unexpected error:', error);

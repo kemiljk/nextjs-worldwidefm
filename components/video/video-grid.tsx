@@ -5,6 +5,7 @@ import { VideoObject } from '@/lib/cosmic-config';
 import { GenreTag } from '@/components/ui/genre-tag';
 import { Card, CardContent } from '@/components/ui/card';
 import { VideoThumbnailImage } from '@/components/ui/optimized-image';
+import { VideoCaption } from './video-caption';
 
 interface VideoGridProps {
   videos: VideoObject[];
@@ -149,15 +150,10 @@ export default function VideoGrid({ videos, availableCategories }: VideoGridProp
                 </CardContent>
               </Card>
             </Link>
-            {video.metadata?.description && (
-              <div className='mt-2'>
-                <p
-                  className={`text-muted-foreground ${isLarge ? 'text-base' : 'text-sm line-clamp-2'} mt-2`}
-                >
-                  {video.metadata.description}
-                </p>
-              </div>
-            )}
+            <VideoCaption
+              description={video.metadata?.description}
+              className={`mt-2 text-muted-foreground ${isLarge ? 'text-base' : 'text-sm [&>*:first-child]:line-clamp-2 [&>*:not(:first-child)]:hidden'}`}
+            />
           </div>
         );
       })}

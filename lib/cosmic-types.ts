@@ -128,6 +128,7 @@ export interface PageOrderItem {
     | 'coloured-sections'
     | 'membership-promo'
     | 'genre-selector'
+    | 'location-selector'
     | 'archive-block'
     | 'video-block'
     | 'editorial-block'

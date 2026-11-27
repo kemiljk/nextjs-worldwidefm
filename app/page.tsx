@@ -16,6 +16,8 @@ import EditorialSection from '@/components/editorial/editorial-section';
 import VideoSection from '@/components/video/video-section';
 import ArchiveSection from '@/components/archive/archive-section';
 import GenreSelector from '@/components/genre-selector';
+import LocationSelector, { type LocationOption } from '@/components/location-selector';
+import { getPublicFacet } from '@/lib/public-facets';
 import FeaturedSections from '@/components/featured-sections';
 import { PageOrderItem } from '@/lib/cosmic-types';
 import HomepageHero from '@/components/homepage-hero';
@@ -49,6 +51,10 @@ interface HomepageRenderContext {
     shows: any[];
     randomShowsByGenre: Record<string, any>;
     allCanonicalGenres: any[];
+  };
+  locationSelector: {
+    locations: LocationOption[];
+    suggestedLocations: LocationOption[];
   };
 }
 
@@ -89,6 +95,29 @@ function renderGenreSelector(ctx: HomepageRenderContext): React.ReactNode {
       allCanonicalGenres={ctx.genreSelector.allCanonicalGenres}
     />
   );
+}
+
+function renderLocationSelector(ctx: HomepageRenderContext): React.ReactNode {
+  return (
+    <LocationSelector
+      locations={ctx.locationSelector.locations}
+      suggestedLocations={ctx.locationSelector.suggestedLocations}
+    />
+  );
+}
+
+/** Locations of the recent shows: they are known to have archive audio worth suggesting. */
+function suggestLocations(shows: any[], limit = 8): LocationOption[] {
+  const suggested = new Map<string, LocationOption>();
+  for (const show of shows) {
+    for (const location of show.locations || show.metadata?.locations || []) {
+      if (location?.id && location?.title && !suggested.has(location.id)) {
+        suggested.set(location.id, { id: location.id, title: location.title });
+      }
+    }
+    if (suggested.size >= limit) break;
+  }
+  return [...suggested.values()];
 }
 
 function renderPageOrderItem(item: PageOrderItem, ctx: HomepageRenderContext): React.ReactNode {
@@ -156,6 +185,9 @@ function renderPageOrderItem(item: PageOrderItem, ctx: HomepageRenderContext): R
     case 'genre-selector':
       return renderGenreSelector(ctx);
 
+    case 'location-selector':
+      return renderLocationSelector(ctx);
+
     case 'archive-block':
       return ctx.archiveShows.length > 0 ? (
         <ArchiveSection shows={ctx.archiveShows} className='pt-8' />
@@ -188,7 +220,16 @@ function renderPageOrderItem(item: PageOrderItem, ctx: HomepageRenderContext): R
   }
 }
 
-export default async function Home() {
+// The page shell renders instantly; everything that reads live content streams in behind it.
+export default function Home() {
+  return (
+    <Suspense fallback={<div className='min-h-screen' aria-busy='true' />}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+async function HomeContent() {
   await connection();
 
   // Public data remains shared; each response renders its own streaming boundaries.
@@ -467,6 +508,11 @@ export default async function Home() {
   const hasVideoBlockInOrder = pageOrder.some(item => item.type === 'video-block');
   const hasEditorialBlockInOrder = pageOrder.some(item => item.type === 'editorial-block');
 
+  // Opt-in block: only fetch the location list when an editor has placed it.
+  const locations: LocationOption[] = pageOrder.some(item => item.type === 'location-selector')
+    ? (await getPublicFacet('locations').catch(() => [])).map(({ id, title }) => ({ id, title }))
+    : [];
+
   const renderContext: HomepageRenderContext = {
     colouredSections,
     archiveShows,
@@ -476,6 +522,10 @@ export default async function Home() {
       shows,
       randomShowsByGenre,
       allCanonicalGenres: canonicalGenres,
+    },
+    locationSelector: {
+      locations,
+      suggestedLocations: suggestLocations(shows),
     },
   };
 

@@ -1,3 +1,4 @@
+import { mixcloudHostUsernames } from '@/lib/mixcloud-username';
 import type { Readable } from 'node:stream';
 import { openUploadAudio } from '@/lib/upload-audio-stream';
 import axios from 'axios';
@@ -596,16 +597,7 @@ function parseHostUsernames(hostsJson: string | null | undefined): string[] {
 
   try {
     const hosts = JSON.parse(hostsJson);
-    if (!Array.isArray(hosts)) return [];
-
-    return Array.from(
-      new Set(
-        hosts
-          .filter((host): host is string => typeof host === 'string')
-          .map(host => host.trim().replace(/^@/, ''))
-          .filter(Boolean)
-      )
-    ).slice(0, 2);
+    return Array.isArray(hosts) ? mixcloudHostUsernames(hosts) : [];
   } catch {
     return [];
   }

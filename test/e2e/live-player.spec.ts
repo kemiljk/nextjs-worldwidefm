@@ -66,6 +66,8 @@ test('plays without metadata and shows generic label', async ({ page }) => {
 
   const label = page.getByTestId('live-player-label');
   await expect(label).toHaveText(/live stream/i);
+  // No show is on air, so the red "Live" indicator must not be shown.
+  await expect(page.getByTestId('live-player-live-indicator')).toHaveCount(0);
 
   const toggle = page.getByTestId('live-player-toggle');
   await toggle.click();
@@ -126,6 +128,7 @@ test('metadata updates do not pause playback', async ({ page }) => {
 
   const label = page.getByTestId('live-player-label');
   await expect(label).toHaveText(/test show/i);
+  await expect(page.getByTestId('live-player-live-indicator')).toBeVisible();
 
   const pauseCount = await page.evaluate(() => (window as any).__pauseCount);
   expect(pauseCount).toBe(0);
@@ -217,4 +220,17 @@ test('slow connection shows loading state before playing', async ({ page }) => {
 
   await expect(toggle).toHaveAttribute('data-loading', 'true');
   await expect(toggle).toHaveAttribute('data-loading', 'false');
+});
+
+test('the live indicator is hidden while the playlist is playing', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    (window as any).__emitPlayerMetadata({
+      content: { name: 'WWFM Playlist' },
+      metadata: { title: 'Track' },
+    });
+  });
+
+  await expect(page.getByTestId('live-player-label')).toHaveText(/check out our schedule/i);
+  await expect(page.getByTestId('live-player-live-indicator')).toHaveCount(0);
 });

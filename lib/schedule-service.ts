@@ -3,14 +3,18 @@ import { resolveEpisodeImage } from './episode-image';
 import { type GenreObject, type HostObject } from './cosmic-config';
 import type { EpisodeObject } from './cosmic-types';
 import {
-  getCurrentUkWeek,
+  getRollingUkWeek,
   parseDurationToMinutes,
   parseLondonDateTime,
   type UkWeekday,
   UK_WEEK_DAYS,
 } from './date-utils';
 import type { ScheduleShow, ScheduleDayMap } from './types/schedule';
-import { getScheduleEventId, mergeScheduleItems } from './schedule-days';
+import {
+  DEFAULT_PLACEHOLDER_MINUTES,
+  getScheduleEventId,
+  mergeScheduleItems,
+} from './schedule-days';
 
 const PLACEHOLDER_IMAGE = '/image-placeholder.png';
 const RERUN_SCHEDULE_ID = '69217f64b183692bb397e481';
@@ -26,6 +30,8 @@ export interface CurrentScheduleShow {
 export interface WeeklyScheduleResult {
   scheduleItems: ScheduleShow[];
   dayDates: ScheduleDayMap;
+  /** Weekdays in display order, starting today. */
+  dayOrder: UkWeekday[];
   isActive: boolean;
   error?: string;
 }
@@ -145,6 +151,7 @@ function buildScheduleShow(params: {
   time: string;
   isManual: boolean;
   isReplay?: boolean;
+  isPlaceholder?: boolean;
   overrideDuration?: string;
   urlOverride?: string;
 }): ScheduleShow {
@@ -156,6 +163,7 @@ function buildScheduleShow(params: {
     time,
     isManual,
     isReplay,
+    isPlaceholder,
     overrideDuration,
     urlOverride,
   } = params;
@@ -186,9 +194,11 @@ function buildScheduleShow(params: {
     modified_time: episode?.modified_at,
     tags: genres.map(genre => genre.title).filter(Boolean),
     hosts: hosts.map(host => host.title).filter(Boolean),
-    duration: parseDurationToMinutes(durationSource),
+    duration:
+      parseDurationToMinutes(durationSource) || (isPlaceholder ? DEFAULT_PLACEHOLDER_MINUTES : 0),
     isManual,
     isReplay,
+    ...(isPlaceholder ? { isPlaceholder } : {}),
   };
 }
 
@@ -271,18 +281,28 @@ async function fetchManualOverrides(dayDates: Partial<ScheduleDayMap>): Promise<
         (typedEntry?.metadata as Record<string, unknown>)?.override_duration ||
         undefined;
 
+      // A plain-text title stands in for a show that hasn't been submitted yet.
+      // Once an episode is linked, or published for the same slot, it wins.
+      const placeholderTitle =
+        typeof typedEntry?.placeholder_title === 'string'
+          ? typedEntry.placeholder_title.trim()
+          : '';
+      const isPlaceholder = !episode && placeholderTitle.length > 0;
+
       overrides.push(
         buildScheduleShow({
           episode,
           fallbackTitle: (typedEntry?.title ||
             typedEntry?.name ||
             episode?.title ||
+            placeholderTitle ||
             'Untitled') as string,
           showDay: day,
           date,
           time: overrideTime as string,
           isManual: true,
           isReplay,
+          isPlaceholder,
           overrideDuration: overrideDuration as string | undefined,
           urlOverride: typedEntry?.url as string | undefined,
         })
@@ -371,28 +391,21 @@ async function fetchAutomaticEpisodes(dayDates: Partial<ScheduleDayMap>): Promis
   }
 }
 
-function sortScheduleItems(items: ScheduleShow[]): ScheduleShow[] {
-  const dayOrder = new Map(UK_WEEK_DAYS.map((day, index) => [day, index]));
-
+export function sortScheduleItems(items: ScheduleShow[]): ScheduleShow[] {
+  // Order by calendar date, not weekday: the window starts today and wraps the week.
   return [...items].sort((a, b) => {
-    const dayComparison = (dayOrder.get(a.show_day) ?? 0) - (dayOrder.get(b.show_day) ?? 0);
-    if (dayComparison !== 0) {
-      return dayComparison;
-    }
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
 
     const [aHours, aMinutes] = a.show_time.split(':').map(Number);
     const [bHours, bMinutes] = b.show_time.split(':').map(Number);
 
-    const aTotal = aHours * 60 + aMinutes;
-    const bTotal = bHours * 60 + bMinutes;
-
-    return aTotal - bTotal;
+    return aHours * 60 + aMinutes - (bHours * 60 + bMinutes);
   });
 }
 
 export async function getWeeklySchedule(): Promise<WeeklyScheduleResult> {
   try {
-    const { dayDates } = getCurrentUkWeek(new Date(), false);
+    const { dayDates, orderedDays } = getRollingUkWeek();
     const targetDayDates = UK_WEEK_DAYS.reduce((acc, day) => {
       acc[day] = dayDates[day];
       return acc;
@@ -408,13 +421,16 @@ export async function getWeeklySchedule(): Promise<WeeklyScheduleResult> {
     return {
       scheduleItems,
       dayDates,
+      dayOrder: orderedDays,
       isActive: scheduleItems.length > 0,
     };
   } catch (error) {
     console.error('[Schedule] Unexpected error generating schedule', error);
+    const { dayDates, orderedDays } = getRollingUkWeek();
     return {
       scheduleItems: [],
-      dayDates: getCurrentUkWeek(new Date(), false).dayDates,
+      dayDates,
+      dayOrder: orderedDays,
       isActive: false,
       error: error instanceof Error ? error.message : 'Failed to generate schedule.',
     };

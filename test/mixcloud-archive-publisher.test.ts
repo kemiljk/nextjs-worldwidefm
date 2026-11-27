@@ -15,6 +15,7 @@ mock.module('@/lib/cosmic-config', () => ({
         const chain = {
           props: () => chain,
           limit: () => chain,
+          depth: () => chain,
           status: async () => {
             if (!pendingEpisodes.length)
               throw Object.assign(new Error('Not found'), { status: 404 });
@@ -47,6 +48,15 @@ const mixcloudApi: typeof fetch = (async (input: string | URL | Request) => {
   const url = String(input);
   if (url.endsWith('/worldwidefm/live-show/')) {
     return Response.json({ key: '/worldwidefm/live-show/', name: 'Live Show' });
+  }
+  if (url.endsWith('/worldwidefm/tagged-show/')) {
+    return Response.json({
+      key: '/worldwidefm/tagged-show/',
+      hosts: [{ username: 'RohanRakhit' }],
+    });
+  }
+  if (url.endsWith('/worldwidefm/untagged-show/')) {
+    return Response.json({ key: '/worldwidefm/untagged-show/', hosts: [] });
   }
   if (url.endsWith('/worldwidefm/broken/')) {
     return new Response('upstream error', { status: 503 });
@@ -126,10 +136,94 @@ describe('publishPendingMixcloudArchives', () => {
     ]);
   });
 
+  describe('host tag verification', () => {
+    const host = (mixcloud_username: string | null) => ({
+      title: 'A Host',
+      metadata: { mixcloud_username },
+    });
+
+    it('reports hosts Mixcloud did not tag, without blocking publication', async () => {
+      pendingEpisodes = [
+        {
+          id: 'untagged',
+          slug: 'untagged-show',
+          metadata: {
+            mixcloud_pending_url: 'https://www.mixcloud.com/worldwidefm/untagged-show/',
+            regular_hosts: [host('@rohan-rakhit'), host(null)],
+          },
+        },
+      ];
+
+      const result = await publishPendingMixcloudArchives({ fetchFn: mixcloudApi });
+
+      expect(result.published).toEqual(['untagged']);
+      expect(result.hostWarnings).toEqual([
+        {
+          id: 'untagged',
+          slug: 'untagged-show',
+          url: 'https://www.mixcloud.com/worldwidefm/untagged-show/',
+          expected: ['rohan-rakhit'],
+          tagged: [],
+          missing: ['rohan-rakhit'],
+        },
+      ]);
+    });
+
+    it('stays quiet when the tag is there (ignoring case and @), or none was requested', async () => {
+      pendingEpisodes = [
+        {
+          id: 'tagged',
+          slug: 'tagged-show',
+          metadata: {
+            mixcloud_pending_url: 'https://www.mixcloud.com/worldwidefm/tagged-show/',
+            regular_hosts: [host('https://www.mixcloud.com/rohanrakhit/')],
+          },
+        },
+        {
+          id: 'no-usernames',
+          slug: 'untagged-show',
+          metadata: {
+            mixcloud_pending_url: 'https://www.mixcloud.com/worldwidefm/untagged-show/',
+            regular_hosts: [host(null)],
+          },
+        },
+      ];
+
+      const result = await publishPendingMixcloudArchives({ fetchFn: mixcloudApi });
+
+      expect(result.published).toEqual(['tagged', 'no-usernames']);
+      expect(result.hostWarnings).toEqual([]);
+    });
+
+    it('does not guess when Mixcloud does not report hosts at all', async () => {
+      pendingEpisodes = [
+        {
+          id: 'live',
+          slug: 'live-show',
+          metadata: {
+            mixcloud_pending_url: LIVE_URL,
+            regular_hosts: [host('someone')],
+          },
+        },
+      ];
+
+      const result = await publishPendingMixcloudArchives({ fetchFn: mixcloudApi });
+
+      expect(result.published).toEqual(['live']);
+      expect(result.hostWarnings).toEqual([]);
+    });
+  });
+
   it('does nothing when no episodes are pending', async () => {
     const result = await publishPendingMixcloudArchives({ fetchFn: mixcloudApi });
 
-    expect(result).toEqual({ checked: 0, published: [], pending: [], failed: [] });
+    expect(result).toEqual({
+      checked: 0,
+      published: [],
+      pending: [],
+      failed: [],
+      hostWarnings: [],
+    });
     expect(cosmicUpdates).toHaveLength(0);
   });
 });

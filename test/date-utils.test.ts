@@ -4,6 +4,7 @@ import {
   parseLondonDateTime,
   formatLondonBroadcastTime,
   getCurrentUkWeek,
+  getRollingUkWeek,
 } from '@/lib/date-utils';
 
 describe('parseLondonDateTime', () => {
@@ -56,5 +57,44 @@ describe('getCurrentUkWeek', () => {
     const saturday = new Date('2026-08-22T12:00:00.000Z');
 
     expect(getCurrentUkWeek(saturday, false).dayDates.Saturday).toBe('2026-08-22');
+  });
+});
+
+describe('getRollingUkWeek', () => {
+  it('starts today and runs seven days, not the calendar week', () => {
+    // Wednesday 2026-11-25, midday in London (GMT).
+    const week = getRollingUkWeek(new Date('2026-11-25T12:00:00.000Z'));
+
+    expect(week.orderedDays).toEqual([
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+      'Monday',
+      'Tuesday',
+    ]);
+    expect(week.dayDates.Wednesday).toBe('2026-11-25');
+    expect(week.dayDates.Sunday).toBe('2026-11-29');
+    expect(week.dayDates.Monday).toBe('2026-11-30');
+    expect(week.dayDates.Tuesday).toBe('2026-12-01');
+  });
+
+  it('maps every weekday to exactly one date inside the window', () => {
+    const week = getRollingUkWeek(new Date('2026-11-27T09:00:00.000Z'));
+    const dates = Object.values(week.dayDates);
+
+    expect(new Set(dates).size).toBe(7);
+    expect(week.orderedDays[0]).toBe('Friday');
+    expect(dates.sort()[0]).toBe('2026-11-27');
+    expect(dates.sort()[6]).toBe('2026-12-03');
+  });
+
+  it('uses the London date when UTC is still on the previous day', () => {
+    // 23:30 UTC on 2026-06-30 is already 00:30 BST on 1 July.
+    const week = getRollingUkWeek(new Date('2026-06-30T23:30:00.000Z'));
+
+    expect(week.orderedDays[0]).toBe('Wednesday');
+    expect(week.dayDates.Wednesday).toBe('2026-07-01');
   });
 });

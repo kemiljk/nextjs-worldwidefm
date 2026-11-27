@@ -16,3 +16,12 @@ for (const [path, heading, field] of [
     expect(errors).toEqual([]);
   });
 }
+
+test('submission form shows typed text in the case it was entered', async ({ page }) => {
+  await page.goto('/add-show');
+  const title = page.getByPlaceholder('Enter show title');
+  await title.fill('Luke Una: The Heat Is On');
+  await expect(title).toHaveValue('Luke Una: The Heat Is On');
+  // CSS must not upper-case what was typed, or staff cannot check the casing that gets saved.
+  await expect(title).toHaveCSS('text-transform', 'none');
+});

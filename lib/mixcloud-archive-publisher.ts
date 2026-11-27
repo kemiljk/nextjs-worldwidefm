@@ -1,6 +1,7 @@
 import { cosmic } from '@/lib/cosmic-config';
 import { publishMixcloudLinkToEpisode } from '@/lib/episode-archive';
 import { getMixcloudApiBaseUrl } from '@/lib/upload-config';
+import { mixcloudHostUsernames } from '@/lib/mixcloud-username';
 
 const LOOKUP_TIMEOUT_MS = 10_000;
 const MAX_PENDING_PER_RUN = 100;
@@ -8,7 +9,20 @@ const MAX_PENDING_PER_RUN = 100;
 type PendingEpisode = {
   id: string;
   slug?: string;
-  metadata?: { mixcloud_pending_url?: string | null };
+  metadata?: {
+    mixcloud_pending_url?: string | null;
+    regular_hosts?: { title?: string; metadata?: { mixcloud_username?: string | null } | null }[];
+  };
+};
+
+/** A published cloudcast that Mixcloud did not tag with every host we asked it to. */
+export type HostTagWarning = {
+  id: string;
+  slug?: string;
+  url: string;
+  expected: string[];
+  tagged: string[];
+  missing: string[];
 };
 
 export type PublishPendingResult = {
@@ -16,6 +30,7 @@ export type PublishPendingResult = {
   published: string[];
   pending: string[];
   failed: { id: string; error: string }[];
+  hostWarnings: HostTagWarning[];
 };
 
 type Options = {
@@ -47,8 +62,19 @@ export async function isMixcloudCloudcastLive(
   url: string,
   options: Options = {}
 ): Promise<boolean> {
+  return (await lookupMixcloudCloudcast(url, options)).live;
+}
+
+/**
+ * Looks the cloudcast up as a listener would. `hosts` is the usernames Mixcloud has
+ * tagged, or undefined when the response doesn't say (so callers never guess).
+ */
+export async function lookupMixcloudCloudcast(
+  url: string,
+  options: Options = {}
+): Promise<{ live: boolean; hosts?: string[] }> {
   const key = mixcloudKeyFromUrl(url);
-  if (!key) return false;
+  if (!key) return { live: false };
 
   const fetchImpl = options.fetchFn ?? fetch;
   const response = await fetchImpl(`${options.apiBaseUrl ?? getMixcloudApiBaseUrl()}${key}`, {
@@ -56,13 +82,28 @@ export async function isMixcloudCloudcastLive(
     cache: 'no-store',
   });
 
-  if (response.status === 404) return false;
+  if (response.status === 404) return { live: false };
   if (!response.ok) {
     throw new Error(`Mixcloud lookup failed (HTTP ${response.status})`);
   }
 
-  const data = (await response.json()) as { key?: string };
-  return data.key === key;
+  const data = (await response.json()) as { key?: string; hosts?: { username?: string }[] };
+  if (data.key !== key) return { live: false };
+  return {
+    live: true,
+    hosts: Array.isArray(data.hosts)
+      ? data.hosts.map(host => host?.username ?? '').filter(Boolean)
+      : undefined,
+  };
+}
+
+/** Hosts we asked Mixcloud to tag that it didn't. Empty when none were requested. */
+export function findMissingHostTags(
+  expectedUsernames: string[],
+  taggedUsernames: string[]
+): string[] {
+  const tagged = new Set(taggedUsernames.map(username => username.toLowerCase()));
+  return expectedUsernames.filter(username => !tagged.has(username.toLowerCase()));
 }
 
 async function fetchPendingEpisodes(): Promise<PendingEpisode[]> {
@@ -72,8 +113,9 @@ async function fetchPendingEpisodes(): Promise<PendingEpisode[]> {
         type: 'episode',
         'metadata.mixcloud_pending_url': { $regex: '\\S' },
       })
-      .props('id,slug,metadata.mixcloud_pending_url')
+      .props('id,slug,metadata.mixcloud_pending_url,metadata.regular_hosts')
       .limit(MAX_PENDING_PER_RUN)
+      .depth(1)
       .status('any');
 
     return (response.objects ?? []) as PendingEpisode[];
@@ -93,6 +135,7 @@ export async function publishPendingMixcloudArchives(
     published: [],
     pending: [],
     failed: [],
+    hostWarnings: [],
   };
 
   for (const episode of episodes) {
@@ -100,9 +143,29 @@ export async function publishPendingMixcloudArchives(
     if (!url) continue;
 
     try {
-      if (await isMixcloudCloudcastLive(url, options)) {
+      const cloudcast = await lookupMixcloudCloudcast(url, options);
+      if (cloudcast.live) {
         await publishMixcloudLinkToEpisode(episode.id, url, episode.slug);
         result.published.push(episode.id);
+
+        // Mixcloud silently drops a host it can't tag (unknown username, invite not
+        // accepted). Now that the cloudcast is public, check and report it.
+        if (cloudcast.hosts) {
+          const expected = mixcloudHostUsernames(
+            (episode.metadata?.regular_hosts ?? []).map(host => host?.metadata?.mixcloud_username)
+          );
+          const missing = findMissingHostTags(expected, cloudcast.hosts);
+          if (missing.length > 0) {
+            result.hostWarnings.push({
+              id: episode.id,
+              slug: episode.slug,
+              url,
+              expected,
+              tagged: cloudcast.hosts,
+              missing,
+            });
+          }
+        }
       } else {
         result.pending.push(episode.id);
       }
