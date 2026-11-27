@@ -6,6 +6,7 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useId,
   useRef,
   useState,
 } from 'react';
@@ -15,6 +16,7 @@ import { fetchFormHosts } from '@/lib/actions/form-options';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Dropzone } from '@/components/ui/dropzone';
 import {
@@ -37,6 +39,7 @@ import {
 } from '@/lib/upload-master-flow';
 import {
   MAX_MIXCLOUD_HOST_TAGS,
+  extractSubmittedMixcloudUsernames,
   mixcloudHostUsernames,
   normalizeMixcloudUsername,
 } from '@/lib/mixcloud-username';
@@ -131,6 +134,9 @@ const UploadMasterJob = forwardRef<UploadJobHandle, UploadMasterJobProps>(functi
   const [selectedCoHostIds, setSelectedCoHostIds] = useState<string[]>([]);
   const [coHostInput, setCoHostInput] = useState('');
   const [isCoHostListOpen, setIsCoHostListOpen] = useState(false);
+  const checkboxIdPrefix = useId();
+  // Staff's ticks for usernames hosts typed into the submission form, by lowercase username.
+  const [submittedTagChoices, setSubmittedTagChoices] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchFormHosts().then(setHosts).catch(console.error);
@@ -172,6 +178,7 @@ const UploadMasterJob = forwardRef<UploadJobHandle, UploadMasterJobProps>(functi
   }, [broadcastDate, fetchEpisodesByDate]);
 
   useEffect(() => {
+    setSubmittedTagChoices({});
     if (!selectedEpisode) {
       setSelectedCoHostIds([]);
       return;
@@ -213,6 +220,37 @@ const UploadMasterJob = forwardRef<UploadJobHandle, UploadMasterJobProps>(functi
       overLimitHosts: withUsername.slice(MAX_MIXCLOUD_HOST_TAGS),
     };
   }, [selectedCoHosts]);
+
+  // Usernames from the submission form can be tagged too, so a host needs no Cosmic profile first.
+  // A pasted mixcloud.com link is ticked for staff; a bare @name could be another platform, so
+  // it starts unticked.
+  const submittedUsernames = useMemo(
+    () =>
+      extractSubmittedMixcloudUsernames(selectedEpisode?.metadata?.mixcloud_submission_notes).map(
+        entry => ({
+          ...entry,
+          checked: submittedTagChoices[entry.username.toLowerCase()] ?? entry.fromLink,
+        })
+      ),
+    [selectedEpisode, submittedTagChoices]
+  );
+  const profileUsernames = useMemo(
+    () => selectedCoHosts.map(host => host.metadata?.mixcloud_username),
+    [selectedCoHosts]
+  );
+  const tagUsernames = useMemo(
+    () =>
+      mixcloudHostUsernames([
+        ...profileUsernames,
+        ...submittedUsernames.filter(entry => entry.checked).map(entry => entry.username),
+      ]),
+    [profileUsernames, submittedUsernames]
+  );
+  const droppedSubmittedUsernames = submittedUsernames.filter(
+    entry =>
+      entry.checked &&
+      !tagUsernames.some(username => username.toLowerCase() === entry.username.toLowerCase())
+  );
 
   const showPageUrl = selectedEpisode
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/episode/${selectedEpisode.slug}`
@@ -269,9 +307,7 @@ const UploadMasterJob = forwardRef<UploadJobHandle, UploadMasterJobProps>(functi
     setIsSubmitting(true);
     setPhase('uploadingBlob');
 
-    const taggedUsernames = mixcloudHostUsernames(
-      selectedCoHosts.map(host => host.metadata?.mixcloud_username)
-    );
+    const taggedUsernames = tagUsernames;
 
     const combinedHostIds = Array.from(new Set(selectedCoHostIds));
 
@@ -554,10 +590,41 @@ const UploadMasterJob = forwardRef<UploadJobHandle, UploadMasterJobProps>(functi
               <p className='font-medium'>Submitted Mixcloud details</p>
               <p>{selectedEpisode.metadata.mixcloud_submission_notes}</p>
               <p className='text-muted-foreground'>
-                Use these details to update host profiles and select co-hosts below. Submission does
-                not automatically tag them.
+                Use these details to update host profiles and select co-hosts below. Usernames
+                written as @name or a Mixcloud link can be tagged straight from here.
               </p>
             </div>
+          )}
+          {submittedUsernames.length > 0 && (
+            <fieldset className='space-y-2 text-sm' disabled={isSubmitting}>
+              <legend className='font-medium'>Tag these Mixcloud usernames</legend>
+              {submittedUsernames.map(entry => {
+                const id = `${checkboxIdPrefix}-${entry.username}`;
+                return (
+                  <div key={entry.username} className='flex items-center gap-2'>
+                    <Checkbox
+                      id={id}
+                      checked={entry.checked}
+                      onCheckedChange={checked =>
+                        setSubmittedTagChoices(prev => ({
+                          ...prev,
+                          [entry.username.toLowerCase()]: checked === true,
+                        }))
+                      }
+                    />
+                    <Label htmlFor={id} className='normal-case font-normal'>
+                      @{entry.username}
+                      {!entry.fromLink && (
+                        <span className='text-muted-foreground'>
+                          {' '}
+                          (typed as @name, check it&apos;s their Mixcloud)
+                        </span>
+                      )}
+                    </Label>
+                  </div>
+                );
+              })}
+            </fieldset>
           )}
           <Command
             className='w-full border border-input rounded-none relative'
@@ -616,7 +683,9 @@ const UploadMasterJob = forwardRef<UploadJobHandle, UploadMasterJobProps>(functi
             Hosts with a Mixcloud username will be tagged on the Mixcloud upload (max{' '}
             {MAX_MIXCLOUD_HOST_TAGS}). All selected hosts are saved to the episode page.
           </p>
-          {(untaggableHosts.length > 0 || overLimitHosts.length > 0) && (
+          {(untaggableHosts.length > 0 ||
+            overLimitHosts.length > 0 ||
+            droppedSubmittedUsernames.length > 0) && (
             <div
               role='alert'
               className='border border-amber-500 bg-amber-50 p-3 text-sm space-y-1 dark:bg-amber-950'
@@ -626,6 +695,12 @@ const UploadMasterJob = forwardRef<UploadJobHandle, UploadMasterJobProps>(functi
                   Won&apos;t be tagged on Mixcloud — no valid Mixcloud username in Cosmic:{' '}
                   {untaggableHosts.map(host => host.title).join(', ')}. Add one on the host in
                   Cosmic, then reload this page.
+                </p>
+              )}
+              {droppedSubmittedUsernames.length > 0 && (
+                <p>
+                  Won&apos;t be tagged — Mixcloud allows {MAX_MIXCLOUD_HOST_TAGS} hosts per upload:{' '}
+                  {droppedSubmittedUsernames.map(entry => `@${entry.username}`).join(', ')}.
                 </p>
               )}
               {overLimitHosts.length > 0 && (

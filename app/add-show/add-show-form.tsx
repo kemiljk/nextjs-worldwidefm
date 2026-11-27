@@ -1060,14 +1060,16 @@ export function AddShowForm() {
                 <FormLabel>Mixcloud usernames and co-hosts (optional)</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder='Host and co-host names and Mixcloud usernames'
+                    placeholder='Host and co-host names and Mixcloud usernames, e.g. @username'
                     maxLength={500}
                     {...field}
                   />
                 </FormControl>
                 <FormDescription>
-                  Add the names and Mixcloud usernames of anyone who should be tagged. They must
-                  accept an invitation to co-host from Worldwide FM on Mixcloud.
+                  Add the names and Mixcloud usernames of anyone who should be tagged. Write each
+                  username as @username or paste their Mixcloud profile link so we can tag them
+                  automatically. They must accept an invitation to co-host from Worldwide FM on
+                  Mixcloud.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

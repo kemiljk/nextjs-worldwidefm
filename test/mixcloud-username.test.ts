@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'bun:test';
-import { mixcloudHostUsernames, normalizeMixcloudUsername } from '@/lib/mixcloud-username';
+import {
+  extractSubmittedMixcloudUsernames,
+  mixcloudHostUsernames,
+  normalizeMixcloudUsername,
+} from '@/lib/mixcloud-username';
 
 describe('normalizeMixcloudUsername', () => {
   it.each([
@@ -33,5 +37,29 @@ describe('mixcloudHostUsernames', () => {
         'three',
       ])
     ).toEqual(['one', 'two']);
+  });
+});
+
+describe('extractSubmittedMixcloudUsernames', () => {
+  it('reads @handles and mixcloud links, and ignores plain names and emails', () => {
+    expect(
+      extractSubmittedMixcloudUsernames(
+        'Me: Jo Bloggs @jo_bloggs, co-host https://www.mixcloud.com/Sam-S/ (sam@example.com)'
+      )
+    ).toEqual([
+      { username: 'jo_bloggs', fromLink: false },
+      { username: 'Sam-S', fromLink: true },
+    ]);
+  });
+
+  it('lists each username once and marks it as a link if any mention was a link', () => {
+    expect(
+      extractSubmittedMixcloudUsernames('@Rohan and mixcloud.com/rohan/uploads, also @rohan.')
+    ).toEqual([{ username: 'Rohan', fromLink: true }]);
+  });
+
+  it('returns nothing for text without usernames', () => {
+    expect(extractSubmittedMixcloudUsernames('Gilles Peterson and friend')).toEqual([]);
+    expect(extractSubmittedMixcloudUsernames(undefined)).toEqual([]);
   });
 });

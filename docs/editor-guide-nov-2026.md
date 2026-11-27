@@ -46,3 +46,24 @@ without one. To list every recent host who is missing one:
 `bun run scripts/audit-mixcloud-hosts.ts --days=120 --csv=hosts.csv`
 After a show goes live on Mixcloud, the publishing job now checks the tags and logs any host that
 was requested but not tagged (look for "Mixcloud did not tag every host" in the logs).
+Usernames hosts type into the submission form (written as `@name` or a Mixcloud link) now show up
+in Upload Master under "Tag these Mixcloud usernames". Links are ticked for you. A bare `@name` is
+left unticked, because it could be an Instagram handle, so check it is their Mixcloud first. The
+two-host limit still applies.
+
+## Weekly shows and repeating hosts
+
+You can already edit these yourselves in Cosmic under **Recurring Shows**. Change the placeholder
+copy on a show and the next weekly pages use it. To add a new repeating host, create and publish a
+Recurring Show with the host, day, start time and duration. Unpublish one to stop its pages being
+created. Pages that already exist are not rewritten. Five older pages still say "Audio, genres, and
+tracklist to be added after the live show." and can be edited by hand: Shai Space (21 Aug and 3
+Jul), Alfie Panaiotis (1 Jul), Worldwide Breakfast (1 Jul) and Worldwide Breakfast: Kamar (5 Aug).
+
+## Hand-picking shows on the homepage
+
+You are not limited to show type. In a **Coloured Sections** block, each section has `Episodes`
+(pick individual shows) and `Hosts` (the latest shows from those hosts) as well as `Show Type`.
+If Episodes is filled in it is used, otherwise Hosts, otherwise Show Type, so leave the ones you
+don't want empty. None of them is required. For a hand-picked archive row, add a **Sections** block,
+set its type to **Archive** and choose the shows under Items.
